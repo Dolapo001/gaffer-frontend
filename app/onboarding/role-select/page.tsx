@@ -7,7 +7,7 @@ import { useAuthStore, type UserRole } from '@/store/authStore'
 import { RoleCard } from '@/components/RoleCard'
 import { GradientButton } from '@/components/GradientButton'
 import { AccountInfoModal } from '@/components/AccountInfoModal'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, User, Building2 } from 'lucide-react'
 
 export default function RoleSelectPage() {
   const router = useRouter()
@@ -28,22 +28,6 @@ export default function RoleSelectPage() {
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col">
-      {/* Background silhouette decorations */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute bottom-0 right-0 w-56 h-80 opacity-10">
-          <svg viewBox="0 0 200 280" fill="white">
-            <circle cx="100" cy="40" r="28" />
-            <path d="M55 280 C55 190 75 160 100 160 C125 160 145 190 145 280Z" />
-          </svg>
-        </div>
-        <div className="absolute bottom-0 left-8 w-40 h-64 opacity-5">
-          <svg viewBox="0 0 160 250" fill="white">
-            <circle cx="80" cy="35" r="22" />
-            <path d="M40 250 C40 175 58 148 80 148 C102 148 120 175 120 250Z" />
-          </svg>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="relative z-10 flex items-center gap-3 px-6 pt-12 pb-4">
         <button
@@ -78,15 +62,15 @@ export default function RoleSelectPage() {
         <div className="grid grid-cols-2 gap-3 mb-8">
           <RoleCard
             title="Personal"
-            description="Manage your personal sporting activities"
-            imageSrc="/images/personal-card.svg"
+            description="Manage your personal Sporting activities"
+            icon={<User size={28} className={selectedRole === 'personal' ? 'text-gaffer-orange' : 'text-gaffer-muted'} />}
             selected={selectedRole === 'personal'}
             onSelect={() => setSelectedRole('personal')}
           />
           <RoleCard
             title="Organization"
-            description="Manage your sports organization or tournaments"
-            imageSrc="/images/org-card.svg"
+            description="Manage your Sports organization or activities"
+            icon={<Building2 size={28} className={selectedRole === 'organization' ? 'text-gaffer-orange' : 'text-gaffer-muted'} />}
             selected={selectedRole === 'organization'}
             onSelect={() => setSelectedRole('organization')}
           />
