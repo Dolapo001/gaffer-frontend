@@ -1,0 +1,88 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gaffer-bg: #0A0C10;
+  --gaffer-surface: #131720;
+  --gaffer-card: #1A1F2E;
+  --gaffer-border: #252D3D;
+  --gaffer-orange: #FF6B00;
+  --gaffer-red: #E53000;
+}
+
+/* Remove tap highlight on mobile */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: var(--gaffer-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gaffer-border);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--gaffer-orange);
+}
+
+/* Safe area utilities */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Gradient text */
+.text-gradient-orange {
+  background: linear-gradient(135deg, #FF6B00 0%, #CC2200 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Input autofill override */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: white;
+  -webkit-box-shadow: 0 0 0px 1000px #1A1F2E inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Select option styling */
+select option {
+  background-color: #1A1F2E;
+  color: white;
+}
+
+/* Page transition container */
+.page-wrapper {
+  min-height: 100dvh;
+  min-height: 100vh;
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(26, 31, 46, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(37, 45, 61, 0.8);
+}
