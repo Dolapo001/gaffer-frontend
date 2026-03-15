@@ -29,6 +29,7 @@ export function SelectInput({
       )}
       <div className="relative">
         <select
+          defaultValue=""
           className={`
             w-full px-4 py-3.5 rounded-xl appearance-none
             bg-gaffer-card border border-gaffer-border
