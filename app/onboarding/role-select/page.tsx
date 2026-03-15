@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { isStandalone } from '@/lib/pwa'
 import { useAuthStore, type UserRole } from '@/store/authStore'
 import { RoleCard } from '@/components/RoleCard'
 import { GradientButton } from '@/components/GradientButton'
 import { AccountInfoModal } from '@/components/AccountInfoModal'
-import { GafferLogo } from '@/components/GafferLogo'
 import { ChevronLeft } from 'lucide-react'
 
 export default function RoleSelectPage() {
@@ -16,12 +14,6 @@ export default function RoleSelectPage() {
   const { setRole } = useAuthStore()
   const [selectedRole, setSelectedRole] = useState<UserRole>(null)
   const [showModal, setShowModal] = useState(false)
-
-  useEffect(() => {
-    if (!isStandalone()) {
-      router.replace('/')
-    }
-  }, [router])
 
   const handleNext = () => {
     if (!selectedRole) return
@@ -44,7 +36,7 @@ export default function RoleSelectPage() {
             <path d="M55 280 C55 190 75 160 100 160 C125 160 145 190 145 280Z" />
           </svg>
         </div>
-        <div className="absolute bottom-0 left-0 w-40 h-64 opacity-5">
+        <div className="absolute bottom-0 left-8 w-40 h-64 opacity-5">
           <svg viewBox="0 0 160 250" fill="white">
             <circle cx="80" cy="35" r="22" />
             <path d="M40 250 C40 175 58 148 80 148 C102 148 120 175 120 250Z" />
@@ -56,6 +48,7 @@ export default function RoleSelectPage() {
       <div className="relative z-10 flex items-center gap-3 px-6 pt-12 pb-4">
         <button
           onClick={() => router.back()}
+          aria-label="Go back"
           className="flex items-center justify-center w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />
@@ -63,7 +56,7 @@ export default function RoleSelectPage() {
         <span className="text-xs text-gaffer-muted font-body tracking-wide">New Account</span>
       </div>
 
-      {/* Main Content */}
+      {/* Main content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -72,9 +65,7 @@ export default function RoleSelectPage() {
       >
         {/* Title */}
         <div className="mb-6 mt-2">
-          <h1 className="font-display font-black text-4xl text-white leading-tight">
-            Hello,
-          </h1>
+          <h1 className="font-display font-black text-4xl text-white leading-tight">Hello,</h1>
           <h1 className="font-display font-black text-4xl text-gradient-orange leading-tight">
             GAFFER
           </h1>
@@ -83,7 +74,7 @@ export default function RoleSelectPage() {
           </p>
         </div>
 
-        {/* Role Cards */}
+        {/* Role cards */}
         <div className="grid grid-cols-2 gap-3 mb-8">
           <RoleCard
             title="Personal"
@@ -101,10 +92,9 @@ export default function RoleSelectPage() {
           />
         </div>
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Next Button */}
+        {/* Actions */}
         <div className="space-y-3">
           <GradientButton
             onClick={handleNext}
@@ -126,7 +116,7 @@ export default function RoleSelectPage() {
         </div>
       </motion.div>
 
-      {/* Account Info Modal */}
+      {/* Account info modal */}
       {selectedRole && (
         <AccountInfoModal
           isOpen={showModal}

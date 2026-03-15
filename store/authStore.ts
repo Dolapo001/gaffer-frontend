@@ -32,36 +32,30 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       user: null,
       isAuthenticated: false,
       isLoading: false,
       role: null,
       error: null,
 
-      setUser: (user) =>
-        set({ user, isAuthenticated: !!user }),
+      setUser: (user) => set({ user, isAuthenticated: !!user }),
 
-      setRole: (role) =>
-        set({ role }),
+      setRole: (role) => set({ role }),
 
-      setLoading: (isLoading) =>
-        set({ isLoading }),
+      setLoading: (isLoading) => set({ isLoading }),
 
-      setError: (error) =>
-        set({ error }),
+      setError: (error) => set({ error }),
 
-      clearError: () =>
-        set({ error: null }),
+      clearError: () => set({ error: null }),
 
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const result = await loginWithEmail(email, password)
-          set({ user: result.user, isAuthenticated: true })
+          const { user } = await loginWithEmail(email, password)
+          set({ user: user as User, isAuthenticated: true })
         } catch (err: unknown) {
-          const message = getFirebaseErrorMessage(err)
-          set({ error: message })
+          set({ error: getFirebaseErrorMessage(err) })
           throw err
         } finally {
           set({ isLoading: false })
@@ -71,11 +65,10 @@ export const useAuthStore = create<AuthState>()(
       loginWithGoogle: async () => {
         set({ isLoading: true, error: null })
         try {
-          const result = await loginWithGoogle()
-          set({ user: result.user, isAuthenticated: true })
+          const { user } = await loginWithGoogle()
+          set({ user: user as User, isAuthenticated: true })
         } catch (err: unknown) {
-          const message = getFirebaseErrorMessage(err)
-          set({ error: message })
+          set({ error: getFirebaseErrorMessage(err) })
           throw err
         } finally {
           set({ isLoading: false })
@@ -85,12 +78,11 @@ export const useAuthStore = create<AuthState>()(
       register: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const result = await registerWithEmail(email, password)
-          set({ user: result.user, isAuthenticated: true })
-          return result.user
+          const { user } = await registerWithEmail(email, password)
+          set({ user: user as User, isAuthenticated: true })
+          return user as User
         } catch (err: unknown) {
-          const message = getFirebaseErrorMessage(err)
-          set({ error: message })
+          set({ error: getFirebaseErrorMessage(err) })
           throw err
         } finally {
           set({ isLoading: false })
@@ -100,11 +92,10 @@ export const useAuthStore = create<AuthState>()(
       registerWithGoogle: async () => {
         set({ isLoading: true, error: null })
         try {
-          const result = await loginWithGoogle()
-          set({ user: result.user, isAuthenticated: true })
+          const { user } = await loginWithGoogle()
+          set({ user: user as User, isAuthenticated: true })
         } catch (err: unknown) {
-          const message = getFirebaseErrorMessage(err)
-          set({ error: message })
+          set({ error: getFirebaseErrorMessage(err) })
           throw err
         } finally {
           set({ isLoading: false })
@@ -117,8 +108,7 @@ export const useAuthStore = create<AuthState>()(
           await logoutUser()
           set({ user: null, isAuthenticated: false, role: null })
         } catch (err: unknown) {
-          const message = getFirebaseErrorMessage(err)
-          set({ error: message })
+          set({ error: getFirebaseErrorMessage(err) })
         } finally {
           set({ isLoading: false })
         }
@@ -127,15 +117,15 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'gaffer-auth',
       storage: createJSONStorage(() => localStorage),
+      // Persist role and basic auth flag; Firebase SDK handles the actual session token
       partialize: (state) => ({
         role: state.role,
-        // Don't persist user object — Firebase handles session
+        isAuthenticated: state.isAuthenticated,
       }),
     }
   )
 )
 
-// Convert Firebase error codes to human-readable messages
 function getFirebaseErrorMessage(error: unknown): string {
   if (typeof error === 'object' && error !== null && 'code' in error) {
     const code = (error as { code: string }).code

@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Font CSS variables — populated from Google Fonts link tag in layout.tsx */
+:root {
+  --font-barlow: 'Barlow', system-ui, sans-serif;
+  --font-barlow-condensed: 'Barlow Condensed', system-ui, sans-serif;
+}
+
 :root {
   --gaffer-bg: #0A0C10;
   --gaffer-surface: #131720;

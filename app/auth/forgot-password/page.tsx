@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { sendPasswordResetEmail, auth } from '@/lib/firebase'
+import { resetPassword } from '@/lib/firebase'
 import { AuthInput } from '@/components/AuthInput'
 import { GradientButton } from '@/components/GradientButton'
 import { ChevronLeft, CheckCircle } from 'lucide-react'
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
     setLoading(true)
     setError(null)
     try {
-      await sendPasswordResetEmail(auth, data.email)
+      await resetPassword(data.email)
       setSent(true)
     } catch {
       setError('Failed to send reset email. Please check the address and try again.')

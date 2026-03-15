@@ -64,7 +64,7 @@ export function IOSInstallModal({ isOpen, onClose }: IOSInstallModalProps) {
                     2. Add to Home Screen
                   </p>
                   <p className="text-gaffer-muted text-xs font-body mt-0.5">
-                    Scroll down and tap "Add to Home Screen"
+                    Scroll down and tap &ldquo;Add to Home Screen&rdquo;
                   </p>
                 </div>
               </div>

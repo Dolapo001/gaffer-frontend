@@ -3,11 +3,10 @@
 import { useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { isStandalone } from '@/lib/pwa'
-import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { useAuthStore } from '@/store/authStore'
+import { useAuthListener } from '@/hooks/useAuthListener'
 import { GafferLogo } from '@/components/GafferLogo'
-import { IOSInstallModal } from '@/components/IOSInstallModal'
-import { Download, Trophy, Users, Calendar, Zap, CheckCircle } from 'lucide-react'
+import { Download, Trophy, Users, Calendar, Zap } from 'lucide-react'
 
 const features = [
   {
@@ -34,21 +33,15 @@ const features = [
 
 export default function LandingPage() {
   const router = useRouter()
-  const {
-    canInstall,
-    isInstalled,
-    isIOSDevice,
-    showIOSInstructions,
-    install,
-    dismissIOSInstructions,
-  } = usePWAInstall()
+  const { isAuthenticated, role, isLoading } = useAuthStore()
+  useAuthListener()
 
-  // If already in standalone mode, redirect to onboarding
+  // Auto-redirect authenticated users to their dashboard
   useEffect(() => {
-    if (isStandalone()) {
-      router.replace('/onboarding/splash')
+    if (!isLoading && isAuthenticated) {
+      router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
     }
-  }, [router])
+  }, [isAuthenticated, isLoading, role, router])
 
   return (
     <div className="min-h-screen bg-gaffer-bg text-white overflow-x-hidden">
@@ -59,7 +52,6 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-gaffer-orange/10 via-gaffer-bg to-gaffer-bg" />
           <div className="absolute top-0 right-0 w-72 h-72 bg-gaffer-orange/5 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-96 h-96 bg-gaffer-red/5 rounded-full blur-3xl" />
-          {/* Grid pattern */}
           <div
             className="absolute inset-0 opacity-5"
             style={{
@@ -99,49 +91,27 @@ export default function LandingPage() {
             </h1>
 
             <p className="font-body text-gaffer-muted text-lg leading-relaxed mb-10 max-w-md mx-auto">
-              The all-in-one sports management app for athletes, coaches, and organizations. 
+              The all-in-one sports management app for athletes, coaches, and organizations.
               Manage your game like a true Gaffer.
             </p>
 
-            {/* Install CTA */}
+            {/* CTAs */}
             <div className="space-y-3 max-w-xs mx-auto">
-              {(canInstall || isIOSDevice) && !isInstalled && (
-                <motion.button
-                  onClick={install}
-                  whileTap={{ scale: 0.97 }}
-                  whileHover={{ scale: 1.02 }}
-                  className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow"
-                >
-                  <Download size={20} />
-                  Install GAFFER App
-                </motion.button>
-              )}
-
-              {isInstalled && (
-                <motion.button
-                  onClick={() => router.push('/onboarding/splash')}
-                  whileTap={{ scale: 0.97 }}
-                  className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow"
-                >
-                  <CheckCircle size={20} />
-                  Open App
-                </motion.button>
-              )}
-
-              {!canInstall && !isIOSDevice && !isInstalled && (
-                <div className="w-full py-4 px-6 rounded-2xl bg-gaffer-card border border-gaffer-border text-center">
-                  <p className="text-gaffer-muted text-sm font-body">
-                    Open in <strong className="text-white">Chrome on Android</strong> or{' '}
-                    <strong className="text-white">Safari on iOS</strong> to install
-                  </p>
-                </div>
-              )}
+              <motion.button
+                onClick={() => router.push('/onboarding/splash')}
+                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow"
+              >
+                <Download size={20} />
+                Get Started
+              </motion.button>
 
               <button
                 onClick={() => router.push('/auth/login')}
                 className="w-full py-3.5 px-6 rounded-2xl font-body font-medium text-sm text-gaffer-muted border border-gaffer-border hover:border-gaffer-orange hover:text-white transition-all"
               >
-                Continue in browser (limited)
+                Sign In
               </button>
             </div>
           </motion.div>
@@ -200,41 +170,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* How to Install Section */}
-      <section className="px-6 py-16 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gaffer-surface border border-gaffer-border rounded-3xl p-8"
-        >
-          <h2 className="font-display font-bold text-2xl text-white mb-2">
-            How to Install
-          </h2>
-          <p className="font-body text-gaffer-muted text-sm mb-6">
-            GAFFER works as a Progressive Web App. Install it like a native app — no App Store needed.
-          </p>
-
-          <div className="space-y-4">
-            {[
-              { platform: '📱 Android (Chrome)', steps: 'Tap the 3-dot menu → "Add to Home screen" → Install' },
-              { platform: '🍎 iOS (Safari)', steps: 'Tap the Share button → "Add to Home Screen" → Add' },
-              { platform: '💻 Desktop (Chrome)', steps: 'Click the install icon in the address bar → Install' },
-            ].map((item) => (
-              <div key={item.platform} className="flex gap-3">
-                <div className="flex-shrink-0 mt-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gaffer-orange mt-1.5" />
-                </div>
-                <div>
-                  <p className="text-white text-sm font-body font-medium">{item.platform}</p>
-                  <p className="text-gaffer-muted text-xs font-body mt-0.5">{item.steps}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-      </section>
-
       {/* Footer */}
       <footer className="border-t border-gaffer-border px-6 py-8 text-center">
         <GafferLogo size="sm" className="justify-center mb-3" />
@@ -242,12 +177,6 @@ export default function LandingPage() {
           © {new Date().getFullYear()} The GAFFER. All rights reserved.
         </p>
       </footer>
-
-      {/* iOS Install Instructions Modal */}
-      <IOSInstallModal
-        isOpen={showIOSInstructions}
-        onClose={dismissIOSInstructions}
-      />
     </div>
   )
 }
