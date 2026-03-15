@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { isStandalone } from '@/lib/pwa'
 import { useAuthStore } from '@/store/authStore'
 
 export default function SplashPage() {
@@ -11,20 +10,13 @@ export default function SplashPage() {
   const { isAuthenticated, role } = useAuthStore()
 
   useEffect(() => {
-    // If not in standalone mode, redirect to landing
-    if (!isStandalone()) {
-      router.replace('/')
-      return
-    }
-
     const timer = setTimeout(() => {
       if (isAuthenticated) {
-        // Already logged in — go to correct dashboard
         router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
       } else {
         router.replace('/onboarding/welcome')
       }
-    }, 2000)
+    }, 1500)
 
     return () => clearTimeout(timer)
   }, [router, isAuthenticated, role])
@@ -37,51 +29,33 @@ export default function SplashPage() {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="flex flex-col items-center gap-4"
       >
-        {/* Logo */}
+        {/* Animated logo letter-by-letter */}
         <div className="font-display font-black text-6xl tracking-wider">
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.1 }}
-            style={{ color: '#FF6B00' }}
-          >G</motion.span>
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.18 }}
-            style={{ color: '#FF7A00' }}
-          >A</motion.span>
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.26 }}
-            style={{ color: '#FF5500' }}
-          >F</motion.span>
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.34 }}
-            style={{ color: '#EE3A00' }}
-          >F</motion.span>
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.42 }}
-            style={{ color: '#E02000' }}
-          >E</motion.span>
-          <motion.span
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.50 }}
-            style={{ color: '#CC1500' }}
-          >R</motion.span>
+          {[
+            { char: 'G', color: '#FF6B00' },
+            { char: 'A', color: '#FF7A00' },
+            { char: 'F', color: '#FF5500' },
+            { char: 'F', color: '#EE3A00' },
+            { char: 'E', color: '#E02000' },
+            { char: 'R', color: '#CC1500' },
+          ].map(({ char, color }, i) => (
+            <motion.span
+              key={i}
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              style={{ color }}
+            >
+              {char}
+            </motion.span>
+          ))}
         </div>
 
-        {/* Loading dots */}
+        {/* Pulsing dots loader */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.9 }}
+          transition={{ delay: 0.8 }}
           className="flex gap-1.5 mt-4"
         >
           {[0, 1, 2].map((i) => (

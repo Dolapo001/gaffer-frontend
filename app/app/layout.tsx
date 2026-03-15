@@ -3,7 +3,6 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { isStandalone } from '@/lib/pwa'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { Home, User, Settings, LogOut } from 'lucide-react'
@@ -14,25 +13,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { isAuthenticated, isLoading, logout } = useAuthStore()
 
-  // Sync Firebase auth state to Zustand
   useAuthListener()
 
   useEffect(() => {
-    // Guard: must be standalone PWA
-    if (!isStandalone()) {
-      router.replace('/')
-      return
-    }
-  }, [router])
-
-  useEffect(() => {
-    // Guard: must be authenticated (wait for loading to finish)
     if (!isLoading && !isAuthenticated) {
       router.replace('/auth/login')
     }
   }, [isAuthenticated, isLoading, router])
 
-  // Show spinner while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
@@ -54,7 +42,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col pb-safe">
-      {/* Main content */}
       <motion.main
         key={pathname}
         initial={{ opacity: 0, y: 8 }}
@@ -65,7 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {children}
       </motion.main>
 
-      {/* Bottom navigation bar */}
+      {/* Bottom navigation */}
       <nav className="fixed bottom-0 inset-x-0 bg-gaffer-surface/95 backdrop-blur-xl border-t border-gaffer-border pb-safe z-50">
         <div className="flex items-center justify-around px-2 py-2">
           {navItems.map((item) => {
@@ -79,7 +66,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <item.icon size={22} strokeWidth={isActive ? 2.5 : 1.5} />
-                <span className={`text-[10px] font-body font-medium ${isActive ? 'text-gaffer-orange' : ''}`}>
+                <span
+                  className={`text-[10px] font-body font-medium ${isActive ? 'text-gaffer-orange' : ''}`}
+                >
                   {item.label}
                 </span>
                 {isActive && (

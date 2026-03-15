@@ -1,21 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-import { Barlow, Barlow_Condensed } from 'next/font/google'
 import { PWAProvider } from '@/components/PWAProvider'
+import { AuthProvider } from '@/components/AuthProvider'
 import './globals.css'
-
-const barlow = Barlow({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
-  variable: '--font-barlow',
-  display: 'swap',
-})
-
-const barlowCondensed = Barlow_Condensed({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800', '900'],
-  variable: '--font-barlow-condensed',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'The GAFFER — Dominate The Field',
@@ -51,8 +37,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${barlow.variable} ${barlowCondensed.variable}`}>
+    <html lang="en">
       <head>
+        {/* Google Fonts — link tag avoids build-time network fetch in App Router */}
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&display=swap"
+          rel="stylesheet"
+        />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -61,7 +56,9 @@ export default function RootLayout({
       </head>
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
         <PWAProvider>
-          {children}
+          <AuthProvider>
+            {children}
+          </AuthProvider>
         </PWAProvider>
       </body>
     </html>

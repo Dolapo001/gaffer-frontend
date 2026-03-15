@@ -1,85 +1,76 @@
-// Dummy Firebase Implementation
-// This bypasses real Firebase and uses local storage for a demo experience
+import { initializeApp, getApps } from 'firebase/app'
+import {
+  getAuth as _getAuth,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  type User,
+  type Auth,
+} from 'firebase/auth'
 
-export interface User {
-  uid: string
-  email: string | null
-  displayName: string | null
-  photoURL: string | null
+const firebaseConfig = {
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 }
 
-// Mock database
-export const db = {}
+// Lazy singleton — only initialise in the browser to prevent SSR errors
+// when Firebase env vars are missing during build-time prerendering.
+let _auth: Auth | null = null
 
-// Mock auth state
-let currentUser: User | null = null
-
-// Try to load user from localStorage for persistence in demo
-if (typeof window !== 'undefined') {
-  const savedUser = localStorage.getItem('gaffer_demo_user')
-  if (savedUser) {
-    try {
-      currentUser = JSON.parse(savedUser)
-    } catch (e) {
-      console.error('Failed to parse saved user', e)
-    }
+function getFirebaseAuth(): Auth {
+  if (typeof window === 'undefined') {
+    // Return a no-op stub during SSR/prerendering
+    throw new Error('Firebase auth is not available on the server')
   }
-}
-
-// Mock auth object
-export const auth = {
-  currentUser: currentUser
-}
-
-export const googleProvider = {}
-
-// Auth helper functions
-export const loginWithEmail = async (email: string, password: string) => {
-  console.log('Mock login with:', email)
-  const user: User = {
-    uid: 'dummy-user-id',
-    email: email,
-    displayName: email.split('@')[0],
-    photoURL: null,
+  if (!_auth) {
+    const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
+    _auth = _getAuth(app)
   }
-  currentUser = user
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('gaffer_demo_user', JSON.stringify(user))
-  }
-  return { user }
+  return _auth
 }
 
-export const registerWithEmail = async (email: string, password: string) => {
-  console.log('Mock register with:', email)
-  return loginWithEmail(email, password)
-}
+export const googleProvider = new GoogleAuthProvider()
+googleProvider.setCustomParameters({ prompt: 'select_account' })
 
-export const loginWithGoogle = async () => {
-  console.log('Mock Google login')
-  return loginWithEmail('dummy-google@example.com', 'dummy-password')
-}
+// Expose the resolved Auth instance (browser-only)
+export const getAuth = (): Auth => getFirebaseAuth()
 
-export const logoutUser = async () => {
-  console.log('Mock logout')
-  currentUser = null
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('gaffer_demo_user')
-  }
-}
+export const loginWithEmail = (email: string, password: string) =>
+  signInWithEmailAndPassword(getFirebaseAuth(), email, password).then((cred) => ({
+    user: cred.user,
+  }))
 
-export const sendPasswordResetEmail = async (authObj: any, email: string) => {
-  console.log('Mock password reset sent to:', email)
-  return Promise.resolve()
-}
+export const registerWithEmail = (email: string, password: string) =>
+  createUserWithEmailAndPassword(getFirebaseAuth(), email, password).then((cred) => ({
+    user: cred.user,
+  }))
+
+export const loginWithGoogle = () =>
+  signInWithPopup(getFirebaseAuth(), googleProvider).then((cred) => ({ user: cred.user }))
+
+export const logoutUser = () => signOut(getFirebaseAuth())
+
+export { sendPasswordResetEmail }
+
+export const resetPassword = (email: string) =>
+  sendPasswordResetEmail(getFirebaseAuth(), email)
 
 export const onAuthChange = (callback: (user: User | null) => void) => {
-  // Simulate an initial check
-  setTimeout(() => {
-    callback(currentUser)
-  }, 100)
-  
-  // Return a mock unsubscribe function
-  return () => {}
+  if (typeof window === 'undefined') {
+    // No-op during SSR — return a dummy unsubscribe
+    callback(null)
+    return () => {}
+  }
+  return onAuthStateChanged(getFirebaseAuth(), callback)
 }
 
 export type { User as FirebaseUser }
+export type { User }

@@ -1,46 +1,38 @@
 'use client'
 
-import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { isStandalone } from '@/lib/pwa'
 import { GradientButton } from '@/components/GradientButton'
 
 export default function WelcomePage() {
   const router = useRouter()
 
-  useEffect(() => {
-    if (!isStandalone()) {
-      router.replace('/')
-    }
-  }, [router])
-
   return (
     <div className="relative min-h-screen bg-gaffer-bg overflow-hidden flex flex-col">
       {/* Hero background image */}
       <div className="absolute inset-0">
-        {/* Using CSS background since we embed the image as data URL equivalent */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: `url('/images/hero-bg.jpg')`,
-          }}
+          style={{ backgroundImage: `url('/images/hero-bg.jpg')` }}
         />
-        {/* Dark overlay gradient — bottom heavy so text is legible */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-gaffer-bg" />
-        <div className="absolute inset-0 bg-gradient-to-t from-gaffer-bg via-gaffer-bg/60 to-transparent" style={{ top: '40%' }} />
+        {/* Layered dark overlays for legibility */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-gaffer-bg" />
+        <div
+          className="absolute inset-0 bg-gradient-to-t from-gaffer-bg via-gaffer-bg/70 to-transparent"
+          style={{ top: '40%' }}
+        />
       </div>
 
-      {/* Top safe area */}
+      {/* Safe area spacer */}
       <div className="relative z-10 pt-safe" />
 
-      {/* Content — bottom section */}
-      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-10 pt-[55vh]">
+      {/* Bottom content */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-10 pt-[52vh]">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.55, ease: 'easeOut' }}
-          className="space-y-6"
+          className="space-y-5"
         >
           {/* Headline */}
           <div>
@@ -54,7 +46,8 @@ export default function WelcomePage() {
 
           {/* Subtitle */}
           <p className="font-body text-white/70 text-sm leading-relaxed max-w-xs">
-            The ultimate sports management platform for athletes, coaches, and organizations ready to dominate.
+            lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+            incididunt ut labore et dolore magna aliqua.
           </p>
 
           {/* CTAs */}
