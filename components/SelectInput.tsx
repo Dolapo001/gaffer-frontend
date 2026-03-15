@@ -1,6 +1,6 @@
 'use client'
 
-import { type SelectHTMLAttributes } from 'react'
+import { type SelectHTMLAttributes, forwardRef } from 'react'
 import { motion } from 'framer-motion'
 import { type FieldError } from 'react-hook-form'
 import { ChevronDown } from 'lucide-react'
@@ -12,14 +12,14 @@ interface SelectInputProps extends SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string
 }
 
-export function SelectInput({
+export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(({
   label,
   error,
   options,
   placeholder = 'Select...',
   className = '',
   ...props
-}: SelectInputProps) {
+}, ref) => {
   return (
     <div className="w-full space-y-1.5">
       {label && (
@@ -29,7 +29,7 @@ export function SelectInput({
       )}
       <div className="relative">
         <select
-          defaultValue=""
+          ref={ref}
           className={`
             w-full px-4 py-3.5 rounded-xl appearance-none
             bg-gaffer-card border border-gaffer-border
@@ -66,4 +66,6 @@ export function SelectInput({
       )}
     </div>
   )
-}
+})
+
+SelectInput.displayName = 'SelectInput'

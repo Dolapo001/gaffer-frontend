@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, type InputHTMLAttributes } from 'react'
+import { useState, type InputHTMLAttributes, forwardRef } from 'react'
 import { motion } from 'framer-motion'
 import { Eye, EyeOff } from 'lucide-react'
 import { type FieldError } from 'react-hook-form'
@@ -11,14 +11,14 @@ interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
   showPasswordToggle?: boolean
 }
 
-export function AuthInput({
+export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(({
   label,
   error,
   showPasswordToggle = false,
   type,
   className = '',
   ...props
-}: AuthInputProps) {
+}, ref) => {
   const [showPassword, setShowPassword] = useState(false)
 
   const inputType = showPasswordToggle
@@ -34,6 +34,7 @@ export function AuthInput({
       )}
       <div className="relative">
         <input
+          ref={ref}
           type={inputType}
           className={`
             w-full px-4 py-3.5 rounded-xl
@@ -70,4 +71,6 @@ export function AuthInput({
       )}
     </div>
   )
-}
+})
+
+AuthInput.displayName = 'AuthInput'
