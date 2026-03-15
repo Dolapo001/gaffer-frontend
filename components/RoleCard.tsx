@@ -7,6 +7,7 @@ interface RoleCardProps {
   title: string
   description: string
   icon: ReactNode
+  imageSrc: string
   selected: boolean
   onSelect: () => void
 }
@@ -15,6 +16,7 @@ export function RoleCard({
   title,
   description,
   icon,
+  imageSrc,
   selected,
   onSelect,
 }: RoleCardProps) {
@@ -25,23 +27,31 @@ export function RoleCard({
       whileTap={{ scale: 0.97 }}
       whileHover={{ scale: 1.02 }}
       className={`
-        relative flex flex-col items-center gap-3 p-4 pt-6 rounded-2xl
+        relative flex flex-col items-center gap-3 p-0 rounded-2xl
         border-2 transition-all duration-200 text-center
         overflow-hidden w-full
         ${selected
-          ? 'border-gaffer-orange bg-gaffer-orange/10 shadow-orange-glow'
-          : 'border-gaffer-border bg-gaffer-card/60 hover:border-gaffer-subtle'
+          ? 'border-gaffer-orange shadow-orange-glow'
+          : 'border-gaffer-border hover:border-gaffer-subtle'
         }
       `}
     >
-      {/* Icon */}
-      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${selected ? 'bg-gaffer-orange/20' : 'bg-gaffer-surface'}`}>
-        {icon}
+      {/* Background image */}
+      <div className="relative w-full h-28 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={imageSrc} alt={title} className="w-full h-full object-cover object-center" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/10" />
+        {/* Icon centered on image */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${selected ? 'bg-gaffer-orange/80' : 'bg-black/50'}`}>
+            {icon}
+          </div>
+        </div>
       </div>
 
       {/* Content */}
-      <div className="space-y-1 pb-1">
-        <h3 className={`font-display font-bold text-sm tracking-wide ${selected ? 'text-gaffer-orange' : 'text-white'}`}>
+      <div className={`w-full px-3 pb-4 space-y-1 ${selected ? 'bg-gaffer-orange/10' : 'bg-gaffer-card/60'}`}>
+        <h3 className={`font-display font-bold text-sm tracking-wide pt-1 ${selected ? 'text-gaffer-orange' : 'text-white'}`}>
           {title}
         </h3>
         <p className="text-gaffer-muted text-[11px] font-body leading-tight">

@@ -11,16 +11,14 @@ export default function WelcomePage() {
     <div className="relative min-h-screen bg-gaffer-bg overflow-hidden flex flex-col">
       {/* Hero background image */}
       <div className="absolute inset-0">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{ backgroundImage: `url('/images/hero-bg.jpg')` }}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/images/hero-bg.jpg"
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover object-center"
         />
-        {/* Layered dark overlays for legibility */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-gaffer-bg" />
-        <div
-          className="absolute inset-0 bg-gradient-to-t from-gaffer-bg via-gaffer-bg/70 to-transparent"
-          style={{ top: '40%' }}
-        />
+        {/* Single gradient overlay — dark at bottom for text, semi-transparent top to show image */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-gaffer-bg" />
       </div>
 
       {/* Safe area spacer */}

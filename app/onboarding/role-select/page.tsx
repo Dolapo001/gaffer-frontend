@@ -63,14 +63,16 @@ export default function RoleSelectPage() {
           <RoleCard
             title="Personal"
             description="Manage your personal Sporting activities"
-            icon={<User size={28} className={selectedRole === 'personal' ? 'text-gaffer-orange' : 'text-gaffer-muted'} />}
+            icon={<User size={24} className="text-white" />}
+            imageSrc="/images/onboarding-preview.jpg"
             selected={selectedRole === 'personal'}
             onSelect={() => setSelectedRole('personal')}
           />
           <RoleCard
             title="Organization"
             description="Manage your Sports organization or activities"
-            icon={<Building2 size={28} className={selectedRole === 'organization' ? 'text-gaffer-orange' : 'text-gaffer-muted'} />}
+            icon={<Building2 size={24} className="text-white" />}
+            imageSrc="/images/hero-bg.jpg"
             selected={selectedRole === 'organization'}
             onSelect={() => setSelectedRole('organization')}
           />
