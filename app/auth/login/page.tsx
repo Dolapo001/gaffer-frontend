@@ -25,6 +25,12 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<SignInFormData>({
     resolver: zodResolver(signInSchema),
+    mode: 'onTouched',
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
   })
 
   const getPostLoginRoute = () => {
