@@ -7,9 +7,6 @@
 export const isStandalone = (): boolean => {
   if (typeof window === 'undefined') return false
 
-  // Bypass install gate in development so you can test without installing
-  if (process.env.NODE_ENV === 'development') return true
-
   // Standard: CSS display-mode media query
   const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches
 
