@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
+import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
 import { Home, Trophy, Newspaper } from 'lucide-react'
 import Link from 'next/link'
 import { QueryProvider } from '@/components/QueryProvider'
@@ -13,16 +14,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, isLoading } = useAuthStore()
+  const isReady = useStandaloneGuard()
 
   useAuthListener()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (isReady && !isLoading && !isAuthenticated) {
       router.replace('/auth/login')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [isReady, isAuthenticated, isLoading, router])
 
-  if (isLoading) {
+  if (!isReady || isLoading) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
         <div className="space-y-4 text-center">
