@@ -6,7 +6,7 @@ import {
   loginWithGoogle,
   logoutUser,
   type User,
-} from '@/lib/firebase'
+} from '@/lib/auth'
 
 export type UserRole = 'personal' | 'organization' | null
 
@@ -54,8 +54,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { user } = await loginWithEmail(email, password)
           set({ user: user as User, isAuthenticated: true })
-        } catch (err: unknown) {
-          set({ error: getFirebaseErrorMessage(err) })
+        } catch (err: any) {
+          set({ error: err.message || 'Login failed' })
           throw err
         } finally {
           set({ isLoading: false })
@@ -67,8 +67,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { user } = await loginWithGoogle()
           set({ user: user as User, isAuthenticated: true })
-        } catch (err: unknown) {
-          set({ error: getFirebaseErrorMessage(err) })
+        } catch (err: any) {
+          set({ error: err.message || 'Google login failed' })
           throw err
         } finally {
           set({ isLoading: false })
@@ -81,8 +81,8 @@ export const useAuthStore = create<AuthState>()(
           const { user } = await registerWithEmail(email, password)
           set({ user: user as User, isAuthenticated: true })
           return user as User
-        } catch (err: unknown) {
-          set({ error: getFirebaseErrorMessage(err) })
+        } catch (err: any) {
+          set({ error: err.message || 'Registration failed' })
           throw err
         } finally {
           set({ isLoading: false })
@@ -94,8 +94,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           const { user } = await loginWithGoogle()
           set({ user: user as User, isAuthenticated: true })
-        } catch (err: unknown) {
-          set({ error: getFirebaseErrorMessage(err) })
+        } catch (err: any) {
+          set({ error: err.message || 'Google registration failed' })
           throw err
         } finally {
           set({ isLoading: false })
@@ -107,8 +107,8 @@ export const useAuthStore = create<AuthState>()(
         try {
           await logoutUser()
           set({ user: null, isAuthenticated: false, role: null })
-        } catch (err: unknown) {
-          set({ error: getFirebaseErrorMessage(err) })
+        } catch (err: any) {
+          set({ error: err.message || 'Logout failed' })
         } finally {
           set({ isLoading: false })
         }
@@ -126,22 +126,3 @@ export const useAuthStore = create<AuthState>()(
   )
 )
 
-function getFirebaseErrorMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'code' in error) {
-    const code = (error as { code: string }).code
-    const messages: Record<string, string> = {
-      'auth/email-already-in-use': 'This email is already registered.',
-      'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/user-not-found': 'No account found with this email.',
-      'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/weak-password': 'Password must be at least 8 characters.',
-      'auth/too-many-requests': 'Too many attempts. Please try again later.',
-      'auth/popup-closed-by-user': 'Sign-in popup was closed.',
-      'auth/cancelled-popup-request': 'Sign-in was cancelled.',
-      'auth/network-request-failed': 'Network error. Check your connection.',
-      'auth/invalid-credential': 'Invalid credentials. Please try again.',
-    }
-    return messages[code] || 'An error occurred. Please try again.'
-  }
-  return 'An unexpected error occurred.'
-}

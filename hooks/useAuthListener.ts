@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { onAuthChange } from '@/lib/firebase'
+import { onAuthChange } from '@/lib/auth'
 import { useAuthStore } from '@/store/authStore'
 
 /**
