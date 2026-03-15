@@ -3,15 +3,31 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
+import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { TOP_NEWS, TRENDING_POSTS, type Article } from '@/lib/mockData'
+
+function fetchNews() {
+  return new Promise<{ topNews: Article[]; trending: Article[] }>((resolve) =>
+    setTimeout(() => resolve({ topNews: TOP_NEWS, trending: TRENDING_POSTS }), 900)
+  )
+}
 
 export default function NewsPage() {
   const router = useRouter()
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['news-feed'],
+    queryFn: fetchNews,
+  })
+
+  const topNews = data?.topNews ?? []
+  const trending = data?.trending ?? []
 
   return (
     <AnimatePresence mode="wait">
@@ -23,10 +39,7 @@ export default function NewsPage() {
           exit={{ opacity: 0 }}
           className="min-h-screen bg-gaffer-bg flex flex-col"
         >
-          <ArticleDetail
-            article={selectedArticle}
-            onBack={() => setSelectedArticle(null)}
-          />
+          <ArticleDetail article={selectedArticle} onBack={() => setSelectedArticle(null)} />
         </motion.div>
       ) : (
         <motion.div
@@ -63,38 +76,51 @@ export default function NewsPage() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {/* Large featured card */}
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
-                  <NewsCard
-                    {...TOP_NEWS[1]}
-                    size="large"
-                    onClick={() => setSelectedArticle(TOP_NEWS[1])}
-                  />
-                </motion.div>
-
-                {/* Smaller cards below */}
-                <div className="divide-y divide-gaffer-border">
-                  {TOP_NEWS.slice(1).map((article, i) => (
+              {isLoading ? (
+                <div className="space-y-3">
+                  <SkeletonCard size="large" />
+                  <div className="divide-y divide-gaffer-border">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="pt-3 first:pt-0">
+                        <SkeletonCard size="small" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {topNews[0] && (
                     <motion.div
-                      key={article.id}
-                      initial={{ opacity: 0, y: 8 }}
+                      initial={{ opacity: 0, y: 12 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.08 }}
-                      className="pt-3 first:pt-0"
                     >
                       <NewsCard
-                        {...article}
-                        size="small"
-                        onClick={() => setSelectedArticle(article)}
+                        {...topNews[0]}
+                        size="large"
+                        onClick={() => setSelectedArticle(topNews[0])}
                       />
                     </motion.div>
-                  ))}
+                  )}
+
+                  <div className="divide-y divide-gaffer-border">
+                    {topNews.slice(1).map((article, i) => (
+                      <motion.div
+                        key={article.id}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.08 }}
+                        className="pt-3 first:pt-0"
+                      >
+                        <NewsCard
+                          {...article}
+                          size="small"
+                          onClick={() => setSelectedArticle(article)}
+                        />
+                      </motion.div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </section>
 
             {/* Trending section */}
@@ -108,18 +134,38 @@ export default function NewsPage() {
                 </button>
               </div>
 
-              <div className="space-y-3">
-                {TRENDING_POSTS.map((post, i) => (
-                  <motion.div
-                    key={post.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 + i * 0.1 }}
-                  >
-                    <TrendingPost {...post} />
-                  </motion.div>
-                ))}
-              </div>
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 animate-pulse">
+                      <div className="flex items-center gap-2.5 mb-3">
+                        <div className="w-9 h-9 rounded-full bg-gaffer-surface" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3 bg-gaffer-surface rounded w-1/3" />
+                          <div className="h-2.5 bg-gaffer-surface rounded w-1/4" />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-gaffer-surface rounded w-full" />
+                        <div className="h-3 bg-gaffer-surface rounded w-4/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {trending.map((post, i) => (
+                    <motion.div
+                      key={post.id}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 + i * 0.1 }}
+                    >
+                      <TrendingPost {...post} />
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </section>
 
           </div>
