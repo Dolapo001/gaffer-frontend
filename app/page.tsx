@@ -107,12 +107,13 @@ export default function LandingPage() {
       return
     }
     if (getDeferredPrompt()) {
-      const accepted = await triggerInstallPrompt()
-      if (!accepted) setShowIOSModal(true)
+      await triggerInstallPrompt()
+      // Whether accepted or dismissed, proceed into the app
+      router.replace('/onboarding/splash')
       return
     }
-    // Fallback: show manual instructions
-    setShowIOSModal(true)
+    // No native prompt available — proceed directly into the app
+    router.replace('/onboarding/splash')
   }
 
   // Show spinner while detecting standalone mode to prevent content flash
