@@ -14,10 +14,10 @@ export function useStandaloneGuard(): boolean {
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    if (!isStandalone()) {
-      router.replace('/')
-    } else {
+    if (process.env.NODE_ENV === 'development' || isStandalone()) {
       setIsReady(true)
+    } else {
+      router.replace('/')
     }
   }, [router])
 
