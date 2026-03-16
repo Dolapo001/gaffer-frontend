@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react'
 import { MATCHES, type Match, type MatchEvent } from '@/lib/leagueMockData'
+import { PitchView, type PitchPlayerMarker } from '@/components/match/PitchView'
 
 function fetchMatch(matchId: string) {
   return new Promise<Match | undefined>((resolve) =>
@@ -63,55 +64,40 @@ function StatBar({ label, home, away }: { label: string; home: number; away: num
 // ─── Tactical Pitch ──────────────────────────────────────────────────────────
 
 function TacticalPitch({ match }: { match: Match }) {
-  const homePositions = [
-    { x: 150, y: 340 },
-    { x: 65, y: 265 }, { x: 115, y: 255 }, { x: 185, y: 255 }, { x: 235, y: 265 },
-    { x: 80, y: 185 }, { x: 150, y: 172 }, { x: 220, y: 185 },
-    { x: 90, y: 105 }, { x: 150, y: 90 }, { x: 210, y: 105 },
+  // Home players — 4-3-3 formation, attacking toward top of pitch
+  const homePlayers: PitchPlayerMarker[] = [
+    { id: 'h0',  x: 150, y: 390, label: 'GK', color: '#FF6B00' },
+    { id: 'h1',  x:  65, y: 318, label: 'RB', color: '#FF6B00' },
+    { id: 'h2',  x: 111, y: 308, label: 'CB', color: '#FF6B00' },
+    { id: 'h3',  x: 189, y: 308, label: 'CB', color: '#FF6B00' },
+    { id: 'h4',  x: 235, y: 318, label: 'LB', color: '#FF6B00' },
+    { id: 'h5',  x:  88, y: 232, label: 'CM', color: '#FF6B00' },
+    { id: 'h6',  x: 150, y: 218, label: 'CM', color: '#FF6B00' },
+    { id: 'h7',  x: 212, y: 232, label: 'CM', color: '#FF6B00' },
+    { id: 'h8',  x:  88, y: 148, label: 'RW', color: '#FF6B00' },
+    { id: 'h9',  x: 150, y: 130, label: 'ST', color: '#FF6B00' },
+    { id: 'h10', x: 212, y: 148, label: 'LW', color: '#FF6B00' },
   ]
-  const awayPositions = [
-    { x: 150, y: 42 },
-    { x: 65, y: 117 }, { x: 115, y: 127 }, { x: 185, y: 127 }, { x: 235, y: 117 },
-    { x: 80, y: 200 }, { x: 150, y: 215 }, { x: 220, y: 200 },
-    { x: 90, y: 285 }, { x: 150, y: 300 }, { x: 210, y: 285 },
+
+  // Away players — 4-3-3 formation, attacking toward bottom of pitch
+  const awayPlayers: PitchPlayerMarker[] = [
+    { id: 'a0',  x: 150, y:  40, label: 'GK', color: '#3b82f6' },
+    { id: 'a1',  x:  65, y: 112, label: 'RB', color: '#3b82f6' },
+    { id: 'a2',  x: 111, y: 122, label: 'CB', color: '#3b82f6' },
+    { id: 'a3',  x: 189, y: 122, label: 'CB', color: '#3b82f6' },
+    { id: 'a4',  x: 235, y: 112, label: 'LB', color: '#3b82f6' },
+    { id: 'a5',  x:  88, y: 198, label: 'CM', color: '#3b82f6' },
+    { id: 'a6',  x: 150, y: 212, label: 'CM', color: '#3b82f6' },
+    { id: 'a7',  x: 212, y: 198, label: 'CM', color: '#3b82f6' },
+    { id: 'a8',  x:  88, y: 282, label: 'RW', color: '#3b82f6' },
+    { id: 'a9',  x: 150, y: 300, label: 'ST', color: '#3b82f6' },
+    { id: 'a10', x: 212, y: 282, label: 'LW', color: '#3b82f6' },
   ]
-  const homeNames = ['T', 'W', 'Al', 'Ja', 'Br', 'Da', 'Ch', 'No', 'Ji', 'Ed', 'D2']
-  const awayNames = ['O', 'DJ', 'Su', 'Ad', 'Ba', 'Ne', 'DB', 'H2', 'Ha', 'Um', 'Ne']
 
   return (
     <div className="rounded-2xl overflow-hidden shadow-xl">
-      <svg viewBox="0 0 300 390" className="w-full">
-        <rect width="300" height="390" fill="#1d6b1d" />
-        {[...Array(8)].map((_, i) => (
-          <rect key={i} x="0" y={i * 48.75} width="300" height="24.375" fill="rgba(0,0,0,0.06)" />
-        ))}
-        <rect x="10" y="10" width="280" height="370" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <line x1="10" y1="195" x2="290" y2="195" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <circle cx="150" cy="195" r="34" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <circle cx="150" cy="195" r="2.5" fill="white" opacity="0.4" />
-        <rect x="80" y="10" width="140" height="54" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <rect x="80" y="326" width="140" height="54" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <rect x="112" y="10" width="76" height="22" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <rect x="112" y="358" width="76" height="22" fill="none" stroke="white" strokeWidth="1.5" opacity="0.3" />
-        <circle cx="150" cy="64" r="2.5" fill="white" opacity="0.4" />
-        <circle cx="150" cy="326" r="2.5" fill="white" opacity="0.4" />
-
-        {/* Home players (orange) */}
-        {homePositions.map((pos, i) => (
-          <g key={`h${i}`}>
-            <circle cx={pos.x} cy={pos.y} r="14" fill="#FF6B00" stroke="white" strokeWidth="1.5" opacity="0.9" />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">{homeNames[i]}</text>
-          </g>
-        ))}
-
-        {/* Away players (blue) */}
-        {awayPositions.map((pos, i) => (
-          <g key={`a${i}`}>
-            <circle cx={pos.x} cy={pos.y} r="14" fill="#3b82f6" stroke="white" strokeWidth="1.5" opacity="0.9" />
-            <text x={pos.x} y={pos.y + 4} textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">{awayNames[i]}</text>
-          </g>
-        ))}
-      </svg>
+      {/* Reusable PitchView handles all field markings */}
+      <PitchView players={[...homePlayers, ...awayPlayers]} />
 
       {/* Formation legend */}
       <div className="bg-gaffer-surface border-t border-gaffer-border px-4 py-2 flex justify-between items-center">
