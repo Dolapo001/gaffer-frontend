@@ -1,5 +1,6 @@
 'use client'
 
+import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
@@ -7,10 +8,10 @@ import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
 // ─── Position badge colors ────────────────────────────────────────────────────
 
 const POS_STYLES: Record<string, string> = {
-  GK: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-  DEF: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-  MID: 'bg-green-500/20 text-green-400 border-green-500/30',
-  FWD: 'bg-gaffer-orange/20 text-gaffer-orange border-gaffer-orange/30',
+  GK: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  DEF: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  MID: 'bg-green-500/10 text-green-500 border-green-500/20',
+  FWD: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
 }
 
 // ─── Team crest placeholder ───────────────────────────────────────────────────
@@ -42,17 +43,25 @@ function FixtureRow({
   fixture: FantasySquadPlayer['nextFixtures'][number]
 }) {
   return (
-    <div className="flex items-center gap-3 bg-gaffer-surface/60 rounded-2xl px-3 py-2.5">
-      <TeamCrest code={fixture.homeCode} color="#1D4ED8" size={34} />
+    <div className="flex items-center gap-4 bg-[#1e2130] rounded-2xl px-4 py-3 border border-white/5 shadow-sm">
+      <div className="flex flex-col items-center gap-1 w-16">
+        <TeamCrest code={fixture.homeCode} color="#1D4ED8" size={38} />
+        <span className="text-white text-[10px] font-bold truncate w-full text-center">Engineering</span>
+      </div>
       <div className="flex-1 flex flex-col items-center">
-        <span className="text-[9px] font-body text-gaffer-muted uppercase tracking-wide">
+        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight mb-1">
           SAT 14:00
         </span>
-        <span className="text-white font-display font-black text-xl leading-tight">
-          {fixture.kickoff.split(' ')[1]}
-        </span>
+        <div className="bg-[#2a2d3e] rounded-lg px-3 py-1.5 flex items-center justify-center">
+          <span className="text-white font-bold text-lg leading-none tracking-tight">
+            14:00
+          </span>
+        </div>
       </div>
-      <TeamCrest code={fixture.awayCode} color="#DC2626" size={34} />
+      <div className="flex flex-col items-center gap-1 w-16">
+        <TeamCrest code={fixture.awayCode} color="#DC2626" size={38} />
+        <span className="text-white text-[10px] font-bold truncate w-full text-center">Law</span>
+      </div>
     </div>
   )
 }
@@ -93,71 +102,60 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
             <div className="w-10 h-1 rounded-full bg-gaffer-border mx-auto mb-4" />
 
             {/* Player header */}
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-4 mb-8">
               {/* Avatar */}
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-display font-black text-2xl flex-shrink-0 border border-white/10"
-                style={{ backgroundColor: player.teamColor + 'CC' }}
-              >
-                {player.name[0]}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <p className="text-white font-display font-black text-lg leading-tight">
-                  {player.name}
-                </p>
-                <p className="text-gaffer-muted text-[10px] font-body">
-                  #{player.teamCode} • {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`text-[9px] font-display font-bold px-2 py-0.5 rounded-full border ${POS_STYLES[player.position]}`}
-                  >
-                    {player.position}
-                  </span>
-                  <span className="text-gaffer-orange font-display font-bold text-xs">
-                    ₦{player.price}m
-                  </span>
+              <div className="relative">
+                <div
+                  className="w-[85px] h-[85px] rounded-full overflow-hidden flex items-center justify-center bg-[#25283c] border-[3px] border-white/10"
+                >
+                  {player.avatarUrl ? (
+                    <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white text-4xl font-bold">{player.name[0]}</span>
+                  )}
                 </div>
               </div>
 
-              <button
-                onClick={onClose}
-                className="w-8 h-8 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-gaffer-muted flex-shrink-0"
-              >
-                <X size={14} />
-              </button>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-white font-bold text-[32px] leading-tight tracking-tight">
+                  {player.name}
+                </h3>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-[#a1a1aa] text-[15px] font-medium">#{player.price}M</span>
+                  <span className="text-[#a1a1aa] text-[15px]">•</span>
+                  <span className="text-[#a1a1aa] text-[15px] font-medium">{player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}</span>
+                </div>
+              </div>
             </div>
 
             {/* Form section */}
-            <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 mb-3">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-white text-sm font-display font-bold">Form</span>
-                <span className="text-gaffer-muted text-xs font-body">Points</span>
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-white text-2xl font-bold">Form</span>
+                <span className="text-white text-2xl font-bold px-2">Points</span>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="space-y-4">
                 {player.gwHistory.map(({ gw, pts, opponent, result }) => (
                   <div key={gw} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-gaffer-muted text-[11px] font-display font-bold w-14">
-                        GW-{gw} vs
-                      </span>
-                      <span className="text-white/80 text-[11px] font-body">
-                        {opponent}
+                    <div className="flex items-center gap-3">
+                      <span className="text-white text-[20px] font-medium tracking-tight">
+                        GW-{gw}  vs Engineering
                       </span>
                       {/* Result dot */}
                       <div
-                        className={`w-2 h-2 rounded-full flex-shrink-0 ${
+                        className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold text-white/90 ${
                           result === 'W'
-                            ? 'bg-green-400'
+                            ? 'bg-[#16A34A]'
                             : result === 'D'
-                            ? 'bg-yellow-400'
-                            : 'bg-red-400'
+                            ? 'bg-[#71717a]'
+                            : 'bg-[#ef4444]'
                         }`}
-                      />
+                      >
+                        {result.toLowerCase()}
+                      </div>
                     </div>
-                    <span className="text-white font-display font-bold text-sm">
+                    <span className="text-white font-bold text-[20px]">
                       {pts}
                     </span>
                   </div>
@@ -166,17 +164,17 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
             </div>
 
             {/* Next Match section */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white text-sm font-display font-bold">
+            <div className="mb-10">
+              <div className="flex items-center justify-between mb-6">
+                <span className="text-white text-2xl font-extrabold tracking-tight">
                   Next Match
                 </span>
-                <span className="text-gaffer-orange text-[10px] font-display font-bold bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-full px-2 py-0.5">
+                <span className="text-[#fca311] text-[16px] font-bold tracking-tight">
                   Gameweek {player.nextFixtures[0]?.gameweek ?? 4}
                 </span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-4">
                 {player.nextFixtures.slice(0, 2).map((fixture, i) => (
                   <FixtureRow key={i} fixture={fixture} />
                 ))}
@@ -184,15 +182,23 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
             </div>
 
             {/* Captain action buttons */}
-            <div className="flex justify-center gap-4 mt-5">
-              {['C', 'C', 'C'].map((label, i) => (
-                <motion.button
-                  key={i}
-                  whileTap={{ scale: 0.9 }}
-                  className="w-11 h-11 rounded-full bg-green-700 text-white font-display font-black text-sm shadow-md border border-green-600/50"
-                >
-                  {label}
-                </motion.button>
+            <div className="flex justify-between items-start gap-4 mt-auto mb-2">
+              {[
+                { label: 'Make Captain', icon: <span className="font-bold text-3xl text-white">C</span> },
+                { label: 'Sub Out', icon: <span className="font-bold text-3xl text-white">C</span> },
+                { label: 'Transfer', icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white stroke-[2.5]"><path d="M17 1L21 5L17 9" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><path d="M3 11V9C3 7.93913 3.42143 6.92172 4.17157 6.17157C4.92172 5.42143 5.93913 5 7 5H21" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><path d="M7 23L3 19L7 15" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/><path d="M21 13V15C21 16.0609 20.5786 17.0783 19.8284 17.8284C19.0783 18.5786 18.0609 19 17 19H3" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round"/></svg> }
+              ].map((action, i) => (
+                <div key={i} className="flex flex-col items-center gap-3 flex-1">
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    className="w-[90px] h-[90px] rounded-full bg-[#0d3b24] text-white flex items-center justify-center shadow-lg border border-white/5 active:bg-[#114b30] transition-colors"
+                  >
+                    {action.icon}
+                  </motion.button>
+                  <span className="text-white text-[14px] font-bold tracking-tight text-center leading-tight">
+                    {action.label}
+                  </span>
+                </div>
               ))}
             </div>
           </motion.div>

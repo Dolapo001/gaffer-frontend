@@ -54,81 +54,79 @@ export function BoostSelector({
   deadlineValue = "Sat 14 Feb, 14:30" 
 }: BoostSelectorProps) {
   return (
-    <section className="w-full max-w-[340px] bg-[#000000] px-[10px] py-[10px] text-white flex flex-col items-center rounded-xl shadow-2xl">
-      {/* Deadline Header - Matching your code's exact text styles */}
-      <div className="text-center mb-3">
-        <h2 className="text-[12px] font-extrabold leading-[16px] tracking-[-0.02em] text-white">
+    <section className="w-full bg-[#1a1b23]/90 backdrop-blur-xl px-[16px] py-[20px] text-white flex flex-col items-center rounded-2xl border border-white/10 shadow-2xl">
+      {/* Deadline Header */}
+      <div className="text-center mb-5">
+        <h2 className="text-[14px] font-bold leading-[20px] tracking-tight text-white/90">
           {deadlineLabel}
         </h2>
-        <p className="mt-[2px] text-[12px] font-extrabold leading-[16px] tracking-[-0.02em] text-white">
+        <p className="mt-[2px] text-[18px] font-bold leading-[24px] tracking-tight text-white">
           {deadlineValue}
         </p>
       </div>
 
-      {/* Boost Cards Row - Gap 4px matching your code */}
-      <div className="flex items-start justify-center gap-[4px] w-full">
+      {/* Boost Cards Row - Gap matching desired design */}
+      <div className="flex items-start justify-center gap-[8px] w-full">
         {BOOST_OPTIONS.map((boost) => {
           const isActive = active === boost.id;
           
-          // Maintaining the distinct colors from the reference image
-          let outerBgClass = 'bg-[#747681]';
-          let innerBgClass = 'bg-[#857670]';
-          let containerRadius = 'rounded-none'; // Your code used rounded-none, though image is mixed. We'll follow your code.
+          // Consistency with desired design
+          let outerBgClass = 'bg-[#40424d]';
+          let iconBgClass = 'bg-[#3b2b28]';
+          let containerRadius = 'rounded-[12px]'; 
           let showButton = true;
           let label = boost.label;
 
-          if (boost.id === 'wildcard') {
-            outerBgClass = 'bg-[#202230]';
-            innerBgClass = 'bg-[#3B2B28]';
-            containerRadius = 'rounded-none';
+          if (boost.id === 'tripleCaptain') {
+            outerBgClass = 'bg-[#40424d]';
+            iconBgClass = 'bg-[#3b2b28]';
+          } else if (boost.id === 'wildcard') {
+            outerBgClass = 'bg-[#40424d]';
+            iconBgClass = 'bg-[#3b2b28]';
             label = 'Wilcard';
           } else if (boost.id === 'freePlay') {
-            outerBgClass = 'bg-[#FFF0E6]';
-            innerBgClass = 'bg-[#FFF0E6]';
-            containerRadius = 'rounded-none';
-            showButton = false;
+            outerBgClass = 'bg-[#40424d]';
+            iconBgClass = 'bg-[#3b2b28]';
+            showButton = true;
             label = 'Free';
           }
 
           return (
             <motion.div
               key={boost.id}
-              whileTap={{ scale: 0.96 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onToggle(isActive ? null : boost.id)}
               className={[
-                "relative flex h-[95px] w-[74px] flex-col items-center overflow-hidden cursor-pointer",
+                "relative flex h-[105px] w-full min-w-[70px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm",
                 outerBgClass,
                 containerRadius,
-                isActive ? "ring-2 ring-[#ff6b00] z-10" : ""
+                isActive ? "ring-2 ring-[#ff6b00] z-10" : "border border-white/5"
               ].join(" ")}
             >
-              {/* Icon Box - Exact padding from your code */}
               <div
                 className={[
-                  "mt-[10px] flex h-[38px] w-[38px] items-center justify-center rounded-[10px] bg-[#FF69001A]",
+                  "mt-[11px] flex h-[38px] w-[38px] items-center justify-center rounded-[10px]",
+                  iconBgClass
                 ].join(" ")}
               >
                 <TimerIcon active={isActive} />
               </div>
 
-              {/* Title - Exact styling from your code */}
-              <div className="mt-[6px] px-0.5 text-center text-[10px] font-medium leading-[12px] text-[#94A3B8]">
+              {/* Title */}
+              <div className="mt-[6px] px-1 text-center text-[10px] font-semibold leading-[12px] text-white/80">
                 {label}
               </div>
 
-              {/* Play Button - Exact dimensions and styles from your code */}
-              {showButton ? (
+              {showButton && (
                 <button
                   type="button"
                   className={[
-                    "mt-auto mb-[10px] h-[18px] w-[61px] rounded-[4px] border text-[10px] font-medium leading-none transition",
-                    isActive ? "border-white bg-[#0B0B0F] text-white" : "border-white bg-transparent text-white"
+                    "mt-auto mb-[10px] h-[20px] w-[85%] rounded-[6px] border border-white bg-transparent text-[10px] font-bold leading-none text-white transition hover:bg-white/10",
+                    isActive ? "bg-white/20" : ""
                   ].join(" ")}
                 >
                   Play
                 </button>
-              ) : (
-                <div className="mt-auto mb-[10px] h-[18px]" />
               )}
             </motion.div>
           );
