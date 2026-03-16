@@ -23,6 +23,16 @@ const config: Config = {
           muted: '#8892A4',
           subtle: '#4A5568',
         },
+        // ── PlayerCard design tokens ─────────────────────────────────────────
+        // These match the Premier League card style used by PitchView overlays.
+        pitch: {
+          // Olive-green background for the kit / shirt section of each card
+          'kit-bg':   '#6A7B51',
+          // Classic Premier League brand purple for player name & fixture text
+          'pl-purple': '#37003c',
+          // Very light grayish-purple for the fixture row background
+          'fixture-bg': '#f4f0f5',
+        },
       },
       fontFamily: {
         display: ['var(--font-barlow-condensed)', 'sans-serif'],

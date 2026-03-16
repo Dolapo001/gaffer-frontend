@@ -141,13 +141,36 @@ export interface PitchPlayerMarker {
   onClick?: () => void
 }
 
+/**
+ * A richer overlay using the PlayerCard HTML component.
+ * Positioned by (x, y) in the same 300×430 coordinate space as PitchPlayerMarker.
+ * The card is centred horizontally on x and has its top edge at y.
+ */
+export interface PitchCardOverlay {
+  id: string
+  /** SVG x coordinate (0–300) — card is horizontally centred on this point */
+  x: number
+  /** SVG y coordinate (0–430) — card's top edge starts here */
+  y: number
+  playerName: string
+  fixture: string
+  kitImageUrl: string
+  selected?: boolean
+  onClick?: () => void
+}
+
 export interface PitchViewProps {
   /**
-   * Array of player markers to render on the pitch.
+   * Simple circle markers (used for tactical/dot views).
    * Each item is placed at (x, y) in the 300×430 coordinate space.
-   * Leave empty to render the pitch alone.
    */
   players?: PitchPlayerMarker[]
+  /**
+   * Full PlayerCard overlays (used for pick-team / lineup views).
+   * Rendered as HTML on top of the SVG using percentage positioning.
+   * Cannot be mixed with `players` on the same instance — use one or the other.
+   */
+  cardOverlays?: PitchCardOverlay[]
   /** Extra Tailwind classes for the outer wrapper */
   className?: string
 }
