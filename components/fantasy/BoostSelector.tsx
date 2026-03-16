@@ -1,15 +1,8 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Zap, Star, Shuffle, Play } from 'lucide-react'
+import { Timer } from 'lucide-react'
 import { BOOST_OPTIONS, type BoostType } from '@/lib/fantasyMockData'
-
-const BOOST_ICONS: Record<NonNullable<BoostType>, React.ReactNode> = {
-  benchBoost: <Zap size={18} className="text-gaffer-orange" />,
-  tripleCaptain: <Star size={18} className="text-gaffer-orange" />,
-  wildcard: <Shuffle size={18} className="text-gaffer-orange" />,
-  freePlay: <Play size={18} className="text-gaffer-orange" />,
-}
 
 interface BoostSelectorProps {
   active: BoostType
@@ -18,55 +11,72 @@ interface BoostSelectorProps {
 
 export function BoostSelector({ active, onToggle }: BoostSelectorProps) {
   return (
-    <div className="flex gap-2 px-4 overflow-x-auto scrollbar-hide pb-1">
+    <div className="flex gap-2 px-4">
       {BOOST_OPTIONS.map((boost) => {
         const isActive = active === boost.id
+        const isFree = boost.id === 'freePlay'
+
         return (
-          <motion.button
+          <motion.div
             key={boost.id}
-            whileTap={{ scale: 0.94 }}
-            onClick={() => onToggle(isActive ? null : boost.id)}
-            className={`flex-shrink-0 flex flex-col items-center gap-1.5 rounded-2xl border px-3 pt-3 pb-2 min-w-[72px] transition-all ${
-              isActive
-                ? 'bg-gaffer-orange/10 border-gaffer-orange shadow-orange-glow'
-                : 'bg-gaffer-card border-gaffer-border'
-            }`}
+            whileTap={{ scale: 0.95 }}
+            className={[
+              'flex-1 flex flex-col items-center gap-2 rounded-2xl px-1 pt-3 pb-2.5',
+              'transition-all duration-200',
+              // Card background
+              isFree
+                ? 'bg-[#FFF0E6]'
+                : isActive
+                  ? 'bg-gaffer-card border border-gaffer-orange/40 shadow-orange-glow'
+                  : 'bg-gaffer-card border border-gaffer-border',
+            ].join(' ')}
           >
-            {/* Icon ring */}
+            {/* ── Timer icon ring ──────────────────────────────────────────── */}
             <div
-              className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all ${
-                isActive
-                  ? 'bg-gaffer-orange/20 border-gaffer-orange/50'
-                  : 'bg-gaffer-surface border-gaffer-border'
-              }`}
+              className={[
+                'w-10 h-10 rounded-full flex items-center justify-center',
+                'border-2',
+                isFree
+                  ? 'border-gaffer-orange bg-[#FFF0E6]'
+                  : isActive
+                    ? 'border-gaffer-orange bg-gaffer-orange/15'
+                    : 'border-gaffer-orange bg-gaffer-surface',
+              ].join(' ')}
             >
-              {BOOST_ICONS[boost.id]}
+              <Timer
+                size={18}
+                strokeWidth={2}
+                className="text-gaffer-orange"
+              />
             </div>
 
-            {/* Label */}
+            {/* ── Label ────────────────────────────────────────────────────── */}
             <span
-              className={`text-[9px] font-body font-semibold text-center leading-tight transition-colors ${
-                isActive ? 'text-gaffer-orange' : 'text-gaffer-muted'
-              }`}
+              className={[
+                'text-[9px] font-body font-semibold text-center leading-tight',
+                isFree ? 'text-gaffer-orange' : 'text-gaffer-muted',
+              ].join(' ')}
             >
               {boost.label}
             </span>
 
-            {/* Play / Active pill */}
-            <motion.div
-              animate={
-                isActive
-                  ? { backgroundColor: '#FF6B00', color: '#fff' }
-                  : { backgroundColor: 'rgba(255,107,0,0.12)', color: '#FF6B00' }
-              }
-              transition={{ duration: 0.2 }}
-              className="rounded-full px-3 py-0.5"
+            {/* ── Play button (all cards including Free) ───────────────────── */}
+            <button
+              type="button"
+              onClick={() => onToggle(isActive ? null : boost.id)}
+              className={[
+                'w-full rounded-lg py-1 transition-all duration-200',
+                'font-display text-[10px] font-bold',
+                isFree
+                  ? 'bg-[#FFF0E6] text-gaffer-orange border border-gaffer-orange/30'
+                  : isActive
+                    ? 'bg-gaffer-orange text-white'
+                    : 'bg-white/90 text-gaffer-bg',
+              ].join(' ')}
             >
-              <span className="text-[9px] font-display font-bold">
-                {isActive ? 'Active' : 'Play'}
-              </span>
-            </motion.div>
-          </motion.button>
+              Play
+            </button>
+          </motion.div>
         )
       })}
     </div>
