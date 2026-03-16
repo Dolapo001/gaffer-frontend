@@ -46,7 +46,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryProvider>
-      <div className="min-h-screen bg-gaffer-bg flex flex-col pb-safe">
+      <div className="min-h-screen bg-[#181928] flex flex-col pb-safe">
         <motion.main
           key={pathname}
           initial={{ opacity: 0, y: 8 }}
@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </motion.main>
 
         {/* Bottom navigation */}
-        <nav className="fixed bottom-0 inset-x-0 bg-gaffer-surface/95 backdrop-blur-xl border-t border-gaffer-border pb-safe z-50">
+        <nav className="fixed bottom-0 inset-x-0 bg-[#181928]/95 backdrop-blur-xl border-t border-white/5 pb-safe z-50">
           <div className="flex items-center justify-around px-2 py-2">
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href)

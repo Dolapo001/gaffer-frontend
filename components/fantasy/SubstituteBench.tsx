@@ -1,7 +1,7 @@
 'use client'
 
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
-import { PlayerCard } from './PlayerCard'
+import { PitchPlayerCard } from './PitchPlayerCard'
 
 const BENCH_LABELS: Record<string, string> = {
   GK: 'GKP',
@@ -22,33 +22,43 @@ export function SubstituteBench({
   onSelectPlayer,
 }: SubstituteBenchProps) {
   return (
-    <div>
-      {/* Bench header */}
-      <div className="flex items-center gap-2 px-4 mb-3">
-        <div className="flex-1 h-px bg-gaffer-border" />
-        <span className="text-[10px] font-display font-bold text-gaffer-muted tracking-widest uppercase">
-          Substitute
-        </span>
-        <div className="flex-1 h-px bg-gaffer-border" />
-      </div>
-
-      {/* Bench row */}
-      <div className="bg-gaffer-surface border border-gaffer-border rounded-2xl py-4 px-2 mx-4">
-        <div className="flex justify-around">
+    <div className="px-4 mt-8 relative z-10 w-full max-w-4xl mx-auto">
+      {/* Main Container with the metallic gradient */}
+      <div className="bg-gradient-to-b from-gray-200 to-gray-500 rounded-[2rem] p-6 shadow-xl flex flex-col items-center border border-white/20">
+        
+        {/* Player Row Container */}
+        <div className="flex flex-row justify-center gap-[28px] w-full mb-6">
           {benchPlayers.map((player) => (
-            <div key={player.id} className="flex flex-col items-center gap-1">
-              {/* Position label */}
-              <span className="text-[8px] font-display font-bold text-gaffer-muted tracking-wider">
-                {BENCH_LABELS[player.position] ?? player.position}
-              </span>
-              <PlayerCard
-                player={player}
+            <div key={player.id} className="flex flex-col items-center w-24 sm:w-28">
+              
+              {/* Position Label Area */}
+              <div className="flex flex-col items-center mb-1">
+                <span className="text-[#37003c] font-bold text-sm sm:text-base leading-tight">
+                  {BENCH_LABELS[player.position] ?? player.position}
+                </span>
+                {/* Tiny placeholder text under position label */}
+                <span className="text-[5px] sm:text-[6px] text-[#37003c]/50 tracking-widest uppercase mt-[1px] font-medium">
+                  xxxxxxxxxx
+                </span>
+              </div>
+
+              <PitchPlayerCard
+                playerName={player.shortName}
+                fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
+                kitImageUrl={player.avatarUrl || ''}
                 selected={selectedId === player.id}
-                size="sm"
                 onClick={() => onSelectPlayer(player.id)}
+                kitAreaClassName="bg-[#A59CAE]" // Muted purple/grey background for bench kits
+                className="w-full shadow-sm"
               />
             </div>
           ))}
+        </div>
+
+        <div className="mt-2 text-center">
+          <h2 className="text-white font-bold text-2xl sm:text-3xl tracking-wide drop-shadow-sm uppercase">
+            Substitute
+          </h2>
         </div>
       </div>
     </div>

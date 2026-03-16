@@ -12,7 +12,6 @@ import {
   selectBenchPlayers,
 } from '@/store/fantasyStore'
 
-import { CountdownTimer } from './CountdownTimer'
 import { BoostSelector } from './BoostSelector'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
@@ -50,9 +49,15 @@ export function FantasyTeamScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-gaffer-bg flex flex-col">
+    <div className="min-h-screen bg-[#181928] flex flex-col relative overflow-hidden">
+      {/* Background Image Overlay */}
+      <div 
+        className="absolute inset-0 z-0 opacity-60 bg-cover bg-center pointer-events-none"
+        style={{ backgroundImage: 'url("/assets/bg/fantasy-main-bg.png")' }} 
+      />
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#181928]/10 via-[#181928]/40 to-[#181928] pointer-events-none" />
       {/* ── Sticky header ───────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-gaffer-bg/95 backdrop-blur-xl border-b border-gaffer-border">
+      <div className="sticky top-0 z-30 bg-[#181928]/80 backdrop-blur-xl border-b border-gaffer-border">
         {/* Nav row */}
         <div className="flex items-center justify-between px-4 pt-12 pb-3">
           <button
@@ -74,67 +79,59 @@ export function FantasyTeamScreen() {
             <RefreshCw size={15} />
           </button>
         </div>
-
-        {/* Deadline + countdown */}
-        <div className="px-4 pb-4">
-          <CountdownTimer
-            deadline={GAMEWEEK_INFO.deadlineDate}
-            label={`Gameweek ${GAMEWEEK_INFO.number} Transfer Deadline: ${GAMEWEEK_INFO.deadlineLabel}`}
-          />
-        </div>
       </div>
 
       {/* ── Scrollable body ──────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto pb-32">
-        {/* Boost selector */}
-        <div className="pt-4 pb-3">
+      <div className="flex-1 overflow-y-auto pb-40">
+        
+        {/* New Boost selector / Transfer Deadline Row */}
+        <div className="w-full flex justify-center py-2">
           <BoostSelector
             active={selectedBoost}
             onToggle={(b: BoostType) => setBoost(b)}
+            deadlineLabel={`Gameweek ${GAMEWEEK_INFO.number} Transfer Deadline:`}
+            deadlineValue={GAMEWEEK_INFO.deadlineLabel}
           />
         </div>
 
-        {/* Pitch */}
-        <div className="px-4">
-          <PitchLayout
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={handleSelectPlayer}
-          />
+        {/* Pitch Area */}
+        <div className="px-4 mt-4">
+          <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-[#4e702c]">
+            {/* Budget pill in top right of pitch */}
+            <div className="absolute top-4 right-4 z-20 scale-90 sm:scale-100">
+              <div className="bg-[#1a1f24] rounded-full px-4 py-1 flex items-center gap-2 border border-white/10 shadow-lg">
+                <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
+                <span className="text-[#00ffff] text-[10px] font-bold">₦{budget.toFixed(1)}m</span>
+              </div>
+            </div>
+
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={handleSelectPlayer}
+            />
+          </div>
         </div>
 
-        {/* Bench */}
-        <div className="mt-4">
+        {/* Bench / Substitute Section */}
+        <div className="mt-6">
           <SubstituteBench
             benchPlayers={benchPlayers}
             selectedId={selectedPlayerId}
             onSelectPlayer={handleSelectPlayer}
           />
         </div>
-      </div>
 
-      {/* ── Sticky save button ───────────────────────────────────────────── */}
-      <div className="fixed bottom-0 inset-x-0 z-20 bg-gradient-to-t from-gaffer-bg via-gaffer-bg/90 to-transparent pt-6 pb-24 px-4">
-        <motion.button
-          onClick={handleSave}
-          whileTap={{ scale: 0.97 }}
-          animate={savedAnim ? { scale: [1, 1.03, 1] } : {}}
-          className={`w-full py-4 rounded-2xl font-display font-bold text-base transition-all duration-300 ${
-            savedAnim
-              ? 'bg-green-500 text-white shadow-none'
-              : 'bg-transparent border-2 border-gaffer-orange text-gaffer-orange'
-          }`}
-        >
-          {savedAnim ? (
-            <span className="flex items-center justify-center gap-2">
-              <Check size={18} />
-              Team Saved!
-            </span>
-          ) : (
-            'Save Team'
-          )}
-        </motion.button>
+        {/* ── Centered Save Team Button ───────────────────────────────────────────── */}
+        <div className="mt-16 mb-24 flex justify-center">
+          <button
+            onClick={handleSave}
+            className="text-[#ff6b00] font-bold text-2xl border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity pb-0.5"
+          >
+            {savedAnim ? 'TEAM SAVED!' : 'Save Team'}
+          </button>
+        </div>
       </div>
 
       {/* ── Player detail drawer ─────────────────────────────────────────── */}

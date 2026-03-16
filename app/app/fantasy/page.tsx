@@ -1,16 +1,15 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
+import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
 
 export default function FantasyPage() {
-  const router = useRouter()
-  useEffect(() => {
-    router.replace('/app/fantasy/team')
-  }, [router])
-  return (
-    <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
-      <div className="w-8 h-8 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
-    </div>
-  )
+  const [showWelcome, setShowWelcome] = useState(true)
+
+  if (showWelcome) {
+    return <FantasyWelcome onGetStarted={() => setShowWelcome(false)} />
+  }
+
+  return <FantasyDashboard />
 }
