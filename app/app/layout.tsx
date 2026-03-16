@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
-import { Home, Trophy, Newspaper } from 'lucide-react'
+import { Home, Trophy, Newspaper, Gamepad2 } from 'lucide-react'
 import Link from 'next/link'
 import { QueryProvider } from '@/components/QueryProvider'
 
@@ -39,6 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = [
     { href: '/app/dashboard', icon: Home, label: 'Home' },
+    { href: '/app/fantasy', icon: Gamepad2, label: 'Fantasy' },
     { href: '/app/league', icon: Trophy, label: 'League' },
     { href: '/app/news', icon: Newspaper, label: 'News' },
   ]
