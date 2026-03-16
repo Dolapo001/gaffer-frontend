@@ -1,6 +1,13 @@
 'use client';
 
-// Figma: width 222.52 × height 140.17, opacity 1, angle 0deg
+/**
+ * Figma specs:
+ *   width:         222.46px
+ *   height:        140.17px
+ *   border-radius: 15.05px
+ *   angle:         0deg  |  opacity: 1
+ *   background:    linear-gradient(90deg, #4568DC 0%, #B06AB3 100%)
+ */
 
 interface MatchScorer {
   name: string;
@@ -34,11 +41,13 @@ export default function LiveMatchCard({
     // Figma width: 222.52px → w-full inside a constrained parent
     // Figma height: 140.17px → fixed h
     <div
-      className="relative w-full rounded-2xl overflow-hidden flex flex-col"
+      className="relative w-full overflow-hidden flex flex-col"
       style={{
-        // Gradient: blue-purple left → lighter purple right (matched from screenshot)
-        background: 'linear-gradient(105deg, #5B6CF5 0%, #7B5EA7 55%, #9B6BBF 100%)',
-        height: '140px',
+        // Figma: linear-gradient(90deg, #4568DC 0%, #B06AB3 100%)
+        background: 'linear-gradient(90deg, #4568DC 0%, #B06AB3 100%)',
+        // Figma: height 140.17px, border-radius 15.05px
+        height: '140.17px',
+        borderRadius: '15.05px',
       }}
     >
       {/* Subtle noise/overlay to soften the gradient */}
