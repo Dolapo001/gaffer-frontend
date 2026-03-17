@@ -20,13 +20,13 @@ export function LeagueHeader() {
       
       {/* Title Area */}
       <div 
-        className="flex items-center justify-center overflow-hidden"
-        style={{ width: '230px', height: '17px' }}
+        className="flex items-center justify-center pt-2"
+        style={{ width: '100%', minHeight: '30px' }}
       >
         <h1 
           className="text-white font-medium text-center uppercase"
           style={{ 
-            fontFamily: "'Chakra Petch', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontSize: '21.38px',
             lineHeight: '16.75px',
             fontWeight: 500,

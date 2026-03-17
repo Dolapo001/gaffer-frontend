@@ -8,11 +8,12 @@ export function TopAssiterButton() {
       <button 
         className="hover:bg-white/[0.04] flex items-center justify-between px-6 transition-all group shrink-0"
         style={{ 
-          width: '297px', 
+          width: '302.25px', 
           height: '45px', 
           borderRadius: '12px',
           backgroundColor: '#1a1b2e',
-          border: '1.31px solid #2E2F3E'
+          border: '1.31px solid #2E2F3E',
+          fontFamily: "'Poppins', sans-serif"
         }}
       >
         <div className="flex items-center gap-2">

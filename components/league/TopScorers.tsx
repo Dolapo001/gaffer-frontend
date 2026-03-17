@@ -17,22 +17,28 @@ const scorers: Scorer[] = [
   { name: 'Toberu', goals: 3, avatar: 'https://i.pravatar.cc/100?u=6' },
 ];
 
-export function TopScorers() {
+export function TopScorers({ onSeeAll }: { onSeeAll?: () => void }) {
   return (
-    <div className="w-full flex justify-center mb-24 px-4 text-white">
+    <div className="w-full flex justify-center mb-20 px-4 text-white">
       <div 
-        className="bg-[#1a1b2e]/60 backdrop-blur-sm border p-5 flex flex-col shadow-2xl"
+        className="bg-[#1a1b2e]/60 backdrop-blur-sm p-5 flex flex-col shadow-2xl"
         style={{ 
-          width: '297px', 
+          width: '302.25px', 
           height: '378.47px', 
           borderRadius: '28.03px',
-          border: '1.31px solid #2E2F3E'
+          border: '1.31px solid #2E2F3E',
+          fontFamily: "'Poppins', sans-serif"
         }}
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[17px] font-bold tracking-tight">Top Scorer</h2>
-          <button className="text-[#a855f7] text-[13px] font-bold hover:text-[#d8b4fe] transition-colors">See All</button>
+          <button 
+            onClick={onSeeAll}
+            className="text-[#a855f7] text-[13px] font-bold hover:text-[#d8b4fe] transition-colors"
+          >
+            See All
+          </button>
         </div>
 
         {/* Column Headers */}

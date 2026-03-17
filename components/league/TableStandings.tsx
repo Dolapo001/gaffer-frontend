@@ -21,28 +21,70 @@ export function TableStandings() {
   return (
     <div className="w-full flex justify-center mb-6 px-4">
       <div 
-        className="bg-[#1a1b2e]/60 rounded-[28px] p-5 border backdrop-blur-sm shadow-xl flex flex-col"
+        className="bg-[#1a1b2e]/60 rounded-[28.03px] p-5 backdrop-blur-sm shadow-xl flex flex-col mx-auto"
         style={{ 
-          width: '297px', 
+          width: '302.25px', 
           height: '378.47px', 
-          borderRadius: '28.03px',
-          border: '1.31px solid #2E2F3E'
+          border: '1.31px solid #2E2F3E',
+          fontFamily: "'Poppins', sans-serif"
         }}
       >
-        {/* Header */}
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-white text-[17px] font-bold tracking-tight">Table Standings</h2>
-          <button className="text-[#a855f7] text-[13px] font-bold hover:text-[#d8b4fe] transition-colors">See All</button>
+          <h2 
+            className="text-white whitespace-nowrap"
+            style={{
+              width: '119px',
+              height: '25px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+              fontSize: '14.02px',
+              lineHeight: '24.53px',
+              letterSpacing: '0.26px'
+            }}
+          >
+            Table Standings
+          </h2>
+          <button 
+            className="transition-colors whitespace-nowrap"
+            style={{
+              width: '43px',
+              height: '25px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+              fontSize: '12.27px',
+              lineHeight: '24.53px',
+              letterSpacing: '0.26px',
+              color: '#D2B5FF',
+              textAlign: 'center'
+            }}
+          >
+            See All
+          </button>
         </div>
 
         {/* Table Headers */}
-        <div className="flex items-center text-[#94a3b8] text-[12px] font-bold mb-3 px-1">
-          <span className="flex-1">Club</span>
-          <div className="flex items-center gap-4">
-            <span className="w-5 text-center">W</span>
-            <span className="w-5 text-center">D</span>
-            <span className="w-5 text-center">L</span>
-            <span className="w-8 text-right">Poin</span>
+        <div className="flex items-center text-[#94a3b8] mb-3 px-1" style={{ width: '268.82px' }}>
+          <span 
+            className="text-white"
+            style={{
+              width: '30px',
+              height: '25px',
+              fontFamily: "'Poppins', sans-serif",
+              fontWeight: 500,
+              fontSize: '12.27px',
+              lineHeight: '24.53px',
+              letterSpacing: '0.26px',
+              display: 'flex',
+              alignItems: 'center'
+            }}
+          >
+            Club
+          </span>
+          <div className="flex-1 flex items-center justify-end gap-3">
+            <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>W</span>
+            <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>D</span>
+            <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>L</span>
+            <span className="w-[35px] text-right" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>Poin</span>
           </div>
         </div>
 
@@ -51,23 +93,44 @@ export function TableStandings() {
           {teams.map((team, i) => (
             <div 
               key={i} 
-              className="flex items-center py-2.5 border-b border-[#2E2F3E]/40 last:border-0 hover:bg-white/[0.02] transition-colors rounded-lg px-1 group"
+              className="flex items-center border-b border-[#2E2F3E]/40 last:border-0 hover:bg-white/[0.02] transition-colors px-1 group"
+              style={{
+                width: '268.82px',
+                height: '35px',
+              }}
             >
               <div className="flex-1 flex items-center gap-2.5 min-w-0">
-                {/* Status indicator */}
-                <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                  team.status === 'qualified' ? 'bg-[#00e5ff]' : 
-                  team.status === 'playoffs' ? 'bg-[#ff9100]' : 'bg-transparent'
-                }`} />
-                
-                <span className="text-white text-[14px] font-bold tracking-tight truncate">{team.name}</span>
+                {/* Status indicator (Step 305) */}
+                <div 
+                  className="rounded-full shrink-0"
+                  style={{
+                    width: '5.51px',
+                    height: '5.26px',
+                    backgroundColor: team.status === 'qualified' ? '#00D1FF' : 
+                                     team.status === 'playoffs' ? '#ff9100' : 'transparent'
+                  }}
+                />
+                <span 
+                  className="text-white truncate"
+                  style={{
+                    fontFamily: "'Poppins', sans-serif",
+                    fontWeight: 400,
+                    fontSize: '12.27px',
+                    lineHeight: '24.53px',
+                    letterSpacing: '0.26px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}
+                >
+                  {team.name}
+                </span>
               </div>
               
-              <div className="flex items-center gap-4">
-                <span className="w-5 text-center text-white text-[13px] font-bold">{team.w}</span>
-                <span className="w-5 text-center text-white text-[13px] font-bold">{team.d}</span>
-                <span className="w-5 text-center text-white text-[13px] font-bold">{team.l}</span>
-                <span className="w-8 text-right text-white text-[13px] font-black">{team.pts}</span>
+              <div className="flex items-center justify-end gap-3">
+                <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.w}</span>
+                <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.d}</span>
+                <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.l}</span>
+                <span className="w-[35px] text-right text-white text-[12.27px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.pts}</span>
               </div>
             </div>
           ))}

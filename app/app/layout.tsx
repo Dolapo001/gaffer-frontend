@@ -46,40 +46,51 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryProvider>
-      <div className="min-h-screen bg-[#181928] flex flex-col pb-safe">
+      <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
         <motion.main
           key={pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="flex-1 pb-20"
+          className="flex-1 pb-32"
         >
           {children}
         </motion.main>
 
-        {/* Bottom navigation */}
-        <nav className="fixed bottom-0 inset-x-0 bg-[#181928]/95 backdrop-blur-xl border-t border-white/5 pb-safe z-50">
-          <div className="flex items-center justify-around px-2 py-2">
+        {/* Bottom navigation (Premium Pill Design) */}
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+          <nav 
+            className="flex items-center justify-around px-6 backdrop-blur-2xl pointer-events-auto"
+            style={{ 
+              width: '352px', 
+              height: '89px',
+              borderRadius: '104.45px',
+              backgroundColor: 'rgba(15, 23, 43, 0.2)',
+              border: '1.23px solid rgba(255, 255, 255, 0.08)',
+              boxShadow: '0px 20px 40px rgba(0, 0, 0, 0.4)'
+            }}
+          >
             {navItems.map((item) => {
               const isActive = pathname.startsWith(item.href)
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="relative flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all"
+                  className="flex flex-col items-center gap-1 transition-all"
                 >
-                  {isActive ? (
-                    <div className="w-10 h-10 rounded-xl bg-orange-gradient-btn flex items-center justify-center shadow-orange-glow">
-                      <item.icon size={20} strokeWidth={2} className="text-white" />
-                    </div>
-                  ) : (
-                    <div className="w-10 h-10 flex items-center justify-center">
-                      <item.icon size={22} strokeWidth={1.5} className="text-gaffer-muted" />
-                    </div>
-                  )}
+                  <div className="w-10 h-10 flex items-center justify-center relative">
+                    <item.icon 
+                      size={24} 
+                      strokeWidth={isActive ? 2.5 : 2} 
+                      className={isActive ? 'text-[#FF4D00]' : 'text-white/40'} 
+                    />
+                    {isActive && (
+                       <div className="absolute -top-1 w-1 h-1 bg-[#FF4D00] rounded-full shadow-[0_0_8px_#FF4D00]" />
+                    )}
+                  </div>
                   <span
-                    className={`text-[10px] font-body font-medium ${
-                      isActive ? 'text-gaffer-orange' : 'text-gaffer-muted'
+                    className={`text-[10px] font-medium tracking-wide ${
+                      isActive ? 'text-[#FF4D00]' : 'text-white/40'
                     }`}
                   >
                     {item.label}
@@ -87,8 +98,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </Link>
               )
             })}
-          </div>
-        </nav>
+          </nav>
+        </div>
       </div>
     </QueryProvider>
   )
