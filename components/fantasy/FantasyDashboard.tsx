@@ -1,11 +1,21 @@
 'use client'
 
 import React from 'react';
-import { ChevronRight, Home, Users, Trophy, FileText, Wifi, Battery, Signal } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/store/toastStore';
 
 const FantasyDashboard: React.FC = () => {
   const router = useRouter();
+  const { addToast } = useToast();
+
+  const handleNav = (label: string, path: string) => {
+    if (path === '/app/fantasy/transfers') {
+      addToast('Transfers will be available soon!', 'warning');
+      return;
+    }
+    router.push(path);
+  };
 
   return (
     <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] overflow-hidden flex flex-col font-sans z-0">
@@ -83,7 +93,7 @@ const FantasyDashboard: React.FC = () => {
                 borderRadius: '12px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
               }}
-              onClick={() => router.push(item.path)}
+              onClick={() => handleNav(item.label, item.path)}
             >
               <span className="text-white font-bold text-[16px] ml-[20px] uppercase tracking-wide">{item.label}</span>
               

@@ -4,8 +4,18 @@ import { motion } from 'framer-motion'
 import { Twitter, Instagram, Disc, Send } from 'lucide-react'
 import { GafferLogo } from '@/components/GafferLogo'
 
+import { useToast } from '@/store/toastStore'
+
 export function Footer() {
   const currentYear = new Date().getFullYear()
+  const { addToast } = useToast()
+  
+  const handleLinkClick = (e: React.MouseEvent, href: string, name: string) => {
+    if (href === '#') {
+      e.preventDefault()
+      addToast(`${name} feature is coming soon!`, 'info')
+    }
+  }
 
   const FOOTER_LINKS = {
     Product: [
@@ -39,13 +49,14 @@ export function Footer() {
           <div className="space-y-8 flex flex-col items-start">
              <GafferLogo size="sm" />
              <p className="font-display font-800 text-3xl text-white uppercase italic leading-tight">
-               DOMINATE <span className="text-orange-gaffer">THE FIELD.</span>
+                DOMINATE <span className="text-orange-gaffer">THE FIELD.</span>
              </p>
              <div className="flex gap-4">
                 {[Twitter, Instagram, Disc, Send].map((Icon, i) => (
                   <motion.button
                     key={i}
                     whileHover={{ scale: 1.1, color: '#FF6B00' }}
+                    onClick={() => addToast('Follow us for updates!', 'success')}
                     className="w-10 h-10 rounded-lg glass flex items-center justify-center text-text-muted transition-colors border-white/5 hover:border-orange-gaffer/40 hover:glass ring-1 ring-white/5"
                   >
                     <Icon size={20} />
@@ -63,6 +74,7 @@ export function Footer() {
                   <li key={link.name}>
                     <a 
                       href={link.href} 
+                      onClick={(e) => handleLinkClick(e, link.href, link.name)}
                       className="font-body text-text-muted hover:text-orange-gaffer transition-colors text-lg"
                     >
                       {link.name}

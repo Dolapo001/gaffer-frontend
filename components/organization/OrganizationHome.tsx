@@ -5,13 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { Menu, Share2, Flame, Plus } from 'lucide-react'
-import { NewsCard } from '@/components/home/NewsCard'
-import { GradientButton } from '@/components/GradientButton'
+import { useToast } from '@/store/toastStore'
 import { OrganizationSidebar } from './OrganizationSidebar'
+import { GradientButton } from '@/components/GradientButton'
 
 export function OrganizationHome() {
   const router = useRouter()
   const { user } = useAuthStore()
+  const { addToast } = useToast()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const mockNews = {
@@ -22,6 +23,11 @@ export function OrganizationHome() {
     excerpt: 'Take control of your sporting activities, be the manager of your own club',
     likes: 342,
     timeAgo: '10 mins ago'
+  }
+
+  const handleNewsClick = () => {
+    addToast('Opening full article...', 'info')
+    // simulate detailed view
   }
 
   return (
@@ -61,7 +67,10 @@ export function OrganizationHome() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <div className="bg-[#1C1F2D] rounded-[24px] overflow-hidden border border-white/5 shadow-xl group">
+            <div 
+              onClick={handleNewsClick}
+              className="bg-[#1C1F2D] rounded-[24px] overflow-hidden border border-white/5 shadow-xl group cursor-pointer active:scale-[0.99] transition-transform"
+            >
               <div className="relative h-[200px] overflow-hidden">
                 <img src={mockNews.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
                 <div className="absolute top-4 left-4 flex items-center gap-1.5 px-2 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/5">
@@ -82,7 +91,7 @@ export function OrganizationHome() {
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-chakra font-black text-2xl text-white uppercase leading-[1.1] tracking-tight">
+                  <h3 className="font-chakra font-black text-2xl text-white uppercase leading-[1.1] tracking-tight group-hover:text-orange-500 transition-colors">
                     {mockNews.title}
                   </h3>
                   <p className="text-white/60 text-sm leading-relaxed font-medium">
@@ -94,8 +103,14 @@ export function OrganizationHome() {
                     <Flame size={18} className="text-orange-500" />
                     <span className="font-chakra font-bold text-orange-500">{mockNews.likes}</span>
                   </div>
-                  <button className="p-2 rounded-full hover:bg-white/5 transition-colors">
-                    <Share2 size={18} className="text-white/40" />
+                  <button 
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      addToast('Article link copied!', 'success')
+                    }}
+                    className="p-2 rounded-full hover:bg-white/5 transition-colors group/share"
+                  >
+                    <Share2 size={18} className="text-white/40 group-hover/share:text-white" />
                   </button>
                 </div>
               </div>

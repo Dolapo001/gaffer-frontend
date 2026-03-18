@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { PWAProvider } from '@/components/PWAProvider'
 import { AuthProvider } from '@/components/AuthProvider'
 import { BrowserProtection } from '@/components/BrowserProtection'
+import { ToastContainer } from '@/components/ToastContainer'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -60,6 +61,7 @@ export default function RootLayout({
         <PWAProvider>
           <AuthProvider>
             <BrowserProtection>
+              <ToastContainer />
               {children}
             </BrowserProtection>
           </AuthProvider>

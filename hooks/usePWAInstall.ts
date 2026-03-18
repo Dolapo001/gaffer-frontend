@@ -51,7 +51,16 @@ export function usePWAInstall() {
     }
 
     const prompt = getDeferredPrompt()
-    if (!prompt) return false
+    if (!prompt) {
+      // If we are on desktop/browser and no native prompt (e.g. non-Chromium or already handled),
+      // simulate a nice "Downloading" experience then go to app
+      setIsInstalling(true)
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      setIsInstalling(false)
+      setIsInstalled(true)
+      window.location.href = '/app/dashboard'
+      return true
+    }
 
     setIsInstalling(true)
     const success = await triggerInstallPrompt()

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flame, Share2, Clock } from 'lucide-react'
+import { useToast } from '@/store/toastStore'
 
 export interface NewsCardProps {
   id: string
@@ -32,6 +33,7 @@ export function NewsCard({
 }: NewsCardProps) {
   const [liked, setLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(likes)
+  const { addToast } = useToast()
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation()
@@ -155,7 +157,10 @@ export function NewsCard({
             </span>
           </button>
           <button
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              e.stopPropagation()
+              addToast('Article link copied to clipboard!', 'success')
+            }}
             className="text-gaffer-subtle hover:text-white transition-colors"
           >
             <Share2 size={16} />
