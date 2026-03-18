@@ -683,7 +683,7 @@ export default function OrganizePage() {
                 <h1 className="text-[32px] font-bold tracking-[0.05em] uppercase mb-4">{selectedTeam?.name || selectedGroup?.name}</h1>
                 
                 <p className="text-[#E2E8F0] text-[13.5px] leading-[1.6] max-w-[280px] mb-8">
-                  Copy the Link and Share the link wth Capture Player's data
+                  Copy the Link and Share the link wth Capture Player&apos;s data
                 </p>
 
                 <div className="w-full max-w-[340px] bg-[#1C2130] rounded-[16px] p-4 flex items-center justify-between border border-[#2C3140]">

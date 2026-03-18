@@ -107,12 +107,12 @@ export function LiveMatchDetails({ onBack }: LiveMatchDetailsProps) {
           }}
         >
           <div className="flex flex-col text-white opacity-80">
-            <span>De Jong 66'</span>
-            <span>Depay 79'</span>
+            <span>De Jong 66&apos;</span>
+            <span>Depay 79&apos;</span>
           </div>
           <div className="flex flex-col text-white items-end opacity-80">
-            <span>Omoba 59'</span>
-            <span>Palmer 70'</span>
+            <span>Omoba 59&apos;</span>
+            <span>Palmer 70&apos;</span>
           </div>
         </div>
       </div>

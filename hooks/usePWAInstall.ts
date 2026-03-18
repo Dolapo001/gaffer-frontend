@@ -1,62 +1,70 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import {
-  setDeferredPrompt,
-  triggerInstallPrompt,
-  isStandalone,
-  isIOS,
-} from '@/lib/pwa'
+import { getDeferredPrompt, triggerInstallPrompt, isStandalone } from '@/lib/pwa'
 
 export function usePWAInstall() {
-  const [canInstall, setCanInstall] = useState(false)
+  const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
-  const [isIOSDevice, setIsIOSDevice] = useState(false)
-  const [showIOSInstructions, setShowIOSInstructions] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
 
   useEffect(() => {
+    if (typeof window === 'undefined') return
+
     setIsInstalled(isStandalone())
-    setIsIOSDevice(isIOS())
 
-    // Listen for Chrome install prompt
-    const handleBeforeInstall = (e: Event) => {
+    const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
+      // Store event globally in lib/pwa
+      const { setDeferredPrompt } = require('@/lib/pwa')
       setDeferredPrompt(e)
-      setCanInstall(true)
+      setIsInstallable(true)
     }
 
-    // Listen for successful install
-    const handleAppInstalled = () => {
-      setIsInstalled(true)
-      setCanInstall(false)
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    
+    // Check if it's already installable (event might have fired already)
+    if (getDeferredPrompt()) {
+      setIsInstallable(true)
     }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-    window.addEventListener('appinstalled', handleAppInstalled)
 
     return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-      window.removeEventListener('appinstalled', handleAppInstalled)
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
     }
   }, [])
 
-  const install = async () => {
-    if (isIOSDevice) {
-      setShowIOSInstructions(true)
-      return
+  const handleInstall = async () => {
+    // If already in standalone mode, clicking "GO TO DASHBOARD" works
+    if (isInstalled) {
+      window.location.href = '/app/dashboard'
+      return true
     }
-    const accepted = await triggerInstallPrompt()
-    if (accepted) setIsInstalled(true)
+    
+    // Explicitly check for deferred prompt
+    const prompt = getDeferredPrompt()
+    if (!prompt) {
+      // For iOS or browsers without direct prompt support
+      // We could show instructions, but for now we follow the user's "work as before" request
+      // which likely means trying to trigger whatever is available.
+      // If none, maybe redirecting to dashboard anyway if that's the "app"
+      return false
+    }
+
+    setIsInstalling(true)
+    const success = await triggerInstallPrompt()
+    setIsInstalling(false)
+    
+    if (success) {
+      setIsInstallable(false)
+      setIsInstalled(true)
+      // Redirect after install
+      setTimeout(() => {
+        window.location.href = '/app/dashboard'
+      }, 800)
+    }
+    
+    return success
   }
 
-  const dismissIOSInstructions = () => setShowIOSInstructions(false)
-
-  return {
-    canInstall,
-    isInstalled,
-    isIOSDevice,
-    showIOSInstructions,
-    install,
-    dismissIOSInstructions,
-  }
+  return { isInstallable, isInstalled, isInstalling, handleInstall }
 }
