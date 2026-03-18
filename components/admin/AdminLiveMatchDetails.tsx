@@ -93,38 +93,51 @@ export function AdminLiveMatchDetails() {
 
       <main className="px-6 space-y-8">
         {/* Scoreboard */}
-        <section className="flex flex-col items-center space-y-4">
+        <section className="flex flex-col items-center space-y-2">
           <div className="text-center">
-            <span className="text-green-500 font-bold text-xs uppercase tracking-widest">Full Time</span>
+            <span className="text-green-500 font-black text-[12px] uppercase tracking-widest italic">Full Time</span>
           </div>
 
-          <div className="flex items-center justify-between w-full max-w-sm">
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-white/5 p-2 border border-white/10">
+          <div className="flex items-center justify-between w-full max-w-sm px-4">
+            <div className="flex flex-col items-center gap-3 flex-1">
+              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-lg backdrop-blur-sm">
                 <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="Barca" />
               </div>
             </div>
 
-            <div className="flex items-center gap-6">
-              <span className="font-chakra font-black text-5xl">2</span>
-              <span className="text-white/20 font-chakra font-black text-5xl">-</span>
-              <span className="font-chakra font-black text-5xl">2</span>
+            <div className="flex flex-col items-center justify-center min-w-[100px]">
+               <div className="flex items-center gap-4 mb-2">
+                  <span className="font-chakra font-black text-4xl text-white">2</span>
+                  <span className="text-white/20 font-chakra font-black text-2xl">-</span>
+                  <span className="font-chakra font-black text-4xl text-white">2</span>
+               </div>
             </div>
 
-            <div className="flex flex-col items-center gap-2">
-              <div className="w-16 h-16 rounded-full bg-white/5 p-2 border border-white/10">
+            <div className="flex flex-col items-center gap-3 flex-1">
+              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-lg backdrop-blur-sm">
                 <img src="/images/mc_logo.png" className="w-full h-full object-contain" alt="Man City" />
               </div>
             </div>
           </div>
 
+          <div className="flex items-center justify-between w-full max-w-sm px-6 text-[10px] font-chakra font-bold text-white/60 tracking-tighter">
+             <div className="flex flex-col text-left">
+                <span>De Jong 66&apos;</span>
+                <span>Depay 79&apos;</span>
+             </div>
+             <div className="flex flex-col text-right">
+                <span>Omoba 59&apos;</span>
+                <span>Palmer 70&apos;</span>
+             </div>
+          </div>
+
           {/* Go Live Toggle */}
-          <div className="flex flex-col items-center gap-2 pt-2">
-            <label className="relative inline-flex items-center cursor-pointer scale-125">
+          <div className="flex flex-col items-center gap-2 pt-6">
+            <label className="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" className="sr-only peer" checked={isLive} onChange={() => setIsLive(!isLive)} />
-              <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+              <div className="w-12 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
             </label>
-            <span className="text-[10px] text-orange-500 font-black uppercase tracking-[0.2em] italic">Go Live</span>
+            <span className="text-[10px] text-orange-500 font-chakra font-black uppercase tracking-[0.2em] italic">Go Live</span>
           </div>
         </section>
 
