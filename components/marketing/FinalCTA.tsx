@@ -40,6 +40,7 @@ export function FinalCTA() {
   }
 
   return (
+    <>
     <section className="py-24 px-6 overflow-hidden">
       <motion.div
         initial={{ y: 50, opacity: 0 }}
@@ -110,5 +111,6 @@ export function FinalCTA() {
     </section>
 
     <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
+    </>
   )
 }
