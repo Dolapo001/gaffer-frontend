@@ -244,11 +244,17 @@ export default function SchedulePage() {
   )
 }
 
+import { useRouter } from 'next/navigation'
+
 function MatchCard({ match }: { match: Match }) {
+  const router = useRouter()
   const [isLive, setIsLive] = useState(match.isLive)
 
   return (
-    <div className="bg-[#1C1F2D] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group">
+    <div 
+      onClick={() => router.push(`/admin/schedule/${match.id}`)}
+      className="bg-[#1C1F2D] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+    >
       <div className="flex items-center justify-between">
         {/* Team A */}
         <div className="flex flex-col items-center gap-2 w-20">
@@ -272,7 +278,7 @@ function MatchCard({ match }: { match: Match }) {
           </div>
           
           {!match.score && (
-            <div className="flex flex-col items-center gap-1.5 pt-1">
+            <div className="flex flex-col items-center gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" className="sr-only peer" checked={isLive} onChange={() => setIsLive(!isLive)} />
                 <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>
