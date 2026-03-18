@@ -15,6 +15,11 @@ interface FantasyState {
   selectedBoost: BoostType
   budget: number
   isSaved: boolean
+  hasSeenWelcome: boolean
+  hasCreatedTeam: boolean
+  hasOrganizedBench: boolean
+  hasNamedTeam: boolean
+  teamName: string
   // Actions
   selectPlayer: (id: string | null) => void
   setSubstitutingOutId: (id: string | null) => void
@@ -23,6 +28,12 @@ interface FantasyState {
   performSubstitution: (id1: string, id2: string) => void
   saveTeam: () => void
   resetSaved: () => void
+  setHasSeenWelcome: (val: boolean) => void
+  setHasCreatedTeam: (val: boolean) => void
+  setHasOrganizedBench: (val: boolean) => void
+  setHasNamedTeam: (val: boolean) => void
+  setTeamName: (name: string) => void
+  resetTeam: () => void
 }
 
 export const useFantasyStore = create<FantasyState>()(
@@ -34,6 +45,11 @@ export const useFantasyStore = create<FantasyState>()(
       selectedBoost: null,
       budget: GAMEWEEK_INFO.budget,
       isSaved: false,
+      hasSeenWelcome: false,
+      hasCreatedTeam: false,
+      hasOrganizedBench: false,
+      hasNamedTeam: false,
+      teamName: '',
 
       selectPlayer: (id) =>
         set((state) => ({
@@ -90,6 +106,23 @@ export const useFantasyStore = create<FantasyState>()(
       saveTeam: () => set({ isSaved: true }),
 
       resetSaved: () => set({ isSaved: false }),
+
+      setHasSeenWelcome: (val) => set({ hasSeenWelcome: val }),
+      setHasCreatedTeam: (val) => set({ hasCreatedTeam: val }),
+      setHasOrganizedBench: (val) => set({ hasOrganizedBench: val }),
+      setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
+      setTeamName: (name) => set({ teamName: name }),
+
+      resetTeam: () => set({ 
+        players: SQUAD, 
+        budget: GAMEWEEK_INFO.budget, 
+        isSaved: false, 
+        hasSeenWelcome: false,
+        hasCreatedTeam: false,
+        hasOrganizedBench: false,
+        hasNamedTeam: false,
+        teamName: '' 
+      }),
     }),
     {
       name: 'gaffer-fantasy-team',
@@ -98,6 +131,11 @@ export const useFantasyStore = create<FantasyState>()(
         selectedBoost: state.selectedBoost,
         budget: state.budget,
         substitutingOutId: state.substitutingOutId,
+        hasSeenWelcome: state.hasSeenWelcome,
+        hasCreatedTeam: state.hasCreatedTeam,
+        hasOrganizedBench: state.hasOrganizedBench,
+        hasNamedTeam: state.hasNamedTeam,
+        teamName: state.teamName,
       }),
     }
   )

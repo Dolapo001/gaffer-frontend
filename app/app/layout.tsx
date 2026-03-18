@@ -57,17 +57,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {children}
         </motion.main>
 
-        {/* Bottom navigation (Premium Pill Design) */}
-        <div id="global-nav-bar" className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-300">
+        {/* Bottom navigation (Design Matched Bar) */}
+        <div id="global-nav-bar" className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none transition-opacity duration-300 h-28 flex items-end">
           <nav 
-            className="flex items-center justify-around px-6 backdrop-blur-2xl pointer-events-auto"
+            className="w-full h-24 flex items-center justify-around px-6 backdrop-blur-2xl pointer-events-auto shadow-[0_-20px_40px_rgba(0,0,0,0.5)] border-t border-white/5"
             style={{ 
-              width: '352px', 
-              height: '89px',
-              borderRadius: '104.45px',
-              backgroundColor: 'rgba(15, 23, 43, 0.2)',
-              border: '1.23px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: '0px 20px 40px rgba(0, 0, 0, 0.4)'
+              backgroundColor: '#1b1c28',
+              borderRadius: '2.5rem 2.5rem 0 0',
             }}
           >
             {navItems.map((item) => {
@@ -84,12 +80,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       strokeWidth={isActive ? 2.5 : 2} 
                       className={isActive ? 'text-[#FF4D00]' : 'text-white/40'} 
                     />
-                    {isActive && (
-                       <div className="absolute -top-1 w-1 h-1 bg-[#FF4D00] rounded-full shadow-[0_0_8px_#FF4D00]" />
-                    )}
                   </div>
                   <span
-                    className={`text-[10px] font-medium tracking-wide ${
+                    className={`text-[10px] font-bold tracking-wide ${
                       isActive ? 'text-[#FF4D00]' : 'text-white/40'
                     }`}
                   >

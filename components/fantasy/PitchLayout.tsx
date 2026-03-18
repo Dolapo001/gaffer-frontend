@@ -2,6 +2,7 @@
 
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
 import { PitchPlayerCard } from './PitchPlayerCard'
+import { EmptySlotCard } from './EmptySlotCard'
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────
 
@@ -104,14 +105,13 @@ function PitchMarkings() {
   );
 }
 
-// ─── PitchLayout ─────────────────────────────────────────────────────────────
-
 interface PitchLayoutProps {
   pitchPlayers: FantasySquadPlayer[]
   selectedId: string | null
   substitutingOutId?: string | null
   budget: number
   onSelectPlayer: (id: string) => void
+  selectionMode?: boolean
 }
 
 export function PitchLayout({
@@ -120,10 +120,30 @@ export function PitchLayout({
   substitutingOutId,
   budget,
   onSelectPlayer,
+  selectionMode = false,
 }: PitchLayoutProps) {
-  const rows = [0, 1, 2, 3].map((row) =>
-    pitchPlayers.filter((p) => p.pitchRow === row)
-  )
+  // Define fixed slots for selection mode
+  // Row 3: GK (2 slots)
+  // Row 2: DEF (5 slots)
+  // Row 1: MID (5 slots)
+  // Row 0: FWD (3 slots)
+  const slotConfig = [
+    { row: 3, count: 2, position: 'GK' },
+    { row: 2, count: 5, position: 'DEF' },
+    { row: 1, count: 5, position: 'MID' },
+    { row: 0, count: 3, position: 'FWD' },
+  ]
+
+  const rows = [3, 2, 1, 0].map((row) => {
+    const playersInRow = pitchPlayers.filter((p) => p.pitchRow === row)
+    const config = slotConfig.find((c) => c.row === row)
+    return {
+      row,
+      players: playersInRow,
+      totalSlots: config?.count || 0,
+      position: config?.position || '',
+    }
+  })
 
   return (
     <div className="relative w-full aspect-[4/5]">
@@ -131,20 +151,57 @@ export function PitchLayout({
 
       {/* Player rows */}
       <div className="absolute inset-0 flex flex-col justify-center gap-[10px] pt-8 pb-12 px-2">
-        {rows.map((rowPlayers, ri) => (
-          <div key={ri} className="flex flex-row justify-center gap-[28px] w-full">
-            {rowPlayers.map((player) => (
-              <PitchPlayerCard
-                key={player.id}
-                playerName={player.shortName}
-                fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
-                kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
-                points={player.points}
-                selected={selectedId === player.id}
-                highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
-                onClick={() => onSelectPlayer(player.id)}
-              />
-            ))}
+        {rows.map((rowData, ri) => (
+          <div key={ri} className="flex flex-row justify-center gap-2 sm:gap-4 w-full">
+            {selectionMode ? (
+              // In selection mode, we show all slots
+              Array.from({ length: rowData.totalSlots }).map((_, si) => {
+                const player = rowData.players[si]
+                if (player) {
+                  return (
+                    <PitchPlayerCard
+                      key={player.id}
+                      playerName={player.shortName}
+                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
+                      kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                      points={player.points}
+                      selected={selectedId === player.id}
+                      highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
+                      onClick={() => onSelectPlayer(player.id)}
+                      status={player.id === 'p6' ? 'warning' : player.id === 'p1' ? 'injured' : 'fit'}
+                      captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : (player.id === 'p1' ? 'V' : null)}
+                    />
+                  )
+                }
+                return (
+                  <EmptySlotCard 
+                    key={`empty-${rowData.row}-${si}`} 
+                    position={rowData.position}
+                    onClick={() => {
+                        // We need a way to tell the parent WHICH slot was clicked
+                        // For now, just call onSelectPlayer with a special prefix
+                        onSelectPlayer(`empty-${rowData.position}-${si}`)
+                    }}
+                  />
+                )
+              })
+            ) : (
+              // In normal mode, only show players
+              rowData.players.map((player) => (
+                <PitchPlayerCard
+                  key={player.id}
+                  playerName={player.shortName}
+                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
+                  kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                  points={player.points}
+                  selected={selectedId === player.id}
+                  highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
+                  onClick={() => onSelectPlayer(player.id)}
+                  status={player.isCaptain ? 'fit' : 'fit'} 
+                  captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
+                />
+              ))
+            )}
           </div>
         ))}
       </div>
