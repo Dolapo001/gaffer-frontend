@@ -30,6 +30,7 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   themeColor: '#FF6B00',
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -49,11 +50,11 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&family=Chakra+Petch:wght@500&family=Poppins:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
-        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        {/* apple-touch-icon: 180x180 is the canonical size for modern iOS */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="theme-color" content="#FF6B00" />
       </head>
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
         <PWAProvider>

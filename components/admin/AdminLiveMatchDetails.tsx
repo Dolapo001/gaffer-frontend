@@ -2,7 +2,10 @@
 
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Info, Plus, MessageSquare, Users, Save } from 'lucide-react'
+import { 
+  ChevronLeft, Info, Plus, MessageSquare, Clock, BarChart2, 
+  AlertTriangle, Repeat, Square, Play, Edit2, Trophy 
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 
@@ -18,24 +21,38 @@ export function AdminLiveMatchDetails() {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('lineup')
   const [isLive, setIsLive] = useState(false)
+  const [commentaryStep, setCommentaryStep] = useState<'idle' | 'menu' | 'team' | 'scorer' | 'assist'>('idle')
+  const [selectedAction, setSelectedAction] = useState<string | null>(null)
 
-  // Mock data for the pitch slots
-  const [slotsA, setSlotsA] = useState<PlayerSlot[]>([
-    { id: 'a1', name: null, number: null, team: 'A', position: { x: 50, y: 10 } }, // GK
-    { id: 'a2', name: null, number: null, team: 'A', position: { x: 20, y: 25 } },
-    { id: 'a3', name: null, number: null, team: 'A', position: { x: 40, y: 25 } },
-    { id: 'a4', name: null, number: null, team: 'A', position: { x: 60, y: 25 } },
-    { id: 'a5', name: null, number: null, team: 'A', position: { x: 80, y: 25 } },
-    { id: 'a6', name: null, number: null, team: 'A', position: { x: 30, y: 40 } },
-    { id: 'a7', name: null, number: null, team: 'A', position: { x: 50, y: 40 } },
-    { id: 'a8', name: null, number: null, team: 'A', position: { x: 70, y: 40 } },
-    { id: 'a9', name: null, number: null, team: 'A', position: { x: 40, y: 55 } },
-    { id: 'a10', name: null, number: null, team: 'A', position: { x: 60, y: 55 } },
-    { id: 'a11', name: null, number: null, team: 'A', position: { x: 50, y: 70 } },
-  ])
+  const actionTypes = [
+    { label: 'FULLTIME', icon: MessageSquare },
+    { label: 'HALFTIME', icon: Clock },
+    { label: 'PENALTY', icon: BarChart2 },
+    { label: 'ATTEMPT MISSED', icon: AlertTriangle },
+    { label: 'SUBSTITUTION', icon: Repeat },
+    { label: 'RED CARD', icon: Square, color: 'text-red-500' },
+    { label: 'YELLOW CARD', icon: Square, color: 'text-yellow-500' },
+    { label: 'GOAL', icon: Trophy },
+    { label: 'START', icon: Play },
+    { label: 'CUSTOM', icon: Edit2 },
+  ]
+
+  const players = [
+    { name: 'Dahood', pos: 'GK' },
+    { name: 'Dahood', pos: 'LB' },
+    { name: 'Dahood', pos: 'CB' },
+    { name: 'Dahood', pos: 'CB' },
+    { name: 'Dahood', pos: 'RB' },
+    { name: 'Dahood', pos: 'CM' },
+    { name: 'Dahood', pos: 'CM' },
+    { name: 'Dahood', pos: 'DM' },
+    { name: 'Dahood', pos: 'RW' },
+    { name: 'Dahood', pos: 'CF' },
+    { name: 'Dahood', pos: 'LW' },
+  ]
 
   return (
-    <div className="min-h-screen bg-[#0F111A] text-white pb-10">
+    <div className="min-h-screen bg-[#0F111A] text-white pb-10 relative overflow-hidden">
       {/* Header */}
       <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#0F111A]/80 backdrop-blur-md z-40">
         <button 
@@ -223,40 +240,142 @@ export function AdminLiveMatchDetails() {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-4"
             >
-              <div className="bg-[#1C1F2D] rounded-2xl p-4 border border-white/5 space-y-4">
-                 <textarea 
-                  placeholder="Add a comment..."
-                  className="w-full bg-[#0F111A] border border-white/10 rounded-xl p-4 text-sm text-white focus:outline-none focus:border-orange-500 transition-colors min-h-[100px]"
-                 />
-                 <div className="flex justify-between items-center">
-                    <div className="flex gap-2">
-                       <button className="p-2 bg-yellow-500/10 text-yellow-500 rounded-lg border border-yellow-500/20">
-                          Card
-                       </button>
-                       <button className="p-2 bg-red-500/10 text-red-500 rounded-lg border border-red-500/20">
-                          Goal
-                       </button>
+              {/* Blur background for steps */}
+              <div className={`space-y-6 pt-4 transition-all duration-300 ${commentaryStep !== 'idle' ? 'opacity-20 blur-sm pointer-events-none' : ''}`}>
+                <div className="bg-red-900/10 rounded-[24px] p-6 border border-white/5 relative overflow-hidden group">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-red-600/20 flex items-center justify-center">
+                      <MessageSquare size={16} className="text-red-500" />
                     </div>
-                    <GradientButton className="h-10 px-6 rounded-xl font-chakra font-black text-sm uppercase">
-                       Post
-                    </GradientButton>
-                 </div>
+                    <span className="text-white/40 font-medium text-sm">Enter live commentary here</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3">
-                 <CommentaryItem 
-                    time="90'" 
-                    text="Full Time !!! Civil Engineering takes the win in a hard-fought derby."
-                    type="goal"
-                    team="CIVIL"
-                 />
-                 <CommentaryItem 
-                    time="85'" 
-                    text="Substitution, CIVIL. Victor replaces Segun because of a tactical change."
-                    type="substitution"
-                    team="CIVIL"
-                 />
-              </div>
+              {/* Step: Goal Icon (as in image 2) */}
+              {commentaryStep === 'team' && selectedAction === 'GOAL' && (
+                <div className="flex flex-col items-center justify-center pt-20 space-y-6">
+                   <div className="w-32 h-32 rounded-full border-4 border-white/5 flex items-center justify-center relative">
+                      <div className="absolute inset-0 bg-white/5 rounded-full animate-pulse" />
+                      <Trophy size={60} className="text-white/20" />
+                   </div>
+                   <h2 className="font-chakra font-black text-6xl italic text-white/20 tracking-tighter uppercase">GOAL</h2>
+                </div>
+              )}
+
+              {/* Floating Action Menu & Flow Overlay */}
+              <AnimatePresence>
+                {commentaryStep !== 'idle' && (
+                  <motion.div 
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-50 flex flex-col items-end justify-end p-6 pb-24"
+                  >
+                    {/* Dark Overlay with click to close */}
+                    <div 
+                      className="absolute inset-0 bg-black/60 backdrop-blur-[2px] -z-10" 
+                      onClick={() => {
+                        setCommentaryStep('idle')
+                      }}
+                    />
+
+                    {/* Step Content */}
+                    <motion.div 
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      className="w-full flex flex-col items-end gap-3"
+                    >
+                      {commentaryStep === 'menu' && (
+                        <div className="flex flex-col items-end gap-3">
+                          {actionTypes.map((action, idx) => (
+                            <motion.button
+                              key={action.label}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: (actionTypes.length - idx) * 0.05 }}
+                              onClick={() => {
+                                setSelectedAction(action.label)
+                                setCommentaryStep(action.label === 'GOAL' ? 'team' : 'idle')
+                              }}
+                              className="flex items-center gap-3 px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all"
+                            >
+                              <action.icon size={18} className={action.color} />
+                              <span className="font-chakra font-black text-[12px] uppercase tracking-wider">{action.label}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+
+                      {commentaryStep === 'team' && (
+                        <div className="flex flex-col items-end gap-3 w-full">
+                          <span className="font-chakra font-black text-xs uppercase text-white/40 mb-1 pr-1">PICK TEAM</span>
+                          {['COCCS', 'COHES'].map((team) => (
+                            <motion.button
+                              key={team}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              onClick={() => setCommentaryStep('scorer')}
+                              className="flex items-center gap-3 w-full max-w-[140px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
+                            >
+                              <div className="w-5 h-5 rounded-full bg-white/10 p-1">
+                                <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
+                              </div>
+                              <span className="font-chakra font-black text-[12px] uppercase tracking-wider">{team}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+
+                      {(commentaryStep === 'scorer' || commentaryStep === 'assist') && (
+                        <div className="flex flex-col items-end gap-3 w-full max-h-[60vh] overflow-y-auto no-scrollbar pb-4 pr-1">
+                          <span className="font-chakra font-black text-xs uppercase text-white/40 mb-1 pr-1">{commentaryStep === 'scorer' ? 'GOAL SCORER' : 'ASSIST'}</span>
+                          {players.map((player, idx) => (
+                            <motion.button
+                              key={`${player.name}-${idx}`}
+                              initial={{ opacity: 0, x: 20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.03 }}
+                              onClick={() => {
+                                if (commentaryStep === 'scorer') setCommentaryStep('assist')
+                                else setCommentaryStep('idle')
+                              }}
+                              className="flex items-center justify-between w-full max-w-[180px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all"
+                            >
+                              <div className="flex items-center gap-2">
+                                <div className="w-5 h-5 rounded-full bg-white/10 p-1">
+                                  <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
+                                </div>
+                                <span className="font-chakra font-black text-[12px] uppercase tracking-wider">{player.name}</span>
+                              </div>
+                              <span className="text-[10px] font-bold text-white/40">{player.pos}</span>
+                            </motion.button>
+                          ))}
+                          {commentaryStep === 'scorer' && (
+                             <motion.button
+                                onClick={() => setCommentaryStep('idle')}
+                                className="flex items-center gap-3 w-full max-w-[180px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
+                             >
+                               <span className="font-chakra font-black text-[12px] uppercase tracking-wider">OWN GOAL</span>
+                             </motion.button>
+                          )}
+                        </div>
+                      )}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Floating Action Button */}
+              <button 
+                onClick={() => {
+                  if (commentaryStep === 'idle') setCommentaryStep('menu')
+                  else setCommentaryStep('idle')
+                }}
+                className={`fixed bottom-32 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white shadow-[0_10px_30px_rgba(255,138,0,0.4)] z-[60] active:scale-95 transition-all duration-500 ${commentaryStep !== 'idle' ? 'rotate-45' : ''}`}
+              >
+                <Plus size={32} strokeWidth={3} />
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -265,29 +384,15 @@ export function AdminLiveMatchDetails() {
   )
 }
 
-function PitchSlot({ color, border, textColor }: { color: string, border: string, textColor: string }) {
+function PitchSlot({ color, border, iconColor }: { color: string, border: string, iconColor: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform cursor-pointer">
       <div className={`w-10 h-10 rounded-full ${color} border-2 ${border} flex items-center justify-center text-white shadow-lg backdrop-blur-sm`}>
-        <Plus size={20} className={textColor} />
+        <Plus size={20} className={iconColor} />
       </div>
       <div className="bg-black/40 backdrop-blur-md px-2 py-0.5 rounded border border-white/5">
         <span className="text-[8px] font-bold text-white/60">-</span>
       </div>
-    </div>
-  )
-}
-
-function CommentaryItem({ time, text, type, team }: { time: string, text: string, type: string, team: string }) {
-  const bgColor = team === 'CIVIL' ? 'bg-[#A11D44]' : 'bg-[#59A8D4]'
-  
-  return (
-    <div className={`${bgColor} rounded-2xl p-4 shadow-lg text-white space-y-1`}>
-      <div className="flex justify-between items-center border-b border-white/10 pb-1 mb-1">
-        <span className="font-chakra font-black text-[10px] tracking-widest">{type.toUpperCase()}</span>
-        <span className="font-chakra font-black text-sm">{time}</span>
-      </div>
-      <p className="text-sm font-medium leading-relaxed">{text}</p>
     </div>
   )
 }

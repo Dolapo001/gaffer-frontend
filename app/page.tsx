@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { isStandalone } from '@/lib/pwa'
@@ -24,7 +23,7 @@ import { Footer } from '@/components/marketing/Footer'
 export default function LandingPage() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)
-  
+
   // Initialize PWA hook to capture install prompt event early
   usePWAInstall()
 
@@ -47,10 +46,10 @@ export default function LandingPage() {
 
   return (
     <main className="min-h-screen bg-[#222232] text-white antialiased selection:bg-orange-gaffer/30 overflow-x-hidden pt-20 relative">
-      
+
       {/* ── Main Gaffer Background ── */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center opacity-[0.45] mix-blend-luminosity"
           style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }}
         />
@@ -70,21 +69,21 @@ export default function LandingPage() {
       <div className="relative z-10 w-full overflow-hidden">
         {/* Sections */}
         <Hero />
-        
+
         <StatsBar />
-        
+
         <Features />
-        
+
         <ProductShowcase />
-        
+
         <ForClubs />
-        
+
         <Testimonials />
-        
+
         <Pricing />
-        
+
         <FinalCTA />
-        
+
         <Footer />
       </div>
 
