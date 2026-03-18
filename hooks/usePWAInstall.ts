@@ -14,7 +14,7 @@ export function usePWAInstall() {
 
     const standalone = isStandalone()
     setIsInstalled(standalone)
-    
+
     // Always consider iOS installable if not already installed
     if (isIOS() && !standalone) {
       setIsInstallable(true)
@@ -22,15 +22,13 @@ export function usePWAInstall() {
 
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
-      // Store event globally in lib/pwa
       const { setDeferredPrompt } = require('@/lib/pwa')
       setDeferredPrompt(e)
       setIsInstallable(true)
     }
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
-    
-    // Check if it's already installable (event might have fired already)
+
     if (getDeferredPrompt()) {
       setIsInstallable(true)
     }
@@ -41,39 +39,36 @@ export function usePWAInstall() {
   }, [])
 
   const handleInstall = async () => {
-    // If already in standalone mode, clicking "GO TO DASHBOARD" works
     if (isInstalled) {
       window.location.href = '/app/dashboard'
       return true
     }
-    
-    // For iOS, we show instructions
+
+    // iOS doesn't support beforeinstallprompt — show manual instructions modal
     if (isIOS()) {
       setShowIOSModal(true)
       return false
     }
-    
-    // Explicitly check for deferred prompt
+
     const prompt = getDeferredPrompt()
-    if (!prompt) {
-      return false
-    }
+    if (!prompt) return false
 
     setIsInstalling(true)
     const success = await triggerInstallPrompt()
     setIsInstalling(false)
-    
+
     if (success) {
       setIsInstallable(false)
       setIsInstalled(true)
-      // Redirect after install
       setTimeout(() => {
         window.location.href = '/app/dashboard'
       }, 800)
     }
-    
+
     return success
   }
 
-  return { isInstallable, isInstalled, isInstalling, handleInstall, showIOSModal, setShowIOSModal }
+  const closeIOSModal = () => setShowIOSModal(false)
+
+  return { isInstallable, isInstalled, isInstalling, handleInstall, showIOSModal, closeIOSModal }
 }

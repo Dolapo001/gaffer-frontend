@@ -4,9 +4,10 @@ import { motion } from 'framer-motion'
 import { ArrowRight, Play, ChevronDown } from 'lucide-react'
 import Image from 'next/image'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { IOSInstallModal } from '@/components/IOSInstallModal'
 
 export function Hero() {
-  const { isInstallable, isInstalled, isInstalling, handleInstall } = usePWAInstall()
+  const { isInstallable, isInstalled, isInstalling, handleInstall, showIOSModal, closeIOSModal } = usePWAInstall()
 
   return (
     <section className="relative min-h-[100dvh] flex flex-col items-center justify-center pt-28 pb-20 px-6 overflow-hidden bg-transparent">
@@ -162,6 +163,8 @@ export function Hero() {
           </p>
         </motion.div>
       </div>
+
+      <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
 
       {/* Scroll Indicator */}
       <motion.div
