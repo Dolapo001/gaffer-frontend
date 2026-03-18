@@ -6,9 +6,9 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { GafferLogo } from '@/components/GafferLogo'
+import { IOSInstallModal } from '@/components/IOSInstallModal'
 import {
   isStandalone,
-  getDeferredPrompt,
   triggerInstallPrompt,
 } from '@/lib/pwa'
 import {
@@ -30,6 +30,7 @@ export default function LandingPage() {
   const [isInstalling, setIsInstalling] = useState(false)
   const [isDone, setIsDone] = useState(false)
   const [platform, setPlatform] = useState<'ios' | 'android' | 'other'>('other')
+  const [showIOSModal, setShowIOSModal] = useState(false)
 
   useEffect(() => {
     const ua = navigator.userAgent.toLowerCase()
@@ -45,21 +46,26 @@ export default function LandingPage() {
   }, [router])
 
   const handleInstall = async () => {
-    setIsInstalling(true)
-    await new Promise(resolve => setTimeout(resolve, 3000))
-
-    if (platform === 'android') {
-      const nativePrompt = getDeferredPrompt()
-      if (nativePrompt) {
-        await triggerInstallPrompt()
-      }
+    // iOS: show the share-sheet instructions modal
+    if (platform === 'ios') {
+      setShowIOSModal(true)
+      return
     }
-    
-    setIsInstalling(false)
-    setIsDone(true)
-    setTimeout(() => {
-      router.push('/onboarding/splash')
-    }, 1200)
+
+    // Android & PC Chrome: trigger the native beforeinstallprompt
+    setIsInstalling(true)
+    const accepted = await triggerInstallPrompt()
+
+    if (accepted) {
+      setIsInstalling(false)
+      setIsDone(true)
+      setTimeout(() => router.push('/onboarding/splash'), 1200)
+    } else {
+      // Prompt was dismissed or unavailable — still guide them forward
+      setIsInstalling(false)
+      setIsDone(true)
+      setTimeout(() => router.push('/onboarding/splash'), 1200)
+    }
   }
 
   if (checking) {
@@ -216,6 +222,8 @@ export default function LandingPage() {
           </motion.div>
         </div>
       </main>
+
+      <IOSInstallModal isOpen={showIOSModal} onClose={() => setShowIOSModal(false)} />
 
       {/* ── Premium Feature Grid ── */}
       <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-20 border-t border-white/5 bg-gradient-to-b from-transparent to-white/[0.01]">
