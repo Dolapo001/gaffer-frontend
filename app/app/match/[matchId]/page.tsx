@@ -135,6 +135,13 @@ export default function MatchCenterPage() {
               exit={{ opacity: 0, scale: 0.95 }}
               className="space-y-4"
             >
+              {/* Attempt Missed Event - From Image 4 style */}
+              <div className="bg-[#5AA1D1] rounded-[18px] px-6 py-4 flex items-center justify-between border border-white/5 shadow-lg">
+                 <p className="text-[#0A1D2D] font-chakra font-bold text-[11px] leading-relaxed uppercase pr-4">
+                   Attempt missed. Tunde (MECH) header from the center of the box is close, but misses to the right.
+                 </p>
+              </div>
+
               {/* Goal Event 1 - Stylized Card */}
               <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex items-center gap-5 border border-white/5 shadow-[0_10px_30px_rgba(142,16,62,0.3)]">
                  <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
@@ -220,46 +227,46 @@ export default function MatchCenterPage() {
                   {/* Home Team (Top) a 4-4-2 */}
                   <div className="space-y-7 z-10 w-full">
                     <div className="flex justify-center">
-                       <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                       <PitchSlot initials="ARS" name="Ramsdale" color="bg-[#403816]" border="border-[#756621]/60" />
                     </div>
                     <div className="flex justify-around px-8">
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot initials="A" name="Alagbe" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="I" name="Ikpi" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="E" name="Ebenezer" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="P" name="Pascal" color="bg-[#403816]" border="border-[#756621]/60" />
                     </div>
                     <div className="flex justify-around px-[10%]">
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot initials="O" name="Omoba" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="I" name="Issachar" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="M" name="Mario" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="W" name="Wisdom" color="bg-[#403816]" border="border-[#756621]/60" />
                     </div>
                     <div className="flex justify-center gap-20">
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot initials="D" name="Dahood" color="bg-[#403816]" border="border-[#756621]/60" />
+                      <PitchSlot initials="G" name="Greenwood" color="bg-[#403816]" border="border-[#756621]/60" />
                     </div>
                   </div>
 
                   {/* Away Team (Bottom) a 4-4-2 */}
-                  <div className="space-y-7 z-10 w-full">
+                  <div className="space-y-7 z-10 w-full mb-4">
                     <div className="flex justify-center gap-20">
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot initials="V" name="Victor" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="S" name="Segun" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
                     </div>
                     <div className="flex justify-around px-[10%]">
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot initials="K" name="Kane" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="M" name="Mount" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="R" name="Rice" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="F" name="Foden" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
                     </div>
                     <div className="flex justify-around px-8">
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
-                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot initials="W" name="Walker" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="S" name="Stones" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="D" name="Dias" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
+                      <PitchSlot initials="C" name="Cancelo" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
                     </div>
                     <div className="flex justify-center">
-                       <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                       <PitchSlot initials="E" name="Ederson" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
                     </div>
                   </div>
                 </div>
@@ -272,16 +279,14 @@ export default function MatchCenterPage() {
   )
 }
 
-function PitchSlot({ color, border, iconColor }: { color: string, border: string, iconColor: string }) {
+function PitchSlot({ color, border, initials, name }: { color: string, border: string, initials: string, name: string }) {
   return (
     <div className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform cursor-pointer">
-      <div className={`w-[44px] h-[44px] rounded-full ${color} border-[1.5px] ${border} flex items-center justify-center`}>
-        <div className={`w-3.5 h-3.5 flex items-center justify-center ${iconColor}`}>
-           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
-        </div>
+      <div className={`w-[44px] h-[44px] rounded-full ${color} border-[1.5px] ${border} flex items-center justify-center shadow-xl`}>
+        <span className="text-white text-[12px] font-chakra font-black">{initials}</span>
       </div>
-      <div className="bg-[#13151D] px-[10px] py-[2px] rounded border border-white/5 shadow-2xl">
-        <span className="text-[10px] font-bold text-white/40 leading-none">-</span>
+      <div className="bg-[#13151D]/80 backdrop-blur-sm px-[10px] py-[2px] rounded border border-white/5 shadow-2xl">
+        <span className="text-[9px] font-chakra font-black text-white/60 leading-none uppercase tracking-tighter">{name}</span>
       </div>
     </div>
   )

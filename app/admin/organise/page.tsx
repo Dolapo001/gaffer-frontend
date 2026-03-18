@@ -4,10 +4,11 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Plus, Menu, ChevronDown, ChevronLeft, ChevronRight, 
-  ChevronUp, Copy, Check, User
+  ChevronUp, Copy, Check, User, Minus
 } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { BrowserProtection } from '@/components/BrowserProtection'
+import { TournamentBracket } from '@/components/admin/TournamentBracket'
 
 type Player = {
   id: string
@@ -547,58 +548,60 @@ export default function OrganizePage() {
                     {players.map((player, i) => (
                       <div className="flex items-center gap-4 border-b border-white/5 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0" key={player.id}>
                         <div 
-                          className={`flex-1 bg-[#1C2130] rounded-[16px] p-3 flex items-center gap-4 ${
-                            i === 0 ? 'border border-[#2C3140]' : ''
+                          className={`flex-1 bg-[#1C1F2D] rounded-[24px] p-4 flex items-center gap-4 border border-white/5 shadow-xl transition-all hover:bg-white/[0.04] ${
+                            player.isSelected ? 'border-orange-500/30 bg-orange-500/[0.02]' : ''
                           }`}
                         >
-                          <div className={`w-12 h-12 rounded-full flex flex-col items-center justify-center shrink-0 overflow-hidden ${
-                            i === 0 ? 'bg-[#73B9E7]' : 'bg-[#94A3B8]'
+                          <div className={`w-14 h-14 rounded-full flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-inner ${
+                            i === 0 ? 'bg-sky-500/20 text-sky-400 border border-sky-500/20' : 'bg-white/5 text-white/20 border border-white/5'
                           }`}>
-                            {i !== 0 && <User size={24} className="text-[#334155] mt-2" />}
+                            <User size={24} />
                           </div>
                           <div className="flex-1">
-                            <h5 className={`font-semibold text-[15px] leading-tight mb-1 ${
-                              i === 0 ? 'text-white font-bold' : 'text-white'
-                            }`}>
+                            <h5 className="font-chakra font-black text-[16px] leading-tight mb-1 uppercase italic tracking-tight text-white/90">
                               {player.name}
                             </h5>
-                            <p className={`text-[10px] uppercase font-medium tracking-wide ${
-                              player.position === 'Center-Back' || player.position === 'Left-back' 
-                                ? 'text-[#22C55E]' 
-                                : 'text-[#A1A1AA]'
-                            }`}>
+                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-white/40 italic">
                               {player.position}
                             </p>
                           </div>
                           
-                          {/* Price Section / Action Area */}
-                          <div className="flex items-center">
+                          {/* Price Section */}
+                          <div className="flex items-center gap-3 bg-black/20 rounded-2xl p-2 px-3 border border-white/5">
                             {i === 0 ? (
-                              <span className="text-[#F97316] text-[11px] font-medium mr-2">Add Price</span>
+                              <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest italic">Add Price</span>
                             ) : (
-                              <div className="flex flex-col items-center">
-                                <button onClick={() => handlePriceChange(player.id, true)} className="p-1 -mb-1 hover:bg-white/10 rounded transition-colors active:scale-90"><ChevronUp size={14} className="text-[#A1A1AA]" /></button>
-                                <span className="text-[13px] font-medium text-white px-1 leading-none my-0.5 w-[36px] text-center">{player.price}</span>
-                                <button onClick={() => handlePriceChange(player.id, false)} className="p-1 -mt-1 hover:bg-white/10 rounded transition-colors active:scale-90"><ChevronDown size={14} className="text-[#A1A1AA]" /></button>
+                              <div className="flex items-center gap-3">
+                                <button 
+                                  onClick={() => handlePriceChange(player.id, false)} 
+                                  className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/40 hover:text-white"
+                                >
+                                  <Minus size={14} />
+                                </button>
+                                <span className="text-[14px] font-chakra font-black text-white px-1 leading-none w-[36px] text-center italic">
+                                  {player.price}
+                                </span>
+                                <button 
+                                  onClick={() => handlePriceChange(player.id, true)} 
+                                  className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/40 hover:text-white"
+                                >
+                                  <Plus size={14} />
+                                </button>
                               </div>
                             )}
                           </div>
                         </div>
 
-                        {/* Checkbox (outside the dark card) */}
+                        {/* Checkbox */}
                         {i !== 0 && (
                           <div 
                             onClick={() => togglePlayerSelection(player.id)}
-                            className={`w-[22px] h-[22px] rounded border-2 flex items-center justify-center shrink-0 cursor-pointer transition-colors ${
+                            className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-90 ${
                             !player.isSelected 
-                              ? 'border-[#94A3B8] bg-[#94A3B8]/20' 
-                              : 'border-[#EA580C] bg-[#EA580C]'
+                              ? 'border-white/10 bg-white/5 text-transparent' 
+                              : 'border-orange-600 bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)]'
                           }`}>
-                            {player.isSelected ? (
-                              <Check size={14} strokeWidth={3} className="text-[#181928]" />
-                            ) : (
-                              <Check size={14} strokeWidth={3} className="text-[#94A3B8]" />
-                            )}
+                            <Check size={18} strokeWidth={4} />
                           </div>
                         )}
                       </div>
