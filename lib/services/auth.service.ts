@@ -1,0 +1,53 @@
+import { api, tokenStore } from '@/lib/api'
+
+export interface AuthUser {
+  id: string
+  email: string
+  status: 'active' | 'pending' | 'suspended' | 'deleted'
+}
+
+export interface AuthResponse {
+  message: string
+  user: AuthUser
+  accessToken: string
+}
+
+export interface RefreshResponse {
+  message: string
+  user: AuthUser
+  accessToken: string
+}
+
+// POST /auth/register
+export async function register(email: string, password: string): Promise<AuthResponse> {
+  const data = await api.post<AuthResponse>('/auth/register', { email, password }, { public: true })
+  tokenStore.set(data.accessToken)
+  return data
+}
+
+// POST /auth/login
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const data = await api.post<AuthResponse>('/auth/login', { email, password }, { public: true })
+  tokenStore.set(data.accessToken)
+  return data
+}
+
+// POST /auth/refresh — reads rt cookie, no body
+export async function refreshToken(): Promise<RefreshResponse> {
+  const data = await api.post<RefreshResponse>('/auth/refresh', undefined, {
+    public: true,
+    skipRefresh: true,
+    credentials: 'include',
+  } as any)
+  tokenStore.set(data.accessToken)
+  return data
+}
+
+// POST /auth/logout
+export async function logout(): Promise<void> {
+  try {
+    await api.post<{ message: string }>('/auth/logout')
+  } finally {
+    tokenStore.clear()
+  }
+}

@@ -1,45 +1,56 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import {
-  loginWithEmail,
-  registerWithEmail,
-  loginWithGoogle,
-  logoutUser,
-  type User,
-} from '@/lib/auth'
+import { register, login, logout } from '@/lib/services/auth.service'
+import { tokenStore } from '@/lib/api'
+import type { AuthUser } from '@/lib/services/auth.service'
+import type { UserProfile } from '@/lib/services/user.service'
 
+// RBAC role hierarchy (from backend docs)
+export type OrgRole = 'viewer' | 'staff' | 'manager' | 'admin' | 'owner'
+
+// UI role: personal user vs org admin
 export type UserRole = 'personal' | 'organization' | null
 
 interface AuthState {
-  user: User | null
+  // Core auth
+  user: AuthUser | null
+  profile: UserProfile | null          // Full profile from GET /users
+  accessToken: string | null           // Kept in memory via tokenStore; also here for hydration
   isAuthenticated: boolean
   isLoading: boolean
-  role: UserRole
+  role: UserRole                       // 'personal' | 'organization' — set during onboarding
   error: string | null
 
   // Actions
-  setUser: (user: User | null) => void
+  setUser: (user: AuthUser | null, token?: string) => void
+  setProfile: (profile: UserProfile | null) => void
   setRole: (role: UserRole) => void
   setLoading: (loading: boolean) => void
   setError: (error: string | null) => void
-  login: (email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<void>
-  register: (email: string, password: string) => Promise<User>
-  registerWithGoogle: () => Promise<void>
-  logout: () => Promise<void>
   clearError: () => void
+
+  login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string) => Promise<AuthUser>
+  logout: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
       user: null,
+      profile: null,
+      accessToken: null,
       isAuthenticated: false,
       isLoading: false,
       role: null,
       error: null,
 
-      setUser: (user) => set({ user, isAuthenticated: !!user }),
+      setUser: (user, token) => {
+        if (token) tokenStore.set(token)
+        set({ user, isAuthenticated: !!user, accessToken: token ?? null })
+      },
+
+      setProfile: (profile) => set({ profile }),
 
       setRole: (role) => set({ role }),
 
@@ -52,23 +63,17 @@ export const useAuthStore = create<AuthState>()(
       login: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const { user } = await loginWithEmail(email, password)
-          set({ user: user as User, isAuthenticated: true })
+          const res = await login(email, password)
+          tokenStore.set(res.accessToken)
+          set({
+            user: res.user,
+            accessToken: res.accessToken,
+            isAuthenticated: true,
+            error: null,
+          })
         } catch (err: any) {
-          set({ error: err.message || 'Login failed' })
-          throw err
-        } finally {
-          set({ isLoading: false })
-        }
-      },
-
-      loginWithGoogle: async () => {
-        set({ isLoading: true, error: null })
-        try {
-          const { user } = await loginWithGoogle()
-          set({ user: user as User, isAuthenticated: true })
-        } catch (err: any) {
-          set({ error: err.message || 'Google login failed' })
+          const msg = err?.message ?? 'Login failed'
+          set({ error: msg })
           throw err
         } finally {
           set({ isLoading: false })
@@ -78,24 +83,18 @@ export const useAuthStore = create<AuthState>()(
       register: async (email, password) => {
         set({ isLoading: true, error: null })
         try {
-          const { user } = await registerWithEmail(email, password)
-          set({ user: user as User, isAuthenticated: true })
-          return user as User
+          const res = await register(email, password)
+          tokenStore.set(res.accessToken)
+          set({
+            user: res.user,
+            accessToken: res.accessToken,
+            isAuthenticated: true,
+            error: null,
+          })
+          return res.user
         } catch (err: any) {
-          set({ error: err.message || 'Registration failed' })
-          throw err
-        } finally {
-          set({ isLoading: false })
-        }
-      },
-
-      registerWithGoogle: async () => {
-        set({ isLoading: true, error: null })
-        try {
-          const { user } = await loginWithGoogle()
-          set({ user: user as User, isAuthenticated: true })
-        } catch (err: any) {
-          set({ error: err.message || 'Google registration failed' })
+          const msg = err?.message ?? 'Registration failed'
+          set({ error: msg })
           throw err
         } finally {
           set({ isLoading: false })
@@ -105,24 +104,52 @@ export const useAuthStore = create<AuthState>()(
       logout: async () => {
         set({ isLoading: true, error: null })
         try {
-          await logoutUser()
-          set({ user: null, isAuthenticated: false, role: null })
-        } catch (err: any) {
-          set({ error: err.message || 'Logout failed' })
+          await logout()
+        } catch {
+          // Ignore logout errors — clear state regardless
         } finally {
-          set({ isLoading: false })
+          tokenStore.clear()
+          set({
+            user: null,
+            profile: null,
+            accessToken: null,
+            isAuthenticated: false,
+            role: null,
+            isLoading: false,
+          })
         }
       },
     }),
     {
       name: 'gaffer-auth',
       storage: createJSONStorage(() => localStorage),
-      // Persist role and basic auth flag; Firebase SDK handles the actual session token
+      // Persist the minimum required for session restore
       partialize: (state) => ({
         role: state.role,
         isAuthenticated: state.isAuthenticated,
+        user: state.user,
+        accessToken: state.accessToken,
       }),
-    }
-  )
+      // On rehydration, restore the token to the in-memory store
+      onRehydrateStorage: () => (state) => {
+        if (state?.accessToken) {
+          tokenStore.set(state.accessToken)
+        }
+      },
+    },
+  ),
 )
 
+// Helper: check if user has at least the given org role
+const ROLE_RANK: Record<OrgRole, number> = {
+  viewer: 1,
+  staff: 2,
+  manager: 3,
+  admin: 4,
+  owner: 5,
+}
+
+export function hasMinRole(userRole: OrgRole | undefined, minRole: OrgRole): boolean {
+  if (!userRole) return false
+  return ROLE_RANK[userRole] >= ROLE_RANK[minRole]
+}
