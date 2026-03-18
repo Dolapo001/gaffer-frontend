@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft } from 'lucide-react'
-import { MATCHES, type Match, type MatchEvent } from '@/lib/leagueMockData'
-import { PitchView, type PitchPlayerMarker } from '@/components/match/PitchView'
+import { ChevronLeft, Info, Trophy } from 'lucide-react'
+import { MATCHES, type Match } from '@/lib/leagueMockData'
 
 function fetchMatch(matchId: string) {
   return new Promise<Match | undefined>((resolve) =>
@@ -14,239 +13,11 @@ function fetchMatch(matchId: string) {
   )
 }
 
-// ─── Lineup mock data ────────────────────────────────────────────────────────
-
-function getLineup(match: Match) {
-  return {
-    home: {
-      formation: '4-3-3',
-      players: [
-        { name: 'Tabbra', pos: 'GK', row: 0 },
-        { name: 'Wesdom', pos: 'RB', row: 1 }, { name: 'Alfreda', pos: 'CB', row: 1 },
-        { name: 'Jakota', pos: 'CB', row: 1 }, { name: 'Brenden', pos: 'LB', row: 1 },
-        { name: 'Dahood', pos: 'RM', row: 2 }, { name: 'Chnox', pos: 'CM', row: 2 }, { name: 'Noba', pos: 'LM', row: 2 },
-        { name: 'Jimskin', pos: 'RW', row: 3 }, { name: 'Edomsb', pos: 'CF', row: 3 }, { name: 'Dahood2', pos: 'LW', row: 3 },
-      ],
-    },
-    away: {
-      formation: '4-3-3',
-      players: [
-        { name: 'Omorede', pos: 'GK', row: 0 },
-        { name: 'Da Jong', pos: 'RB', row: 1 }, { name: 'Sunfield', pos: 'CB', row: 1 },
-        { name: 'Ademoye', pos: 'CB', row: 1 }, { name: 'Bankole', pos: 'LB', row: 1 },
-        { name: 'Neymar', pos: 'RM', row: 2 }, { name: 'De Bruyne', pos: 'CM', row: 2 }, { name: 'Haaland2', pos: 'LM', row: 2 },
-        { name: 'Haaland', pos: 'RW', row: 3 }, { name: 'Umbra', pos: 'CF', row: 3 }, { name: 'Nelson', pos: 'LW', row: 3 },
-      ],
-    },
-  }
-}
-
-// ─── Stat Bar ────────────────────────────────────────────────────────────────
-
-function StatBar({ label, home, away }: { label: string; home: number; away: number }) {
-  const total = home + away || 1
-  const homeW = Math.round((home / total) * 100)
-  return (
-    <div className="space-y-1.5">
-      <div className="flex justify-between items-center">
-        <span className="font-display font-bold text-white text-sm w-8">{home}</span>
-        <span className="text-gaffer-muted text-[10px] font-body">{label}</span>
-        <span className="font-display font-bold text-white text-sm w-8 text-right">{away}</span>
-      </div>
-      <div className="flex h-1.5 rounded-full overflow-hidden gap-px">
-        <div className="bg-gaffer-orange rounded-l-full transition-all duration-700" style={{ width: `${homeW}%` }} />
-        <div className="bg-blue-500 rounded-r-full transition-all duration-700" style={{ width: `${100 - homeW}%` }} />
-      </div>
-    </div>
-  )
-}
-
-// ─── Tactical Pitch ──────────────────────────────────────────────────────────
-
-function TacticalPitch({ match }: { match: Match }) {
-  // Home players — 4-3-3 formation, attacking toward top of pitch
-  const homePlayers: PitchPlayerMarker[] = [
-    { id: 'h0',  x: 150, y: 390, label: 'GK', color: '#FF6B00' },
-    { id: 'h1',  x:  65, y: 318, label: 'RB', color: '#FF6B00' },
-    { id: 'h2',  x: 111, y: 308, label: 'CB', color: '#FF6B00' },
-    { id: 'h3',  x: 189, y: 308, label: 'CB', color: '#FF6B00' },
-    { id: 'h4',  x: 235, y: 318, label: 'LB', color: '#FF6B00' },
-    { id: 'h5',  x:  88, y: 232, label: 'CM', color: '#FF6B00' },
-    { id: 'h6',  x: 150, y: 218, label: 'CM', color: '#FF6B00' },
-    { id: 'h7',  x: 212, y: 232, label: 'CM', color: '#FF6B00' },
-    { id: 'h8',  x:  88, y: 148, label: 'RW', color: '#FF6B00' },
-    { id: 'h9',  x: 150, y: 130, label: 'ST', color: '#FF6B00' },
-    { id: 'h10', x: 212, y: 148, label: 'LW', color: '#FF6B00' },
-  ]
-
-  // Away players — 4-3-3 formation, attacking toward bottom of pitch
-  const awayPlayers: PitchPlayerMarker[] = [
-    { id: 'a0',  x: 150, y:  40, label: 'GK', color: '#3b82f6' },
-    { id: 'a1',  x:  65, y: 112, label: 'RB', color: '#3b82f6' },
-    { id: 'a2',  x: 111, y: 122, label: 'CB', color: '#3b82f6' },
-    { id: 'a3',  x: 189, y: 122, label: 'CB', color: '#3b82f6' },
-    { id: 'a4',  x: 235, y: 112, label: 'LB', color: '#3b82f6' },
-    { id: 'a5',  x:  88, y: 198, label: 'CM', color: '#3b82f6' },
-    { id: 'a6',  x: 150, y: 212, label: 'CM', color: '#3b82f6' },
-    { id: 'a7',  x: 212, y: 198, label: 'CM', color: '#3b82f6' },
-    { id: 'a8',  x:  88, y: 282, label: 'RW', color: '#3b82f6' },
-    { id: 'a9',  x: 150, y: 300, label: 'ST', color: '#3b82f6' },
-    { id: 'a10', x: 212, y: 282, label: 'LW', color: '#3b82f6' },
-  ]
-
-  return (
-    <div className="rounded-2xl overflow-hidden shadow-xl">
-      {/* Reusable PitchView handles all field markings */}
-      <PitchView players={[...homePlayers, ...awayPlayers]} />
-
-      {/* Formation legend */}
-      <div className="bg-gaffer-surface border-t border-gaffer-border px-4 py-2 flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-gaffer-orange" />
-          <span className="text-white text-xs font-display font-bold">{match.homeTeam.shortName}</span>
-          <span className="text-gaffer-muted text-[10px] font-body">4-3-3</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-gaffer-muted text-[10px] font-body">4-3-3</span>
-          <span className="text-white text-xs font-display font-bold">{match.awayTeam.shortName}</span>
-          <div className="w-3 h-3 rounded-full bg-blue-500" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Lineup Tab ───────────────────────────────────────────────────────────────
-
-function LineupTab({ match }: { match: Match }) {
-  const lineup = getLineup(match)
-  const rows = [0, 1, 2, 3]
-
-  return (
-    <div className="space-y-3">
-      <div className="grid grid-cols-2 gap-3">
-        {/* Home lineup */}
-        <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-gaffer-border bg-gaffer-surface">
-            <div className="w-2 h-2 rounded-full bg-gaffer-orange" />
-            <span className="text-white text-xs font-display font-bold truncate">{match.homeTeam.shortName}</span>
-            <span className="text-gaffer-muted text-[9px] font-body ml-auto">{lineup.home.formation}</span>
-          </div>
-          {rows.map((row) => {
-            const rowPlayers = lineup.home.players.filter((p) => p.row === row)
-            return rowPlayers.map((p, i) => (
-              <div key={`${row}-${i}`} className="flex items-center gap-2 px-3 py-2 border-b border-gaffer-border/30 last:border-0">
-                <span className={`text-[8px] font-display font-bold px-1 py-0.5 rounded ${
-                  p.pos === 'GK' ? 'bg-yellow-500/20 text-yellow-400' :
-                  p.pos.includes('B') ? 'bg-blue-500/20 text-blue-400' :
-                  p.pos.includes('M') ? 'bg-green-500/20 text-green-400' :
-                  'bg-gaffer-orange/20 text-gaffer-orange'
-                }`}>{p.pos}</span>
-                <span className="text-white text-xs font-body truncate">{p.name}</span>
-              </div>
-            ))
-          })}
-        </div>
-
-        {/* Away lineup */}
-        <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-gaffer-border bg-gaffer-surface">
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-white text-xs font-display font-bold truncate">{match.awayTeam.shortName}</span>
-            <span className="text-gaffer-muted text-[9px] font-body ml-auto">{lineup.away.formation}</span>
-          </div>
-          {rows.map((row) => {
-            const rowPlayers = lineup.away.players.filter((p) => p.row === row)
-            return rowPlayers.map((p, i) => (
-              <div key={`${row}-${i}`} className="flex items-center gap-2 px-3 py-2 border-b border-gaffer-border/30 last:border-0">
-                <span className={`text-[8px] font-display font-bold px-1 py-0.5 rounded ${
-                  p.pos === 'GK' ? 'bg-yellow-500/20 text-yellow-400' :
-                  p.pos.includes('B') ? 'bg-blue-500/20 text-blue-400' :
-                  p.pos.includes('M') ? 'bg-green-500/20 text-green-400' :
-                  'bg-gaffer-orange/20 text-gaffer-orange'
-                }`}>{p.pos}</span>
-                <span className="text-white text-xs font-body truncate">{p.name}</span>
-              </div>
-            ))
-          })}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ─── Event icon helper ────────────────────────────────────────────────────────
-
-function EventIcon({ type }: { type: MatchEvent['type'] }) {
-  const map: Record<MatchEvent['type'], string> = {
-    goal: '⚽', 'yellow-card': '🟡', 'red-card': '🔴', substitution: '🔄', penalty: '🎯',
-  }
-  return <span>{map[type]}</span>
-}
-
-// ─── Commentary Tab ───────────────────────────────────────────────────────────
-
-function CommentaryTab({ match }: { match: Match }) {
-  const events = match.events ?? []
-
-  const commentaryTemplates: Record<MatchEvent['type'], (e: MatchEvent) => string> = {
-    goal: (e) => `${e.minute}' GOAL! ${e.playerName} finds the net for ${e.teamId === match.homeTeam.id ? match.homeTeam.name : match.awayTeam.name}! ${e.detail ?? ''}`,
-    'yellow-card': (e) => `${e.minute}' Yellow card shown to ${e.playerName}. Referee dishes out a caution.`,
-    'red-card': (e) => `${e.minute}' RED CARD! ${e.playerName} is sent off!`,
-    substitution: (e) => `${e.minute}' Substitution: ${e.playerName}`,
-    penalty: (e) => `${e.minute}' PENALTY! ${e.playerName} steps up and converts from the spot!`,
-  }
-
-  return (
-    <div className="space-y-2">
-      {events.length === 0 ? (
-        <p className="text-gaffer-muted text-sm font-body text-center py-10">No commentary available</p>
-      ) : (
-        [...events].reverse().map((event, i) => {
-          const isHome = event.teamId === match.homeTeam.id
-          const bgColors: Record<MatchEvent['type'], string> = {
-            goal: 'border-gaffer-orange/30 bg-gaffer-orange/5',
-            'yellow-card': 'border-yellow-500/30 bg-yellow-500/5',
-            'red-card': 'border-red-500/30 bg-red-500/5',
-            substitution: 'border-gaffer-border bg-transparent',
-            penalty: 'border-blue-500/30 bg-blue-500/5',
-          }
-
-          return (
-            <motion.div
-              key={event.id}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              className={`flex items-start gap-3 rounded-2xl border px-4 py-3 ${bgColors[event.type]}`}
-            >
-              <div className="flex-shrink-0 flex flex-col items-center gap-0.5 pt-0.5">
-                <EventIcon type={event.type} />
-                <span className="text-gaffer-orange font-display font-bold text-[10px]">{event.minute}&apos;</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-xs font-body leading-relaxed">
-                  {commentaryTemplates[event.type](event)}
-                </p>
-                <p className={`text-[9px] font-body mt-1 ${isHome ? 'text-gaffer-orange' : 'text-blue-400'}`}>
-                  {isHome ? match.homeTeam.name : match.awayTeam.name}
-                </p>
-              </div>
-            </motion.div>
-          )
-        })
-      )}
-    </div>
-  )
-}
-
-// ─── Main Page ───────────────────────────────────────────────────────────────
-
 export default function MatchCenterPage() {
   const router = useRouter()
   const params = useParams()
   const matchId = params.matchId as string
-  const [activeTab, setActiveTab] = useState<'stats' | 'lineup' | 'tactical' | 'commentary'>('stats')
+  const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
 
   const { data: match, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -255,186 +26,263 @@ export default function MatchCenterPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#181928] flex items-center justify-center text-white/40">
+        <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
       </div>
     )
   }
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center gap-4">
-        <p className="text-gaffer-muted font-body">Match not found</p>
-        <button onClick={() => router.back()} className="text-gaffer-orange text-sm font-body">Go back</button>
+      <div className="min-h-screen bg-[#181928] flex flex-col items-center justify-center gap-4 text-white">
+        <p className="text-white/40 font-chakra font-black">Match not found</p>
+        <button onClick={() => router.back()} className="text-orange-500 font-bold">Go back</button>
       </div>
     )
   }
 
-  const tabs = [
-    { key: 'stats', label: 'Stats' },
-    { key: 'lineup', label: 'Lineup' },
-    { key: 'tactical', label: 'Tactical' },
-    { key: 'commentary', label: 'Commentary' },
-  ] as const
-
   return (
-    <div className="min-h-screen bg-gaffer-bg pb-28">
-      {/* Sticky header */}
-      <div className="sticky top-0 z-30 bg-gaffer-bg/95 backdrop-blur-xl border-b border-gaffer-border">
-        <div className="flex items-center gap-3 px-4 pt-12 pb-3">
-          <button
-            onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div className="flex-1 text-center">
-            <p className="text-[10px] font-display font-bold text-gaffer-orange tracking-widest uppercase">
-              {match.status === 'finished' ? 'Final Score' : match.status === 'live' ? '🔴 Live' : `MW ${match.matchweek}`}
-            </p>
+    <div className="min-h-screen bg-[#181928] text-white">
+      {/* Header */}
+      <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#181928]/95 backdrop-blur-xl z-40">
+        <button 
+          onClick={() => router.back()}
+          className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 text-white/60 hover:text-white transition-colors"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="font-chakra font-black text-xl uppercase tracking-tight">Final Score</h1>
+        <button className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 text-white/60 hover:text-white transition-colors">
+          <Info size={20} />
+        </button>
+      </header>
+
+      <main className="px-6 space-y-10 pb-20">
+        {/* Scoreboard */}
+        <section className="flex flex-col items-center space-y-6">
+          <div className="text-center">
+            <span className="text-emerald-500 font-chakra font-black text-xs uppercase tracking-widest">Full Time</span>
           </div>
-          <div className="w-9" />
-        </div>
 
-        {/* Score hero */}
-        <div className="px-6 pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-gaffer-orange/20 border border-gaffer-orange/30 flex items-center justify-center text-2xl">
-                {match.homeTeam.badge}
+          <div className="flex items-center justify-between w-full max-w-sm px-4">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-2xl">
+                <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="Home" />
               </div>
-              <p className="font-display font-bold text-white text-xs text-center leading-tight">{match.homeTeam.name}</p>
             </div>
 
-            <div className="px-4 text-center">
-              <motion.p
-                initial={{ scale: 0.85, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ type: 'spring', stiffness: 250 }}
-                className="font-display font-black text-5xl text-white leading-none"
-              >
-                {match.homeScore ?? '–'}
-                <span className="text-gaffer-orange text-4xl mx-1">:</span>
-                {match.awayScore ?? '–'}
-              </motion.p>
-              <p className="text-gaffer-muted text-[10px] font-body mt-1">
-                {match.matchDate} · {match.matchTime}
-              </p>
+            <div className="flex items-center gap-6">
+              <span className="font-chakra font-black text-6xl">2</span>
+              <span className="text-white/10 font-chakra font-black text-5xl">-</span>
+              <span className="font-chakra font-black text-6xl">2</span>
             </div>
 
-            <div className="flex-1 flex flex-col items-center gap-2">
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-2xl">
-                {match.awayTeam.badge}
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-2xl">
+                <img src="/images/mc_logo.png" className="w-full h-full object-contain" alt="Away" />
               </div>
-              <p className="font-display font-bold text-white text-xs text-center leading-tight">{match.awayTeam.name}</p>
             </div>
           </div>
 
-          {/* Goal scorers summary */}
-          {match.goalScorers && match.goalScorers.length > 0 && (
-            <div className="flex justify-between mt-3 gap-4">
-              <div className="flex-1 space-y-0.5">
-                {match.goalScorers.filter((g) => g.team === 'home').map((g, i) => (
-                  <p key={i} className="text-[10px] font-body text-gaffer-muted">
-                    ⚽ {g.name} {g.minute}&apos;
-                  </p>
-                ))}
-              </div>
-              <div className="flex-1 space-y-0.5 text-right">
-                {match.goalScorers.filter((g) => g.team === 'away').map((g, i) => (
-                  <p key={i} className="text-[10px] font-body text-gaffer-muted">
-                    {g.name} {g.minute}&apos; ⚽
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+          {/* Goal Scorers */}
+          <div className="flex justify-between w-full max-w-sm px-4">
+             <div className="space-y-1">
+                <p className="text-[12px] font-chakra font-bold text-white/80">De Jong 66&apos;</p>
+                <p className="text-[12px] font-chakra font-bold text-white/80">Depay 79&apos;</p>
+             </div>
+             <div className="space-y-1 text-right">
+                <p className="text-[12px] font-chakra font-bold text-white/80">Omoba 59&apos;</p>
+                <p className="text-[12px] font-chakra font-bold text-white/80">Palmer 70&apos;</p>
+             </div>
+          </div>
+        </section>
 
         {/* Tabs */}
-        <div className="flex border-t border-gaffer-border overflow-x-auto scrollbar-hide">
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex-1 min-w-[72px] py-2.5 text-xs font-display font-bold whitespace-nowrap transition-all border-b-2 ${
-                activeTab === tab.key
-                  ? 'text-gaffer-orange border-gaffer-orange'
-                  : 'text-gaffer-muted border-transparent'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        <div className="flex border-b border-white/10">
+          <button 
+            onClick={() => setActiveTab('lineup')}
+            className={`flex-1 flex items-center justify-center py-4 font-chakra font-black text-sm uppercase tracking-wider relative transition-colors ${activeTab === 'lineup' ? 'text-white' : 'text-white/40'}`}
+          >
+            Line-up
+            {activeTab === 'lineup' && (
+              <motion.div 
+                layoutId="activeTabUnderline"
+                className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-red-600"
+              />
+            )}
+          </button>
+          <button 
+            onClick={() => setActiveTab('commentary')}
+            className={`flex-1 flex items-center justify-center py-4 font-chakra font-black text-sm uppercase tracking-wider relative transition-colors ${activeTab === 'commentary' ? 'text-white' : 'text-white/40'}`}
+          >
+            Commentary
+            {activeTab === 'commentary' && (
+              <motion.div 
+                layoutId="activeTabUnderline"
+                className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-red-600"
+              />
+            )}
+          </button>
         </div>
-      </div>
 
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0 }}
-          className="px-4 pt-4"
-        >
-          {/* Stats */}
-          {activeTab === 'stats' && (
-            match.stats ? (
-              <div className="space-y-4">
-                {/* Possession hero */}
-                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-display font-black text-2xl text-gaffer-orange">{match.stats.possession[0]}%</span>
-                    <span className="text-gaffer-muted text-[10px] font-body">Possession</span>
-                    <span className="font-display font-black text-2xl text-blue-400">{match.stats.possession[1]}%</span>
-                  </div>
-                  <div className="flex h-2.5 rounded-full overflow-hidden">
-                    <div className="bg-gaffer-orange rounded-l-full" style={{ width: `${match.stats.possession[0]}%` }} />
-                    <div className="bg-blue-500 rounded-r-full" style={{ width: `${match.stats.possession[1]}%` }} />
-                  </div>
+        {/* Tab Content */}
+        <AnimatePresence mode="wait">
+          {activeTab === 'commentary' ? (
+            <motion.div 
+              key="commentary"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="space-y-4"
+            >
+              {/* Goal Event 1 - Stylized Card */}
+              <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex items-center gap-5 border border-white/5 shadow-[0_10px_30px_rgba(142,16,62,0.3)]">
+                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Trophy size={24} className="text-white fill-white/20" />
+                 </div>
+                 <p className="font-chakra font-black text-[13px] uppercase leading-tight tracking-tight text-white/90">
+                    GOOOOOOOOALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL!
+                 </p>
+              </div>
+
+              {/* Yellow Card Event */}
+              <div className="bg-[#1C1F2D] rounded-[22px] px-6 py-4 flex items-center gap-4 border border-white/5 shadow-xl">
+                 <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <div className="w-4 h-6 bg-yellow-400 rounded-sm" />
+                 </div>
+                 <div className="flex flex-col">
+                    <p className="font-chakra font-black text-[12px] uppercase leading-tight tracking-tight">
+                        YELLOW CARD. Dahood (CIVIL)
+                    </p>
+                    <p className="text-[10px] text-white/40 font-bold font-chakra uppercase">34&apos;</p>
+                 </div>
+              </div>
+
+              {/* Goal Event 2 - Detailed Goal Card */}
+              <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex flex-col gap-3 border border-white/5 shadow-[0_10px_30px_rgba(142,16,62,0.3)]">
+                 <div className="flex items-center gap-4">
+                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                     <div className="w-4 h-4 bg-white rounded-full relative shadow-[0_0_10px_rgba(255,255,255,0.5)]">
+                        <div className="absolute inset-0 border-[1.5px] border-black/10 rounded-full" />
+                     </div>
+                   </div>
+                   <p className="font-chakra font-black text-[12px] uppercase tracking-wider text-white">
+                     GOAL. Victor (CIVIL)
+                   </p>
+                 </div>
+                 <div className="flex items-center gap-4">
+                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
+                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/50">
+                        <path d="M4 16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4z" />
+                        <path d="M12 10V6a2 2 0 0 0-2-2H8" />
+                     </svg>
+                   </div>
+                   <p className="font-chakra font-black text-[12px] uppercase tracking-wider text-white/50">
+                     ASSIT. Segun (CIVIL)
+                   </p>
+                 </div>
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div 
+              key="lineup"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <div 
+                className="w-full relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[12px] overflow-hidden"
+                style={{ height: '780px', backgroundColor: '#1E212D' }}
+              >
+                {/* Pitch Markings */}
+                <div className="absolute inset-x-4 inset-y-6 border-[1.5px] border-white pointer-events-none">
+                   {/* Halfway line */}
+                   <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-white -translate-y-1/2" />
+                   
+                   {/* Center Circle */}
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-[1.5px] border-white rounded-full" />
+                   
+                   {/* Top Penalty Area */}
+                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-t-0 border-white">
+                     {/* Top 6-yard box */}
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-t-0 border-white" />
+                   </div>
+
+                   {/* Bottom Penalty Area */}
+                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-b-0 border-white">
+                     {/* Bottom 6-yard box */}
+                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-b-0 border-white" />
+                   </div>
                 </div>
 
-                {/* Stats table */}
-                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 space-y-4">
-                  {[
-                    { label: 'Shots', values: match.stats.shots },
-                    { label: 'Shots on Target', values: match.stats.shotsOnTarget },
-                    { label: 'Corners', values: match.stats.corners },
-                    { label: 'Fouls', values: match.stats.fouls },
-                    { label: 'Yellow Cards', values: match.stats.yellowCards },
-                    { label: 'Red Cards', values: match.stats.redCards },
-                  ].map(({ label, values }) => (
-                    <StatBar key={label} label={label} home={values[0]} away={values[1]} />
-                  ))}
-                </div>
-
-                {/* Team legend */}
-                <div className="flex justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-gaffer-orange" />
-                    <span className="text-gaffer-muted text-xs font-body">{match.homeTeam.name}</span>
+                {/* Player Slots */}
+                <div className="absolute inset-0 py-10 flex flex-col justify-between">
+                  {/* Home Team (Top) a 4-4-2 */}
+                  <div className="space-y-7 z-10 w-full">
+                    <div className="flex justify-center">
+                       <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                    </div>
+                    <div className="flex justify-around px-8">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                    </div>
+                    <div className="flex justify-around px-[10%]">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                    </div>
+                    <div className="flex justify-center gap-20">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full bg-blue-500" />
-                    <span className="text-gaffer-muted text-xs font-body">{match.awayTeam.name}</span>
+
+                  {/* Away Team (Bottom) a 4-4-2 */}
+                  <div className="space-y-7 z-10 w-full">
+                    <div className="flex justify-center gap-20">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                    </div>
+                    <div className="flex justify-around px-[10%]">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                    </div>
+                    <div className="flex justify-around px-8">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                    </div>
+                    <div className="flex justify-center">
+                       <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                    </div>
                   </div>
                 </div>
               </div>
-            ) : (
-              <p className="text-gaffer-muted text-sm font-body text-center py-12">Stats not yet available</p>
-            )
+            </motion.div>
           )}
+        </AnimatePresence>
+      </main>
+    </div>
+  )
+}
 
-          {/* Lineup */}
-          {activeTab === 'lineup' && <LineupTab match={match} />}
-
-          {/* Tactical */}
-          {activeTab === 'tactical' && <TacticalPitch match={match} />}
-
-          {/* Commentary */}
-          {activeTab === 'commentary' && <CommentaryTab match={match} />}
-        </motion.div>
-      </AnimatePresence>
+function PitchSlot({ color, border, iconColor }: { color: string, border: string, iconColor: string }) {
+  return (
+    <div className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform cursor-pointer">
+      <div className={`w-[44px] h-[44px] rounded-full ${color} border-[1.5px] ${border} flex items-center justify-center`}>
+        <div className={`w-3.5 h-3.5 flex items-center justify-center ${iconColor}`}>
+           <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+        </div>
+      </div>
+      <div className="bg-[#13151D] px-[10px] py-[2px] rounded border border-white/5 shadow-2xl">
+        <span className="text-[10px] font-bold text-white/40 leading-none">-</span>
+      </div>
     </div>
   )
 }

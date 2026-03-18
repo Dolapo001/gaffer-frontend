@@ -17,9 +17,9 @@ export function BrowserProtection({ children }: { children: ReactNode }) {
       return
     }
 
-    // Check if we are running in standalone PWA mode.
+    // Check if we are running in standalone PWA mode or in development.
     // If not, redirect to the landing page to enforce PWA installation.
-    if (!isStandalone()) {
+    if (!isStandalone() && process.env.NODE_ENV !== 'development') {
       router.replace('/')
     } else {
       setIsReady(true)
