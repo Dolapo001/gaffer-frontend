@@ -2,12 +2,29 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Flame, Share2, Clock } from 'lucide-react'
+import { Plus, Flame, Share2, Clock, Menu } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
+import { useToast } from '@/store/toastStore'
 
 export default function AdminNewsPage() {
+  const { addToast } = useToast()
   const [newsContent, setNewsContent] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [isPosting, setIsPosting] = useState(false)
+
+  const handlePost = async () => {
+    if (!newsContent.trim()) {
+      addToast('Please enter some content', 'error')
+      return
+    }
+    setIsPosting(true)
+    // Mock API call
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    addToast('News posted successfully!', 'success')
+    setNewsContent('')
+    setSelectedImage(null)
+    setIsPosting(false)
+  }
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -41,6 +58,17 @@ export default function AdminNewsPage() {
   return (
     <div className="min-h-screen bg-[#0F111A] pb-32 pt-8">
       <div className="px-6 space-y-8">
+        {/* Header */}
+        <div className="flex items-center gap-4">
+          <button 
+            onClick={() => addToast('Menu coming soon', 'info')}
+            className="text-white/60"
+          >
+            <Menu size={28} />
+          </button>
+          <h1 className="font-chakra font-black text-xl uppercase tracking-tight">Post News</h1>
+        </div>
+
         {/* Posting Interface */}
         <div className="space-y-4">
           <div className="relative group">
@@ -75,6 +103,8 @@ export default function AdminNewsPage() {
             </label>
           </div>
           <GradientButton 
+            onClick={handlePost}
+            loading={isPosting}
             className="h-14 rounded-2xl font-chakra font-black text-base uppercase tracking-wider shadow-2xl shadow-orange-500/20"
             style={{ background: 'linear-gradient(90deg, #FF8A00 0%, #FF0000 100%)' }}
           >
@@ -129,7 +159,10 @@ export default function AdminNewsPage() {
                       <Flame size={18} className="text-orange-500" />
                       <span className="font-chakra font-bold text-orange-500 text-sm">{news.likes}</span>
                     </div>
-                    <button className="p-2 rounded-full hover:bg-white/5 transition-colors">
+                    <button 
+                      onClick={() => addToast('Article link copied!', 'success')}
+                      className="p-2 rounded-full hover:bg-white/5 transition-colors"
+                    >
                       <Share2 size={18} className="text-white/40 hover:text-white" />
                     </button>
                   </div>

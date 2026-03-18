@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Menu, ChevronDown, Calendar, Clock, X, ChevronLeft } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
+import { useToast } from '@/store/toastStore'
 
 type Match = {
   id: string
@@ -19,6 +20,7 @@ type Match = {
 }
 
 export default function SchedulePage() {
+  const { addToast } = useToast()
   const [showScheduleForm, setShowScheduleForm] = useState(false)
   const [matches, setMatches] = useState<Match[]>([
     {
@@ -98,7 +100,10 @@ export default function SchedulePage() {
             <ChevronLeft size={20} />
           </button>
         ) : (
-          <button className="text-white/60">
+          <button 
+            onClick={() => addToast('Menu coming soon', 'info')}
+            className="text-white/60"
+          >
             <Menu size={28} />
           </button>
         )}
@@ -208,7 +213,22 @@ export default function SchedulePage() {
 
               <div className="pt-4">
                 <GradientButton 
-                  onClick={() => setShowScheduleForm(false)}
+                  onClick={() => {
+                    const newMatch: Match = {
+                      id: Date.now().toString(),
+                      teamA: 'Barcelona',
+                      teamB: 'Real Madrid',
+                      teamALogo: '/images/barca_logo.png',
+                      teamBLogo: '/images/mc_logo.png',
+                      time: '14:00',
+                      date: 'SUN 14:00',
+                      round: 'Round 1',
+                      isLive: false
+                    };
+                    setMatches([newMatch, ...matches]);
+                    setShowScheduleForm(false);
+                    addToast('Game scheduled successfully!', 'success');
+                  }}
                   className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
                 >
                   Schedule Game
@@ -248,7 +268,16 @@ import { useRouter } from 'next/navigation'
 
 function MatchCard({ match }: { match: Match }) {
   const router = useRouter()
+  const { addToast } = useToast()
   const [isLive, setIsLive] = useState(match.isLive)
+
+  const handleToggleLive = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = e.target.checked;
+    setIsLive(nextValue);
+    if (nextValue) {
+      addToast(`${match.teamA} vs ${match.teamB} is now LIVE!`, 'success');
+    }
+  }
 
   return (
     <div 
@@ -280,7 +309,7 @@ function MatchCard({ match }: { match: Match }) {
           {!match.score && (
             <div className="flex flex-col items-center gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
               <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" className="sr-only peer" checked={isLive} onChange={() => setIsLive(!isLive)} />
+                <input type="checkbox" className="sr-only peer" checked={isLive} onChange={handleToggleLive} />
                 <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>
               </label>
               <span className="text-[8px] text-orange-500 font-bold uppercase tracking-widest italic leading-none">Go Live</span>

@@ -10,6 +10,9 @@ import { listOrgs, type Org } from '@/lib/services/org.service'
 import { GafferLogo } from '@/components/GafferLogo'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { Bell, Newspaper, ExternalLink, Image as ImageIcon } from 'lucide-react'
+import { TOP_NEWS, type Article } from '@/lib/mockData'
+import { Bell } from 'lucide-react'
+import { useToast } from '@/store/toastStore'
 
 // ─── Feed Item Card ───────────────────────────────────────────────────────────
 
@@ -81,6 +84,15 @@ export default function DashboardPage() {
     queryKey: ['orgs'],
     queryFn: listOrgs,
     staleTime: 5 * 60_000,
+  const { user } = useAuthStore()
+  const { addToast } = useToast()
+  const { tournaments } = useTournamentStore()
+  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Gaffer'
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+
+  const { data: news, isLoading } = useQuery({
+    queryKey: ['top-news'],
+    queryFn: fetchTopNews,
   })
 
   const feedItems: FeedItem[] = (feedData?.items ?? feedData?.data ?? []) as FeedItem[]
@@ -107,6 +119,43 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+    <AnimatePresence mode="wait">
+      {selectedArticle ? (
+        <motion.div
+          key="article"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="min-h-screen bg-gaffer-bg flex flex-col"
+        >
+          <ArticleDetail article={selectedArticle} onBack={() => setSelectedArticle(null)} />
+        </motion.div>
+      ) : (
+        <motion.div
+          key="dashboard"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="min-h-screen bg-gaffer-bg"
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 pt-12 pb-4">
+            <GafferLogo size="sm" />
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => addToast('No new notifications', 'info')}
+                className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-gaffer-muted hover:text-white transition-colors"
+              >
+                <Bell size={18} />
+              </button>
+              <button 
+                onClick={() => addToast('Profile settings coming soon', 'info')}
+                className="w-9 h-9 rounded-full bg-orange-gradient-btn flex items-center justify-center text-white font-display font-bold text-sm shadow-orange-glow active:scale-95 transition-transform"
+              >
+                {displayName[0].toUpperCase()}
+              </button>
+            </div>
+          </div>
 
       {/* Greeting */}
       <div className="px-4 pb-4">
