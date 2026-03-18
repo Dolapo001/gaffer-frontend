@@ -1,50 +1,25 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { GafferLogo } from '@/components/GafferLogo'
-import { IOSInstallModal } from '@/components/IOSInstallModal'
 import {
   isStandalone,
-  isIOS,
-  isAndroid,
   getDeferredPrompt,
   triggerInstallPrompt,
-  setDeferredPrompt,
 } from '@/lib/pwa'
 import {
   Download,
-  Trophy,
-  Users,
-  Calendar,
-  Zap,
-  Share2,
-  Plus,
   Smartphone,
-  CheckCircle,
+  Check,
+  Zap,
+  Shield,
+  Layers,
+  ArrowRight
 } from 'lucide-react'
-
-const features = [
-  { icon: Trophy, title: 'Track Performance', desc: 'Monitor your stats and progress across every game' },
-  { icon: Users, title: 'Team Management', desc: 'Build rosters, assign roles, and coordinate your squad' },
-  { icon: Calendar, title: 'Match Scheduling', desc: 'Schedule fixtures and tournaments with ease' },
-  { icon: Zap, title: 'Real-time Updates', desc: 'Live scores, notifications and instant match updates' },
-]
-
-const IOS_STEPS = [
-  { icon: Share2, color: 'bg-blue-500/20 border-blue-500/30 text-blue-400', label: 'Tap the Share button', hint: 'Bottom toolbar in Safari' },
-  { icon: Plus, color: 'bg-gaffer-orange/20 border-gaffer-orange/30 text-gaffer-orange', label: 'Add to Home Screen', hint: 'Scroll down in the share sheet' },
-  { icon: CheckCircle, color: 'bg-green-500/20 border-green-500/30 text-green-400', label: 'Open GAFFER', hint: 'Launch from your home screen' },
-]
-
-const ANDROID_STEPS = [
-  { icon: Download, color: 'bg-gaffer-orange/20 border-gaffer-orange/30 text-gaffer-orange', label: 'Tap Install App below', hint: 'We\'ll trigger the native install prompt' },
-  { icon: CheckCircle, color: 'bg-green-500/20 border-green-500/30 text-green-400', label: 'Confirm installation', hint: 'Tap Install in the system dialog' },
-  { icon: Smartphone, color: 'bg-blue-500/20 border-blue-500/30 text-blue-400', label: 'Open GAFFER', hint: 'Launch from your home screen' },
-]
 
 export default function LandingPage() {
   const router = useRouter()
@@ -52,287 +27,232 @@ export default function LandingPage() {
   useAuthListener()
 
   const [checking, setChecking] = useState(true)
-  const [showIOSModal, setShowIOSModal] = useState(false)
-  const [isInstallable, setIsInstallable] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
+  const [isDone, setIsDone] = useState(false)
   const [platform, setPlatform] = useState<'ios' | 'android' | 'other'>('other')
 
   useEffect(() => {
-    // Already running as installed PWA — route into the app
+    const ua = navigator.userAgent.toLowerCase()
+    if (/iphone|ipad|ipod/.test(ua)) setPlatform('ios')
+    else if (/android/.test(ua)) setPlatform('android')
+    else setPlatform('other')
+
     if (isStandalone()) {
-      if (!isLoading && isAuthenticated) {
-        router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
-      } else {
-        router.replace('/onboarding/splash')
-      }
-      return
-    }
-
-    // Detect platform for install instructions
-    if (isIOS()) {
-      setPlatform('ios')
-    } else if (isAndroid()) {
-      setPlatform('android')
-    } else {
-      setPlatform('other')
-    }
-
-    // Check if Chrome/Android install prompt already captured
-    if (getDeferredPrompt()) setIsInstallable(true)
-
-    // Also listen in case it fires after mount
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      setIsInstallable(true)
-    }
-
-    // Redirect into app after successful install
-    const handleAppInstalled = () => {
-      setTimeout(() => router.replace('/onboarding/splash'), 800)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-    window.addEventListener('appinstalled', handleAppInstalled)
-    setChecking(false)
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-      window.removeEventListener('appinstalled', handleAppInstalled)
-    }
-  }, [isAuthenticated, isLoading, role, router])
-
-  const handleInstall = async () => {
-    if (platform === 'ios') {
-      setShowIOSModal(true)
-      return
-    }
-    if (getDeferredPrompt()) {
-      await triggerInstallPrompt()
-      // Whether accepted or dismissed, proceed into the app
       router.replace('/onboarding/splash')
       return
     }
-    // No native prompt available — proceed directly into the app
-    router.replace('/onboarding/splash')
+    setChecking(false)
+  }, [router])
+
+  const handleInstall = async () => {
+    setIsInstalling(true)
+    await new Promise(resolve => setTimeout(resolve, 3000))
+
+    if (platform === 'android') {
+      const nativePrompt = getDeferredPrompt()
+      if (nativePrompt) {
+        await triggerInstallPrompt()
+      }
+    }
+    
+    setIsInstalling(false)
+    setIsDone(true)
+    setTimeout(() => {
+      router.push('/onboarding/splash')
+    }, 1200)
   }
 
-  // Show spinner while detecting standalone mode to prevent content flash
   if (checking) {
     return (
-      <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
+      <div className="min-h-screen bg-[#0A0A0B] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/5 border-t-gaffer-orange rounded-full animate-spin" />
       </div>
     )
   }
 
-  const installSteps = platform === 'ios' ? IOS_STEPS : ANDROID_STEPS
-
   return (
-    <div className="min-h-screen bg-gaffer-bg text-white overflow-x-hidden">
-      <IOSInstallModal isOpen={showIOSModal} onClose={() => setShowIOSModal(false)} />
+    <div className="min-h-screen bg-[#0A0A0B] text-white overflow-hidden flex flex-col selection:bg-gaffer-orange/30">
+      {/* ── Dynamic Background ── */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-gaffer-orange/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-gaffer-red/10 rounded-full blur-[120px] mix-blend-screen animate-pulse" style={{ animationDelay: '2s' }} />
+        <div 
+          className="absolute inset-0 opacity-[0.15]"
+          style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)`,
+            backgroundSize: '40px 40px'
+          }}
+        />
+      </div>
 
-      {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col">
-        {/* Background */}
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute inset-0 bg-gradient-to-br from-gaffer-orange/10 via-gaffer-bg to-gaffer-bg" />
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gaffer-orange/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-0 w-96 h-96 bg-gaffer-red/5 rounded-full blur-3xl" />
-          <div
-            className="absolute inset-0 opacity-[0.04]"
-            style={{
-              backgroundImage: `linear-gradient(rgba(255,107,0,0.5) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,107,0,0.5) 1px, transparent 1px)`,
-              backgroundSize: '60px 60px',
-            }}
-          />
-        </div>
-
-        {/* Navbar */}
-        <nav className="relative z-10 flex items-center justify-between px-6 pt-10 pb-4 max-w-lg mx-auto w-full">
+      {/* ── Glass Navbar ── */}
+      <nav className="relative z-50 flex items-center justify-between px-6 py-8 max-w-7xl mx-auto w-full">
+        <motion.div 
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="flex items-center gap-2"
+        >
           <GafferLogo size="sm" />
-        </nav>
+        </motion.div>
+        
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+        >
+          <div className="px-4 py-1.5 rounded-full bg-white/5 border border-white/10 backdrop-blur-md text-[10px] font-bold tracking-widest text-white/50 uppercase">
+            v2.4.0 • PRODUCTION
+          </div>
+        </motion.div>
+      </nav>
 
-        {/* Hero content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-12 max-w-lg mx-auto w-full">
+      {/* ── Hero Content ── */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-20">
+        <div className="max-w-4xl w-full text-center space-y-12">
+          
+          {/* Badge */}
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
+            initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
-            className="w-full"
+            transition={{ delay: 0.2 }}
+            className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-gradient-to-r from-white/5 to-white/[0.02] border border-white/10 backdrop-blur-xl"
           >
-            {/* PWA badge */}
-            <div className="inline-flex items-center gap-2 bg-gaffer-orange/10 border border-gaffer-orange/30 rounded-full px-4 py-1.5 text-gaffer-orange text-xs font-body font-semibold mb-6 tracking-widest uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-gaffer-orange animate-pulse" />
-              Install Required to Access
-            </div>
+            <span className="relative flex h-2 w-2">
+              <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isInstalling ? 'bg-blue-400' : isDone ? 'bg-green-400' : 'bg-gaffer-orange'}`} />
+              <span className={`relative inline-flex rounded-full h-2 w-2 ${isInstalling ? 'bg-blue-500' : isDone ? 'bg-green-500' : 'bg-gaffer-orange'}`} />
+            </span>
+            <span className="text-[10px] font-bold tracking-[0.25em] uppercase text-white/70">
+              {isInstalling ? 'Syncing core systems...' : isDone ? 'System Synchronized' : 'Ready for Protocol Deployment'}
+            </span>
+          </motion.div>
 
-            <h1 className="font-display font-black text-[clamp(3.5rem,14vw,5rem)] leading-none tracking-tight mb-4">
-              DOMINATE
+          {/* Main Title */}
+          <div className="space-y-4">
+            <motion.h1
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.8 }}
+              className="text-6xl md:text-8xl font-display font-black tracking-tight italic"
+            >
+              ELITE <span className="text-gaffer-orange">SPORTS</span>
               <br />
-              <span className="text-gradient-orange">THE FIELD</span>
-            </h1>
+              <span className="relative inline-block mt-2">
+                MANAGEMENT
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: '100%' }}
+                  transition={{ delay: 1, duration: 1 }}
+                  className="absolute -bottom-2 left-0 h-1 bg-gradient-to-r from-gaffer-orange to-transparent opacity-50"
+                />
+              </span>
+            </motion.h1>
 
-            <p className="font-body text-gaffer-muted text-base leading-relaxed mb-8 max-w-sm mx-auto">
-              The all-in-one sports management platform for athletes, coaches, and organizations.
-              Install the app to get started.
-            </p>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5, duration: 1 }}
+              className="max-w-xl mx-auto text-lg text-white/40 font-body leading-relaxed"
+            >
+              Experience the next generation of athletic coordination. 
+              Install the GAFFER CORE to unlock the full management suite.
+            </motion.p>
+          </div>
 
-            {/* Install CTA */}
-            <div className="space-y-3 max-w-xs mx-auto">
-              <motion.button
-                onClick={handleInstall}
-                whileTap={{ scale: 0.97 }}
-                whileHover={{ scale: 1.02 }}
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow"
-              >
-                <Download size={20} />
-                {platform === 'ios' ? 'Add to Home Screen' : isInstallable ? 'Install App' : 'Install GAFFER'}
-              </motion.button>
+          {/* CTA Section */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.6 }}
+            className="flex flex-col items-center gap-6"
+          >
+            <AnimatePresence mode="wait">
+              {!isDone ? (
+                <motion.button
+                  key="install-btn"
+                  onClick={handleInstall}
+                  disabled={isInstalling}
+                  whileTap={{ scale: 0.98 }}
+                  className="group relative w-[320px] h-[72px] rounded-2xl overflow-hidden shadow-[0_20px_50px_rgba(255,107,0,0.2)]"
+                >
+                  <div className={`absolute inset-0 transition-all duration-700 ${isInstalling ? 'bg-blue-600' : 'bg-gradient-to-r from-[#FF7A00] via-[#FF4D00] to-[#FF2400]'}`} />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity bg-[radial-gradient(circle_at_center,_white_0%,_transparent_70%)]" />
+                  
+                  <div className="relative h-full w-full flex items-center justify-center gap-3">
+                    {isInstalling ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                        <span className="font-display font-black text-lg tracking-widest uppercase">DOWNLOADING...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Download size={24} strokeWidth={2.5} className="group-hover:-translate-y-1 group-active:translate-y-0 transition-transform" />
+                        <span className="font-display font-black text-lg tracking-widest uppercase">INITIALIZE DOWNLOAD</span>
+                      </>
+                    )}
+                  </div>
+                </motion.button>
+              ) : (
+                <motion.div
+                  key="done-btn"
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-[320px] h-[72px] rounded-2xl bg-green-500/20 border border-green-500/30 backdrop-blur-xl flex items-center justify-center gap-3 text-green-400"
+                >
+                  <Check size={24} strokeWidth={3} />
+                  <span className="font-display font-black text-lg tracking-widest uppercase">SYSTEM READY</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-              <button
-                onClick={() => router.push('/onboarding/splash')}
-                className="w-full py-3 px-6 rounded-2xl font-body text-sm text-gaffer-subtle border border-gaffer-border/50 hover:border-gaffer-border hover:text-gaffer-muted transition-all"
-              >
-                Already installed? Open GAFFER →
-              </button>
-            </div>
+            <button
+              onClick={() => {
+                if (isStandalone()) router.push('/onboarding/splash')
+                else alert("Standalone Mode Required. Please download to proceed.")
+              }}
+              className="group flex items-center gap-2 text-white/30 hover:text-white/60 text-[11px] font-bold tracking-[0.3em] uppercase transition-all"
+            >
+              Bypass to Desktop
+              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+            </button>
           </motion.div>
         </div>
+      </main>
 
-        {/* Scroll hint */}
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="relative z-10 flex justify-center pb-8"
-        >
-          <span className="text-gaffer-subtle text-[10px] font-body tracking-[0.2em] uppercase">
-            Scroll to learn more
-          </span>
-        </motion.div>
-      </section>
-
-      {/* ── How to Install ── */}
-      <section className="px-6 py-16 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Smartphone size={16} className="text-gaffer-orange" />
-            <span className="text-gaffer-orange text-xs font-body font-semibold tracking-widest uppercase">
-              {platform === 'ios' ? 'iOS — Safari' : 'Android / Chrome'}
-            </span>
-          </div>
-          <h2 className="font-display font-bold text-2xl text-white mb-6">
-            How to Install
-          </h2>
-
-          <div className="space-y-4">
-            {installSteps.map((step, i) => (
-              <motion.div
-                key={step.label}
-                initial={{ opacity: 0, x: -16 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.09 }}
-                className="flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-2xl p-4"
-              >
-                <div className={`flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center ${step.color}`}>
-                  <step.icon size={18} />
-                </div>
-                <div>
-                  <p className="text-white font-body font-semibold text-sm">{step.label}</p>
-                  <p className="text-gaffer-muted text-xs font-body mt-0.5">{step.hint}</p>
-                </div>
-                <div className="ml-auto flex-shrink-0 w-6 h-6 rounded-full bg-gaffer-surface border border-gaffer-border flex items-center justify-center">
-                  <span className="text-gaffer-muted text-[10px] font-display font-bold">{i + 1}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {platform === 'ios' && (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setShowIOSModal(true)}
-              className="mt-4 w-full py-3 rounded-xl border border-gaffer-orange/40 text-gaffer-orange font-body text-sm font-medium hover:bg-gaffer-orange/5 transition-all"
-            >
-              Show me step-by-step
-            </motion.button>
-          )}
-        </motion.div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="px-6 py-12 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h2 className="font-display font-bold text-2xl text-white mb-2">
-            Everything You Need
-          </h2>
-          <p className="font-body text-gaffer-muted text-sm">
-            Built for the modern athlete and sports organization
-          </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {features.map((feature, i) => (
+      {/* ── Premium Feature Grid ── */}
+      <footer className="relative z-10 w-full max-w-7xl mx-auto px-6 py-20 border-t border-white/5 bg-gradient-to-b from-transparent to-white/[0.01]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+          {[
+            { icon: Zap, title: 'INSTANT SYNC', desc: 'Real-time telemetry for team coordination.' },
+            { icon: Shield, title: 'ENCRYPTED', desc: 'State-of-the-art security for all sensitive data.' },
+            { icon: Layers, title: 'MODULAR', desc: 'Powerful architecture designed for elite scale.' }
+          ].map((item, i) => (
             <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 16 }}
+              key={item.title}
+              initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: i * 0.08 }}
-              className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex gap-4"
+              transition={{ delay: i * 0.1 }}
+              className="group space-y-4"
             >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center">
-                <feature.icon size={18} className="text-gaffer-orange" />
+              <div className="w-12 h-12 rounded-xl bg-white/[0.03] border border-white/10 flex items-center justify-center transition-all group-hover:bg-gaffer-orange/10 group-hover:border-gaffer-orange/30 group-hover:shadow-[0_0_20px_rgba(255,107,0,0.1)]">
+                <item.icon size={20} className="text-white/40 group-hover:text-gaffer-orange transition-colors" />
               </div>
-              <div>
-                <h3 className="font-display font-bold text-white text-sm mb-0.5">{feature.title}</h3>
-                <p className="font-body text-gaffer-muted text-xs leading-relaxed">{feature.desc}</p>
+              <div className="space-y-1">
+                <h3 className="font-display font-bold text-sm tracking-widest uppercase text-white/80 group-hover:text-white transition-colors">{item.title}</h3>
+                <p className="text-xs text-white/30 font-body leading-relaxed max-w-[200px]">{item.desc}</p>
               </div>
             </motion.div>
           ))}
         </div>
-      </section>
 
-      {/* ── Bottom CTA ── */}
-      <section className="px-6 py-10 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gaffer-card border border-gaffer-orange/20 rounded-3xl p-6 text-center"
-        >
-          <GafferLogo size="sm" className="justify-center mb-3" />
-          <p className="font-body text-gaffer-muted text-sm mb-5">
-            Install the app to unlock the full GAFFER experience.
+        <div className="mt-24 pt-10 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-6 opacity-30">
+          <div className="flex items-center gap-6">
+            <Smartphone size={16} />
+            <div className="text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">CROSS-PLATFORM DEPLOYMENT READY</div>
+          </div>
+          <p className="text-[10px] font-bold tracking-[0.4em] uppercase">
+            © 2026 4ORGE CORE SYSTEMS
           </p>
-          <motion.button
-            onClick={handleInstall}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-4 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow flex items-center justify-center gap-2"
-          >
-            <Download size={18} />
-            Install GAFFER
-          </motion.button>
-        </motion.div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-gaffer-border px-6 py-6 text-center">
-        <p className="text-gaffer-subtle text-xs font-body">
-          © {new Date().getFullYear()} The GAFFER. All rights reserved.
-        </p>
+        </div>
       </footer>
     </div>
   )

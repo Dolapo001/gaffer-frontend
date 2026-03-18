@@ -2,48 +2,82 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface FantasyWelcomeProps {
   onGetStarted: () => void;
 }
 
 export const FantasyWelcome: React.FC<FantasyWelcomeProps> = ({ onGetStarted }) => {
-  return (
-    <div className="w-full max-w-sm mx-auto h-screen bg-[#181928] relative overflow-hidden flex flex-col font-sans">
-      
-      {/* Background Image Overlay */}
-      <div 
-        className="absolute inset-0 z-0 opacity-60 bg-cover bg-center"
-        style={{ backgroundImage: 'url("/assets/bg/fantasy-main-bg.png")' }} 
-      />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#181928]/40 via-[#181928]/80 to-[#181928]" />
+  const router = useRouter();
+  const [isExiting, setIsExiting] = React.useState(false);
 
-      {/* Content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-center px-8 pb-32">
+  const handleGetStarted = () => {
+    setIsExiting(true);
+    // 300ms Ease-Out Dissolve Animation out 
+    setTimeout(() => {
+      onGetStarted();
+    }, 300);
+  };
+
+  return (
+    <div 
+      className={`fixed inset-0 w-full max-w-md mx-auto bg-[#222232] overflow-hidden flex flex-col z-0 transition-opacity duration-300 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+      style={{ fontFamily: "'Chakra Petch', sans-serif" }}
+    >
+      
+      {/* Background Image Overlay - Maximum visibility */}
+      <div 
+        className="absolute inset-0 z-0 opacity-100 bg-cover bg-center transition-opacity duration-300 ease-out"
+        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
+      />
+      
+      {/* Soft Cinematic Gradient for visibility */}
+      <div 
+        className="absolute inset-0 z-0" 
+        style={{ 
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(34, 34, 50, 0.4) 30%, rgba(34, 34, 50, 0.9) 100%)' 
+        }} 
+      />
+
+      {/* Content Container - Locked Viewport Layout */}
+      <div className="relative z-10 w-full h-full flex flex-col px-6 touch-none">
+        {/* Top Content: Linked to Design Coordinates */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+           initial={{ opacity: 0 }}
+           animate={{ opacity: 1 }}
+           transition={{ duration: 0.3, ease: "easeOut" }} // Match Dissolve spec
+           className="pt-[132px]"
         >
-          <h1 className="text-white text-[32px] font-bold leading-tight mb-4">
+          {/* Welcome Title */}
+          <h1 className="text-white font-bold text-[20px] leading-none mb-[20px] tracking-tight">
             Welcome to Fantasy
           </h1>
           
-          <p className="text-white/80 text-base leading-relaxed mb-12 max-w-[280px]">
+          {/* Description Text */}
+          <p className="text-white/90 font-normal text-[14px] leading-[140%] max-w-[283px]">
             Create your team, make transfer and become the GAFFER who tops the Leaderboard.
           </p>
+        </motion.div>
 
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onGetStarted}
-            className="w-full bg-white text-black font-bold py-4 rounded-xl shadow-lg hover:bg-gray-100 transition-colors"
+        {/* Dynamic Spacer to push button down */}
+        <div className="flex-1" />
+
+        {/* Bottom Button: Anchored above navigation */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }} // Match Dissolve spec
+          className="pb-[180px] flex justify-center w-full"
+        >
+          <button
+            onClick={handleGetStarted}
+            className="w-full max-w-[312px] h-[52px] bg-white text-[#181928] font-bold text-base rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] active:scale-95 transition-all flex items-center justify-center"
           >
             Get Started
-          </motion.button>
+          </button>
         </motion.div>
       </div>
-
-      {/* Note: The bottom nav is handled by the parent layout */}
     </div>
   );
 };

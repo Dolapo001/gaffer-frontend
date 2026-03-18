@@ -2,24 +2,23 @@
 
 import { useState, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, RefreshCw, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, RefreshCw, Home, Trophy, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-import { GAMEWEEK_INFO, type BoostType } from '@/lib/fantasyMockData'
+import { GAMEWEEK_INFO } from '@/lib/fantasyMockData'
 import {
   useFantasyStore,
-  selectPitchPlayers,
-  selectBenchPlayers,
 } from '@/store/fantasyStore'
 
-import { BoostSelector } from './BoostSelector'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
+import { BoostSelector } from './BoostSelector'
 
 export function FantasyTeamScreen() {
   const router = useRouter()
   const [savedAnim, setSavedAnim] = useState(false)
+  const [gameweek, setGameweek] = useState(5)
 
   // Zustand state
   const selectedPlayerId = useFantasyStore((s) => s.selectedPlayerId)
@@ -49,73 +48,58 @@ export function FantasyTeamScreen() {
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] flex flex-col relative overflow-hidden">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-0">
       {/* Background Image Overlay */}
       <div 
-        className="absolute inset-0 z-0 opacity-60 bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: 'url("/assets/bg/fantasy-main-bg.png")' }} 
+        className="absolute inset-0 z-0 opacity-80 bg-cover bg-center pointer-events-none"
+        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
       />
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#181928]/10 via-[#181928]/40 to-[#181928] pointer-events-none" />
-      {/* ── Sticky header ───────────────────────────────────────────────── */}
-      <div className="sticky top-0 z-30 bg-[#181928]/80 backdrop-blur-xl border-b border-gaffer-border">
-        {/* Nav row */}
-        <div className="flex items-center justify-between px-4 pt-12 pb-3">
-          <button
-            onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
-            aria-label="Go back"
-          >
-            <ChevronLeft size={18} />
-          </button>
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#222232]/10 via-[#222232]/40 to-[#222232]/90 pointer-events-none" />
 
-          <h1 className="font-display font-black text-white text-base tracking-wide">
-            Pick Team
-          </h1>
+      {/* Header */}
+      <header className="px-4 pt-12 pb-2 flex items-center gap-4 relative z-20">
+        <button 
+          onClick={() => router.back()}
+          className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white"
+        >
+          <ChevronLeft size={24} />
+        </button>
+        <h1 className="text-white text-[24px] font-bold tracking-tight">Pick Team</h1>
+      </header>
 
-          <button
-            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-gaffer-muted"
-            aria-label="Refresh"
-          >
-            <RefreshCw size={15} />
-          </button>
-        </div>
-      </div>
-
-      {/* ── Scrollable body ──────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto pb-40">
+      {/* Main Content Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto pb-32 relative z-10 touch-pan-y scrollbar-hide">
         
-        {/* New Boost selector / Transfer Deadline Row */}
-        <div className="w-full flex justify-center py-2">
-          <BoostSelector
+        {/* Boosts / Transfer Deadline Section */}
+        <div className="w-full px-4 mt-4 relative z-10">
+          <BoostSelector 
             active={selectedBoost}
-            onToggle={(b: BoostType) => setBoost(b)}
-            deadlineLabel={`Gameweek ${GAMEWEEK_INFO.number} Transfer Deadline:`}
-            deadlineValue={GAMEWEEK_INFO.deadlineLabel}
+            onToggle={setBoost}
+            deadlineLabel="Gameweek 1 Transfer Deadline:"
+            deadlineValue="Sat 14 Feb, 14:30"
           />
         </div>
 
         {/* Pitch Area */}
-        <div className="px-4 mt-4">
-          <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-[#4e702c]">
-            {/* Budget pill in top right of pitch */}
-            <div className="absolute top-4 right-4 z-20 scale-90 sm:scale-100">
-              <div className="bg-[#1a1f24] rounded-full px-4 py-1 flex items-center gap-2 border border-white/10 shadow-lg">
-                <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
-                <span className="text-[#00ffff] text-[10px] font-bold">₦{budget.toFixed(1)}m</span>
-              </div>
+        <div className="px-2 mt-4 relative">
+          {/* Budget Overlay Pill - Positioned outside/behind the pitch line */}
+          <div className="flex justify-end pr-4 mb-2 relative z-20">
+            <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-lg">
+              <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
+              <span className="text-[#00ffff] text-[10px] font-bold font-mono">₦{budget.toFixed(1)}m</span>
             </div>
-
-            <PitchLayout
-              pitchPlayers={pitchPlayers}
-              selectedId={selectedPlayerId}
-              budget={budget}
-              onSelectPlayer={handleSelectPlayer}
-            />
           </div>
+
+          <PitchLayout 
+            pitchPlayers={pitchPlayers}
+            selectedId={selectedPlayerId}
+            budget={budget}
+            onSelectPlayer={handleSelectPlayer}
+          />
         </div>
 
-        {/* Bench / Substitute Section */}
-        <div className="mt-6">
+        {/* Substitute Section */}
+        <div className="mt-[-40px] px-2 pb-10">
           <SubstituteBench
             benchPlayers={benchPlayers}
             selectedId={selectedPlayerId}
@@ -123,18 +107,38 @@ export function FantasyTeamScreen() {
           />
         </div>
 
-        {/* ── Centered Save Team Button ───────────────────────────────────────────── */}
-        <div className="mt-16 mb-24 flex justify-center">
-          <button
-            onClick={handleSave}
-            className="text-[#ff6b00] font-bold text-2xl border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity pb-0.5"
-          >
-            {savedAnim ? 'TEAM SAVED!' : 'Save Team'}
-          </button>
+        {/* Save Button */}
+        <div className="flex justify-center pb-20">
+           <button
+             onClick={handleSave}
+             className="text-[#ff6b00] font-extrabold text-[24px] uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity"
+           >
+             {savedAnim ? 'Team Saved!' : 'Save Team'}
+           </button>
         </div>
       </div>
 
-      {/* ── Player detail drawer ─────────────────────────────────────────── */}
+      {/* Floating Bottom Nav */}
+      <nav className="absolute bottom-0 left-0 right-0 h-24 bg-[#1b1c28]/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-6 z-30 rounded-t-[2.5rem] shadow-2xl">
+        <button className="flex flex-col items-center gap-1 text-white/40 hover:text-white transition-colors" onClick={() => router.push('/app/dashboard')}>
+          <Home size={22} />
+          <span className="text-[10px] font-bold">Home</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-[#ff6b00]">
+          <RefreshCw size={22} className="animate-spin-slow" />
+          <span className="text-[10px] font-bold">Pick Team</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-white/40 hover:text-white transition-colors" onClick={() => router.push('/app/league')}>
+          <Trophy size={22} />
+          <span className="text-[10px] font-bold">League</span>
+        </button>
+        <button className="flex flex-col items-center gap-1 text-white/40 hover:text-white transition-colors" onClick={() => router.push('/app/news')}>
+          <FileText size={22} />
+          <span className="text-[10px] font-bold">News</span>
+        </button>
+      </nav>
+
+      {/* Player Detail Drawer */}
       <PlayerDetailDrawer
         player={selectedPlayer}
         onClose={() => selectPlayer(null)}

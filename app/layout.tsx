@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { PWAProvider } from '@/components/PWAProvider'
 import { AuthProvider } from '@/components/AuthProvider'
+import { BrowserProtection } from '@/components/BrowserProtection'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -45,7 +46,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&family=Chakra+Petch:wght@500&family=Poppins:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
@@ -57,7 +58,9 @@ export default function RootLayout({
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
         <PWAProvider>
           <AuthProvider>
-            {children}
+            <BrowserProtection>
+              {children}
+            </BrowserProtection>
           </AuthProvider>
         </PWAProvider>
       </body>

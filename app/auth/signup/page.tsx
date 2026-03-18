@@ -21,7 +21,7 @@ const genderOptions = [
 
 export default function SignUpPage() {
   const router = useRouter()
-  const { register: registerUser, registerWithGoogle, isLoading, error, clearError, role } =
+  const { register: registerUser, registerWithGoogle, isLoading, error, clearError, role, setRole } =
     useAuthStore()
 
   useEffect(() => {
@@ -46,7 +46,8 @@ export default function SignUpPage() {
   const onSubmit = async (data: SignUpFormData) => {
     try {
       await registerUser(data.email, data.password)
-      router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
+      setRole('personal')
+      router.replace('/app/dashboard')
     } catch {
       // Error displayed from store
     }
@@ -55,7 +56,8 @@ export default function SignUpPage() {
   const handleGoogleSignUp = async () => {
     try {
       await registerWithGoogle()
-      router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
+      setRole('personal')
+      router.replace('/app/dashboard')
     } catch {
       // Error displayed from store
     }

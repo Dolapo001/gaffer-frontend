@@ -1,6 +1,6 @@
 'use client'
 
-import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
+import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
 import { PitchPlayerCard } from './PitchPlayerCard'
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────
@@ -17,8 +17,8 @@ function PitchMarkings() {
       preserveAspectRatio="none"
       aria-hidden="true"
     >
-      {/* Background */}
-      <rect width="329" height="402" fill="#4F7429" />
+      {/* Background with opacity to show underlying image */}
+      <rect width="329" height="402" fill="#4F7429" fillOpacity="0.75" />
 
       <g clipPath="url(#clip0_pitch_layout)">
         {/* Grass stripe bands */}
@@ -109,6 +109,7 @@ function PitchMarkings() {
 interface PitchLayoutProps {
   pitchPlayers: FantasySquadPlayer[]
   selectedId: string | null
+  substitutingOutId?: string | null
   budget: number
   onSelectPlayer: (id: string) => void
 }
@@ -116,6 +117,7 @@ interface PitchLayoutProps {
 export function PitchLayout({
   pitchPlayers,
   selectedId,
+  substitutingOutId,
   budget,
   onSelectPlayer,
 }: PitchLayoutProps) {
@@ -136,8 +138,10 @@ export function PitchLayout({
                 key={player.id}
                 playerName={player.shortName}
                 fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
-                kitImageUrl={player.avatarUrl || ''}
+                kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                points={player.points}
                 selected={selectedId === player.id}
+                highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                 onClick={() => onSelectPlayer(player.id)}
               />
             ))}

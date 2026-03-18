@@ -37,6 +37,7 @@ const config: Config = {
       fontFamily: {
         display: ['var(--font-barlow-condensed)', 'sans-serif'],
         body: ['var(--font-barlow)', 'sans-serif'],
+        chakra: ['var(--font-chakra)', 'sans-serif'],
       },
       backgroundImage: {
         'orange-gradient': 'linear-gradient(135deg, #FF6B00 0%, #E53000 100%)',

@@ -5,13 +5,14 @@ import { type ReactNode } from 'react'
 
 interface GradientButtonProps {
   children: ReactNode
-  onClick?: () => void
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
   type?: 'button' | 'submit' | 'reset'
   variant?: 'primary' | 'outline' | 'ghost' | 'google'
   disabled?: boolean
   loading?: boolean
   fullWidth?: boolean
   className?: string
+  style?: React.CSSProperties
 }
 
 export function GradientButton({
@@ -23,6 +24,7 @@ export function GradientButton({
   loading = false,
   fullWidth = true,
   className = '',
+  style = {},
 }: GradientButtonProps) {
   const base = `relative flex items-center justify-center gap-2 px-6 py-4 rounded-xl font-display font-semibold text-base tracking-wide transition-all duration-200 ${fullWidth ? 'w-full' : ''} disabled:opacity-50 disabled:cursor-not-allowed`
 
@@ -41,6 +43,7 @@ export function GradientButton({
       whileTap={{ scale: 0.97 }}
       whileHover={{ scale: 1.01 }}
       className={`${base} ${variants[variant]} ${className}`}
+      style={style}
     >
       {loading ? (
         <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

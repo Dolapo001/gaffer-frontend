@@ -11,11 +11,7 @@ export default function SplashPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (isAuthenticated) {
-        router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
-      } else {
-        router.replace('/onboarding/welcome')
-      }
+      router.replace('/onboarding/welcome')
     }, 1500)
 
     return () => clearTimeout(timer)

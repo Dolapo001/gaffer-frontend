@@ -1,17 +1,13 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Trophy, Users, Calendar, MapPin, ChevronRight } from 'lucide-react'
+import { Trophy, Users, Calendar, MapPin, ChevronRight, Check } from 'lucide-react'
 import type { Tournament } from '@/store/tournamentStore'
 
 const statusStyles = {
-  upcoming: { bg: 'bg-blue-500/10', border: 'border-blue-500/30', text: 'text-blue-400', label: 'Upcoming' },
-  ongoing:  { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400', label: 'Live' },
-  completed: { bg: 'bg-gaffer-card', border: 'border-gaffer-border', text: 'text-gaffer-muted', label: 'Ended' },
-}
-
-const sportEmoji: Record<string, string> = {
-  football: '⚽', basketball: '🏀', cricket: '🏏', tennis: '🎾', other: '🏆',
+  upcoming: { color: 'text-blue-400', label: 'upcoming' },
+  ongoing:  { color: 'text-green-500', label: 'live' },
+  completed: { color: 'text-red-500', label: 'ended' },
 }
 
 interface TournamentCardProps {
@@ -20,67 +16,50 @@ interface TournamentCardProps {
 }
 
 export function TournamentCard({ tournament, onClick }: TournamentCardProps) {
-  const style = statusStyles[tournament.status]
-  const progress = Math.round((tournament.registeredTeams / tournament.maxTeams) * 100)
+  const style = statusStyles[tournament.status as keyof typeof statusStyles] || statusStyles.upcoming
+  const logoSrc = tournament.name.toLowerCase().includes('abuad') 
+    ? '/images/abuad_fa.png' 
+    : '/images/game_changer.png'
 
   return (
     <motion.div
-      whileTap={{ scale: 0.99 }}
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 cursor-pointer hover:border-gaffer-orange/30 transition-all"
+      className="bg-[#1C1F2D] border border-white/5 rounded-[24px] p-5 cursor-pointer hover:border-white/10 transition-all flex items-center justify-between group shadow-lg"
     >
-      {/* Header */}
-      <div className="flex items-start gap-3 mb-3">
-        <div className="w-10 h-10 rounded-xl bg-gaffer-surface flex items-center justify-center text-xl flex-shrink-0">
-          {sportEmoji[tournament.sport] || '🏆'}
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="font-display font-bold text-white text-sm truncate">{tournament.name}</h3>
+      <div className="flex items-center gap-4">
+        {/* Tournament Avatar */}
+        <div className="relative">
+          <div className="w-16 h-16 rounded-full overflow-hidden border border-white/10 bg-black/20">
+            <img src={logoSrc} className="w-full h-full object-cover" alt="" />
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className={`text-[10px] font-body font-semibold px-2 py-0.5 rounded-full border ${style.bg} ${style.border} ${style.text}`}>
+        </div>
+
+        {/* Info */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <h3 className="font-chakra font-black text-base text-white uppercase tracking-tight leading-none pt-0.5">
+              {tournament.name}
+            </h3>
+            <div className="w-4 h-4 bg-[#FF4D00] rounded-full flex items-center justify-center shrink-0">
+              <Check size={10} strokeWidth={4} className="text-white" />
+            </div>
+          </div>
+          
+          <div className="flex flex-col gap-1">
+            <span className="text-white/40 text-[11px] font-bold tracking-wide uppercase">
+              {new Date(tournament.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase()} - 
+              {new Date(tournament.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }).toUpperCase()}
+            </span>
+            <span className={`text-[9px] font-black uppercase tracking-[0.2em] ${style.color}`}>
               {style.label}
             </span>
-            <span className="text-gaffer-subtle text-[10px] font-body capitalize">{tournament.format}</span>
           </div>
-        </div>
-        <ChevronRight size={16} className="text-gaffer-subtle flex-shrink-0 mt-0.5" />
-      </div>
-
-      {/* Meta */}
-      <div className="grid grid-cols-2 gap-2 mb-3">
-        <div className="flex items-center gap-1.5">
-          <Calendar size={12} className="text-gaffer-subtle" />
-          <span className="text-gaffer-muted text-xs font-body truncate">
-            {new Date(tournament.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-          </span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <MapPin size={12} className="text-gaffer-subtle" />
-          <span className="text-gaffer-muted text-xs font-body truncate">{tournament.location}</span>
         </div>
       </div>
 
-      {/* Team capacity bar */}
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-1.5">
-            <Users size={12} className="text-gaffer-subtle" />
-            <span className="text-gaffer-muted text-xs font-body">
-              {tournament.registeredTeams} / {tournament.maxTeams} teams
-            </span>
-          </div>
-          <span className="text-gaffer-orange text-xs font-body font-medium">{progress}%</span>
-        </div>
-        <div className="w-full h-1.5 bg-gaffer-surface rounded-full overflow-hidden">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: `${progress}%` }}
-            transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="h-full bg-orange-gradient-btn rounded-full"
-          />
-        </div>
+      <div className="w-8 h-8 rounded-full border border-white/10 flex items-center justify-center text-white/40 group-hover:text-white transition-colors shrink-0">
+        <ChevronRight size={18} />
       </div>
     </motion.div>
   )

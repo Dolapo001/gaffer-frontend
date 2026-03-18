@@ -72,9 +72,9 @@ export default function LoginPage() {
 
       {/* Content */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
         className="flex-1 flex flex-col px-6 pb-10"
       >
         {/* Title */}

@@ -88,6 +88,20 @@ const TEAMS = [
   { name: 'Business', code: 'BUS', color: '#EA580C' },
 ]
 
+export const getJerseyUrl = (teamCode: string, position: string) => {
+  let teamId = 1; // Arsenal
+  switch (teamCode) {
+    case 'ENG': teamId = 1; break; // Arsenal
+    case 'LAW': teamId = 2; break; // Aston Villa
+    case 'MED': teamId = 3; break; // Bournemouth
+    case 'SCI': teamId = 4; break; // Brentford
+    case 'BUS': teamId = 8; break; // Chelsea
+    default: teamId = 1;
+  }
+  const isGk = position === 'GK' || position === 'GKP';
+  return `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${teamId}${isGk ? '_1' : ''}-66.webp`;
+}
+
 function gwHistory(base: number, opponent = 'Engineering'): GWResult[] {
   return [
     { gw: 1, pts: Math.round(base * 0.28), opponent, result: 'W' },
@@ -136,6 +150,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 7.2,
     gwHistory: gwHistory(52),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
 
   // ── DEF (pitch row 1) ──
@@ -158,6 +173,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 6.8,
     gwHistory: gwHistory(48, 'Sciences'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'def2',
@@ -178,6 +194,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 5.5,
     gwHistory: gwHistory(44, 'Business'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'def3',
@@ -198,6 +215,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 7.0,
     gwHistory: gwHistory(50, 'Law'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'def4',
@@ -218,6 +236,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 4.8,
     gwHistory: gwHistory(38, 'Medicine'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
 
   // ── MID (pitch row 2) ──
@@ -244,6 +263,7 @@ export const SQUAD: FantasySquadPlayer[] = [
       { gw: 3, pts: 14, opponent: 'Engineering', result: 'W' },
     ],
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'mid2',
@@ -264,6 +284,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 8.2,
     gwHistory: gwHistory(61, 'Sciences'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'mid3',
@@ -284,6 +305,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 7.6,
     gwHistory: gwHistory(55, 'Business'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'mid4',
@@ -304,6 +326,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 6.5,
     gwHistory: gwHistory(47, 'Law'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
 
   // ── FWD (pitch row 3) ──
@@ -326,6 +349,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 9.8,
     gwHistory: gwHistory(83, 'Engineering'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'fwd2',
@@ -346,6 +370,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 8.5,
     gwHistory: gwHistory(69, 'Sciences'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
 
   // ── BENCH ──
@@ -368,6 +393,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 3.5,
     gwHistory: gwHistory(28, 'Medicine'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'bench_def',
@@ -388,6 +414,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 3.2,
     gwHistory: gwHistory(22, 'Business'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'bench_mid',
@@ -408,6 +435,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 4.0,
     gwHistory: gwHistory(30, 'Law'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
   {
     id: 'bench_fwd',
@@ -428,6 +456,7 @@ export const SQUAD: FantasySquadPlayer[] = [
     form: 3.8,
     gwHistory: gwHistory(18, 'Engineering'),
     nextFixtures: NEXT,
+    avatarUrl: '',
   },
 ]
 
