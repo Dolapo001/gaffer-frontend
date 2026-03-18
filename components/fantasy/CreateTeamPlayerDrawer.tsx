@@ -4,6 +4,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRightLeft, X } from 'lucide-react';
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData';
+import { useToast } from '@/store/toastStore';
 
 interface CreateTeamPlayerDrawerProps {
   player: FantasySquadPlayer | null;
@@ -16,6 +17,7 @@ export const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
   onClose,
   onRemove 
 }) => {
+  const { addToast } = useToast();
   return (
     <AnimatePresence>
       {player && (
@@ -137,7 +139,10 @@ export const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
                 <span className="text-white text-[13px] font-bold uppercase tracking-widest text-center">Remove</span>
               </div>
               <div className="flex flex-col items-center gap-3">
-                <button className="w-[84px] h-[84px] rounded-full bg-[#0d4a25] flex items-center justify-center shadow-[0_12px_24px_rgba(0,0,0,0.5)] hover:bg-[#0a3a1d] transition-all active:scale-95 border-2 border-white/5">
+                <button 
+                  onClick={() => addToast('Transfer system coming soon!', 'info')}
+                  className="w-[84px] h-[84px] rounded-full bg-[#0d4a25] flex items-center justify-center shadow-[0_12px_24px_rgba(0,0,0,0.5)] hover:bg-[#0a3a1d] transition-all active:scale-95 border-2 border-white/5"
+                >
                    <ArrowRightLeft className="text-white w-8 h-8" strokeWidth={2.5} />
                 </button>
                 <span className="text-white text-[13px] font-bold uppercase tracking-widest text-center">Transfer</span>

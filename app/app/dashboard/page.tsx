@@ -13,6 +13,7 @@ import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { TOP_NEWS, type Article } from '@/lib/mockData'
 import { Bell } from 'lucide-react'
+import { useToast } from '@/store/toastStore'
 
 function fetchTopNews(): Promise<Article[]> {
   return new Promise((resolve) => setTimeout(() => resolve(TOP_NEWS), 800))
@@ -21,6 +22,7 @@ function fetchTopNews(): Promise<Article[]> {
 export default function DashboardPage() {
   const router = useRouter()
   const { user } = useAuthStore()
+  const { addToast } = useToast()
   const { tournaments } = useTournamentStore()
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Gaffer'
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
@@ -56,12 +58,18 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between px-4 pt-12 pb-4">
             <GafferLogo size="sm" />
             <div className="flex items-center gap-3">
-              <button className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-gaffer-muted hover:text-white transition-colors">
+              <button 
+                onClick={() => addToast('No new notifications', 'info')}
+                className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-gaffer-muted hover:text-white transition-colors"
+              >
                 <Bell size={18} />
               </button>
-              <div className="w-9 h-9 rounded-full bg-orange-gradient-btn flex items-center justify-center text-white font-display font-bold text-sm shadow-orange-glow">
+              <button 
+                onClick={() => addToast('Profile settings coming soon', 'info')}
+                className="w-9 h-9 rounded-full bg-orange-gradient-btn flex items-center justify-center text-white font-display font-bold text-sm shadow-orange-glow active:scale-95 transition-transform"
+              >
                 {displayName[0].toUpperCase()}
-              </div>
+              </button>
             </div>
           </div>
 

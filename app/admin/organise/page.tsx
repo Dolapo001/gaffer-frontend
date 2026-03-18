@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { BrowserProtection } from '@/components/BrowserProtection'
-import { TournamentBracket } from '@/components/admin/TournamentBracket'
+import { useToast } from '@/store/toastStore'
 
 type Player = {
   id: string
@@ -34,6 +34,7 @@ type Group = {
 }
 
 export default function OrganizePage() {
+  const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState<'Teams' | 'Groups'>('Teams')
   const [view, setView] = useState<'list' | 'create' | 'details' | 'share' | 'select_team'>('list')
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
@@ -195,7 +196,10 @@ export default function OrganizePage() {
       <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4">
         {/* Header */}
         <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
-          <button className="mr-4">
+          <button 
+            className="mr-4"
+            onClick={() => addToast('Menu coming soon', 'info')}
+          >
             <Menu size={24} />
           </button>
           <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
@@ -691,7 +695,10 @@ export default function OrganizePage() {
 
                 <div className="w-full max-w-[340px] bg-[#1C2130] rounded-[16px] p-4 flex items-center justify-between border border-[#2C3140]">
                   <span className="text-[13px] text-white/80 truncate pr-4 text-left">http://www.gaffer.com/bowenfansleague/{selectedTeam?.name?.toLowerCase().replace(/\s+/g, '') || selectedGroup?.name?.toLowerCase().replace(/\s+/g, '')}1</span>
-                  <button className="shrink-0 p-1 hover:bg-white/10 rounded transition-colors">
+                  <button 
+                    onClick={() => addToast('Link copied to clipboard!', 'success')}
+                    className="shrink-0 p-1 hover:bg-white/10 rounded transition-colors"
+                  >
                     <Copy size={18} className="text-white" />
                   </button>
                 </div>
