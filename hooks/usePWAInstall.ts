@@ -1,17 +1,24 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { getDeferredPrompt, triggerInstallPrompt, isStandalone } from '@/lib/pwa'
+import { getDeferredPrompt, triggerInstallPrompt, isStandalone, isIOS } from '@/lib/pwa'
 
 export function usePWAInstall() {
   const [isInstallable, setIsInstallable] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
   const [isInstalling, setIsInstalling] = useState(false)
+  const [showIOSModal, setShowIOSModal] = useState(false)
 
   useEffect(() => {
     if (typeof window === 'undefined') return
 
-    setIsInstalled(isStandalone())
+    const standalone = isStandalone()
+    setIsInstalled(standalone)
+    
+    // Always consider iOS installable if not already installed
+    if (isIOS() && !standalone) {
+      setIsInstallable(true)
+    }
 
     const handleBeforeInstallPrompt = (e: any) => {
       e.preventDefault()
@@ -40,13 +47,15 @@ export function usePWAInstall() {
       return true
     }
     
+    // For iOS, we show instructions
+    if (isIOS()) {
+      setShowIOSModal(true)
+      return false
+    }
+    
     // Explicitly check for deferred prompt
     const prompt = getDeferredPrompt()
     if (!prompt) {
-      // For iOS or browsers without direct prompt support
-      // We could show instructions, but for now we follow the user's "work as before" request
-      // which likely means trying to trigger whatever is available.
-      // If none, maybe redirecting to dashboard anyway if that's the "app"
       return false
     }
 
@@ -66,5 +75,5 @@ export function usePWAInstall() {
     return success
   }
 
-  return { isInstallable, isInstalled, isInstalling, handleInstall }
+  return { isInstallable, isInstalled, isInstalling, handleInstall, showIOSModal, setShowIOSModal }
 }
