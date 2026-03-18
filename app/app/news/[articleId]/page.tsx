@@ -4,27 +4,20 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
-import { TOP_NEWS, TRENDING_POSTS } from '@/lib/mockData'
+import { getFeedItem } from '@/lib/services/feed.service'
 import { ChevronLeft } from 'lucide-react'
 
-const ALL_ARTICLES = [...TOP_NEWS, ...TRENDING_POSTS]
-
-function fetchArticle(id: string) {
-  return new Promise<(typeof ALL_ARTICLES)[0] | null>((resolve) =>
-    setTimeout(() => {
-      const article = ALL_ARTICLES.find((a) => a.id === id) ?? null
-      resolve(article)
-    }, 400)
-  )
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export default function ArticlePage() {
   const { articleId } = useParams<{ articleId: string }>()
   const router = useRouter()
 
-  const { data: article, isLoading } = useQuery({
-    queryKey: ['article', articleId],
-    queryFn: () => fetchArticle(articleId),
+  const { data: item, isLoading } = useQuery({
+    queryKey: ['feed-item', articleId],
+    queryFn: () => getFeedItem(articleId),
   })
 
   if (isLoading) {
@@ -43,7 +36,6 @@ export default function ArticlePage() {
             </div>
           </div>
           <div className="h-5 bg-gaffer-card rounded w-4/5" />
-          <div className="h-5 bg-gaffer-card rounded w-3/5" />
           <div className="h-52 bg-gaffer-card rounded-2xl" />
           <div className="space-y-2">
             {[0, 1, 2, 3].map((i) => (
@@ -55,7 +47,7 @@ export default function ArticlePage() {
     )
   }
 
-  if (!article) {
+  if (!item) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-gaffer-muted font-body text-sm">Article not found</p>
@@ -68,6 +60,24 @@ export default function ArticlePage() {
         </button>
       </div>
     )
+  }
+
+  const imageUrl = item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg'
+  const authorName = item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'Gaffer'
+  const authorHandle = `${item.authorType}_${item.authorId.slice(-6)}`
+
+  const article = {
+    id: item._id,
+    title: item.body.split('\n')[0].slice(0, 100),
+    content: item.body,
+    image: imageUrl,
+    date: formatDate(item.createdAt),
+    likes: item.likesCount,
+    author: {
+      name: authorName,
+      handle: authorHandle,
+      verified: item.authorType === 'org',
+    },
   }
 
   return (

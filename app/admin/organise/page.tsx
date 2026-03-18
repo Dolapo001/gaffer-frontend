@@ -1,778 +1,430 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { 
-  Plus, Menu, ChevronDown, ChevronLeft, ChevronRight, 
-  ChevronUp, Copy, Check, User, Minus
+import {
+  Plus, ChevronDown, ChevronLeft, ChevronRight,
+  Check, User, X
 } from 'lucide-react'
-import { GradientButton } from '@/components/GradientButton'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { BrowserProtection } from '@/components/BrowserProtection'
-import { useToast } from '@/store/toastStore'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
+import { listOrgs } from '@/lib/services/org.service'
+import {
+  listTeams, createTeam, listPlayers, createPlayerInvite,
+  type Team, type Player,
+} from '@/lib/services/team.service'
 
-type Player = {
-  id: string
-  name: string
-  position: string
-  price: string
-  photo?: string
-  isSelected: boolean
-}
-
-type Team = {
-  id: string
-  name: string
-  playerCount: string
-  logo: string
-}
-
-type Group = {
-  id: string
-  name: string
-  color: string
-  teams: Team[]
-}
+const SPORTS = ['football', 'basketball', 'volleyball', 'cricket', 'other']
+const GENDER_OPTS: Array<{ label: string; value: 'male' | 'female' | 'mixed' }> = [
+  { label: 'Male', value: 'male' },
+  { label: 'Female', value: 'female' },
+  { label: 'Mixed', value: 'mixed' },
+]
 
 export default function OrganizePage() {
-  const { addToast } = useToast()
-  const [activeTab, setActiveTab] = useState<'Teams' | 'Groups'>('Teams')
-  const [view, setView] = useState<'list' | 'create' | 'details' | 'share' | 'select_team'>('list')
+  const qc = useQueryClient()
+  const toast = useToastStore()
+
+  const [activeTab, setActiveTab] = useState<'Teams'>('Teams')
+  const [view, setView] = useState<'list' | 'create' | 'details' | 'share'>('list')
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
-  const [selectedGroupForTeams, setSelectedGroupForTeams] = useState<Group | null>(null)
-  
-  const groupColors = [
-    '#A855F7', '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#EC4899',
-    '#06B6D4', '#F97316', '#84CC16', '#14B8A6', '#6366F1', '#D946EF'
-  ]
-  const [selectedColor, setSelectedColor] = useState(groupColors[0])
-  const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
-  
-  const [teams, setTeams] = useState<Team[]>([
-    {
-      id: '1',
-      name: 'COCCS',
-      playerCount: '11/22',
-      logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png'
-    },
-    {
-      id: '2',
-      name: 'COAES',
-      playerCount: '11/22',
-      logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png'
-    }
-  ])
-  const [teamName, setTeamName] = useState('Chelsea')
-  const [maxPlayers, setMaxPlayers] = useState('11')
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  
-  const [players, setPlayers] = useState<Player[]>([
-    { id: '1', name: 'Olaniyi Ojedokun', position: 'THE GAFFER', price: '7.5M', isSelected: true },
-    { id: '2', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: false },
-    { id: '3', name: 'Ojedokun Olaniyi', position: 'Center-Back', price: '7.5M', isSelected: false },
-    { id: '4', name: 'Ikpi David', position: 'Center-Back', price: '7.5M', isSelected: false },
-    { id: '5', name: 'Ayomide Lawal', position: 'Center-Back', price: '7.5M', isSelected: true },
-    { id: '6', name: 'Ayomide Lawal', position: 'Center-Back', price: '7.5M', isSelected: true },
-    { id: '7', name: 'Ayomide Lawal', position: 'Left-back', price: '7.5M', isSelected: true },
-    { id: '8', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
-    { id: '9', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
-    { id: '10', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
-  ])
 
-  const [groups, setGroups] = useState<Group[]>([
-    {
-      id: '1',
-      name: 'GROUP A',
-      color: '#A855F7',
-      teams: [
-        { id: '1', name: 'COCCS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-        { id: '101', name: 'COSMS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-        { id: '2', name: 'COAES', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png' },
-      ]
-    },
-    {
-      id: '2',
-      name: 'GROUP B',
-      color: '#3B82F6',
-      teams: [
-        { id: '1', name: 'COCCS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-        { id: '101', name: 'COSMS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-        { id: '2', name: 'COAES', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png' },
-      ]
-    }
-  ])
+  // Create team form state
+  const [teamName, setTeamName] = useState('')
+  const [teamHandle, setTeamHandle] = useState('')
+  const [teamSport, setTeamSport] = useState('football')
+  const [teamGender, setTeamGender] = useState<'male' | 'female' | 'mixed'>('male')
+  const [logoPreview] = useState<string | null>(null)
 
-  const togglePlayerSelection = (id: string) => {
-    setPlayers(prev => prev.map(p => p.id === id ? {...p, isSelected: !p.isSelected} : p))
-  }
+  // Share / invite state
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
-  const handlePriceChange = (id: string, increment: boolean) => {
-    setPlayers(prev => prev.map(p => {
-      if (p.id === id) {
-        const current = parseFloat(p.price) || 7.5
-        const next = Math.max(0.5, current + (increment ? 0.5 : -0.5)) // Minimum price 0.5M
-        return { ...p, price: `${next.toFixed(1)}M` }
-      }
-      return p
-    }))
-  }
-  
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setLogoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-  
-  const handleCreate = () => {
-    if (!teamName) return
-    
-    if (activeTab === 'Teams') {
-      const newTeam: Team = { 
-        id: Date.now().toString(), 
-        name: teamName, 
-        playerCount: `0/${maxPlayers}`, 
-        logo: logoPreview || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix' 
-      }
-      setTeams([...teams, newTeam])
-      setSelectedTeam(newTeam)
-      setSelectedGroup(null) // Clear selected group
+  // ── Queries ────────────────────────────────────────────────────────────────
+  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
+  const firstOrg = orgs?.[0]
+
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams', firstOrg?._id],
+    queryFn: () => listTeams(firstOrg!._id),
+    enabled: !!firstOrg?._id,
+  })
+
+  const { data: players = [], isLoading: playersLoading } = useQuery({
+    queryKey: ['players', selectedTeam?._id],
+    queryFn: () => listPlayers(selectedTeam!._id),
+    enabled: !!selectedTeam?._id && view === 'details',
+  })
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
+  const createMutation = useMutation({
+    mutationFn: () =>
+      createTeam(firstOrg!._id, {
+        name: teamName.trim(),
+        handle: teamHandle.trim() || teamName.trim().toLowerCase().replace(/\s+/g, '-'),
+        sport: teamSport,
+        genderCategory: teamGender,
+      }),
+    onSuccess: (team: Team) => {
+      qc.invalidateQueries({ queryKey: ['teams', firstOrg?._id] })
+      toast.addToast('Team created', 'success')
+      setSelectedTeam(team)
+      setTeamName('')
+      setTeamHandle('')
       setView('details')
-    } else {
-      const selectedTeamObjects = teams.filter(t => selectedTeamsForGroup.includes(t.id))
-      const newGroup: Group = {
-        id: Date.now().toString(),
-        name: teamName,
-        color: selectedColor,
-        teams: selectedTeamObjects
-      }
-      setGroups([...groups, newGroup])
-      setSelectedGroup(newGroup) // Set the newly created group as selected
-      setSelectedTeam(null) // Clear selected team
-      setView('details') // Navigate to details view for the new group
-      // Reset form
-      setTeamName('Chelsea')
-      setSelectedTeamsForGroup([])
-      setLogoPreview(null)
-    }
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const inviteMutation = useMutation({
+    mutationFn: () => createPlayerInvite(selectedTeam!._id, inviteEmail.trim()),
+    onSuccess: (res: { invite: { email: string; expiresAt: string; inviteLink: string } }) => {
+      setInviteLink(res.invite.inviteLink)
+      setInviteEmail('')
+      toast.addToast('Invite created', 'success')
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const handleCopy = () => {
+    if (!inviteLink) return
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      setCopied(true)
+      toast.addToast('Link copied!', 'success')
+      setTimeout(() => setCopied(false), 2000)
+    })
   }
 
-  const getUnassignedTeams = () => {
-    const assignedTeamIds = new Set(groups.flatMap(g => g.teams.map(t => t.id)))
-    return teams.filter(t => !assignedTeamIds.has(t.id))
-  }
-
-  const toggleTeamForGroup = (teamId: string) => {
-    setSelectedTeamsForGroup(prev => 
-      prev.includes(teamId) ? prev.filter(id => id !== teamId) : [...prev, teamId]
-    )
-  }
-
-  useEffect(() => {
-    const navBar = document.getElementById('admin-nav-bar')
-    if (!navBar) return
-    
-    // Only hide navbar when the generic create modal/sheet is open
-    const isModalOpen = (view === 'create')
-    if (isModalOpen) {
-      navBar.style.opacity = '0'
-      navBar.style.pointerEvents = 'none'
-      navBar.style.transform = 'translate(-50%, 20px)'
-    } else {
-      navBar.style.opacity = '1'
-      navBar.style.pointerEvents = 'auto'
-      navBar.style.transform = 'translate(-50%, 0)'
-    }
-  }, [view])
+  const canCreate = teamName.trim().length >= 2
 
   return (
     <BrowserProtection>
       <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4">
         {/* Header */}
         <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
-          <button 
-            className="mr-4"
-            onClick={() => addToast('Menu coming soon', 'info')}
-          >
-            <Menu size={24} />
-          </button>
           <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
         </div>
 
         <div className="flex-1 relative">
           <AnimatePresence mode="wait">
+            {/* ── LIST VIEW ── */}
             {view === 'list' && (
-              <motion.div 
-                key="list" 
-                initial={{ opacity: 0 }} 
-                animate={{ opacity: 1 }} 
+              <motion.div
+                key="list"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 className="absolute inset-0 flex flex-col space-y-4 px-6 pt-2"
               >
-                {/* Tab Switcher */}
+                {/* Tab Switcher (only Teams for now — no groups API) */}
                 <div className="bg-white/5 p-1.5 rounded-xl flex border border-white/5">
                   <button
                     onClick={() => setActiveTab('Teams')}
-                    className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex flex-col items-center justify-center relative ${
-                      activeTab === 'Teams' ? 'bg-[#2F3342] text-white shadow-lg' : 'text-gray-500'
-                    }`}
+                    className="flex-1 py-2.5 rounded-lg font-semibold text-sm bg-[#2F3342] text-white shadow-lg flex flex-col items-center justify-center"
                   >
                     Teams
-                    {activeTab === 'Teams' && (
-                      <div className="w-4 h-0.5 bg-orange-500 rounded-full mt-1" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('Groups')}
-                    className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex flex-col items-center justify-center relative ${
-                      activeTab === 'Groups' ? 'bg-[#2F3342] text-white shadow-lg' : 'text-gray-500'
-                    }`}
-                  >
-                    Groups
-                    {activeTab === 'Groups' && (
-                      <div className="w-4 h-0.5 bg-orange-500 rounded-full mt-1" />
-                    )}
+                    <div className="w-4 h-0.5 bg-orange-500 rounded-full mt-1" />
                   </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto pb-40 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                  <AnimatePresence mode="wait">
-                    {activeTab === 'Teams' ? (
-                      <motion.div 
-                        key="teams-list"
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -20 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex flex-col"
-                      >
-                        {teams.length === 0 ? (
-                          <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center">
-                            <h3 className="text-white text-[17px] font-semibold mb-2">Add New Team</h3>
-                            <p className="text-[14px] text-[#A1A1AA] max-w-[300px] leading-[1.4]">
-                              Manage your schedule for matches ,ceremonies , Schedule now and for later
-                            </p>
+                  {teamsLoading ? (
+                    <div className="space-y-3">
+                      {[0, 1, 2].map((i) => (
+                        <div key={i} className="h-20 bg-[#1C2130] rounded-2xl animate-pulse" />
+                      ))}
+                    </div>
+                  ) : teams.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-24 px-8 text-center">
+                      <h3 className="text-white text-[17px] font-semibold mb-2">No Teams Yet</h3>
+                      <p className="text-[14px] text-[#A1A1AA] max-w-[300px] leading-[1.4]">
+                        Create your first team to start adding players and managing your roster.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {teams.map((team) => (
+                        <div
+                          key={team._id}
+                          onClick={() => {
+                            setSelectedTeam(team)
+                            setView('details')
+                          }}
+                          className="bg-[#1C2130] border border-white/5 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all"
+                        >
+                          <div className="w-14 h-14 shrink-0 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center text-2xl font-bold text-gaffer-orange uppercase">
+                            {team.shortName?.[0] ?? team.name[0]}
                           </div>
-                        ) : (
-                          <div className="space-y-4">
-                            {teams.map((team) => (
-                              <div 
-                                key={team.id}
-                                onClick={() => {
-                                  setSelectedTeam(team)
-                                  setSelectedGroup(null) // Clear selected group
-                                  setView('details')
-                                }}
-                                className="bg-[#1C2130] border border-white/5 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group"
-                              >
-                                <div className="w-14 h-14 shrink-0 rounded-full overflow-hidden bg-black/20">
-                                  <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                                </div>
-                                <div className="flex-1 justify-center flex flex-col">
-                                  <h4 className="font-bold text-[17px] text-white tracking-[0.05em] mb-1">
-                                    {team.name}
-                                  </h4>
-                                  <p className="text-[12px] text-[#A1A1AA]">
-                                    {team.playerCount} players
-                                  </p>
-                                </div>
-                                <div className="w-5 h-5 rounded-full border border-white flex items-center justify-center shrink-0">
-                                  <ChevronRight size={12} strokeWidth={2.5} className="text-white" />
-                                </div>
-                              </div>
-                            ))}
+                          <div className="flex-1">
+                            <h4 className="font-bold text-[17px] text-white tracking-[0.05em] mb-1">{team.name}</h4>
+                            <p className="text-[12px] text-[#A1A1AA] capitalize">{team.sport} · {team.genderCategory ?? 'mixed'}</p>
                           </div>
-                        )}
-                      </motion.div>
-                    ) : (
-                      <motion.div 
-                        key="groups-list"
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        transition={{ duration: 0.2 }}
-                        className="flex flex-col space-y-4"
-                      >
-                        {groups.length === 0 ? (
-                          <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center">
-                            <h3 className="text-white text-[28px] font-bold mb-3 tracking-tight">Create Group</h3>
-                            <p className="text-[14px] text-[#A1A1AA] max-w-[320px] leading-[1.5]">
-                              Manage your schedule for matches ,ceremonies , Schedule now and for later
-                            </p>
+                          <div className="w-5 h-5 rounded-full border border-white flex items-center justify-center shrink-0">
+                            <ChevronRight size={12} strokeWidth={2.5} className="text-white" />
                           </div>
-                        ) : (
-                          groups.map((group) => (
-                            <div 
-                              key={group.id}
-                              onClick={() => {
-                                setSelectedGroup(group)
-                                setSelectedTeam(null) // Clear selected team
-                                setView('details')
-                              }}
-                              className="bg-[#1C2130] border border-white/5 rounded-[24px] p-6 flex flex-col gap-6 cursor-pointer hover:bg-white/10 transition-all group"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div 
-                                  className="w-5 h-5 rounded-full" 
-                                  style={{ backgroundColor: group.color }}
-                                />
-                                <h4 className="font-bold text-[18px] text-white tracking-[0.05em]">
-                                  {group.name}
-                                </h4>
-                              </div>
-
-                              <div className="space-y-4">
-                                {group.teams.map((team) => (
-                                  <div key={team.id} className="flex items-center gap-4 py-1 border-b border-white/5 last:border-0">
-                                    <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-black/20">
-                                      <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                                    </div>
-                                    <span className="text-white text-[15px] font-bold tracking-[0.05em] uppercase">
-                                      {team.name}
-                                    </span>
-                                  </div>
-                                ))}
-                              </div>
-
-                              <button 
-                                onClick={(e) => {
-                                  e.stopPropagation() // Prevent group card onClick from firing
-                                  setSelectedGroup(group)
-                                  setView('select_team')
-                                }}
-                                className="mt-2 w-full max-w-[160px] mx-auto py-2.5 px-4 rounded-full border border-white/60 flex items-center justify-center gap-2 text-white text-[13px] font-semibold hover:bg-white/5 transition-all"
-                              >
-                                <Plus size={16} />
-                                Add Teams
-                              </button>
-                            </div>
-                          ))
-                        )}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             )}
 
-            {/* Create Team/Group Sheet */}
+            {/* ── CREATE TEAM SHEET ── */}
             {view === 'create' && (
               <>
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 bg-[#FFFFFF78] backdrop-blur-[7.8px] z-[45]" // Blurry white overlay
+                <motion.div
+                  initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                  className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[45]"
                   onClick={() => setView('list')}
                 />
-                <motion.div 
-                  initial={{ y: '100%' }}
-                  animate={{ y: 0 }}
-                  exit={{ y: '100%' }}
+                <motion.div
+                  initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                   transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-                  className="fixed bottom-0 left-0 right-0 z-50 h-[70%] flex flex-col px-8 pt-6 pb-6 overflow-hidden bg-[#0F172BB0] backdrop-blur-[20px] rounded-t-[30px] border-t-[1.23px] border-white/10 shadow-[0_-20px_80px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:rounded-t-[30px] before:bg-gradient-to-b before:from-white/5 before:to-transparent before:pointer-events-none"
+                  className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F172B] backdrop-blur-xl rounded-t-[30px] border-t border-white/10 shadow-2xl"
                 >
-                  {/* Drag Handle (Essential for the "Sheet" look) */}
-                  <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 shrink-0 relative z-10" />
-
-                  <h2 className="text-white text-center text-lg font-bold mb-0.5 relative z-10">
-                    {activeTab === 'Teams' ? 'Create Team' : 'Create Group'}
-                  </h2>
-                  
-                  {/* Subtext */}
-                  <div className="text-center px-4 mb-2 flex-shrink-0 relative z-10">
-                    <h3 className="text-gray-400 text-base font-semibold">
-                      {activeTab === 'Teams' ? 'Add New Team' : 'Add New Group'}
-                    </h3>
-                    <p className="text-gray-500 text-[13px] leading-tight mt-0.5">
-                      Manage your schedule for matches, ceremonies, Schedule now and for later
-                    </p>
+                  <div className="flex justify-center pt-3 pb-1">
+                    <div className="w-10 h-1 rounded-full bg-white/20" />
                   </div>
 
-                  {/* Color Selection (for Groups only) */}
-                  {activeTab === 'Groups' ? (
-                    <div className="flex flex-col items-center mb-4 shrink-0 relative z-10 w-full px-2">
-                      <label className="text-gray-400 text-[10px] font-bold mb-2 uppercase tracking-widest opacity-80">Select Group Color</label>
-                      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3 max-w-[280px]">
-                        {groupColors.map((color) => (
-                          <button
-                            key={color}
-                            onClick={() => setSelectedColor(color)}
-                            className={`w-8 h-8 rounded-full transition-all flex items-center justify-center shrink-0 ${
-                              selectedColor === color ? 'ring-2 ring-white ring-offset-2 ring-offset-[#111827] scale-110 shadow-lg' : 'opacity-60 hover:opacity-100 scale-90'
-                            }`}
-                            style={{ backgroundColor: color }}
-                          >
-                            {selectedColor === color && <Check size={14} className="text-white" />}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    /* Logo Upload (for Teams only) */
-                    <div className="flex flex-col items-center mb-2 shrink-0 relative z-10">
-                      <input 
-                        type="file" 
-                        ref={fileInputRef}
-                        onChange={handleLogoChange}
-                        className="hidden"
-                        accept="image/*"
-                      />
-                      <div 
+                  <div className="flex items-center justify-between px-6 py-3 border-b border-white/10">
+                    <h2 className="text-white font-bold text-lg">Create Team</h2>
+                    <button onClick={() => setView('list')} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+                      <X size={16} className="text-white/60" />
+                    </button>
+                  </div>
+
+                  <div className="px-6 py-4 space-y-4 pb-8">
+                    {/* Logo placeholder */}
+                    <div className="flex flex-col items-center mb-2">
+                      <input type="file" ref={fileInputRef} className="hidden" accept="image/*" />
+                      <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-white/20 mb-1 cursor-pointer active:scale-95 transition-transform bg-black/20 flex items-center justify-center"
+                        className="w-20 h-20 rounded-full bg-gaffer-orange/10 border-2 border-dashed border-gaffer-orange/30 flex items-center justify-center cursor-pointer hover:border-gaffer-orange/60 transition-colors"
                       >
                         {logoPreview ? (
-                          <img 
-                            src={logoPreview} 
-                            alt="Avatar" 
-                            className="w-full h-full object-cover"
-                          />
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={logoPreview} alt="" className="w-full h-full object-cover rounded-full" />
                         ) : (
-                          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" className="w-full h-full object-cover" alt="" />
-                        )
-                      }
+                          <Plus size={28} className="text-gaffer-orange/40" />
+                        )}
                       </div>
-                      <button 
-                        onClick={() => fileInputRef.current?.click()}
-                        className="text-gray-400 text-xs font-medium"
-                      >
-                        Choose Photo
-                      </button>
+                      <span className="text-white/40 text-[10px] uppercase font-bold tracking-widest mt-2">Team Logo</span>
                     </div>
-                  )}
 
-                  {/* Form Content */}
-                  <div className="space-y-3 shrink-0 relative z-10 w-full pb-1">
-                    <div className="space-y-1">
-                      <label className="block text-gray-300 text-sm font-medium ml-1">
-                        {activeTab === 'Teams' ? 'Team Name' : 'Group Name'}
-                      </label>
-                      <input 
-                        type="text" 
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1">Team Name *</label>
+                      <input
+                        type="text"
                         value={teamName}
                         onChange={(e) => setTeamName(e.target.value)}
-                        placeholder={activeTab === 'Teams' ? 'Chelsea' : 'Tournament Group A'}
+                        placeholder="e.g. Arsenal FC"
                         className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none focus:border-white/20 placeholder-gray-500 text-sm"
                       />
                     </div>
 
-                    {activeTab === 'Teams' ? (
-                      <div className="space-y-1">
-                        <label className="block text-gray-300 text-sm font-medium ml-1">Max Number of Players</label>
+                    <div>
+                      <label className="block text-gray-300 text-sm font-medium mb-1">Handle</label>
+                      <input
+                        type="text"
+                        value={teamHandle}
+                        onChange={(e) => setTeamHandle(e.target.value)}
+                        placeholder="auto-generated if empty"
+                        className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none focus:border-white/20 placeholder-gray-500 text-sm"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-1">Sport</label>
                         <div className="relative">
-                          <select 
-                            value={maxPlayers}
-                            onChange={(e) => setMaxPlayers(e.target.value)}
+                          <select
+                            value={teamSport}
+                            onChange={(e) => setTeamSport(e.target.value)}
+                            className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none appearance-none text-sm capitalize"
+                          >
+                            {SPORTS.map((s) => <option key={s} value={s} className="bg-[#1C2237] capitalize">{s}</option>)}
+                          </select>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-gray-300 text-sm font-medium mb-1">Gender</label>
+                        <div className="relative">
+                          <select
+                            value={teamGender}
+                            onChange={(e) => setTeamGender(e.target.value as 'male' | 'female' | 'mixed')}
                             className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none appearance-none text-sm"
                           >
-                            {[1, 2, 3, 4, 5, 11, 22].map(n => <option key={n} value={n}>{n}</option>)}
+                            {GENDER_OPTS.map((g) => <option key={g.value} value={g.value} className="bg-[#1C2237]">{g.label}</option>)}
                           </select>
-                          <div className="absolute inset-y-0 right-0 flex items-center px-5 pointer-events-none">
-                            <ChevronDown size={18} className="text-white/60" />
-                          </div>
+                          <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-1 flex-1 flex flex-col min-h-0">
-                        <label className="block text-gray-300 text-[13px] font-medium ml-1">Add Teams</label>
-                        <div className="flex-1 overflow-y-auto bg-[#1C2237] rounded-xl border border-white/5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                          {getUnassignedTeams().length === 0 ? (
-                            <div className="p-8 text-center text-gray-500 text-xs">All teams are already assigned to groups</div>
-                          ) : (
-                            getUnassignedTeams().map((team) => (
-                              <div 
-                                key={team.id}
-                                onClick={() => toggleTeamForGroup(team.id)}
-                                className="px-5 py-3 flex items-center justify-between border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
-                              >
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full overflow-hidden bg-white/20">
-                                    <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                                  </div>
-                                  <span className="text-white text-xs font-bold uppercase tracking-widest">{team.name}</span>
-                                </div>
-                                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                                  selectedTeamsForGroup.includes(team.id) 
-                                    ? 'bg-[#FF7A00] border-[#FF7A00]' 
-                                    : 'border-white/20'
-                                }`}>
-                                  {selectedTeamsForGroup.includes(team.id) && <Check size={12} className="text-white" />}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                    </div>
 
-                  {/* CTA Button */}
-                  <div className="mt-2 shrink-0 relative z-10">
-                    <button 
-                      onClick={handleCreate}
-                      className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all text-base shadow-[0_4px_14px_rgba(255,0,0,0.3)]"
+                    <button
+                      onClick={() => canCreate && createMutation.mutate()}
+                      disabled={!canCreate || createMutation.isPending}
+                      className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold py-3.5 rounded-2xl text-base shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98]"
                     >
-                      {activeTab === 'Teams' ? 'Create Team' : 'Create Group'}
+                      {createMutation.isPending ? 'Creating...' : 'Create Team'}
                     </button>
                   </div>
                 </motion.div>
               </>
             )}
-            {view === 'details' && (
-              <motion.div 
-                key="details" 
-                initial={{ opacity: 0, x: 20 }} 
+
+            {/* ── TEAM DETAILS VIEW ── */}
+            {view === 'details' && selectedTeam && (
+              <motion.div
+                key="details"
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="absolute inset-0 z-20 bg-[#181928] flex flex-col"
               >
-                {/* Header */}
                 <div className="flex flex-col items-center pt-12 pb-6 px-6 relative shrink-0">
-                  <button 
-                    onClick={() => setView('list')} 
+                  <button
+                    onClick={() => setView('list')}
                     className="absolute left-6 top-[52px] w-6 h-6 rounded-full border border-white flex items-center justify-center"
                   >
                     <ChevronLeft size={14} strokeWidth={2.5} />
                   </button>
-                  <h2 className="text-[17px] font-bold tracking-[0.05em] mb-4">{selectedTeam?.name || selectedGroup?.name}</h2>
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20">
-                    <img src={selectedTeam?.logo || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} alt="" className="w-full h-full object-cover" />
+                  <h2 className="text-[17px] font-bold tracking-[0.05em] mb-4">{selectedTeam.name}</h2>
+                  <div className="w-10 h-10 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center text-lg font-bold text-gaffer-orange uppercase">
+                    {selectedTeam.shortName?.[0] ?? selectedTeam.name[0]}
                   </div>
                 </div>
 
-                {/* Content based on selected item */}
-                {selectedTeam && (
-                  // Player List for Team Details
-                  <div className="flex-1 overflow-y-auto px-6 pb-40 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    {players.map((player, i) => (
-                      <div className="flex items-center gap-4 border-b border-white/5 pb-3 mb-3 last:border-0 last:pb-0 last:mb-0" key={player.id}>
-                        <div 
-                          className={`flex-1 bg-[#1C1F2D] rounded-[24px] p-4 flex items-center gap-4 border border-white/5 shadow-xl transition-all hover:bg-white/[0.04] ${
-                            player.isSelected ? 'border-orange-500/30 bg-orange-500/[0.02]' : ''
-                          }`}
-                        >
-                          <div className={`w-14 h-14 rounded-full flex flex-col items-center justify-center shrink-0 overflow-hidden shadow-inner ${
-                            i === 0 ? 'bg-sky-500/20 text-sky-400 border border-sky-500/20' : 'bg-white/5 text-white/20 border border-white/5'
-                          }`}>
-                            <User size={24} />
-                          </div>
-                          <div className="flex-1">
-                            <h5 className="font-chakra font-black text-[16px] leading-tight mb-1 uppercase italic tracking-tight text-white/90">
-                              {player.name}
-                            </h5>
-                            <p className="text-[10px] uppercase font-black tracking-[0.15em] text-white/40 italic">
-                              {player.position}
-                            </p>
-                          </div>
-                          
-                          {/* Price Section */}
-                          <div className="flex items-center gap-3 bg-black/20 rounded-2xl p-2 px-3 border border-white/5">
-                            {i === 0 ? (
-                              <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest italic">Add Price</span>
-                            ) : (
-                              <div className="flex items-center gap-3">
-                                <button 
-                                  onClick={() => handlePriceChange(player.id, false)} 
-                                  className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/40 hover:text-white"
-                                >
-                                  <Minus size={14} />
-                                </button>
-                                <span className="text-[14px] font-chakra font-black text-white px-1 leading-none w-[36px] text-center italic">
-                                  {player.price}
-                                </span>
-                                <button 
-                                  onClick={() => handlePriceChange(player.id, true)} 
-                                  className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-xl hover:bg-white/10 transition-colors text-white/40 hover:text-white"
-                                >
-                                  <Plus size={14} />
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Checkbox */}
-                        {i !== 0 && (
-                          <div 
-                            onClick={() => togglePlayerSelection(player.id)}
-                            className={`w-8 h-8 rounded-xl border-2 flex items-center justify-center shrink-0 cursor-pointer transition-all active:scale-90 ${
-                            !player.isSelected 
-                              ? 'border-white/10 bg-white/5 text-transparent' 
-                              : 'border-orange-600 bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.3)]'
-                          }`}>
-                            <Check size={18} strokeWidth={4} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {selectedGroup && (
-                  // Team List for Group Details
-                  <div className="flex-1 overflow-y-auto px-6 pb-40 space-y-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                    <div className="bg-[#1C2130] border border-white/5 rounded-[24px] p-6 flex flex-col gap-6">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-5 h-5 rounded-full" 
-                          style={{ backgroundColor: selectedGroup.color }}
-                        />
-                        <h4 className="font-bold text-[18px] text-white tracking-[0.05em]">
-                          {selectedGroup.name}
-                        </h4>
-                      </div>
-
-                      <div className="space-y-4">
-                        {selectedGroup.teams.map((team) => (
-                          <div key={team.id} className="flex items-center gap-4 py-1 border-b border-white/5 last:border-0">
-                            <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-black/20">
-                              <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                            </div>
-                            <span className="text-white text-[15px] font-bold tracking-[0.05em] uppercase">
-                              {team.name}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      <button 
-                        onClick={() => {
-                          setSelectedGroup(selectedGroup) // Ensure selectedGroup is set for select_team view
-                          setView('select_team')
-                        }}
-                        className="mt-2 w-full max-w-[160px] mx-auto py-2.5 px-4 rounded-full border border-white/60 flex items-center justify-center gap-2 text-white text-[13px] font-semibold hover:bg-white/5 transition-all"
-                      >
-                        <Plus size={16} />
-                        Add Teams
-                      </button>
+                {/* Player List */}
+                <div className="flex-1 overflow-y-auto px-6 pb-40 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                  {playersLoading ? (
+                    <div className="space-y-3">
+                      {[0, 1, 2, 3].map((i) => (
+                        <div key={i} className="h-16 bg-[#1C1F2D] rounded-2xl animate-pulse" />
+                      ))}
                     </div>
-                  </div>
-                )}
+                  ) : players.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                      <p className="text-white/60 text-sm">No players yet.</p>
+                      <p className="text-white/30 text-xs mt-1">Use the invite button to add players.</p>
+                    </div>
+                  ) : (
+                    players.map((player: Player) => (
+                      <div
+                        key={player._id}
+                        className="bg-[#1C1F2D] rounded-[24px] p-4 flex items-center gap-4 border border-white/5"
+                      >
+                        <div className="w-12 h-12 rounded-full bg-white/5 border border-white/5 flex items-center justify-center flex-shrink-0">
+                          <User size={22} className="text-white/30" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h5 className="font-chakra font-black text-[15px] leading-tight uppercase italic text-white/90 truncate">
+                            {player.firstName} {player.lastName}
+                          </h5>
+                          <p className="text-[10px] uppercase font-black tracking-[0.15em] text-white/40 italic capitalize">
+                            {player.position ?? 'Unknown'}{player.jerseyNumber ? ` · #${player.jerseyNumber}` : ''}
+                          </p>
+                        </div>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium border flex-shrink-0 ${
+                          player.squadStatus === 'active'
+                            ? 'text-green-400 bg-green-400/10 border-green-400/30'
+                            : player.squadStatus === 'injured'
+                            ? 'text-red-400 bg-red-400/10 border-red-400/30'
+                            : 'text-white/30 bg-white/5 border-white/10'
+                        }`}>
+                          {player.squadStatus}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-                {/* Fixed Bottom Action area */}
+                {/* Fixed Bottom CTA */}
                 <div className="absolute bottom-[104px] left-0 right-0 px-6 pt-4 pb-4 bg-gradient-to-t from-[#181928] via-[#181928] to-transparent z-30">
-                  <button 
-                    onClick={() => setView('share')}
-                    className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold text-[17px] py-4 rounded-[16px] shadow-[0_4px_14px_rgba(255,0,0,0.3)] active:scale-[0.98] transition-all"
+                  <button
+                    onClick={() => { setInviteLink(null); setInviteEmail(''); setView('share') }}
+                    className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold text-[17px] py-4 rounded-[16px] shadow-lg active:scale-[0.98] transition-all"
                   >
-                    Save
+                    Invite Players
                   </button>
                 </div>
               </motion.div>
             )}
 
-            {view === 'share' && (
-              <motion.div 
-                key="share" 
-                initial={{ opacity: 0, x: 20 }} 
+            {/* ── SHARE / INVITE VIEW ── */}
+            {view === 'share' && selectedTeam && (
+              <motion.div
+                key="share"
+                initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 className="absolute inset-0 z-20 bg-[#181928] flex flex-col items-center pt-12 px-6 text-center"
               >
-                <button 
-                  onClick={() => setView('list')} 
-                  className="absolute left-6 top-[52px] w-6 h-6 rounded-full border border-white flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
-                  style={{ pointerEvents: 'auto' }}
+                <button
+                  onClick={() => setView('details')}
+                  className="absolute left-6 top-[52px] w-6 h-6 rounded-full border border-white flex items-center justify-center"
                 >
                   <ChevronLeft size={14} strokeWidth={2.5} />
                 </button>
-                
-                <h2 className="text-[17px] font-bold tracking-[0.05em] mb-10 mt-1">{selectedTeam?.name || selectedGroup?.name}</h2>
-                
-                <div className="w-[60px] h-[60px] shrink-0 rounded-full overflow-hidden bg-black/20 mb-8 border border-white/5 shadow-xl">
-                  <img src={selectedTeam?.logo || logoPreview || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'} className="w-full h-full object-cover" alt="" />
+
+                <h2 className="text-[17px] font-bold tracking-[0.05em] mb-6 mt-1">Invite to {selectedTeam.name}</h2>
+
+                <div className="w-[60px] h-[60px] rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center text-2xl font-bold text-gaffer-orange uppercase mb-6">
+                  {selectedTeam.shortName?.[0] ?? selectedTeam.name[0]}
                 </div>
-                
-                <h1 className="text-[32px] font-bold tracking-[0.05em] uppercase mb-4">{selectedTeam?.name || selectedGroup?.name}</h1>
-                
+
                 <p className="text-[#E2E8F0] text-[13.5px] leading-[1.6] max-w-[280px] mb-8">
-                  Copy the Link and Share the link wth Capture Player&apos;s data
+                  Enter a player&apos;s email to generate a secure invite link. They can use it to register and join the team.
                 </p>
 
-                <div className="w-full max-w-[340px] bg-[#1C2130] rounded-[16px] p-4 flex items-center justify-between border border-[#2C3140]">
-                  <span className="text-[13px] text-white/80 truncate pr-4 text-left">http://www.gaffer.com/bowenfansleague/{selectedTeam?.name?.toLowerCase().replace(/\s+/g, '') || selectedGroup?.name?.toLowerCase().replace(/\s+/g, '')}1</span>
-                  <button 
-                    onClick={() => addToast('Link copied to clipboard!', 'success')}
-                    className="shrink-0 p-1 hover:bg-white/10 rounded transition-colors"
+                {/* Email input + generate */}
+                <div className="w-full max-w-[340px] space-y-3 mb-6">
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="player@email.com"
+                    className="w-full bg-[#1C2130] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none focus:border-white/20 placeholder-gray-500 text-sm text-center"
+                  />
+                  <button
+                    onClick={() => inviteEmail.trim() && inviteMutation.mutate()}
+                    disabled={!inviteEmail.trim() || inviteMutation.isPending}
+                    className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold py-3 rounded-2xl text-sm shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Copy size={18} className="text-white" />
+                    {inviteMutation.isPending ? 'Generating...' : 'Generate Invite Link'}
                   </button>
                 </div>
-              </motion.div>
-            )}
 
-            {view === 'select_team' && (
-              <motion.div 
-                key="select_team" 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }}
-                className="absolute inset-0 z-20 bg-[#181928] flex flex-col"
-              >
-                {/* Header */}
-                <div className="flex flex-col items-center pt-12 pb-6 px-6 relative shrink-0">
-                  <button 
-                    onClick={() => setView('list')} 
-                    className="absolute left-6 top-[52px] w-6 h-6 rounded-full border border-white flex items-center justify-center cursor-pointer hover:bg-white/10 transition-colors"
+                {/* Invite link display */}
+                {inviteLink && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                    className="w-full max-w-[340px] bg-[#1C2130] rounded-[16px] p-4 flex items-center justify-between border border-[#2C3140]"
                   >
-                    <ChevronLeft size={14} strokeWidth={2.5} />
-                  </button>
-                  <h2 className="text-[17px] font-bold tracking-[0.05em] mb-4">Add Team to {selectedGroup?.name}</h2>
-                </div>
-
-                {/* Selection List */}
-                <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-20">
-                  <div className="bg-[#1C2130] border border-white/5 rounded-[24px] overflow-hidden">
-                    <div className="p-5 border-b border-white/5 bg-white/5">
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Available Teams</h3>
-                    </div>
-                    {teams.map((team) => (
-                      <div 
-                        key={team.id}
-                        onClick={() => {
-                          // Logic to add team to selectedGroup
-                            if (selectedGroup) {
-                              setGroups((prevGroups: Group[]) => prevGroups.map(g => 
-                                g.id === selectedGroup.id 
-                                  ? { ...g, teams: [...g.teams, team] } 
-                                  : g
-                              ))
-                              setSelectedGroup((prev: Group | null) => prev ? { ...prev, teams: [...prev.teams, team] } : null) 
-                            }
-                          setView('list')
-                        }}
-                        className="px-6 py-4 flex items-center justify-between border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-full overflow-hidden bg-black/20">
-                            <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                          </div>
-                          <span className="text-white text-sm font-bold uppercase tracking-widest">{team.name}</span>
-                        </div>
-                        <Plus size={20} className="text-gray-500" />
-                      </div>
-                    ))}
-                    
-                    {/* Create New Team Action */}
-                    <button 
-                      onClick={() => setView('create')}
-                      className="w-full py-6 text-[#FF7A00] text-sm font-bold hover:bg-white/5 transition-colors border-t border-white/5"
+                    <span className="text-[12px] text-white/70 truncate pr-4 text-left">{inviteLink}</span>
+                    <button
+                      onClick={handleCopy}
+                      className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg transition-colors"
                     >
-                      Create New Team for Group
+                      {copied
+                        ? <Check size={16} className="text-green-400" />
+                        : <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                      }
                     </button>
-                  </div>
-                </div>
+                  </motion.div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Floating Action Button */}
-        {(view === 'list' || view === 'share') && (
-          <button 
+        {/* Floating Action Button — only on list view */}
+        {view === 'list' && (
+          <button
             onClick={() => setView('create')}
             className="fixed bottom-[130px] right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF6B00] to-[#FF2400] flex items-center justify-center text-white shadow-2xl z-40 active:scale-95 transition-transform"
           >
