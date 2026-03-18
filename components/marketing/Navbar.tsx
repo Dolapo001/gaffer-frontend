@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Menu, X, ArrowDown } from 'lucide-react'
 import { GafferLogo } from '@/components/GafferLogo'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { IOSInstallModal } from '@/components/IOSInstallModal'
 
 const NAV_LINKS = [
   { name: 'Features', href: '#features' },
@@ -15,7 +16,7 @@ const NAV_LINKS = [
 
 export function Navbar() {
   const [isOpen, setIsOpen] = useState(false)
-  const { isInstalled, isInstalling, handleInstall } = usePWAInstall()
+  const { isInstalled, isInstalling, handleInstall, showIOSModal, closeIOSModal } = usePWAInstall()
 
   return (
     <motion.nav
@@ -106,5 +107,7 @@ export function Navbar() {
         )}
       </AnimatePresence>
     </motion.nav>
+
+    <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
   )
 }

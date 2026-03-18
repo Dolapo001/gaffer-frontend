@@ -3,9 +3,10 @@
 import { motion } from 'framer-motion'
 import { ArrowRight, Smartphone } from 'lucide-react'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
+import { IOSInstallModal } from '@/components/IOSInstallModal'
 
 export function FinalCTA() {
-  const { isInstalled, isInstalling, handleInstall } = usePWAInstall()
+  const { isInstalled, isInstalling, handleInstall, showIOSModal, closeIOSModal } = usePWAInstall()
   const sentence = "READY TO DOMINATE THE FIELD?"
   const words = sentence.split(" ")
 
@@ -107,5 +108,7 @@ export function FinalCTA() {
         </div>
       </motion.div>
     </section>
+
+    <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
   )
 }
