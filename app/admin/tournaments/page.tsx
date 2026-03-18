@@ -58,7 +58,7 @@ export default function TournamentsPage() {
               </div>
               <div className="space-y-2">
                 <h4 className="font-chakra font-black text-xl text-white uppercase tracking-tight">
-                  You Don't have any Tournament
+                  You Don&apos;t have any Tournament
                 </h4>
                 <p className="text-white/40 text-sm font-medium">Create your first league to get started</p>
               </div>

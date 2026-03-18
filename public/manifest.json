@@ -2,7 +2,7 @@
   "name": "The GAFFER",
   "short_name": "GAFFER",
   "description": "Manage your personal sporting activities and sports organizations",
-  "start_url": "/app/dashboard",
+  "start_url": "/onboarding/splash",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0C10",

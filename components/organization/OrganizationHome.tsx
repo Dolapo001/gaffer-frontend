@@ -117,7 +117,7 @@ export function OrganizationHome() {
             </div>
             <div className="p-6 pb-8 space-y-5 text-center flex flex-col items-center relative z-10 -mt-8">
               <h4 className="font-chakra font-bold text-[17px] text-white/90 tracking-tight">
-                You Don't have any Tournament
+                You Don&apos;t have any Tournament
               </h4>
                 <div className="w-full px-2">
                   <GradientButton 

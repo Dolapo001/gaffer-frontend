@@ -115,7 +115,7 @@ export default function SchedulePage() {
             className="flex flex-col items-center justify-center text-center space-y-4"
           >
             <h2 className="font-chakra font-black text-3xl text-white uppercase tracking-tight">
-              What's up next?
+              What&apos;s up next?
             </h2>
             <p className="text-white/40 max-w-[280px] text-sm font-medium leading-[1.6]">
               Manage your schedule for matches ,ceremonies , Schedule now and for later
