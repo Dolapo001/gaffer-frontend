@@ -4,14 +4,115 @@ import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Info, Trophy } from 'lucide-react'
-import { MATCHES, type Match } from '@/lib/leagueMockData'
+import { getMatchState, getMatchEvents } from '@/lib/services/match.service'
+import { listLineups } from '@/lib/services/fixture.service'
+import { ChevronLeft, Info, Zap } from 'lucide-react'
+import type { MatchEvent } from '@/lib/services/match.service'
 
-function fetchMatch(matchId: string) {
-  return new Promise<Match | undefined>((resolve) =>
-    setTimeout(() => resolve(MATCHES.find((m) => m.id === matchId)), 400)
+// ─── Event Card ───────────────────────────────────────────────────────────────
+
+function EventCard({ event }: { event: MatchEvent }) {
+  const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(event.type)
+  const isCard = ['yellow_card', 'red_card'].includes(event.type)
+  const isSub = event.type === 'substitution'
+
+  const teamName =
+    typeof event.teamId === 'object' && event.teamId
+      ? (event.teamId as any).shortName ?? (event.teamId as any).name
+      : ''
+
+  const playerName =
+    typeof event.playerId === 'object' && event.playerId
+      ? `${(event.playerId as any).firstName} ${(event.playerId as any).lastName}`
+      : ''
+
+  if (isGoal) {
+    return (
+      <div className="bg-[#8E103E] rounded-2xl px-5 py-4 flex items-center gap-4 border border-white/5 shadow-lg">
+        <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+          <span className="text-white text-lg">⚽</span>
+        </div>
+        <div>
+          <p className="font-display font-black text-[11px] uppercase tracking-wider text-white">
+            GOAL — {teamName}
+          </p>
+          {playerName && (
+            <p className="text-white/80 text-[11px] font-body mt-0.5">
+              {playerName} {event.minute ? `${event.minute}'` : ''}
+              {event.commentaryText && ` · ${event.commentaryText}`}
+            </p>
+          )}
+        </div>
+      </div>
+    )
+  }
+
+  if (isCard) {
+    const cardColor = event.type === 'yellow_card' ? 'bg-yellow-400' : 'bg-red-500'
+    return (
+      <div className="bg-gaffer-surface rounded-2xl px-5 py-4 flex items-center gap-4 border border-gaffer-border">
+        <div className={`w-5 h-7 ${cardColor} rounded-sm flex-shrink-0`} />
+        <div>
+          <p className="font-display font-bold text-xs uppercase text-white">
+            {event.type === 'yellow_card' ? 'Yellow Card' : 'Red Card'}
+            {playerName ? ` — ${playerName}` : ''}
+          </p>
+          <p className="text-gaffer-muted text-[10px] font-body">{event.minute ? `${event.minute}'` : ''}</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="bg-gaffer-card rounded-2xl px-5 py-3 flex items-center gap-3 border border-gaffer-border">
+      <span className="text-gaffer-orange text-xs font-display font-bold w-8 flex-shrink-0">
+        {event.minute ? `${event.minute}'` : '—'}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-xs font-body capitalize">
+          {event.type.replace(/_/g, ' ')}
+          {playerName ? ` — ${playerName}` : ''}
+          {teamName ? ` (${teamName})` : ''}
+        </p>
+        {event.commentaryText && (
+          <p className="text-gaffer-muted text-[11px] font-body mt-0.5 line-clamp-2">
+            {event.commentaryText}
+          </p>
+        )}
+      </div>
+    </div>
   )
 }
+
+// ─── Pitch Slot ───────────────────────────────────────────────────────────────
+
+function PitchSlot({
+  name,
+  jerseyNumber,
+  colorClass,
+}: {
+  name: string
+  jerseyNumber?: number
+  colorClass?: string
+}) {
+  const initials = name.split(' ').map((n) => n[0]).join('').slice(0, 2)
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <div className={`w-11 h-11 rounded-full ${colorClass ?? 'bg-gaffer-orange/30'} border border-white/20 flex items-center justify-center`}>
+        <span className="text-white text-[11px] font-display font-black">
+          {jerseyNumber ?? initials}
+        </span>
+      </div>
+      <div className="bg-black/60 rounded px-2 py-0.5">
+        <span className="text-[8px] text-white font-body font-semibold leading-none truncate max-w-[44px] block text-center">
+          {name.split(' ')[0]}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -19,275 +120,229 @@ export default function MatchCenterPage() {
   const matchId = params.matchId as string
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
 
-  const { data: match, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['match', matchId],
-    queryFn: () => fetchMatch(matchId),
+    queryFn: () => getMatchState(matchId),
+    refetchInterval: (data) => {
+      // Poll every 30s during live matches
+      return data?.fixture?.status === 'live' ? 30_000 : false
+    },
+  })
+
+  const { data: allEvents } = useQuery({
+    queryKey: ['match-events', matchId],
+    queryFn: () => getMatchEvents(matchId),
+    enabled: activeTab === 'commentary',
+    refetchInterval: data?.fixture?.status === 'live' ? 30_000 : false,
+  })
+
+  const { data: lineups } = useQuery({
+    queryKey: ['lineups', matchId],
+    queryFn: () => listLineups(matchId),
+    enabled: activeTab === 'lineup',
   })
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#181928] flex items-center justify-center text-white/40">
-        <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
+      <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
       </div>
     )
   }
 
-  if (!match) {
+  if (!data) {
     return (
-      <div className="min-h-screen bg-[#181928] flex flex-col items-center justify-center gap-4 text-white">
-        <p className="text-white/40 font-chakra font-black">Match not found</p>
-        <button onClick={() => router.back()} className="text-orange-500 font-bold">Go back</button>
+      <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center gap-4">
+        <p className="text-gaffer-muted font-body">Match not found</p>
+        <button onClick={() => router.back()} className="text-gaffer-orange font-body font-medium">
+          Go back
+        </button>
       </div>
     )
   }
+
+  const { fixture, recentEvents } = data
+  const events = allEvents ?? recentEvents
+  const homeTeam = typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId : null
+  const awayTeam = typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId : null
+  const competition = typeof fixture.competitionId === 'object' ? fixture.competitionId : null
+  const round = typeof fixture.roundId === 'object' ? fixture.roundId : null
+
+  const isLive = fixture.status === 'live' || fixture.status === 'halftime'
+  const isCompleted = fixture.status === 'completed'
+
+  const statusLabel =
+    fixture.status === 'live'
+      ? 'LIVE'
+      : fixture.status === 'halftime'
+      ? 'HALF TIME'
+      : fixture.status === 'completed'
+      ? 'Full Time'
+      : fixture.status === 'suspended'
+      ? 'SUSPENDED'
+      : 'Scheduled'
 
   return (
-    <div className="min-h-screen bg-[#181928] text-white">
+    <div className="min-h-screen bg-gaffer-bg text-white">
       {/* Header */}
-      <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#181928]/95 backdrop-blur-xl z-40">
-        <button 
+      <header className="px-4 pt-12 pb-4 flex items-center justify-between sticky top-0 bg-gaffer-bg/95 backdrop-blur-xl z-40 border-b border-gaffer-border">
+        <button
           onClick={() => router.back()}
-          className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 text-white/60 hover:text-white transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
-          <ChevronLeft size={24} />
+          <ChevronLeft size={20} />
         </button>
-        <h1 className="font-chakra font-black text-xl uppercase tracking-tight">Final Score</h1>
-        <button className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 text-white/60 hover:text-white transition-colors">
-          <Info size={20} />
-        </button>
+        <div className="text-center">
+          {competition && (
+            <p className="text-gaffer-muted text-[10px] font-body">{competition.name}</p>
+          )}
+          {round && <p className="text-gaffer-orange text-[10px] font-body">{round.name}</p>}
+        </div>
+        <div className="w-9 h-9" />
       </header>
 
-      <main className="px-6 space-y-10 pb-20">
+      <main className="px-4 space-y-6 pb-20">
         {/* Scoreboard */}
-        <section className="flex flex-col items-center space-y-6">
-          <div className="text-center">
-            <span className="text-emerald-500 font-chakra font-black text-xs uppercase tracking-widest">Full Time</span>
+        <section className="pt-4">
+          <div className="text-center mb-4">
+            <span className={`inline-flex items-center gap-1.5 text-xs font-display font-bold px-3 py-1 rounded-full ${
+              isLive ? 'bg-red-500 text-white' : isCompleted ? 'bg-gaffer-card text-gaffer-orange border border-gaffer-orange/30' : 'bg-gaffer-card text-gaffer-muted border border-gaffer-border'
+            }`}>
+              {isLive && <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />}
+              {statusLabel}
+            </span>
           </div>
 
-          <div className="flex items-center justify-between w-full max-w-sm px-4">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-2xl">
-                <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="Home" />
-              </div>
+          <div className="flex items-center justify-between px-4">
+            <div className="flex-1 flex flex-col items-center gap-2">
+              {homeTeam?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={homeTeam.logoUrl} alt={homeTeam.name} className="w-16 h-16 object-contain rounded-full" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gaffer-orange/20 border border-gaffer-orange/30 flex items-center justify-center text-2xl text-gaffer-orange font-display font-bold">
+                  {homeTeam?.name?.[0] ?? 'H'}
+                </div>
+              )}
+              <p className="font-display font-bold text-white text-sm text-center leading-tight">
+                {homeTeam?.shortName ?? homeTeam?.name ?? 'Home'}
+              </p>
             </div>
 
-            <div className="flex items-center gap-6">
-              <span className="font-chakra font-black text-6xl">2</span>
-              <span className="text-white/10 font-chakra font-black text-5xl">-</span>
-              <span className="font-chakra font-black text-6xl">2</span>
+            <div className="px-4 text-center">
+              <p className="font-display font-black text-5xl text-white leading-none">
+                {fixture.score.home}
+                <span className="text-gaffer-orange mx-2 text-4xl">–</span>
+                {fixture.score.away}
+              </p>
+              {fixture.kickoffAt && (
+                <p className="text-gaffer-muted text-[10px] font-body mt-1">
+                  {new Date(fixture.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </p>
+              )}
             </div>
 
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-20 h-20 rounded-full bg-white/5 p-4 border border-white/10 shadow-2xl">
-                <img src="/images/mc_logo.png" className="w-full h-full object-contain" alt="Away" />
-              </div>
+            <div className="flex-1 flex flex-col items-center gap-2">
+              {awayTeam?.logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={awayTeam.logoUrl} alt={awayTeam.name} className="w-16 h-16 object-contain rounded-full" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-2xl text-blue-400 font-display font-bold">
+                  {awayTeam?.name?.[0] ?? 'A'}
+                </div>
+              )}
+              <p className="font-display font-bold text-white text-sm text-center leading-tight">
+                {awayTeam?.shortName ?? awayTeam?.name ?? 'Away'}
+              </p>
             </div>
-          </div>
-
-          {/* Goal Scorers */}
-          <div className="flex justify-between w-full max-w-sm px-4">
-             <div className="space-y-1">
-                <p className="text-[12px] font-chakra font-bold text-white/80">De Jong 66&apos;</p>
-                <p className="text-[12px] font-chakra font-bold text-white/80">Depay 79&apos;</p>
-             </div>
-             <div className="space-y-1 text-right">
-                <p className="text-[12px] font-chakra font-bold text-white/80">Omoba 59&apos;</p>
-                <p className="text-[12px] font-chakra font-bold text-white/80">Palmer 70&apos;</p>
-             </div>
           </div>
         </section>
 
         {/* Tabs */}
-        <div className="flex border-b border-white/10">
-          <button 
-            onClick={() => setActiveTab('lineup')}
-            className={`flex-1 flex items-center justify-center py-4 font-chakra font-black text-sm uppercase tracking-wider relative transition-colors ${activeTab === 'lineup' ? 'text-white' : 'text-white/40'}`}
-          >
-            Line-up
-            {activeTab === 'lineup' && (
-              <motion.div 
-                layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-red-600"
-              />
-            )}
-          </button>
-          <button 
-            onClick={() => setActiveTab('commentary')}
-            className={`flex-1 flex items-center justify-center py-4 font-chakra font-black text-sm uppercase tracking-wider relative transition-colors ${activeTab === 'commentary' ? 'text-white' : 'text-white/40'}`}
-          >
-            Commentary
-            {activeTab === 'commentary' && (
-              <motion.div 
-                layoutId="activeTabUnderline"
-                className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-orange-500 to-red-600"
-              />
-            )}
-          </button>
+        <div className="flex border-b border-gaffer-border">
+          {(['commentary', 'lineup'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex-1 py-3 font-display font-bold text-sm uppercase tracking-wide relative transition-colors capitalize ${
+                activeTab === tab ? 'text-white' : 'text-gaffer-muted'
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <motion.div
+                  layoutId="matchTabUnderline"
+                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-gaffer-orange"
+                />
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
         <AnimatePresence mode="wait">
           {activeTab === 'commentary' ? (
-            <motion.div 
+            <motion.div
               key="commentary"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="space-y-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-3"
             >
-              {/* Attempt Missed Event - From Image 4 style */}
-              <div className="bg-[#5AA1D1] rounded-[18px] px-6 py-4 flex items-center justify-between border border-white/5 shadow-lg">
-                 <p className="text-[#0A1D2D] font-chakra font-bold text-[11px] leading-relaxed uppercase pr-4">
-                   Attempt missed. Tunde (MECH) header from the center of the box is close, but misses to the right.
-                 </p>
-              </div>
-
-              {/* Goal Event 1 - Stylized Card */}
-              <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex items-center gap-5 border border-white/5 shadow-[0_10px_30px_rgba(142,16,62,0.3)]">
-                 <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
-                    <Trophy size={24} className="text-white fill-white/20" />
-                 </div>
-                 <p className="font-chakra font-black text-[13px] uppercase leading-tight tracking-tight text-white/90">
-                    GOOOOOOOOALLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL!
-                 </p>
-              </div>
-
-              {/* Yellow Card Event */}
-              <div className="bg-[#1C1F2D] rounded-[22px] px-6 py-4 flex items-center gap-4 border border-white/5 shadow-xl">
-                 <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                    <div className="w-4 h-6 bg-yellow-400 rounded-sm" />
-                 </div>
-                 <div className="flex flex-col">
-                    <p className="font-chakra font-black text-[12px] uppercase leading-tight tracking-tight">
-                        YELLOW CARD. Dahood (CIVIL)
-                    </p>
-                    <p className="text-[10px] text-white/40 font-bold font-chakra uppercase">34&apos;</p>
-                 </div>
-              </div>
-
-              {/* Goal Event 2 - Detailed Goal Card */}
-              <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex flex-col gap-3 border border-white/5 shadow-[0_10px_30px_rgba(142,16,62,0.3)]">
-                 <div className="flex items-center gap-4">
-                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                     <div className="w-4 h-4 bg-white rounded-full relative shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                        <div className="absolute inset-0 border-[1.5px] border-black/10 rounded-full" />
-                     </div>
-                   </div>
-                   <p className="font-chakra font-black text-[12px] uppercase tracking-wider text-white">
-                     GOAL. Victor (CIVIL)
-                   </p>
-                 </div>
-                 <div className="flex items-center gap-4">
-                   <div className="w-8 h-8 flex items-center justify-center flex-shrink-0">
-                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/50">
-                        <path d="M4 16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4z" />
-                        <path d="M12 10V6a2 2 0 0 0-2-2H8" />
-                     </svg>
-                   </div>
-                   <p className="font-chakra font-black text-[12px] uppercase tracking-wider text-white/50">
-                     ASSIT. Segun (CIVIL)
-                   </p>
-                 </div>
-              </div>
+              {events && events.length > 0 ? (
+                [...events].reverse().map((event) => (
+                  <EventCard key={event._id} event={event} />
+                ))
+              ) : (
+                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-8 text-center">
+                  <Zap size={28} className="text-gaffer-subtle mx-auto mb-3" />
+                  <p className="text-gaffer-muted font-body text-sm">No events yet</p>
+                </div>
+              )}
             </motion.div>
           ) : (
-            <motion.div 
+            <motion.div
               key="lineup"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              <div 
-                className="w-full relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[12px] overflow-hidden"
-                style={{ height: '780px', backgroundColor: '#1E212D' }}
-              >
-                {/* Pitch Markings */}
-                <div className="absolute inset-x-4 inset-y-6 border-[1.5px] border-white pointer-events-none">
-                   {/* Halfway line */}
-                   <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-white -translate-y-1/2" />
-                   
-                   {/* Center Circle */}
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-[1.5px] border-white rounded-full" />
-                   
-                   {/* Top Penalty Area */}
-                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-t-0 border-white">
-                     {/* Top 6-yard box */}
-                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-t-0 border-white" />
-                   </div>
-
-                   {/* Bottom Penalty Area */}
-                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-b-0 border-white">
-                     {/* Bottom 6-yard box */}
-                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-b-0 border-white" />
-                   </div>
+              {lineups && lineups.length > 0 ? (
+                lineups.map((lineup) => {
+                  const teamName = typeof lineup.teamId === 'object' ? (lineup.teamId as any).name : 'Team'
+                  return (
+                    <div key={lineup._id} className="mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <p className="text-white font-display font-bold text-sm">{teamName}</p>
+                        <span className={`text-[10px] font-display font-bold px-2 py-0.5 rounded-full border ${
+                          lineup.status === 'approved'
+                            ? 'text-green-400 bg-green-400/10 border-green-400/30'
+                            : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
+                        }`}>
+                          {lineup.status}
+                        </span>
+                      </div>
+                      <p className="text-gaffer-muted text-xs font-body mb-2">
+                        Starters ({lineup.starters.length})
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {lineup.starters.map((id) => (
+                          <div key={id} className="text-gaffer-subtle text-[10px] font-body bg-gaffer-card px-2 py-1 rounded-lg border border-gaffer-border">
+                            {id.slice(-4)}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })
+              ) : (
+                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-8 text-center">
+                  <p className="text-gaffer-muted font-body text-sm">No lineups submitted yet</p>
                 </div>
-
-                {/* Player Slots */}
-                <div className="absolute inset-0 py-10 flex flex-col justify-between">
-                  {/* Home Team (Top) a 4-4-2 */}
-                  <div className="space-y-7 z-10 w-full">
-                    <div className="flex justify-center">
-                       <PitchSlot initials="ARS" name="Ramsdale" color="bg-[#403816]" border="border-[#756621]/60" />
-                    </div>
-                    <div className="flex justify-around px-8">
-                      <PitchSlot initials="A" name="Alagbe" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="I" name="Ikpi" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="E" name="Ebenezer" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="P" name="Pascal" color="bg-[#403816]" border="border-[#756621]/60" />
-                    </div>
-                    <div className="flex justify-around px-[10%]">
-                      <PitchSlot initials="O" name="Omoba" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="I" name="Issachar" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="M" name="Mario" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="W" name="Wisdom" color="bg-[#403816]" border="border-[#756621]/60" />
-                    </div>
-                    <div className="flex justify-center gap-20">
-                      <PitchSlot initials="D" name="Dahood" color="bg-[#403816]" border="border-[#756621]/60" />
-                      <PitchSlot initials="G" name="Greenwood" color="bg-[#403816]" border="border-[#756621]/60" />
-                    </div>
-                  </div>
-
-                  {/* Away Team (Bottom) a 4-4-2 */}
-                  <div className="space-y-7 z-10 w-full mb-4">
-                    <div className="flex justify-center gap-20">
-                      <PitchSlot initials="V" name="Victor" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="S" name="Segun" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                    </div>
-                    <div className="flex justify-around px-[10%]">
-                      <PitchSlot initials="K" name="Kane" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="M" name="Mount" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="R" name="Rice" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="F" name="Foden" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                    </div>
-                    <div className="flex justify-around px-8">
-                      <PitchSlot initials="W" name="Walker" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="S" name="Stones" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="D" name="Dias" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                      <PitchSlot initials="C" name="Cancelo" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                    </div>
-                    <div className="flex justify-center">
-                       <PitchSlot initials="E" name="Ederson" color="bg-[#3F1414]" border="border-[#7A2020]/60" />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
       </main>
-    </div>
-  )
-}
-
-function PitchSlot({ color, border, initials, name }: { color: string, border: string, initials: string, name: string }) {
-  return (
-    <div className="flex flex-col items-center gap-1.5 active:scale-95 transition-transform cursor-pointer">
-      <div className={`w-[44px] h-[44px] rounded-full ${color} border-[1.5px] ${border} flex items-center justify-center shadow-xl`}>
-        <span className="text-white text-[12px] font-chakra font-black">{initials}</span>
-      </div>
-      <div className="bg-[#13151D]/80 backdrop-blur-sm px-[10px] py-[2px] rounded border border-white/5 shadow-2xl">
-        <span className="text-[9px] font-chakra font-black text-white/60 leading-none uppercase tracking-tighter">{name}</span>
-      </div>
     </div>
   )
 }

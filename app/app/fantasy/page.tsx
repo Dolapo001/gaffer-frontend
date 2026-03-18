@@ -41,7 +41,7 @@ export default function FantasyPage() {
   if (!hasNamedTeam) {
     return (
       <TeamNamingScreen 
-        onComplete={(name) => {
+        onComplete={(name: string) => {
           setTeamName(name)
           setHasNamedTeam(true)
         }} 

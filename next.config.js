@@ -24,7 +24,10 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['firebasestorage.googleapis.com'],
+    // Removed Firebase-specific domain; allow any https host for avatars/logos
+    remotePatterns: [
+      { protocol: 'https', hostname: '**' },
+    ],
   },
 }
 

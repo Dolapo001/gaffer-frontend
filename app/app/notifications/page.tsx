@@ -1,108 +1,238 @@
 'use client'
 
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useNotifStore, type NotifType } from '@/store/notifStore'
-import { ChevronLeft, Bell, BellOff, Trophy, Users, Newspaper, Zap, Settings } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  getPreferences,
+  updatePreferences,
+  MUTABLE_EVENT_TYPES,
+} from '@/lib/services/notifications.service'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
+import {
+  ChevronLeft,
+  Bell,
+  BellOff,
+  Settings,
+  ChevronDown,
+  ChevronUp,
+  Check,
+} from 'lucide-react'
 
-const notifIcons: Record<NotifType, { icon: typeof Bell; color: string; bg: string }> = {
-  match:      { icon: Zap,       color: 'text-green-400',       bg: 'bg-green-400/10'       },
-  transfer:   { icon: Users,     color: 'text-blue-400',        bg: 'bg-blue-400/10'        },
-  league:     { icon: Trophy,    color: 'text-yellow-400',      bg: 'bg-yellow-400/10'      },
-  tournament: { icon: Trophy,    color: 'text-gaffer-orange',   bg: 'bg-gaffer-orange/10'   },
-  system:     { icon: Newspaper, color: 'text-gaffer-muted',    bg: 'bg-gaffer-card'        },
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const EVENT_LABELS: Record<string, string> = {
+  goal: 'Goals',
+  own_goal: 'Own Goals',
+  penalty_scored: 'Penalties Scored',
+  yellow_card: 'Yellow Cards',
+  red_card: 'Red Cards',
+  substitution: 'Substitutions',
+  attempt_missed: 'Missed Attempts',
+  penalty_awarded: 'Penalties Awarded',
+  penalty_missed: 'Penalties Missed',
+  corner: 'Corners',
+  halftime: 'Half Time',
+  fulltime: 'Full Time',
+  match_suspended: 'Match Suspended',
+  match_resumed: 'Match Resumed',
 }
+
+// ─── Mute Toggle ─────────────────────────────────────────────────────────────
+
+function EventMuteRow({
+  eventType,
+  muted,
+  onToggle,
+}: {
+  eventType: string
+  muted: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-gaffer-border/40 last:border-0">
+      <span className="text-white text-sm font-body">
+        {EVENT_LABELS[eventType] ?? eventType}
+      </span>
+      <button
+        onClick={onToggle}
+        className={`w-10 h-5 rounded-full transition-all relative ${
+          muted ? 'bg-gaffer-border' : 'bg-gaffer-orange'
+        }`}
+      >
+        <span
+          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${
+            muted ? '' : 'translate-x-5'
+          }`}
+        />
+      </button>
+    </div>
+  )
+}
+
+// ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function NotificationsPage() {
   const router = useRouter()
-  const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifStore()
+  const toast = useToastStore()
+  const queryClient = useQueryClient()
+  const [showMuteSettings, setShowMuteSettings] = useState(false)
+
+  const { data, isLoading } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences,
+  })
+
+  const prefs = data?.preferences
+
+  const mutation = useMutation({
+    mutationFn: updatePreferences,
+    onSuccess: (res) => {
+      queryClient.setQueryData(['notification-preferences'], res)
+    },
+    onError: (err) => {
+      toast.addToast({ type: 'error', message: getErrorMessage(err) })
+    },
+  })
+
+  const toggleEnabled = () => {
+    if (!prefs) return
+    mutation.mutate({ enabled: !prefs.enabled })
+  }
+
+  const toggleMute = (eventType: string) => {
+    if (!prefs) return
+    const current = prefs.mutedEventTypes ?? []
+    const next = current.includes(eventType)
+      ? current.filter((t) => t !== eventType)
+      : [...current, eventType]
+    mutation.mutate({ mutedEventTypes: next })
+  }
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gaffer-border">
-        <button onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white">
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
+        >
           <ChevronLeft size={18} />
         </button>
         <div className="flex-1">
           <h1 className="font-display font-bold text-white text-base">Notifications</h1>
-          {unreadCount > 0 && (
-            <p className="text-gaffer-orange text-xs font-body">{unreadCount} unread</p>
-          )}
         </div>
-        {notifications.length > 0 && (
-          <button onClick={markAllRead}
-            className="text-gaffer-orange text-xs font-body font-medium hover:underline">
-            Mark all read
-          </button>
-        )}
+        <Settings size={18} className="text-gaffer-muted" />
       </div>
 
-      {/* List */}
-      <div className="flex-1 overflow-y-auto pb-8">
-        {notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full gap-4 py-20">
-            <div className="w-16 h-16 rounded-2xl bg-gaffer-card border border-gaffer-border flex items-center justify-center">
-              <BellOff size={28} className="text-gaffer-subtle" />
+      <div className="flex-1 overflow-y-auto pb-12 space-y-4 px-4 pt-4">
+        {/* Master toggle */}
+        <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center">
+              <Bell size={18} className="text-gaffer-orange" />
             </div>
-            <div className="text-center">
-              <p className="text-white font-body font-medium">No notifications</p>
-              <p className="text-gaffer-muted text-sm font-body mt-1">You&apos;re all caught up!</p>
+            <div>
+              <p className="text-white font-body font-medium text-sm">Push Notifications</p>
+              <p className="text-gaffer-muted text-xs font-body">
+                {prefs?.enabled ? 'Enabled' : 'Disabled'}
+              </p>
             </div>
           </div>
-        ) : (
-          <AnimatePresence>
-            <div className="divide-y divide-gaffer-border">
-              {notifications.map((notif, i) => {
-                const meta = notifIcons[notif.type]
-                return (
-                  <motion.button
-                    key={notif.id}
-                    layout
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ delay: i * 0.05 }}
-                    onClick={() => markRead(notif.id)}
-                    className={`w-full flex items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-gaffer-surface ${
-                      !notif.read ? 'bg-gaffer-surface/40' : ''
-                    }`}
-                  >
-                    {/* Icon */}
-                    <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                      <meta.icon size={18} className={meta.color} />
-                    </div>
+          {isLoading ? (
+            <div className="w-10 h-5 bg-gaffer-border rounded-full animate-pulse" />
+          ) : (
+            <button
+              onClick={toggleEnabled}
+              disabled={mutation.isPending}
+              className={`w-10 h-5 rounded-full transition-all relative disabled:opacity-50 ${
+                prefs?.enabled ? 'bg-gaffer-orange' : 'bg-gaffer-border'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${
+                  prefs?.enabled ? 'translate-x-5' : ''
+                }`}
+              />
+            </button>
+          )}
+        </div>
 
-                    {/* Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between gap-2">
-                        <p className={`font-body font-semibold text-sm leading-tight ${notif.read ? 'text-white/70' : 'text-white'}`}>
-                          {notif.title}
-                        </p>
-                        {!notif.read && (
-                          <span className="flex-shrink-0 w-2 h-2 rounded-full bg-gaffer-orange mt-1" />
-                        )}
-                      </div>
-                      <p className="text-gaffer-muted text-xs font-body mt-1 leading-relaxed line-clamp-2">
-                        {notif.body}
-                      </p>
-                      <p className="text-gaffer-subtle text-[10px] font-body mt-1.5">{notif.timeAgo}</p>
-                    </div>
-                  </motion.button>
-                )
-              })}
-            </div>
-          </AnimatePresence>
+        {/* Event type muting */}
+        {prefs?.enabled && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden"
+          >
+            <button
+              onClick={() => setShowMuteSettings((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 border-b border-gaffer-border"
+            >
+              <div className="flex items-center gap-3">
+                <BellOff size={16} className="text-gaffer-muted" />
+                <span className="text-white font-body font-medium text-sm">Mute Event Types</span>
+              </div>
+              {showMuteSettings ? (
+                <ChevronUp size={16} className="text-gaffer-muted" />
+              ) : (
+                <ChevronDown size={16} className="text-gaffer-muted" />
+              )}
+            </button>
+
+            <AnimatePresence>
+              {showMuteSettings && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="px-4 overflow-hidden"
+                >
+                  <p className="text-gaffer-muted text-xs font-body py-3">
+                    Muted events will not trigger push notifications.
+                  </p>
+                  {MUTABLE_EVENT_TYPES.map((type) => (
+                    <EventMuteRow
+                      key={type}
+                      eventType={type}
+                      muted={(prefs?.mutedEventTypes ?? []).includes(type)}
+                      onToggle={() => toggleMute(type)}
+                    />
+                  ))}
+                  <div className="h-3" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
         )}
 
-        {/* Clear all */}
-        {notifications.length > 0 && (
-          <div className="px-4 pt-4">
-            <button onClick={clearAll}
-              className="w-full py-3 rounded-xl border border-gaffer-border text-gaffer-muted font-body text-sm hover:border-red-500/30 hover:text-red-400 transition-all">
-              Clear all notifications
-            </button>
+        {/* Followed items summary */}
+        {prefs && (
+          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 space-y-3">
+            <p className="text-white font-body font-medium text-sm">Following</p>
+            {[
+              { label: 'Matches', count: prefs.followedMatches?.length ?? 0 },
+              { label: 'Teams', count: prefs.followedTeams?.length ?? 0 },
+              { label: 'Competitions', count: prefs.followedCompetitions?.length ?? 0 },
+            ].map(({ label, count }) => (
+              <div key={label} className="flex items-center justify-between">
+                <span className="text-gaffer-muted text-sm font-body">{label}</span>
+                <span className="text-gaffer-orange font-display font-bold text-sm">{count}</span>
+              </div>
+            ))}
+            <p className="text-gaffer-subtle text-xs font-body">
+              Follow/unfollow from match, team, or competition pages.
+            </p>
+          </div>
+        )}
+
+        {isLoading && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-16 bg-gaffer-card border border-gaffer-border rounded-2xl animate-pulse" />
+            ))}
           </div>
         )}
       </div>

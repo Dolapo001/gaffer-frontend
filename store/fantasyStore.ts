@@ -6,8 +6,19 @@ import {
   type FantasySquadPlayer,
   type BoostType,
 } from '@/lib/fantasyMockData'
+import {
+  createFantasyTeam,
+  setSquad,
+  makeTransfer,
+  activateChip,
+  getMyFantasyTeam,
+} from '@/lib/services/fantasy.service'
+import { SQUAD_RULES } from '@/lib/services/fantasy.service'
 
 interface FantasyState {
+  // Competition context
+  competitionId: string | null
+
   // Squad
   players: FantasySquadPlayer[]
   selectedPlayerId: string | null
@@ -15,18 +26,30 @@ interface FantasyState {
   selectedBoost: BoostType
   budget: number
   isSaved: boolean
+  isSaving: boolean
+  saveError: string | null
+
+  // Onboarding flow flags
   hasSeenWelcome: boolean
   hasCreatedTeam: boolean
   hasOrganizedBench: boolean
   hasNamedTeam: boolean
   teamName: string
+
+  // API team data
+  apiTeamId: string | null
+  totalPoints: number
+
   // Actions
+  setCompetitionId: (id: string) => void
   selectPlayer: (id: string | null) => void
   setSubstitutingOutId: (id: string | null) => void
   setBoost: (boost: BoostType) => void
   toggleCaptain: (id: string) => void
   performSubstitution: (id1: string, id2: string) => void
   saveTeam: () => void
+  saveTeamToApi: () => Promise<void>
+  createTeamOnApi: (name: string) => Promise<void>
   resetSaved: () => void
   setHasSeenWelcome: (val: boolean) => void
   setHasCreatedTeam: (val: boolean) => void
@@ -39,17 +62,24 @@ interface FantasyState {
 export const useFantasyStore = create<FantasyState>()(
   persist(
     (set, get) => ({
+      competitionId: null,
       players: SQUAD,
       selectedPlayerId: null,
       substitutingOutId: null,
       selectedBoost: null,
       budget: GAMEWEEK_INFO.budget,
       isSaved: false,
+      isSaving: false,
+      saveError: null,
       hasSeenWelcome: false,
       hasCreatedTeam: false,
       hasOrganizedBench: false,
       hasNamedTeam: false,
       teamName: '',
+      apiTeamId: null,
+      totalPoints: 0,
+
+      setCompetitionId: (id) => set({ competitionId: id }),
 
       selectPlayer: (id) =>
         set((state) => ({
@@ -81,11 +111,8 @@ export const useFantasyStore = create<FantasyState>()(
             const p1 = newPlayers[p1Index]
             const p2 = newPlayers[p2Index]
 
-            // FPL Rules: GK can ONLY swap with GK. Field players swap with field players.
-            const p1IsGK = p1.position === 'GK'
-            const p2IsGK = p2.position === 'GK'
-
-            if (p1IsGK !== p2IsGK) {
+            // GK can only swap with GK
+            if ((p1.position === 'GK') !== (p2.position === 'GK')) {
               console.warn('Cannot swap Goalkeeper with a field player.')
               return { substitutingOutId: null }
             }
@@ -93,17 +120,75 @@ export const useFantasyStore = create<FantasyState>()(
             const p1WasOnPitch = p1.isOnPitch
             const p2WasOnPitch = p2.isOnPitch
 
-            // Swap their pitch status
             newPlayers[p1Index] = { ...p1, isOnPitch: p2WasOnPitch }
             newPlayers[p2Index] = { ...p2, isOnPitch: p1WasOnPitch }
 
-            // Clear substitution mode since we completed the action
             return { players: newPlayers, substitutingOutId: null }
           }
           return state
         }),
 
+      // Local save (marks isSaved)
       saveTeam: () => set({ isSaved: true }),
+
+      // API save — PUT /fantasy/:competitionId/team/squad
+      saveTeamToApi: async () => {
+        const state = get()
+        if (!state.competitionId) {
+          set({ saveError: 'No competition selected' })
+          return
+        }
+        set({ isSaving: true, saveError: null })
+        try {
+          const pitchPlayers = state.players.filter((p) => p.isOnPitch)
+          const benchPlayers = state.players.filter((p) => !p.isOnPitch)
+          const captain = state.players.find((p) => p.isCaptain)
+          const viceCaptain = state.players.find((p) => p.isViceCaptain)
+
+          if (!captain || !viceCaptain) {
+            throw new Error('Please select a captain and vice-captain before saving')
+          }
+
+          await setSquad(state.competitionId, {
+            startingXI: pitchPlayers.map((p) => p.id),
+            bench: benchPlayers.map((p) => p.id),
+            captainId: captain.id,
+            viceCaptainId: viceCaptain.id,
+          })
+
+          set({ isSaved: true })
+        } catch (err: any) {
+          set({ saveError: err?.message ?? 'Failed to save team' })
+          throw err
+        } finally {
+          set({ isSaving: false })
+        }
+      },
+
+      // Create team on API — POST /fantasy/:competitionId/team
+      createTeamOnApi: async (name: string) => {
+        const state = get()
+        if (!state.competitionId) {
+          // No competition context — save name locally only
+          set({ teamName: name, hasNamedTeam: true })
+          return
+        }
+        set({ isSaving: true, saveError: null })
+        try {
+          const team = await createFantasyTeam(state.competitionId, name)
+          set({ apiTeamId: team._id, teamName: name, hasNamedTeam: true })
+        } catch (err: any) {
+          // If team already exists, still proceed locally
+          if (err?.code === 'TEAM_EXISTS') {
+            set({ teamName: name, hasNamedTeam: true })
+            return
+          }
+          set({ saveError: err?.message ?? 'Failed to create team' })
+          throw err
+        } finally {
+          set({ isSaving: false })
+        }
+      },
 
       resetSaved: () => set({ isSaved: false }),
 
@@ -113,20 +198,25 @@ export const useFantasyStore = create<FantasyState>()(
       setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
       setTeamName: (name) => set({ teamName: name }),
 
-      resetTeam: () => set({ 
-        players: SQUAD, 
-        budget: GAMEWEEK_INFO.budget, 
-        isSaved: false, 
-        hasSeenWelcome: false,
-        hasCreatedTeam: false,
-        hasOrganizedBench: false,
-        hasNamedTeam: false,
-        teamName: '' 
-      }),
+      resetTeam: () =>
+        set({
+          players: SQUAD,
+          budget: GAMEWEEK_INFO.budget,
+          isSaved: false,
+          hasSeenWelcome: false,
+          hasCreatedTeam: false,
+          hasOrganizedBench: false,
+          hasNamedTeam: false,
+          teamName: '',
+          apiTeamId: null,
+          totalPoints: 0,
+          saveError: null,
+        }),
     }),
     {
       name: 'gaffer-fantasy-team',
       partialize: (state) => ({
+        competitionId: state.competitionId,
         players: state.players,
         selectedBoost: state.selectedBoost,
         budget: state.budget,
@@ -136,12 +226,14 @@ export const useFantasyStore = create<FantasyState>()(
         hasOrganizedBench: state.hasOrganizedBench,
         hasNamedTeam: state.hasNamedTeam,
         teamName: state.teamName,
+        apiTeamId: state.apiTeamId,
+        totalPoints: state.totalPoints,
       }),
-    }
-  )
+    },
+  ),
 )
 
-// ─── Selectors ───────────────────────────────────────────────────────────────
+// ─── Selectors ────────────────────────────────────────────────────────────────
 
 export const selectPitchPlayers = (state: FantasyState) =>
   state.players.filter((p) => p.isOnPitch)
@@ -151,3 +243,5 @@ export const selectBenchPlayers = (state: FantasyState) =>
 
 export const selectPlayerById = (id: string | null) => (state: FantasyState) =>
   id ? state.players.find((p) => p.id === id) ?? null : null
+
+export { SQUAD_RULES }
