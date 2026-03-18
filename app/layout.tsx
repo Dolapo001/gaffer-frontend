@@ -51,9 +51,9 @@ export default function RootLayout({
           rel="stylesheet"
         />
         {/* apple-touch-icon: 180x180 is the canonical size for modern iOS */}
-        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg" />
-        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.svg" />
-        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.svg" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-180x180.png" />
+        <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png" />
+        <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
