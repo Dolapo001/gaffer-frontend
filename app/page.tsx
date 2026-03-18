@@ -19,6 +19,7 @@ import { Testimonials } from '@/components/marketing/Testimonials'
 import { Pricing } from '@/components/marketing/Pricing'
 import { FinalCTA } from '@/components/marketing/FinalCTA'
 import { Footer } from '@/components/marketing/Footer'
+import { IOSInstallBanner } from '@/components/IOSInstallBanner'
 
 export default function LandingPage() {
   const router = useRouter()
@@ -86,6 +87,9 @@ export default function LandingPage() {
 
         <Footer />
       </div>
+
+      {/* iOS-only: auto-appearing install banner + modal */}
+      <IOSInstallBanner />
 
     </main>
   )
