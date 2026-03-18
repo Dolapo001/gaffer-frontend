@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronLeft, Info, Plus, MessageSquare, Clock, BarChart2, 
@@ -14,7 +14,6 @@ interface PlayerSlot {
   name: string | null
   number: string | null
   team: 'A' | 'B'
-  position: { x: number; y: number }
 }
 
 export function AdminLiveMatchDetails() {
@@ -23,6 +22,31 @@ export function AdminLiveMatchDetails() {
   const [isLive, setIsLive] = useState(false)
   const [commentaryStep, setCommentaryStep] = useState<'idle' | 'menu' | 'team' | 'scorer' | 'assist'>('idle')
   const [selectedAction, setSelectedAction] = useState<string | null>(null)
+
+  useEffect(() => {
+    const navBar = document.getElementById('admin-nav-bar')
+    if (commentaryStep !== 'idle') {
+      document.body.style.overflow = 'hidden'
+      if (navBar) {
+        navBar.style.opacity = '0'
+        navBar.style.pointerEvents = 'none'
+      }
+    } else {
+      document.body.style.overflow = ''
+      if (navBar) {
+        navBar.style.opacity = ''
+        navBar.style.pointerEvents = ''
+      }
+    }
+    
+    return () => {
+      document.body.style.overflow = ''
+      if (navBar) {
+        navBar.style.opacity = ''
+        navBar.style.pointerEvents = ''
+      }
+    }
+  }, [commentaryStep])
 
   const actionTypes = [
     { label: 'FULLTIME', icon: MessageSquare },
@@ -142,88 +166,80 @@ export function AdminLiveMatchDetails() {
               exit={{ opacity: 0, x: -20 }}
               className="space-y-6"
             >
-              {/* Team 1 Info */}
-              <div className="flex items-center justify-between px-2">
-                 <div className="flex items-center gap-2 font-chakra font-black text-xs uppercase text-white/90">
-                   <div className="w-5 h-5 rounded-full bg-black/20 p-0.5 border border-white/5">
-                    <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
-                   </div>
-                   COCCS
-                 </div>
-                 <span className="text-white/40 font-chakra font-black text-[10px] tracking-widest">3-5-2</span>
-              </div>
-
               {/* Pitch */}
-              <div className="aspect-[3/5] w-full bg-[#1C1F2D] rounded-[32px] border-2 border-white/10 relative overflow-hidden shadow-2xl">
+              <div 
+                className="w-full relative shadow-[0_20px_50px_rgba(0,0,0,0.5)] rounded-[12px] overflow-hidden"
+                style={{ height: '780px', backgroundColor: '#1E212D' }}
+              >
                 {/* Pitch Markings */}
-                <div className="absolute inset-4 border-2 border-white/10 rounded-2xl pointer-events-none">
-                   <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-white/10" />
-                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border-2 border-white/10 rounded-full" />
+                <div className="absolute inset-x-4 inset-y-6 border-[1.5px] border-white pointer-events-none">
+                   {/* Halfway line */}
+                   <div className="absolute top-1/2 left-0 right-0 h-[1.5px] bg-white -translate-y-1/2" />
                    
-                   {/* Top Goal Area */}
-                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-12 border-2 border-t-0 border-white/10" />
-                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-16 h-4 border-2 border-t-0 border-white/10" />
+                   {/* Center Circle */}
+                   <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-[1.5px] border-white rounded-full" />
+                   
+                   {/* Top Penalty Area */}
+                   <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-t-0 border-white">
+                     {/* Top 6-yard box */}
+                     <div className="absolute top-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-t-0 border-white" />
+                   </div>
 
-                   {/* Bottom Goal Area */}
-                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-32 h-12 border-2 border-b-0 border-white/10" />
-                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-4 border-2 border-b-0 border-white/10" />
+                   {/* Bottom Penalty Area */}
+                   <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-48 h-20 border-[1.5px] border-b-0 border-white">
+                     {/* Bottom 6-yard box */}
+                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-20 h-6 border-[1.5px] border-b-0 border-white" />
+                   </div>
                 </div>
 
                 {/* Player Slots */}
-                <div className="absolute inset-0 p-8 flex flex-col justify-between">
-                  {/* Home Team (Top) */}
-                  <div className="space-y-8">
-                    <div className="flex justify-center"><PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" /></div>
-                    <div className="flex justify-around">
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
+                <div className="absolute inset-0 py-10 flex flex-col justify-between">
+                  {/* Home Team (Top) a 4-4-2 */}
+                  <div className="space-y-7 z-10 w-full">
+                    <div className="flex justify-center">
+                       <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
                     </div>
-                    <div className="flex justify-around px-10">
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
+                    <div className="flex justify-around px-8">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
                     </div>
-                    <div className="flex justify-center gap-12">
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
-                      <PitchSlot color="bg-[#EAB308]/20" border="border-[#EAB308]/40" iconColor="text-[#EAB308]" />
+                    <div className="flex justify-around px-[10%]">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                    </div>
+                    <div className="flex justify-center gap-20">
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
+                      <PitchSlot color="bg-[#403816]" border="border-[#756621]/60" iconColor="text-[#EAB308]" />
                     </div>
                   </div>
 
-                  {/* Away Team (Bottom) */}
-                  <div className="space-y-8">
-                    <div className="flex justify-center gap-12">
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
+                  {/* Away Team (Bottom) a 4-4-2 */}
+                  <div className="space-y-7 z-10 w-full">
+                    <div className="flex justify-center gap-20">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
                     </div>
-                    <div className="flex justify-around px-10">
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
+                    <div className="flex justify-around px-[10%]">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
                     </div>
-                    <div className="flex justify-around">
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
-                      <PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" />
+                    <div className="flex justify-around px-8">
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                      <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
                     </div>
-                    <div className="flex justify-center"><PitchSlot color="bg-[#EF4444]/20" border="border-[#EF4444]/40" iconColor="text-[#EF4444]" /></div>
+                    <div className="flex justify-center">
+                       <PitchSlot color="bg-[#3F1414]" border="border-[#7A2020]/60" iconColor="text-white" />
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Team 2 Info */}
-              <div className="flex items-center justify-between px-2">
-                 <div className="flex items-center gap-2 font-chakra font-black text-xs uppercase text-white/90">
-                   <div className="w-5 h-5 rounded-full bg-black/20 p-0.5 border border-white/5">
-                    <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
-                   </div>
-                   COCCS
-                 </div>
-                 <span className="text-white/40 font-chakra font-black text-[10px] tracking-widest">3-5-2</span>
               </div>
 
               <div className="pb-8">
@@ -240,26 +256,126 @@ export function AdminLiveMatchDetails() {
               exit={{ opacity: 0, x: 20 }}
               className="space-y-4"
             >
-              {/* Blur background for steps */}
-              <div className={`space-y-6 pt-4 transition-all duration-300 ${commentaryStep !== 'idle' ? 'opacity-20 blur-sm pointer-events-none' : ''}`}>
-                <div className="bg-red-900/10 rounded-[24px] p-6 border border-white/5 relative overflow-hidden group">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-600/20 flex items-center justify-center">
-                      <MessageSquare size={16} className="text-red-500" />
-                    </div>
-                    <span className="text-white/40 font-medium text-sm">Enter live commentary here</span>
+              {/* Commentary Feed (with blur background for active steps) */}
+              <div className={`space-y-6 pt-4 transition-all duration-300 ${commentaryStep !== 'idle' ? 'opacity-10 blur-md pointer-events-none' : ''}`}>
+                
+                {/* Mock Live Event: Substitution */}
+                <div className="bg-[#1C1F2D] rounded-[22px] px-6 py-5 flex flex-col gap-3 border border-white/5 relative group">
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                          <Repeat size={16} className="text-gaffer-muted" />
+                        </div>
+                        <p className="font-chakra font-black text-[12px] uppercase text-white/90">Substitution. COCCS</p>
+                     </div>
+                     <Edit2 size={14} className="text-white/20 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer" />
                   </div>
+                  <div className="flex items-center gap-6 pl-11">
+                     <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                        <span className="text-[11px] font-bold text-white/40 uppercase">Out. Victor</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                        <span className="text-[11px] font-bold text-white/40 uppercase">In. Dahood</span>
+                     </div>
+                  </div>
+                  <span className="absolute top-5 right-6 text-[10px] font-bold text-white/20">84&apos;</span>
+                </div>
+
+                {/* Mock Live Event: Attempt Missed (from image 4 style) */}
+                <div className="bg-[#5AA1D1] rounded-[18px] px-6 py-4 flex items-center justify-between border border-white/5 shadow-lg">
+                   <p className="text-[#0A1D2D] font-chakra font-bold text-[11px] leading-relaxed uppercase pr-4">
+                     Attempt missed. Tunde (MECH) header from the center of the box is close, but misses to the right.
+                   </p>
+                </div>
+
+                {/* Mock Live Event: Goal (from image 2 style) */}
+                <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex flex-col gap-3 border border-white/5 shadow-xl relative group">
+                   <div className="flex items-center gap-4">
+                     <div className="w-8 h-8 flex items-center justify-center">
+                        <div className="w-4 h-4 bg-white rounded-full relative shadow-lg" />
+                     </div>
+                     <p className="font-chakra font-black text-[12px] uppercase tracking-wide text-white">GOAL. Dahood (COCCS)</p>
+                   </div>
+                   <div className="flex items-center gap-4">
+                     <div className="w-8 h-8 flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-white/40">
+                           <path d="M4 16c0 1.1.9 2 2 2h12a2 2 0 0 0 2-2v-4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v4z" />
+                        </svg>
+                     </div>
+                     <p className="font-chakra font-black text-[11px] uppercase tracking-widest text-white/50">ASSIST. Victor (COCCS)</p>
+                   </div>
+                   <span className="absolute top-5 right-6 text-[10px] font-bold text-white/30">79&apos;</span>
+                </div>
+
+                {/* Placeholder input */}
+                <div className="bg-white/5 rounded-[22px] px-6 py-5 border border-white/5 border-dashed flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center">
+                    <Edit2 size={16} className="text-white/20" />
+                  </div>
+                  <span className="text-white/20 font-chakra font-bold text-xs uppercase tracking-widest">Awaiting next action...</span>
                 </div>
               </div>
 
-              {/* Step: Goal Icon (as in image 2) */}
-              {commentaryStep === 'team' && selectedAction === 'GOAL' && (
+              {/* Step: Goal/Card/Attempt Visualization */}
+              {commentaryStep !== 'idle' && selectedAction && ['GOAL', 'RED CARD', 'YELLOW CARD', 'SUBSTITUTION', 'ATTEMPT MISSED'].includes(selectedAction) && (
                 <div className="flex flex-col items-center justify-center pt-20 space-y-6">
-                   <div className="w-32 h-32 rounded-full border-4 border-white/5 flex items-center justify-center relative">
-                      <div className="absolute inset-0 bg-white/5 rounded-full animate-pulse" />
-                      <Trophy size={60} className="text-white/20" />
-                   </div>
-                   <h2 className="font-chakra font-black text-6xl italic text-white/20 tracking-tighter uppercase">GOAL</h2>
+                   <motion.div 
+                     initial={{ scale: 0.5, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     className="w-full flex flex-col items-center justify-center relative"
+                   >
+                      <div className={`absolute w-48 h-48 rounded-full animate-pulse -z-10 ${
+                                          selectedAction === 'GOAL' ? 'bg-white/5' : 
+                                          selectedAction === 'RED CARD' ? 'bg-red-500/10' : 
+                                          selectedAction === 'YELLOW CARD' ? 'bg-yellow-500/10' :
+                                          'bg-blue-500/10'
+                                        }`} />
+
+                      {selectedAction === 'GOAL' ? (
+                        <Trophy size={80} className="text-white/20" />
+                      ) : selectedAction === 'SUBSTITUTION' ? (
+                        <Repeat size={80} className="text-white/20" />
+                      ) : selectedAction === 'ATTEMPT MISSED' ? (
+                        <div className="relative flex flex-col items-center">
+                           {/* Goal Post SVG */}
+                           <div className="relative">
+                              <span className="absolute -top-12 left-1/2 -translate-x-1/2 text-red-500 font-chakra font-black text-6xl">X</span>
+                              <svg width="240" height="140" viewBox="0 0 240 140" fill="none" className="opacity-60">
+                                 <path d="M10 130 V 20 H 230 V 130" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                                 <path d="M10 20 L 40 10 H 200 L 230 20" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
+                                 <path d="M40 10 V 110 M 200 10 V 110" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
+                                 <path d="M10 130 H 230" stroke="white" strokeWidth="1" strokeOpacity="0.1" />
+                                 {/* Net Effect */}
+                                 <pattern id="net" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5" strokeOpacity="0.1" />
+                                 </pattern>
+                                 <rect x="10" y="20" width="220" height="110" fill="url(#net)" />
+                              </svg>
+                           </div>
+                        </div>
+                      ) : (
+                        <motion.div 
+                          initial={{ rotate: -20, y: 50 }}
+                          animate={{ rotate: 0, y: 0 }}
+                          className="relative"
+                        >
+                           <svg width="120" height="160" viewBox="0 0 120 160" className="drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
+                              <rect 
+                                x="20" y="0" width="80" height="120" rx="10" 
+                                className={selectedAction === 'RED CARD' ? 'fill-red-600' : 'fill-yellow-500'} 
+                              />
+                           </svg>
+                        </motion.div>
+                      )}
+                   </motion.div>
+                   <h2 className={`font-chakra font-black text-6xl italic opacity-20 tracking-tighter uppercase text-center w-full px-6 ${
+                                    selectedAction === 'RED CARD' ? 'text-red-500' : 
+                                    selectedAction === 'YELLOW CARD' ? 'text-yellow-500' : 'text-white'
+                                  }`}>
+                     {selectedAction}
+                   </h2>
                 </div>
               )}
 
@@ -270,14 +386,12 @@ export function AdminLiveMatchDetails() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-50 flex flex-col items-end justify-end p-6 pb-24"
+                    className="fixed inset-0 z-50 flex flex-col items-end justify-end p-6 pb-[220px]"
                   >
                     {/* Dark Overlay with click to close */}
                     <div 
-                      className="absolute inset-0 bg-black/60 backdrop-blur-[2px] -z-10" 
-                      onClick={() => {
-                        setCommentaryStep('idle')
-                      }}
+                      className="absolute inset-0 bg-black/80 backdrop-blur-[4px] -z-10" 
+                      onClick={() => setCommentaryStep('idle')}
                     />
 
                     {/* Step Content */}
@@ -287,16 +401,16 @@ export function AdminLiveMatchDetails() {
                       className="w-full flex flex-col items-end gap-3"
                     >
                       {commentaryStep === 'menu' && (
-                        <div className="flex flex-col items-end gap-3">
-                          {actionTypes.map((action, idx) => (
+                        <div className="flex flex-col items-end gap-3 w-full max-h-[60vh] overflow-y-auto no-scrollbar pb-10 pr-1">
+                          {actionTypes.slice().reverse().map((action, idx) => (
                             <motion.button
                               key={action.label}
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: (actionTypes.length - idx) * 0.05 }}
+                              transition={{ delay: idx * 0.05 }}
                               onClick={() => {
                                 setSelectedAction(action.label)
-                                setCommentaryStep(action.label === 'GOAL' ? 'team' : 'idle')
+                                setCommentaryStep('team')
                               }}
                               className="flex items-center gap-3 px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all"
                             >
@@ -315,8 +429,14 @@ export function AdminLiveMatchDetails() {
                               key={team}
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              onClick={() => setCommentaryStep('scorer')}
-                              className="flex items-center gap-3 w-full max-w-[140px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
+                              onClick={() => {
+                                if (['RED CARD', 'YELLOW CARD', 'GOAL', 'SUBSTITUTION', 'ATTEMPT MISSED'].includes(selectedAction || '')) {
+                                  setCommentaryStep('scorer') // 'scorer' is used as 'player out' for subs or 'player' for misses
+                                } else {
+                                  setCommentaryStep('idle')
+                                }
+                              }}
+                              className="flex items-center gap-3 w-full max-w-[150px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
                             >
                               <div className="w-5 h-5 rounded-full bg-white/10 p-1">
                                 <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
@@ -328,8 +448,15 @@ export function AdminLiveMatchDetails() {
                       )}
 
                       {(commentaryStep === 'scorer' || commentaryStep === 'assist') && (
-                        <div className="flex flex-col items-end gap-3 w-full max-h-[60vh] overflow-y-auto no-scrollbar pb-4 pr-1">
-                          <span className="font-chakra font-black text-xs uppercase text-white/40 mb-1 pr-1">{commentaryStep === 'scorer' ? 'GOAL SCORER' : 'ASSIST'}</span>
+                        <div className="flex flex-col items-end gap-3 w-full max-h-[60vh] overflow-y-auto no-scrollbar pb-10 pr-1">
+                          <span className="font-chakra font-black text-xs uppercase text-white/40 mb-1 pr-1">
+                            {selectedAction === 'SUBSTITUTION' 
+                              ? (commentaryStep === 'scorer' ? 'PLAYER OUT' : 'PLAYER IN')
+                              : selectedAction?.includes('CARD') 
+                                ? 'SELECT PLAYER' 
+                                : (commentaryStep === 'scorer' ? 'GOAL SCORER' : 'ASSIST')
+                            }
+                          </span>
                           {players.map((player, idx) => (
                             <motion.button
                               key={`${player.name}-${idx}`}
@@ -337,26 +464,29 @@ export function AdminLiveMatchDetails() {
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ delay: idx * 0.03 }}
                               onClick={() => {
-                                if (commentaryStep === 'scorer') setCommentaryStep('assist')
-                                else setCommentaryStep('idle')
+                                if ((selectedAction === 'GOAL' || selectedAction === 'SUBSTITUTION') && commentaryStep === 'scorer') {
+                                  setCommentaryStep('assist')
+                                } else {
+                                  setCommentaryStep('idle')
+                                }
                               }}
-                              className="flex items-center justify-between w-full max-w-[180px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all"
+                              className="flex items-center justify-between w-full max-w-[210px] px-4 py-2 bg-[#4A4646]/90 backdrop-blur-md rounded-[12px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <div className="w-5 h-5 rounded-full bg-white/10 p-1">
-                                  <img src="/images/barca_logo.png" className="w-full h-full object-contain" alt="" />
+                                  <img src={selectedAction === 'SUBSTITUTION' && commentaryStep === 'assist' ? "/images/mc_logo.png" : "/images/barca_logo.png"} className="w-full h-full object-contain" alt="" />
                                 </div>
-                                <span className="font-chakra font-black text-[12px] uppercase tracking-wider">{player.name}</span>
+                                <span className="font-chakra font-black text-[13px] uppercase tracking-wide">{player.name}</span>
                               </div>
-                              <span className="text-[10px] font-bold text-white/40">{player.pos}</span>
+                              <span className="text-[10px] font-bold text-white/40 uppercase pl-3">{player.pos}</span>
                             </motion.button>
                           ))}
-                          {commentaryStep === 'scorer' && (
+                          {selectedAction === 'GOAL' && commentaryStep === 'scorer' && (
                              <motion.button
                                 onClick={() => setCommentaryStep('idle')}
-                                className="flex items-center gap-3 w-full max-w-[180px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
+                                className="flex items-center justify-center w-full max-w-[210px] px-4 py-2 bg-[#4A4646]/90 backdrop-blur-md rounded-[12px] border border-white/5 text-white shadow-xl active:scale-95 transition-all font-chakra font-black text-[13px] uppercase tracking-wider"
                              >
-                               <span className="font-chakra font-black text-[12px] uppercase tracking-wider">OWN GOAL</span>
+                                OWN GOAL
                              </motion.button>
                           )}
                         </div>
