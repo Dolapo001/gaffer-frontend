@@ -1,7 +1,10 @@
 'use client'
 
+import React from 'react'
 import { motion } from 'framer-motion'
 import { Trophy, Plus } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useAuthStore } from '@/store/authStore'
 
 interface TournamentBannerProps {
   hasTourn?: boolean
@@ -9,7 +12,19 @@ interface TournamentBannerProps {
 }
 
 export function TournamentBanner({ hasTourn = false, onCreateClick }: TournamentBannerProps) {
+  const router = useRouter()
+  const { role, setRole } = useAuthStore()
+
   if (hasTourn) return null
+
+  const handleClick = () => {
+    if (role === 'personal') {
+      setRole('organization')
+      router.push('/admin')
+    } else if (onCreateClick) {
+      onCreateClick()
+    }
+  }
 
   return (
     <div className="relative rounded-2xl overflow-hidden bg-gaffer-card border border-gaffer-border">
@@ -31,7 +46,7 @@ export function TournamentBanner({ hasTourn = false, onCreateClick }: Tournament
         <motion.button
           whileTap={{ scale: 0.97 }}
           whileHover={{ scale: 1.02 }}
-          onClick={onCreateClick}
+          onClick={handleClick}
           className="flex items-center gap-2 px-8 py-3.5 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow"
         >
           <Plus size={16} />

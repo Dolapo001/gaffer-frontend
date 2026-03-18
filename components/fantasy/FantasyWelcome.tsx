@@ -2,88 +2,80 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 interface FantasyWelcomeProps {
   onGetStarted: () => void;
 }
 
 export const FantasyWelcome: React.FC<FantasyWelcomeProps> = ({ onGetStarted }) => {
+  const router = useRouter();
+  const [isExiting, setIsExiting] = React.useState(false);
+
+  const handleGetStarted = () => {
+    setIsExiting(true);
+    // 300ms Ease-Out Dissolve Animation out 
+    setTimeout(() => {
+      onGetStarted();
+    }, 300);
+  };
+
   return (
     <div 
-      className="w-full max-w-sm mx-auto h-screen bg-[#181928] relative overflow-hidden flex flex-col"
+      className={`fixed inset-0 w-full max-w-md mx-auto bg-[#222232] overflow-hidden flex flex-col z-0 transition-opacity duration-300 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
       style={{ fontFamily: "'Chakra Petch', sans-serif" }}
     >
       
-      {/* Background Image Overlay */}
+      {/* Background Image Overlay - Maximum visibility */}
       <div 
-        className="absolute inset-0 z-0 opacity-60 bg-cover bg-center transition-opacity duration-1000"
+        className="absolute inset-0 z-0 opacity-100 bg-cover bg-center transition-opacity duration-300 ease-out"
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
       />
-      {/* Cinematic Gradient Vignette */}
+      
+      {/* Soft Cinematic Gradient for visibility */}
       <div 
         className="absolute inset-0 z-0" 
         style={{ 
-          background: 'radial-gradient(circle at top, transparent 0%, rgba(15, 23, 43, 0.4) 40%, rgba(15, 23, 43, 0.9) 100%)' 
+          background: 'linear-gradient(to bottom, transparent 0%, rgba(34, 34, 50, 0.4) 30%, rgba(34, 34, 50, 0.9) 100%)' 
         }} 
       />
 
-      {/* Content */}
-      <div className="relative z-10 flex-1 px-4">
+      {/* Content Container - Locked Viewport Layout */}
+      <div className="relative z-10 w-full h-full flex flex-col px-6 touch-none">
+        {/* Top Content: Linked to Design Coordinates */}
         <motion.div
            initial={{ opacity: 0 }}
            animate={{ opacity: 1 }}
-           transition={{ duration: 1 }}
+           transition={{ duration: 0.3, ease: "easeOut" }} // Match Dissolve spec
+           className="pt-[132px]"
         >
           {/* Welcome Title */}
-          <h1 
-            style={{ 
-              position: 'absolute',
-              top: '132px',
-              left: '16px',
-              width: '193px',
-              height: '26px',
-              fontWeight: 700,
-              fontSize: '20px',
-              lineHeight: '100%',
-              margin: 0,
-              color: 'white'
-            }}
-          >
+          <h1 className="text-white font-bold text-[20px] leading-none mb-[20px] tracking-tight">
             Welcome to Fantasy
           </h1>
           
           {/* Description Text */}
-          <p 
-            style={{ 
-              position: 'absolute',
-              top: '178px',
-              left: '16px',
-              width: '283px',
-              height: '54px',
-              fontWeight: 400,
-              fontSize: '14px',
-              lineHeight: '130%', // Adjusted slightly from 100% for better readability while respecting user's height
-              color: 'white',
-              margin: 0,
-              opacity: 0.9
-            }}
-          >
+          <p className="text-white/90 font-normal text-[14px] leading-[140%] max-w-[283px]">
             Create your team, make transfer and become the GAFFER who tops the Leaderboard.
           </p>
+        </motion.div>
 
-          {/* Get Started Button */}
-          <motion.button
-            whileTap={{ scale: 0.97 }}
-            onClick={onGetStarted}
-            className="w-[312px] h-[52px] bg-white text-black font-bold text-base rounded-xl shadow-lg transition-all absolute"
-            style={{
-              left: '50%',
-              transform: 'translateX(-50%)',
-              bottom: '180px' // Avoiding the bottom nav
-            }}
+        {/* Dynamic Spacer to push button down */}
+        <div className="flex-1" />
+
+        {/* Bottom Button: Anchored above navigation */}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3, ease: "easeOut", delay: 0.1 }} // Match Dissolve spec
+          className="pb-[180px] flex justify-center w-full"
+        >
+          <button
+            onClick={handleGetStarted}
+            className="w-full max-w-[312px] h-[52px] bg-white text-[#181928] font-bold text-base rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.5)] active:scale-95 transition-all flex items-center justify-center"
           >
             Get Started
-          </motion.button>
+          </button>
         </motion.div>
       </div>
     </div>

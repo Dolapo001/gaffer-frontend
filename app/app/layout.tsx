@@ -58,7 +58,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </motion.main>
 
         {/* Bottom navigation (Premium Pill Design) */}
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+        <div id="global-nav-bar" className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-300">
           <nav 
             className="flex items-center justify-around px-6 backdrop-blur-2xl pointer-events-auto"
             style={{ 

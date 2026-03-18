@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { PWAProvider } from '@/components/PWAProvider'
 import { AuthProvider } from '@/components/AuthProvider'
+import { BrowserProtection } from '@/components/BrowserProtection'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -57,7 +58,9 @@ export default function RootLayout({
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
         <PWAProvider>
           <AuthProvider>
-            {children}
+            <BrowserProtection>
+              {children}
+            </BrowserProtection>
           </AuthProvider>
         </PWAProvider>
       </body>

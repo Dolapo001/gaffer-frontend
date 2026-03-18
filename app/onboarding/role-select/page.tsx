@@ -23,7 +23,11 @@ export default function RoleSelectPage() {
 
   const handleContinue = () => {
     setShowModal(false)
-    router.push('/auth/signup')
+    if (selectedRole === 'organization') {
+      router.push('/auth/signup/organization')
+    } else {
+      router.push('/auth/signup')
+    }
   }
 
   return (
@@ -47,13 +51,13 @@ export default function RoleSelectPage() {
         transition={{ duration: 0.4 }}
         className="relative z-10 flex-1 flex flex-col px-6 pb-10"
       >
-        {/* Title */}
-        <div className="mb-6 mt-2">
-          <h1 className="font-display font-black text-4xl text-white leading-tight">Hello,</h1>
-          <h1 className="font-display font-black text-4xl text-gradient-orange leading-tight">
+        {/* Title Area */}
+        <div className="mb-6 mt-2 px-1">
+          <h1 className="font-chakra font-bold text-4xl text-white leading-tight">Hello,</h1>
+          <h1 className="font-chakra font-black text-5xl text-gradient-orange leading-tight uppercase tracking-tight">
             GAFFER
           </h1>
-          <p className="font-body text-gaffer-muted text-sm mt-2 leading-relaxed">
+          <p className="font-body text-gaffer-muted text-sm mt-3 leading-relaxed font-medium">
             Select an account type that suits your needs
           </p>
         </div>

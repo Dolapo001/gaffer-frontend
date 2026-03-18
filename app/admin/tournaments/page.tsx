@@ -6,86 +6,77 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useTournamentStore } from '@/store/tournamentStore'
 import { TournamentCard } from '@/components/admin/TournamentCard'
 import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal'
-import { Plus, Trophy, Filter } from 'lucide-react'
-
-type FilterType = 'all' | 'upcoming' | 'ongoing' | 'completed'
+import { Search, Plus, Menu } from 'lucide-react'
+import { GradientButton } from '@/components/GradientButton'
 
 export default function TournamentsPage() {
   const router = useRouter()
   const { tournaments } = useTournamentStore()
   const [showCreate, setShowCreate] = useState(false)
-  const [filter, setFilter] = useState<FilterType>('all')
+  const [searchQuery, setSearchQuery] = useState('')
 
-  const filtered = filter === 'all' ? tournaments : tournaments.filter((t) => t.status === filter)
+  const filtered = tournaments.filter(t => 
+    t.name.toLowerCase().includes(searchQuery.toLowerCase())
+  )
+
+  const hasTournaments = tournaments.length > 0
 
   return (
     <>
-      <div className="min-h-screen bg-gaffer-bg">
-        {/* Header */}
-        <div className="sticky top-0 z-10 bg-gaffer-bg/95 backdrop-blur-md border-b border-gaffer-border/50">
-          <div className="flex items-center justify-between px-4 pt-12 pb-3">
-            <div>
-              <h1 className="font-display font-bold text-xl text-white">Tournaments</h1>
-              <p className="text-gaffer-muted text-xs font-body mt-0.5">{tournaments.length} total</p>
-            </div>
-            <button
-              onClick={() => setShowCreate(true)}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow"
-            >
-              <Plus size={16} />
-              New
-            </button>
-          </div>
+      <div className="min-h-screen bg-[#0F111A]">
+        {/* Header Section */}
+        <div className="px-6 pt-12 pb-6 space-y-8">
+           <div className="flex items-center justify-between">
+              <button className="w-10 h-10 flex items-center justify-center text-white/60">
+                 <Menu size={28} />
+              </button>
+              
+              <div className="flex-1 max-w-[280px] h-12 bg-[#1C1F2D] border border-white/5 rounded-2xl flex items-center px-4 gap-3">
+                 <Search size={20} className="text-white/30" />
+                 <input 
+                   type="text"
+                   placeholder="Search..."
+                   value={searchQuery}
+                   onChange={(e) => setSearchQuery(e.target.value)}
+                   className="bg-transparent border-none outline-none text-white text-sm w-full font-medium"
+                 />
+              </div>
+           </div>
+
+           <h2 className="font-chakra font-black text-xl text-white tracking-tight uppercase">Your Tournament</h2>
         </div>
 
-        <div className="px-4 py-4 space-y-4 pb-28">
-          {/* Filter tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-            {(['all', 'ongoing', 'upcoming', 'completed'] as FilterType[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`flex-shrink-0 px-4 py-2 rounded-xl text-xs font-body font-semibold border transition-all capitalize ${
-                  filter === f
-                    ? 'bg-gaffer-orange/10 border-gaffer-orange text-gaffer-orange'
-                    : 'bg-gaffer-card border-gaffer-border text-gaffer-muted hover:border-gaffer-orange/30'
-                }`}
-              >
-                {f === 'all' ? `All (${tournaments.length})` : f}
-              </button>
-            ))}
-          </div>
-
-          {/* Tournament list */}
-          {filtered.length === 0 ? (
+        <div className="px-6 pb-40">
+          {!hasTournaments ? (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center justify-center py-20 gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-[#1C1F2D] rounded-[40px] overflow-hidden border border-white/5 shadow-2xl relative p-8 text-center space-y-6"
             >
-              <div className="w-16 h-16 rounded-2xl bg-gaffer-card border border-gaffer-border flex items-center justify-center">
-                <Trophy size={28} className="text-gaffer-subtle" />
+              <div className="bg-[#0F111A]/40 rounded-[32px] p-10 flex items-center justify-center">
+                 <img src="/images/empty_tournament.png" className="w-48 opacity-40 grayscale" alt="" />
               </div>
-              <div className="text-center">
-                <p className="text-white font-body font-medium">No tournaments yet</p>
-                <p className="text-gaffer-muted text-sm font-body mt-1">Create your first tournament to get started</p>
+              <div className="space-y-2">
+                <h4 className="font-chakra font-black text-xl text-white uppercase tracking-tight">
+                  You Don't have any Tournament
+                </h4>
+                <p className="text-white/40 text-sm font-medium">Create your first league to get started</p>
               </div>
-              <button
+              <GradientButton 
                 onClick={() => setShowCreate(true)}
-                className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow"
+                className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider shadow-2xl shadow-orange-500/20"
               >
-                <Plus size={16} />
                 Create Tournament
-              </button>
+              </GradientButton>
             </motion.div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {filtered.map((t, i) => (
                 <motion.div
                   key={t.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.07 }}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.05 }}
                 >
                   <TournamentCard tournament={t} onClick={() => router.push(`/admin/tournaments/${t.id}`)} />
                 </motion.div>
@@ -94,6 +85,14 @@ export default function TournamentsPage() {
           )}
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      <button 
+        onClick={() => setShowCreate(true)}
+        className="fixed bottom-32 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white shadow-[0_10px_30px_rgba(255,138,0,0.4)] z-40 active:scale-95 transition-transform"
+      >
+        <Plus size={32} strokeWidth={3} />
+      </button>
 
       <AnimatePresence>
         {showCreate && <CreateTournamentModal onClose={() => setShowCreate(false)} />}

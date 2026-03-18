@@ -8,63 +8,97 @@ const FantasyDashboard: React.FC = () => {
   const router = useRouter();
 
   return (
-    // Mobile container wrapper
-    <div className="w-full max-w-sm mx-auto h-screen bg-[#181928] relative overflow-hidden flex flex-col font-sans">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] overflow-hidden flex flex-col font-sans z-0">
       
-      {/* Background Image Overlay Simulation */}
+      {/* Background Image Overlay - Maximum visibility */}
       <div 
-        className="absolute inset-0 z-0 opacity-60 bg-cover bg-center transition-opacity duration-1000"
-        style={{ backgroundImage: 'url("/assets/bg/fantasy-main-bg.png")' }} 
+        className="absolute inset-0 z-0 opacity-100 bg-cover bg-center transition-opacity duration-1000"
+        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
       />
-      {/* Softer gradient to allow more image visibility */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#181928]/10 via-[#181928]/40 to-[#181928]" />
+      {/* Super-soft gradient for maximum image clarity */}
+      <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#222232]/30 to-[#222232]/80" />
 
-      {/* Main Content */}
-      <div className="relative z-10 flex-1 px-4 pt-10 flex flex-col gap-4 overflow-y-auto pb-safe-bottom">
+      {/* Main Content Area */}
+      <div className="relative z-10 w-full h-full touch-none">
         
-        {/* Points Card */}
-        <div className="bg-[#1b1c28]/95 backdrop-blur-xl border border-white/10 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden shrink-0 mt-2">
-          {/* Subtle inner glow */}
-          <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent pointer-events-none" />
+        {/* Points Card (Enhanced Glass) */}
+        <div 
+          className="absolute backdrop-blur-lg border border-white/5 shadow-2xl overflow-hidden flex flex-col items-center py-5"
+          style={{ 
+            width: '342px', 
+            height: '160px', 
+            top: '59px', 
+            left: '50%',
+            transform: 'translateX(-50%)',
+            borderRadius: '24px',
+            backgroundColor: 'rgba(34, 34, 50, 0.6)', // Increased transparency for better BG visibility
+            fontFamily: "'Chakra Petch', sans-serif"
+          }}
+        >
+          {/* Subtle inner gloss */}
+          <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none" />
           
-          <h2 className="text-white text-center text-[12px] font-bold mb-6 uppercase tracking-wide">Round 1 Points</h2>
+          <h2 className="text-white text-center text-[16px] font-bold mb-4 uppercase tracking-widest">Round 1 Points</h2>
           
-          <div className="flex justify-between items-baseline px-1 relative z-10">
+          <div className="flex justify-around w-full px-4 relative z-10">
             {/* Average */}
             <div className="flex flex-col items-center">
-              <span className="text-white text-[32px] font-bold leading-none mb-2">34</span>
-              <span className="text-white text-[9px] font-extrabold tracking-widest uppercase">Average</span>
+              <span className="text-white text-[36px] font-bold leading-none mb-1">34</span>
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Average</span>
             </div>
             
             {/* Your Score */}
-            <div className="flex flex-col items-center">
-              <span className="text-[#e65100] text-[52px] font-bold leading-none mb-2 drop-shadow-lg">114</span>
-              <span className="text-white text-[9px] font-extrabold tracking-widest uppercase font-sans">Your Score</span>
+            <div className="flex flex-col items-center scale-110">
+              <span className="text-[#FF4D00] text-[52px] font-bold leading-none mb-0.5 drop-shadow-[0_0_15px_rgba(255,77,0,0.3)]">114</span>
+              <span className="text-white text-[11px] font-bold uppercase tracking-widest">Your Score</span>
             </div>
             
             {/* Highest */}
             <div className="flex flex-col items-center">
-              <span className="text-white text-[32px] font-bold leading-none mb-2">132</span>
-              <span className="text-white text-[9px] font-extrabold tracking-widest uppercase">Highest</span>
+              <span className="text-white text-[36px] font-bold leading-none mb-1">132</span>
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Highest</span>
             </div>
           </div>
         </div>
 
-        {/* Navigation Menu List */}
-        <div className="flex flex-col gap-[15px] px-1 pb-4">
+        {/* Navigation Menu (Enhanced Glass) */}
+        <div 
+          className="absolute w-full px-4"
+          style={{ top: '0', left: '0' }}
+        >
           {[
-            { label: 'Points', path: '/app/fantasy/points' },
-            { label: 'Pick Team', path: '/app/fantasy/team' },
-            { label: 'Transfers', path: '/app/fantasy/transfers' }
+            { label: 'Points', path: '/app/fantasy/points', top: 240 },
+            { label: 'Pick Team', path: '/app/fantasy/team', top: 312 },
+            { label: 'Transfers', path: '/app/fantasy/transfers', top: 384 }
           ].map((item) => (
             <button 
               key={item.label}
-              className="flex items-center justify-between bg-[#1b1c28]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-4 hover:bg-white/5 transition-all group overflow-hidden relative shadow-lg shrink-0"
+              className="absolute flex items-center bg-[#2b2b40]/70 backdrop-blur-md transition-all hover:bg-[#32324d]/80 active:scale-[0.98] group"
+              style={{ 
+                width: '342px', 
+                height: '56px', 
+                top: `${item.top}px`, 
+                left: '50%',
+                transform: 'translateX(-50%)',
+                borderRadius: '12px',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.2)'
+              }}
               onClick={() => router.push(item.path)}
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity" />
-              <span className="text-white font-bold text-sm relative z-10 uppercase tracking-wide">{item.label}</span>
-              <ChevronRight className="w-5 h-5 text-white/40 group-hover:text-white transition-colors relative z-10" />
+              <span className="text-white font-bold text-[16px] ml-[20px] uppercase tracking-wide">{item.label}</span>
+              
+              {/* Chevron Circle Icon */}
+              <div 
+                className="absolute flex items-center justify-center rounded-full border border-white/40 group-hover:border-white transition-all transform group-hover:translate-x-1"
+                style={{ 
+                  width: '24px',
+                  height: '24px',
+                  top: '16px',
+                  right: '20px'
+                }}
+              >
+                <ChevronRight size={14} strokeWidth={2.5} className="text-white" />
+              </div>
             </button>
           ))}
         </div>

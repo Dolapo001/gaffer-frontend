@@ -6,45 +6,16 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { useAuthListener } from '@/hooks/useAuthListener'
 import { GafferLogo } from '@/components/GafferLogo'
-import { IOSInstallModal } from '@/components/IOSInstallModal'
 import {
   isStandalone,
-  isIOS,
-  isAndroid,
   getDeferredPrompt,
   triggerInstallPrompt,
-  setDeferredPrompt,
 } from '@/lib/pwa'
 import {
   Download,
-  Trophy,
-  Users,
-  Calendar,
-  Zap,
-  Share2,
-  Plus,
   Smartphone,
-  CheckCircle,
+  Check,
 } from 'lucide-react'
-
-const features = [
-  { icon: Trophy, title: 'Track Performance', desc: 'Monitor your stats and progress across every game' },
-  { icon: Users, title: 'Team Management', desc: 'Build rosters, assign roles, and coordinate your squad' },
-  { icon: Calendar, title: 'Match Scheduling', desc: 'Schedule fixtures and tournaments with ease' },
-  { icon: Zap, title: 'Real-time Updates', desc: 'Live scores, notifications and instant match updates' },
-]
-
-const IOS_STEPS = [
-  { icon: Share2, color: 'bg-blue-500/20 border-blue-500/30 text-blue-400', label: 'Tap the Share button', hint: 'Bottom toolbar in Safari' },
-  { icon: Plus, color: 'bg-gaffer-orange/20 border-gaffer-orange/30 text-gaffer-orange', label: 'Add to Home Screen', hint: 'Scroll down in the share sheet' },
-  { icon: CheckCircle, color: 'bg-green-500/20 border-green-500/30 text-green-400', label: 'Open GAFFER', hint: 'Launch from your home screen' },
-]
-
-const ANDROID_STEPS = [
-  { icon: Download, color: 'bg-gaffer-orange/20 border-gaffer-orange/30 text-gaffer-orange', label: 'Tap Install App below', hint: 'We\'ll trigger the native install prompt' },
-  { icon: CheckCircle, color: 'bg-green-500/20 border-green-500/30 text-green-400', label: 'Confirm installation', hint: 'Tap Install in the system dialog' },
-  { icon: Smartphone, color: 'bg-blue-500/20 border-blue-500/30 text-blue-400', label: 'Open GAFFER', hint: 'Launch from your home screen' },
-]
 
 export default function LandingPage() {
   const router = useRouter()
@@ -52,11 +23,16 @@ export default function LandingPage() {
   useAuthListener()
 
   const [checking, setChecking] = useState(true)
-  const [showIOSModal, setShowIOSModal] = useState(false)
-  const [isInstallable, setIsInstallable] = useState(false)
+  const [isInstalling, setIsInstalling] = useState(false)
   const [platform, setPlatform] = useState<'ios' | 'android' | 'other'>('other')
 
   useEffect(() => {
+    // Detect platform
+    const ua = navigator.userAgent.toLowerCase()
+    if (/iphone|ipad|ipod/.test(ua)) setPlatform('ios')
+    else if (/android/.test(ua)) setPlatform('android')
+    else setPlatform('other')
+
     // Already running as installed PWA — route into the app
     if (isStandalone()) {
       if (!isLoading && isAuthenticated) {
@@ -66,57 +42,31 @@ export default function LandingPage() {
       }
       return
     }
-
-    // Detect platform for install instructions
-    if (isIOS()) {
-      setPlatform('ios')
-    } else if (isAndroid()) {
-      setPlatform('android')
-    } else {
-      setPlatform('other')
-    }
-
-    // Check if Chrome/Android install prompt already captured
-    if (getDeferredPrompt()) setIsInstallable(true)
-
-    // Also listen in case it fires after mount
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      setIsInstallable(true)
-    }
-
-    // Redirect into app after successful install
-    const handleAppInstalled = () => {
-      setTimeout(() => router.replace('/onboarding/splash'), 800)
-    }
-
-    window.addEventListener('beforeinstallprompt', handleBeforeInstall)
-    window.addEventListener('appinstalled', handleAppInstalled)
     setChecking(false)
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
-      window.removeEventListener('appinstalled', handleAppInstalled)
-    }
   }, [isAuthenticated, isLoading, role, router])
 
+  const [isDone, setIsDone] = useState(false)
+
   const handleInstall = async () => {
-    if (platform === 'ios') {
-      setShowIOSModal(true)
-      return
+    setIsInstalling(true)
+    
+    // Mimic "Automatic" download feel for premium experience
+    await new Promise(resolve => setTimeout(resolve, 3000))
+
+    if (platform === 'android') {
+      const nativePrompt = getDeferredPrompt()
+      if (nativePrompt) {
+        await triggerInstallPrompt()
+      }
     }
-    if (getDeferredPrompt()) {
-      await triggerInstallPrompt()
-      // Whether accepted or dismissed, proceed into the app
-      router.replace('/onboarding/splash')
-      return
-    }
-    // No native prompt available — proceed directly into the app
-    router.replace('/onboarding/splash')
+    
+    setIsInstalling(false)
+    setIsDone(true)
+    setTimeout(() => {
+      router.push('/onboarding/splash')
+    }, 800)
   }
 
-  // Show spinner while detecting standalone mode to prevent content flash
   if (checking) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
@@ -125,19 +75,15 @@ export default function LandingPage() {
     )
   }
 
-  const installSteps = platform === 'ios' ? IOS_STEPS : ANDROID_STEPS
-
   return (
-    <div className="min-h-screen bg-gaffer-bg text-white overflow-x-hidden">
-      <IOSInstallModal isOpen={showIOSModal} onClose={() => setShowIOSModal(false)} />
-
+    <div className="min-h-screen bg-gaffer-bg text-white overflow-hidden flex flex-col">
       {/* ── Hero ── */}
-      <section className="relative min-h-screen flex flex-col">
-        {/* Background */}
+      <section className="relative flex-1 flex flex-col">
+        {/* Background Overlay */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-br from-gaffer-orange/10 via-gaffer-bg to-gaffer-bg" />
-          <div className="absolute top-0 right-0 w-72 h-72 bg-gaffer-orange/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-0 w-96 h-96 bg-gaffer-red/5 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-72 h-72 bg-gaffer-orange/5 rounded-full blur-3xl opacity-50" />
+          <div className="absolute bottom-20 left-0 w-96 h-96 bg-gaffer-red/5 rounded-full blur-3xl opacity-50" />
           <div
             className="absolute inset-0 opacity-[0.04]"
             style={{
@@ -149,191 +95,89 @@ export default function LandingPage() {
         </div>
 
         {/* Navbar */}
-        <nav className="relative z-10 flex items-center justify-between px-6 pt-10 pb-4 max-w-lg mx-auto w-full">
+        <nav className="relative z-10 flex items-center justify-between px-6 pt-12 pb-4 max-w-lg mx-auto w-full flex-shrink-0">
           <GafferLogo size="sm" />
         </nav>
 
         {/* Hero content */}
-        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 py-12 max-w-lg mx-auto w-full">
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-8 py-12 max-w-lg mx-auto w-full">
           <motion.div
-            initial={{ opacity: 0, y: 32 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.55, ease: 'easeOut' }}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             className="w-full"
           >
-            {/* PWA badge */}
-            <div className="inline-flex items-center gap-2 bg-gaffer-orange/10 border border-gaffer-orange/30 rounded-full px-4 py-1.5 text-gaffer-orange text-xs font-body font-semibold mb-6 tracking-widest uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-gaffer-orange animate-pulse" />
-              Install Required to Access
+            {/* PWA status */}
+            <div className="inline-flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2 text-gaffer-orange text-[10px] font-bold tracking-[0.2em] mb-10 uppercase">
+              <span className={`w-2 h-2 rounded-full ${isInstalling ? 'bg-blue-400 animate-ping' : isDone ? 'bg-green-400 shadow-[0_0_10px_#22c55e]' : 'bg-gaffer-orange animate-pulse'}`} />
+              {isInstalling ? 'DOWNLOADING CORE FILES...' : isDone ? 'DOWNLOAD COMPLETE' : 'PWA Ready'}
             </div>
 
-            <h1 className="font-display font-black text-[clamp(3.5rem,14vw,5rem)] leading-none tracking-tight mb-4">
-              DOMINATE
+            <h1 className="font-display font-black text-[clamp(2.5rem,12vw,4rem)] leading-[0.9] tracking-tighter mb-8 italic">
+              UNLEASH
               <br />
-              <span className="text-gradient-orange">THE FIELD</span>
+              <span className="text-gaffer-orange">POWER.</span>
             </h1>
 
-            <p className="font-body text-gaffer-muted text-base leading-relaxed mb-8 max-w-sm mx-auto">
-              The all-in-one sports management platform for athletes, coaches, and organizations.
-              Install the app to get started.
+            <p className="font-body text-gaffer-muted text-[15px] leading-relaxed mb-12 max-w-[280px] mx-auto opacity-80">
+              Transform your sports management experience. Download official CORE files to gaining access.
             </p>
 
-            {/* Install CTA */}
-            <div className="space-y-3 max-w-xs mx-auto">
+            {/* Main Action */}
+            <div className="space-y-4 max-w-[280px] mx-auto">
               <motion.button
                 onClick={handleInstall}
-                whileTap={{ scale: 0.97 }}
-                whileHover={{ scale: 1.02 }}
-                className="w-full flex items-center justify-center gap-3 py-4 px-6 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow"
+                disabled={isInstalling || isDone}
+                whileTap={{ scale: 0.96 }}
+                className="group relative w-full overflow-hidden"
               >
-                <Download size={20} />
-                {platform === 'ios' ? 'Add to Home Screen' : isInstallable ? 'Install App' : 'Install GAFFER'}
+                <div className={`absolute inset-0 transition-transform duration-500 group-hover:scale-105 ${
+                  isDone ? 'bg-green-500' : 'bg-gradient-to-r from-[#FF7A00] to-[#FF0000]'
+                }`} />
+                <div className="relative py-5 px-6 rounded-2xl font-display font-black text-lg text-white flex items-center justify-center gap-3 shadow-[0_10px_30px_rgba(255,92,0,0.4)]">
+                  {isInstalling ? (
+                    <>
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>DOWNLOADING...</span>
+                    </>
+                  ) : isDone ? (
+                    <>
+                      <Check size={22} strokeWidth={3} />
+                      <span>INSTALLED!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Download size={22} strokeWidth={2.5} />
+                      <span>DOWNLOAD APP</span>
+                    </>
+                  )}
+                </div>
               </motion.button>
 
               <button
-                onClick={() => router.push('/onboarding/splash')}
-                className="w-full py-3 px-6 rounded-2xl font-body text-sm text-gaffer-subtle border border-gaffer-border/50 hover:border-gaffer-border hover:text-gaffer-muted transition-all"
+                onClick={() => {
+                  if (isStandalone()) router.push('/onboarding/splash')
+                  else alert("Application restricted to PWA mode. Please download to continue.")
+                }}
+                className="w-full py-4 rounded-xl font-bold text-[13px] text-white/40 tracking-widest uppercase hover:text-white/60 transition-colors"
               >
-                Already installed? Open GAFFER →
+                Already Downloaded? Open →
               </button>
             </div>
           </motion.div>
         </div>
 
-        {/* Scroll hint */}
-        <motion.div
-          animate={{ y: [0, 8, 0] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="relative z-10 flex justify-center pb-8"
-        >
-          <span className="text-gaffer-subtle text-[10px] font-body tracking-[0.2em] uppercase">
-            Scroll to learn more
-          </span>
-        </motion.div>
-      </section>
-
-      {/* ── How to Install ── */}
-      <section className="px-6 py-16 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="flex items-center gap-2 mb-2">
-            <Smartphone size={16} className="text-gaffer-orange" />
-            <span className="text-gaffer-orange text-xs font-body font-semibold tracking-widest uppercase">
-              {platform === 'ios' ? 'iOS — Safari' : 'Android / Chrome'}
-            </span>
+        {/* Brand Footer */}
+        <div className="relative z-10 px-6 py-10 flex flex-col items-center gap-4 flex-shrink-0">
+          <div className="flex items-center gap-1.5 opacity-30">
+            <Smartphone size={14} />
+            <span className="text-[10px] font-bold tracking-[0.3em] uppercase">iOS • Android • Desktop</span>
           </div>
-          <h2 className="font-display font-bold text-2xl text-white mb-6">
-            How to Install
-          </h2>
-
-          <div className="space-y-4">
-            {installSteps.map((step, i) => (
-              <motion.div
-                key={step.label}
-                initial={{ opacity: 0, x: -16 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.35, delay: i * 0.09 }}
-                className="flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-2xl p-4"
-              >
-                <div className={`flex-shrink-0 w-10 h-10 rounded-xl border flex items-center justify-center ${step.color}`}>
-                  <step.icon size={18} />
-                </div>
-                <div>
-                  <p className="text-white font-body font-semibold text-sm">{step.label}</p>
-                  <p className="text-gaffer-muted text-xs font-body mt-0.5">{step.hint}</p>
-                </div>
-                <div className="ml-auto flex-shrink-0 w-6 h-6 rounded-full bg-gaffer-surface border border-gaffer-border flex items-center justify-center">
-                  <span className="text-gaffer-muted text-[10px] font-display font-bold">{i + 1}</span>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-
-          {platform === 'ios' && (
-            <motion.button
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setShowIOSModal(true)}
-              className="mt-4 w-full py-3 rounded-xl border border-gaffer-orange/40 text-gaffer-orange font-body text-sm font-medium hover:bg-gaffer-orange/5 transition-all"
-            >
-              Show me step-by-step
-            </motion.button>
-          )}
-        </motion.div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="px-6 py-12 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-          className="mb-8"
-        >
-          <h2 className="font-display font-bold text-2xl text-white mb-2">
-            Everything You Need
-          </h2>
-          <p className="font-body text-gaffer-muted text-sm">
-            Built for the modern athlete and sports organization
+          <p className="text-white/20 text-[10px] font-medium tracking-widest uppercase">
+            © {new Date().getFullYear()} GAFFER CORE
           </p>
-        </motion.div>
-
-        <div className="grid grid-cols-1 gap-3">
-          {features.map((feature, i) => (
-            <motion.div
-              key={feature.title}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.35, delay: i * 0.08 }}
-              className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex gap-4"
-            >
-              <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center">
-                <feature.icon size={18} className="text-gaffer-orange" />
-              </div>
-              <div>
-                <h3 className="font-display font-bold text-white text-sm mb-0.5">{feature.title}</h3>
-                <p className="font-body text-gaffer-muted text-xs leading-relaxed">{feature.desc}</p>
-              </div>
-            </motion.div>
-          ))}
         </div>
       </section>
-
-      {/* ── Bottom CTA ── */}
-      <section className="px-6 py-10 max-w-lg mx-auto">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="bg-gaffer-card border border-gaffer-orange/20 rounded-3xl p-6 text-center"
-        >
-          <GafferLogo size="sm" className="justify-center mb-3" />
-          <p className="font-body text-gaffer-muted text-sm mb-5">
-            Install the app to unlock the full GAFFER experience.
-          </p>
-          <motion.button
-            onClick={handleInstall}
-            whileTap={{ scale: 0.97 }}
-            className="w-full py-4 rounded-2xl font-display font-bold text-base text-white bg-orange-gradient-btn shadow-orange-glow flex items-center justify-center gap-2"
-          >
-            <Download size={18} />
-            Install GAFFER
-          </motion.button>
-        </motion.div>
-      </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-gaffer-border px-6 py-6 text-center">
-        <p className="text-gaffer-subtle text-xs font-body">
-          © {new Date().getFullYear()} The GAFFER. All rights reserved.
-        </p>
-      </footer>
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { LeagueHeader } from './league/LeagueHeader';
 import { LiveMatchSection } from './league/LiveMatchSection';
 import { LeagueTabs } from './league/LeagueTabs';
@@ -69,13 +70,11 @@ export default function LeagueDashboard() {
   };
 
   return (
-    <div className="mx-auto relative flex flex-col min-h-screen"
+    <div className="mx-auto relative flex flex-col min-h-screen bg-[#181928] overflow-x-hidden"
       style={{ 
-        width: '329px',
-        borderRadius: '28.03px', 
-        backgroundColor: '#181928',
+        width: '100%',
+        maxWidth: '375px',
         fontFamily: "'Poppins', sans-serif",
-        overflowX: 'hidden'
       }}
     >
       {/* Background Gradient Glows */}

@@ -105,8 +105,15 @@ export function PlayerCard({
               : { filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.6))' }
           }
           transition={{ duration: 0.2 }}
+          className="relative"
         >
-          <JerseyIcon color={player.teamColor} size={jerseySize} />
+          {player.avatarUrl ? (
+            <div className={`rounded-xl overflow-hidden border ${selected ? 'border-[#ff6b00]' : 'border-white/10'}`} style={{ width: jerseySize, height: jerseySize }}>
+              <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover object-top" />
+            </div>
+          ) : (
+            <JerseyIcon color={player.teamColor} size={jerseySize} />
+          )}
         </motion.div>
 
         {player.isCaptain && <CaptainBadge />}

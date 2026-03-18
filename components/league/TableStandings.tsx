@@ -63,7 +63,7 @@ export function TableStandings() {
         </div>
 
         {/* Table Headers */}
-        <div className="flex items-center text-[#94a3b8] mb-3 px-1" style={{ width: '268.82px' }}>
+        <div className="flex items-center text-[#94a3b8] mb-3 px-1 w-full">
           <span 
             className="text-white"
             style={{
@@ -84,7 +84,7 @@ export function TableStandings() {
             <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>W</span>
             <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>D</span>
             <span className="w-[20px] text-center" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>L</span>
-            <span className="w-[35px] text-right" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>Poin</span>
+            <span className="w-[40px] text-right" style={{ fontFamily: "'Poppins', sans-serif", fontSize: '12.27px' }}>Pts</span>
           </div>
         </div>
 
@@ -93,9 +93,8 @@ export function TableStandings() {
           {teams.map((team, i) => (
             <div 
               key={i} 
-              className="flex items-center border-b border-[#2E2F3E]/40 last:border-0 hover:bg-white/[0.02] transition-colors px-1 group"
+              className="flex items-center border-b border-[#2E2F3E]/40 last:border-0 hover:bg-white/[0.02] transition-colors px-1 group w-full"
               style={{
-                width: '268.82px',
                 height: '35px',
               }}
             >
@@ -130,7 +129,7 @@ export function TableStandings() {
                 <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.w}</span>
                 <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.d}</span>
                 <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.l}</span>
-                <span className="w-[35px] text-right text-white text-[12.27px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.pts}</span>
+                <span className="w-[40px] text-right text-white text-[12.27px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.pts}</span>
               </div>
             </div>
           ))}
