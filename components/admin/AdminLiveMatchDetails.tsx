@@ -283,6 +283,13 @@ export function AdminLiveMatchDetails() {
                   <span className="absolute top-5 right-6 text-[10px] font-bold text-white/20">84&apos;</span>
                 </div>
 
+                {/* Mock Live Event: Attempt Missed (from image 4 style) */}
+                <div className="bg-[#5AA1D1] rounded-[18px] px-6 py-4 flex items-center justify-between border border-white/5 shadow-lg">
+                   <p className="text-[#0A1D2D] font-chakra font-bold text-[11px] leading-relaxed uppercase pr-4">
+                     Attempt missed. Tunde (MECH) header from the center of the box is close, but misses to the right.
+                   </p>
+                </div>
+
                 {/* Mock Live Event: Goal (from image 2 style) */}
                 <div className="bg-[#8E103E] rounded-[24px] px-6 py-5 flex flex-col gap-3 border border-white/5 shadow-xl relative group">
                    <div className="flex items-center gap-4">
@@ -311,31 +318,49 @@ export function AdminLiveMatchDetails() {
                 </div>
               </div>
 
-              {/* Step: Goal/Card Visualization */}
-              {commentaryStep !== 'idle' && selectedAction && ['GOAL', 'RED CARD', 'YELLOW CARD', 'SUBSTITUTION'].includes(selectedAction) && (
+              {/* Step: Goal/Card/Attempt Visualization */}
+              {commentaryStep !== 'idle' && selectedAction && ['GOAL', 'RED CARD', 'YELLOW CARD', 'SUBSTITUTION', 'ATTEMPT MISSED'].includes(selectedAction) && (
                 <div className="flex flex-col items-center justify-center pt-20 space-y-6">
                    <motion.div 
                      initial={{ scale: 0.5, opacity: 0 }}
                      animate={{ scale: 1, opacity: 1 }}
-                     className="w-48 h-48 flex items-center justify-center relative"
+                     className="w-full flex flex-col items-center justify-center relative"
                    >
-                      <div className={`absolute inset-0 rounded-full animate-pulse ${
+                      <div className={`absolute w-48 h-48 rounded-full animate-pulse -z-10 ${
                                           selectedAction === 'GOAL' ? 'bg-white/5' : 
                                           selectedAction === 'RED CARD' ? 'bg-red-500/10' : 
                                           selectedAction === 'YELLOW CARD' ? 'bg-yellow-500/10' :
                                           'bg-blue-500/10'
                                         }`} />
+
                       {selectedAction === 'GOAL' ? (
                         <Trophy size={80} className="text-white/20" />
                       ) : selectedAction === 'SUBSTITUTION' ? (
                         <Repeat size={80} className="text-white/20" />
+                      ) : selectedAction === 'ATTEMPT MISSED' ? (
+                        <div className="relative flex flex-col items-center">
+                           {/* Goal Post SVG */}
+                           <div className="relative">
+                              <span className="absolute -top-12 left-1/2 -translate-x-1/2 text-red-500 font-chakra font-black text-6xl">X</span>
+                              <svg width="240" height="140" viewBox="0 0 240 140" fill="none" className="opacity-60">
+                                 <path d="M10 130 V 20 H 230 V 130" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                                 <path d="M10 20 L 40 10 H 200 L 230 20" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
+                                 <path d="M40 10 V 110 M 200 10 V 110" stroke="white" strokeWidth="2" strokeOpacity="0.3" />
+                                 <path d="M10 130 H 230" stroke="white" strokeWidth="1" strokeOpacity="0.1" />
+                                 {/* Net Effect */}
+                                 <pattern id="net" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+                                    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5" strokeOpacity="0.1" />
+                                 </pattern>
+                                 <rect x="10" y="20" width="220" height="110" fill="url(#net)" />
+                              </svg>
+                           </div>
+                        </div>
                       ) : (
                         <motion.div 
                           initial={{ rotate: -20, y: 50 }}
                           animate={{ rotate: 0, y: 0 }}
                           className="relative"
                         >
-                           {/* Hand/Card Mockup using SVG */}
                            <svg width="120" height="160" viewBox="0 0 120 160" className="drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]">
                               <rect 
                                 x="20" y="0" width="80" height="120" rx="10" 
@@ -345,7 +370,7 @@ export function AdminLiveMatchDetails() {
                         </motion.div>
                       )}
                    </motion.div>
-                   <h2 className={`font-chakra font-black text-6xl italic opacity-20 tracking-tighter uppercase ${
+                   <h2 className={`font-chakra font-black text-6xl italic opacity-20 tracking-tighter uppercase text-center w-full px-6 ${
                                     selectedAction === 'RED CARD' ? 'text-red-500' : 
                                     selectedAction === 'YELLOW CARD' ? 'text-yellow-500' : 'text-white'
                                   }`}>
@@ -405,8 +430,8 @@ export function AdminLiveMatchDetails() {
                               initial={{ opacity: 0, x: 20 }}
                               animate={{ opacity: 1, x: 0 }}
                               onClick={() => {
-                                if (['RED CARD', 'YELLOW CARD', 'GOAL', 'SUBSTITUTION'].includes(selectedAction || '')) {
-                                  setCommentaryStep('scorer') // 'scorer' is used as 'player out' for subs
+                                if (['RED CARD', 'YELLOW CARD', 'GOAL', 'SUBSTITUTION', 'ATTEMPT MISSED'].includes(selectedAction || '')) {
+                                  setCommentaryStep('scorer') // 'scorer' is used as 'player out' for subs or 'player' for misses
                                 } else {
                                   setCommentaryStep('idle')
                                 }
@@ -445,21 +470,21 @@ export function AdminLiveMatchDetails() {
                                   setCommentaryStep('idle')
                                 }
                               }}
-                              className="flex items-center justify-between w-full max-w-[200px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
+                              className="flex items-center justify-between w-full max-w-[210px] px-4 py-2 bg-[#4A4646]/90 backdrop-blur-md rounded-[12px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
                             >
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-3">
                                 <div className="w-5 h-5 rounded-full bg-white/10 p-1">
                                   <img src={selectedAction === 'SUBSTITUTION' && commentaryStep === 'assist' ? "/images/mc_logo.png" : "/images/barca_logo.png"} className="w-full h-full object-contain" alt="" />
                                 </div>
-                                <span className="font-chakra font-black text-[12px] uppercase tracking-wider">{player.name}</span>
+                                <span className="font-chakra font-black text-[13px] uppercase tracking-wide">{player.name}</span>
                               </div>
-                              <span className="text-[10px] font-bold text-white/40">{player.pos}</span>
+                              <span className="text-[10px] font-bold text-white/40 uppercase pl-3">{player.pos}</span>
                             </motion.button>
                           ))}
                           {selectedAction === 'GOAL' && commentaryStep === 'scorer' && (
                              <motion.button
                                 onClick={() => setCommentaryStep('idle')}
-                                className="flex items-center gap-3 w-full max-w-[200px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left font-chakra font-black text-[12px] uppercase"
+                                className="flex items-center justify-center w-full max-w-[210px] px-4 py-2 bg-[#4A4646]/90 backdrop-blur-md rounded-[12px] border border-white/5 text-white shadow-xl active:scale-95 transition-all font-chakra font-black text-[13px] uppercase tracking-wider"
                              >
                                 OWN GOAL
                              </motion.button>
