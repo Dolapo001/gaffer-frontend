@@ -9,29 +9,77 @@ import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
-import { TOP_NEWS, TRENDING_POSTS, type Article } from '@/lib/mockData'
+import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 
-function fetchNews() {
-  return new Promise<{ topNews: Article[]; trending: Article[] }>((resolve) =>
-    setTimeout(() => resolve({ topNews: TOP_NEWS, trending: TRENDING_POSTS }), 900)
-  )
+function timeAgo(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime()
+  const m = Math.floor(diff / 60000)
+  if (m < 60) return `${m}m ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
+function toNewsCardProps(item: FeedItem) {
+  return {
+    id: item._id,
+    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
+    source: { name: 'GAFFER', verified: true },
+    title: item.body.split('\n')[0].slice(0, 120),
+    excerpt: item.body.length > 120 ? item.body.slice(0, 160) + '...' : undefined,
+    likes: item.likesCount,
+    timeAgo: timeAgo(item.createdAt),
+  }
+}
+
+function toTrendingProps(item: FeedItem) {
+  const authorLabel = item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'User'
+  return {
+    id: item._id,
+    author: {
+      name: authorLabel,
+      handle: item.authorId.slice(-8),
+      verified: item.authorType === 'org',
+    },
+    content: item.body,
+    image: item.media?.find((m) => m.type === 'image')?.url,
+    likes: item.likesCount,
+  }
+}
+
+function toArticleProps(item: FeedItem) {
+  return {
+    id: item._id,
+    title: item.body.split('\n')[0].slice(0, 100),
+    content: item.body,
+    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
+    date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+    likes: item.likesCount,
+    author: {
+      name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
+      handle: `${item.authorType}_${item.authorId.slice(-6)}`,
+      verified: item.authorType === 'org',
+    },
+  }
 }
 
 export default function NewsPage() {
   const router = useRouter()
-  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null)
+  const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['news-feed'],
-    queryFn: fetchNews,
+    queryKey: ['global-feed-news', 1],
+    queryFn: () => getGlobalFeed(1),
+    staleTime: 60_000,
   })
 
-  const topNews = data?.topNews ?? []
-  const trending = data?.trending ?? []
+  const items: FeedItem[] = (data?.items ?? data?.data ?? []) as FeedItem[]
+  const newsItems = items.filter((i) => i.type === 'news')
+  const postItems = items.filter((i) => i.type === 'post' || i.type === 'repost')
 
   return (
     <AnimatePresence mode="wait">
-      {selectedArticle ? (
+      {selectedItem ? (
         <motion.div
           key="article"
           initial={{ opacity: 0 }}
@@ -39,7 +87,7 @@ export default function NewsPage() {
           exit={{ opacity: 0 }}
           className="min-h-screen bg-gaffer-bg flex flex-col"
         >
-          <ArticleDetail article={selectedArticle} onBack={() => setSelectedArticle(null)} />
+          <ArticleDetail article={toArticleProps(selectedItem)} onBack={() => setSelectedItem(null)} />
         </motion.div>
       ) : (
         <motion.div
@@ -49,10 +97,9 @@ export default function NewsPage() {
           exit={{ opacity: 0 }}
           className="min-h-screen bg-gaffer-bg"
         >
-          {/* Safe area */}
           <div className="h-12 pt-safe" />
 
-          {/* Search bar header */}
+          {/* Search bar */}
           <div className="sticky top-0 z-10 bg-gaffer-bg/95 backdrop-blur-md px-4 py-3 border-b border-gaffer-border/50">
             <button
               onClick={() => router.push('/app/news/search')}
@@ -64,16 +111,10 @@ export default function NewsPage() {
           </div>
 
           <div className="px-4 py-4 space-y-6 pb-28">
-
             {/* Top News */}
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display font-bold text-white text-base tracking-wide">
-                  Top News
-                </h2>
-                <button className="text-gaffer-orange text-xs font-body font-medium">
-                  See all
-                </button>
+                <h2 className="font-display font-bold text-white text-base tracking-wide">Top News</h2>
               </div>
 
               {isLoading ? (
@@ -87,34 +128,34 @@ export default function NewsPage() {
                     ))}
                   </div>
                 </div>
+              ) : newsItems.length === 0 && items.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-gaffer-muted text-sm font-body">No news yet</p>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  {topNews[0] && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
+                  {(newsItems.length > 0 ? newsItems : items).slice(0, 1).map((item) => (
+                    <motion.div key={item._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                       <NewsCard
-                        {...topNews[0]}
+                        {...toNewsCardProps(item)}
                         size="large"
-                        onClick={() => setSelectedArticle(topNews[0])}
+                        onClick={() => setSelectedItem(item)}
                       />
                     </motion.div>
-                  )}
-
+                  ))}
                   <div className="divide-y divide-gaffer-border">
-                    {topNews.slice(1).map((article, i) => (
+                    {(newsItems.length > 0 ? newsItems : items).slice(1, 5).map((item, i) => (
                       <motion.div
-                        key={article.id}
+                        key={item._id}
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: i * 0.08 }}
                         className="pt-3 first:pt-0"
                       >
                         <NewsCard
-                          {...article}
+                          {...toNewsCardProps(item)}
                           size="small"
-                          onClick={() => setSelectedArticle(article)}
+                          onClick={() => setSelectedItem(item)}
                         />
                       </motion.div>
                     ))}
@@ -123,51 +164,32 @@ export default function NewsPage() {
               )}
             </section>
 
-            {/* Trending section */}
-            <section>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="font-display font-bold text-white text-base tracking-wide">
-                  Trending
-                </h2>
-                <button className="text-gaffer-orange text-xs font-body font-medium">
-                  See all
-                </button>
-              </div>
-
-              {isLoading ? (
-                <div className="space-y-3">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 animate-pulse">
-                      <div className="flex items-center gap-2.5 mb-3">
-                        <div className="w-9 h-9 rounded-full bg-gaffer-surface" />
-                        <div className="flex-1 space-y-1.5">
-                          <div className="h-3 bg-gaffer-surface rounded w-1/3" />
-                          <div className="h-2.5 bg-gaffer-surface rounded w-1/4" />
-                        </div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="h-3 bg-gaffer-surface rounded w-full" />
-                        <div className="h-3 bg-gaffer-surface rounded w-4/5" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {trending.map((post, i) => (
-                    <motion.div
-                      key={post.id}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.2 + i * 0.1 }}
-                    >
-                      <TrendingPost {...post} />
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </section>
-
+            {/* Trending posts */}
+            {postItems.length > 0 && (
+              <section>
+                <h2 className="font-display font-bold text-white text-base tracking-wide mb-3">Trending</h2>
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 animate-pulse h-24" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {postItems.slice(0, 5).map((item, i) => (
+                      <motion.div
+                        key={item._id}
+                        initial={{ opacity: 0, y: 12 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 + i * 0.1 }}
+                      >
+                        <TrendingPost {...toTrendingProps(item)} onClick={() => setSelectedItem(item)} />
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
           </div>
         </motion.div>
       )}
