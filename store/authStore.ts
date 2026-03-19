@@ -1,7 +1,8 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import { register, login, logout } from '@/lib/services/auth.service'
-import { tokenStore } from '@/lib/api'
+import { tokenStore, ApiError } from '@/lib/api'
+import { translateError } from '@/lib/errorMessages'
 import type { AuthUser } from '@/lib/services/auth.service'
 import type { UserProfile } from '@/lib/services/user.service'
 
@@ -37,7 +38,7 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       profile: null,
       accessToken: null,
@@ -46,9 +47,24 @@ export const useAuthStore = create<AuthState>()(
       role: null,
       error: null,
 
-      setUser: (user, token) => {
-        if (token) tokenStore.set(token)
-        set({ user, isAuthenticated: !!user, accessToken: token ?? null })
+      setUser: (user, accessToken) => {
+        const currentUser = get().user
+        
+        // If we are logging out, or switching to an entirely different user account,
+        // we MUST clear the React Query cache so the old user's data doesn't persist.
+        if (user === null || (user && currentUser && user.id !== currentUser.id)) {
+          if (typeof window !== 'undefined') {
+            const { queryClient } = require('@/lib/queryClient')
+            queryClient.clear()
+          }
+        }
+
+        if (accessToken) tokenStore.set(accessToken)
+        set({
+          user,
+          accessToken: accessToken ?? null,
+          isAuthenticated: !!user,
+        })
       },
 
       updateUser: (newData) => {
@@ -82,14 +98,26 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await login(email, password)
           tokenStore.set(res.accessToken)
+          
+          // Auto-sync the UI role to whatever the user last used on the backend
+          // Defaults to personal if completely missing
+          const syncedRole: UserRole = res.user?.lastRole === 'organization' ? 'organization' : 'personal'
+          
+          if (typeof document !== 'undefined') {
+            document.cookie = `gaffer-user-role=${syncedRole}; path=/; max-age=31536000; SameSite=Lax`
+          }
+
           set({
             user: res.user,
+            role: syncedRole,
             accessToken: res.accessToken,
             isAuthenticated: true,
             error: null,
           })
-        } catch (err: any) {
-          const msg = err?.message ?? 'Login failed'
+        } catch (err: unknown) {
+          const msg = err instanceof ApiError
+            ? translateError(err.code, err.message)
+            : 'Login failed. Please try again.'
           set({ error: msg })
           throw err
         } finally {
@@ -102,6 +130,12 @@ export const useAuthStore = create<AuthState>()(
         try {
           const res = await register(email, password)
           tokenStore.set(res.accessToken)
+          
+          if (typeof window !== 'undefined') {
+            const { queryClient } = require('@/lib/queryClient')
+            queryClient.clear()
+          }
+
           set({
             user: res.user,
             accessToken: res.accessToken,
@@ -109,8 +143,10 @@ export const useAuthStore = create<AuthState>()(
             error: null,
           })
           return res.user
-        } catch (err: any) {
-          const msg = err?.message ?? 'Registration failed'
+        } catch (err: unknown) {
+          const msg = err instanceof ApiError
+            ? translateError(err.code, err.message)
+            : 'Registration failed. Please try again.'
           set({ error: msg })
           throw err
         } finally {
@@ -128,6 +164,10 @@ export const useAuthStore = create<AuthState>()(
           tokenStore.clear()
           if (typeof document !== 'undefined') {
             document.cookie = 'gaffer-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+          }
+          if (typeof window !== 'undefined') {
+            const { queryClient } = require('@/lib/queryClient')
+            queryClient.clear()
           }
           set({
             user: null,

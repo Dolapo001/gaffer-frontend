@@ -7,7 +7,7 @@ import { Search, X, ArrowLeft, TrendingUp } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { NewsCard } from '@/components/home/NewsCard'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
-import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getGlobalFeed, searchFeedItems, type FeedItem } from '@/lib/services/feed.service'
 
 const HOT_TOPICS = ['Football', 'Transfer News', 'League', 'Champions League', 'Results', 'Fantasy']
 
@@ -58,17 +58,20 @@ export default function NewsSearchPage() {
     inputRef.current?.focus()
   }, [])
 
-  const { data } = useQuery({
-    queryKey: ['global-feed-search'],
-    queryFn: () => getGlobalFeed(1),
-    staleTime: 60_000,
+  const { data, isLoading } = useQuery({
+    queryKey: ['feed-search', query],
+    queryFn: () => query.trim().length >= 2 
+      ? searchFeedItems(query) 
+      : getGlobalFeed(1),
+    staleTime: 5000,
+    enabled: true, // we always want some context (either hot topics or results)
   })
 
-  const allItems: FeedItem[] = (data?.items ?? data?.data ?? []) as FeedItem[]
+  // Normalize backend response: some endpoints return .items, others .data, others both.
+  const allItems: FeedItem[] = (data?.items || data?.data || []) as FeedItem[]
 
-  const results = query.trim().length >= 2
-    ? allItems.filter((item) => item.body.toLowerCase().includes(query.toLowerCase()))
-    : []
+  // results is allItems if we have a query, otherwise empty for the "Hot Topics" view
+  const searchResults = query.trim().length >= 2 ? allItems : []
 
   if (selectedItem) {
     return (
@@ -153,10 +156,10 @@ export default function NewsSearchPage() {
           {query.trim().length >= 2 && (
             <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <p className="text-gaffer-muted text-xs font-body mb-4">
-                {results.length} result{results.length !== 1 ? 's' : ''} for &quot;{query}&quot;
+                {searchResults.length} result{searchResults.length !== 1 ? 's' : ''} for &quot;{query}&quot;
               </p>
 
-              {results.length === 0 ? (
+              {searchResults.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-3">
                   <Search size={40} className="text-gaffer-subtle" />
                   <p className="text-white font-body font-medium">No results found</p>
@@ -166,7 +169,7 @@ export default function NewsSearchPage() {
                 </div>
               ) : (
                 <div className="space-y-4 divide-y divide-gaffer-border">
-                  {results.map((item, i) => (
+                  {searchResults.map((item, i) => (
                     <motion.div
                       key={item._id}
                       initial={{ opacity: 0, y: 8 }}

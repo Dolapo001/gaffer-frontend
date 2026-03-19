@@ -1,3 +1,4 @@
+
 /**
  * Gaffer API Client
  * JWT Bearer token authentication + HttpOnly refresh cookie rotation
@@ -12,7 +13,7 @@ let _accessToken: string | null = null
 
 export const tokenStore = {
   get: (): string | null => _accessToken,
-  set: (token: string | null) => { 
+  set: (token: string | null) => {
     _accessToken = token
     if (typeof document !== 'undefined') {
       if (token) {
@@ -22,7 +23,7 @@ export const tokenStore = {
       }
     }
   },
-  clear: () => { 
+  clear: () => {
     _accessToken = null
     if (typeof document !== 'undefined') {
       document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
@@ -135,15 +136,49 @@ export async function apiRequest<T = unknown>(
         headers,
         body: body !== undefined ? JSON.stringify(body) : undefined,
       })
+
+      if (retryRes.status === 401) {
+        // Even after refresh, the endpoint rejected us. 
+        // Boot them out so they don't get stuck.
+        forceEjectAndRedirect('Your session has expired. Please log in again.')
+      }
+
       return parseResponse<T>(retryRes)
     } catch {
-      tokenStore.clear()
-      // Let consumers handle auth failure (redirect to login)
-      throw new ApiError(401, 'SESSION_EXPIRED', 'Your session has expired. Please log in again.')
+      forceEjectAndRedirect('Your session has expired. Please log in again.')
     }
   }
 
+  // If a standard response returns 401 (and we didn't intercept it for auth, usually because
+  // skipRefresh was true, or some other reason), eject them.
+  if (res.status === 401 && !isPublic) {
+    forceEjectAndRedirect('Your session has expired. Please log in again.')
+  }
+
   return parseResponse<T>(res)
+}
+
+
+function forceEjectAndRedirect(message: string): never {
+  tokenStore.clear()
+  if (typeof document !== 'undefined') {
+    document.cookie = 'gaffer-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+    const { useAuthStore } = require('@/store/authStore')
+    const { useToastStore } = require('@/store/toastStore')
+
+    useAuthStore.getState().setUser(null, undefined)
+
+    useToastStore.getState().addToast({
+      message,
+      type: 'error',
+      duration: 4000
+    })
+
+    if (window.location.pathname !== '/auth/login') {
+      window.location.href = '/auth/login'
+    }
+  }
+  throw new ApiError(401, 'SESSION_EXPIRED', message)
 }
 
 // ─── Convenience methods ──────────────────────────────────────────────────────
@@ -169,14 +204,18 @@ export const api = {
 
 export function getErrorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    // Surface field-level validation errors
+    // Import inline to avoid circular deps at module level
+    const { translateError } = require('@/lib/errorMessages')
+
+    // Surface field-level validation errors first
     if (err.details && typeof err.details === 'object') {
       const fieldErrors = Object.values(err.details as Record<string, string[]>)
         .flat()
         .filter(Boolean)
       if (fieldErrors.length) return fieldErrors[0]
     }
-    return err.message
+
+    return translateError(err.code, err.message)
   }
   if (err instanceof Error) return err.message
   return 'An unexpected error occurred'

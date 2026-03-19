@@ -14,6 +14,7 @@ import { getStandings } from '@/lib/services/standings.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
+import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
 
 function teamLabel(side: Fixture['homeTeamId']) {
   if (typeof side === 'string') return 'TBD'
@@ -32,7 +33,7 @@ function formatKickoff(iso: string) {
   }
 }
 
-type Tab = 'overview' | 'schedule' | 'standings'
+type Tab = 'overview' | 'schedule' | 'standings' | 'fantasy'
 
 export default function TournamentDetailPage() {
   const router = useRouter()
@@ -116,8 +117,8 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-0 px-4 pb-0">
-            {(['overview', 'schedule', 'standings'] as Tab[]).map((tab) => (
+          <div className="flex gap-0 px-4 pb-0 overflow-x-auto no-scrollbar">
+            {(['overview', 'schedule', 'standings', 'fantasy'] as Tab[]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`relative flex-1 py-3 text-xs font-body font-semibold capitalize transition-colors ${
                   activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle'
@@ -282,6 +283,12 @@ export default function TournamentDetailPage() {
                     ))}
                   </div>
                 )}
+              </motion.div>
+            )}
+            {/* ── FANTASY ── */}
+            {activeTab === 'fantasy' && (
+              <motion.div key="fy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <FantasyAdminPanel competitionId={id} />
               </motion.div>
             )}
           </AnimatePresence>

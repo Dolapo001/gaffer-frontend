@@ -112,3 +112,9 @@ export async function getComments(id: string, page: number = 1): Promise<{
 }> {
   return api.get(`/feed/${id}/comments?page=${page}`, { public: true })
 }
+
+// GET /feed/search — Search items by body text
+export async function searchFeedItems(query: string, page: number = 1): Promise<FeedPage> {
+  if (!query.trim()) return { items: [], total: 0, page: 1 }
+  return api.get<FeedPage>(`/feed/search?q=${encodeURIComponent(query)}&page=${page}`, { public: true })
+}
