@@ -107,7 +107,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       status: 'upcoming',
       location: 'Main Stadium',
       format: addedFormats.map(f => f.type).join(' + '),
-      createdBy: user?.uid || 'org_id',
+      createdBy: user?.id || 'org_id',
       maxTeams: 16
     })
     setShowConfirm(false)

@@ -16,7 +16,7 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
   const { user, setRole, role: currentRole } = useAuthStore()
   const { addToast } = useToast()
 
-  const displayName = user?.displayName || user?.email?.split('@')[0] || 'Ojedokun Olaniyi'
+  const displayName = user?.email?.split('@')[0] || 'Ojedokun Olaniyi'
 
   const handleNav = (path: string, label: string) => {
     if (path === '#') {

@@ -123,9 +123,9 @@ export default function MatchCenterPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['match', matchId],
     queryFn: () => getMatchState(matchId),
-    refetchInterval: (data) => {
+    refetchInterval: (query) => {
       // Poll every 30s during live matches
-      return data?.fixture?.status === 'live' ? 30_000 : false
+      return (query as any).state?.data?.fixture?.status === 'live' ? 30_000 : false
     },
   })
 
