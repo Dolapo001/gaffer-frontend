@@ -3,14 +3,14 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { useAuthListener } from '@/hooks/useAuthListener'
 import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
+
+// useAuthListener is mounted once at root via AuthProvider — not needed here.
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { isAuthenticated, isLoading, role } = useAuthStore()
   const isReady = useStandaloneGuard()
-  useAuthListener()
 
   // If user is already authenticated, send them to the right place
   useEffect(() => {

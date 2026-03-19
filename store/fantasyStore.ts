@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { useShallow } from 'zustand/react/shallow'
 import {
   SQUAD,
   GAMEWEEK_INFO,
@@ -12,8 +13,8 @@ import {
   makeTransfer,
   activateChip,
   getMyFantasyTeam,
+  SQUAD_RULES,
 } from '@/lib/services/fantasy.service'
-import { SQUAD_RULES } from '@/lib/services/fantasy.service'
 
 interface FantasyState {
   // Competition context
@@ -195,7 +196,7 @@ export const useFantasyStore = create<FantasyState>()(
       setHasSeenWelcome: (val) => set({ hasSeenWelcome: val }),
       setHasCreatedTeam: (val) => set({ hasCreatedTeam: val }),
       setHasOrganizedBench: (val) => set({ hasOrganizedBench: val }),
-      setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
+      setHasNamedTeam: (val) => set({ hasNamedTeam: true }),
       setTeamName: (name) => set({ teamName: name }),
 
       resetTeam: () =>
@@ -243,5 +244,13 @@ export const selectBenchPlayers = (state: FantasyState) =>
 
 export const selectPlayerById = (id: string | null) => (state: FantasyState) =>
   id ? state.players.find((p) => p.id === id) ?? null : null
+
+// ─── Memoised hooks (shallow-compare array results to prevent extra renders) ──
+
+export const usePitchPlayers = () =>
+  useFantasyStore(useShallow(selectPitchPlayers))
+
+export const useBenchPlayers = () =>
+  useFantasyStore(useShallow(selectBenchPlayers))
 
 export { SQUAD_RULES }

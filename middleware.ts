@@ -1,0 +1,67 @@
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+
+const ADMIN_ROUTES = ['/admin']
+const APP_ROUTES = ['/app']
+const AUTH_ROUTES = ['/auth']
+const PUBLIC_ROUTES = ['/', '/onboarding']
+
+/**
+ * Server-side route protection.
+ * Reads a lightweight presence cookie set after successful login.
+ * The cookie carries no sensitive data — it is only used as a
+ * "is this browser session authenticated?" signal at the edge.
+ * Full authorization (role verification) still happens server-side
+ * via the Firebase Admin SDK or backend JWT validation.
+ */
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Let public / onboarding routes through unconditionally
+  const isPublic = PUBLIC_ROUTES.some(
+    (r) => pathname === r || pathname.startsWith(r + '/')
+  )
+  if (isPublic) return NextResponse.next()
+
+  // Read the auth presence cookie (set during login, cleared on logout)
+  const authToken = request.cookies.get('gaffer-auth-token')?.value
+  const userRole = request.cookies.get('gaffer-user-role')?.value
+
+  const isAdminRoute = ADMIN_ROUTES.some((r) => pathname.startsWith(r))
+  const isAppRoute = APP_ROUTES.some((r) => pathname.startsWith(r))
+  const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r))
+
+  // Unauthenticated user trying to access protected routes → login
+  if ((isAdminRoute || isAppRoute) && !authToken) {
+    const loginUrl = new URL('/auth/login', request.url)
+    loginUrl.searchParams.set('next', pathname)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  // Authenticated user trying to reach admin without org role → dashboard
+  if (isAdminRoute && authToken && userRole !== 'organization') {
+    return NextResponse.redirect(new URL('/app/dashboard', request.url))
+  }
+
+  // Authenticated user visiting auth pages → redirect to their home
+  if (isAuthRoute && authToken) {
+    const destination =
+      userRole === 'organization' ? '/admin' : '/app/dashboard'
+    return NextResponse.redirect(new URL(destination, request.url))
+  }
+
+  return NextResponse.next()
+}
+
+export const config = {
+  /*
+   * Match all routes EXCEPT:
+   * - _next/static  (static assets)
+   * - _next/image   (image optimisation)
+   * - favicon.ico / manifest / icons / sw.js / workbox
+   * - api routes (handled by the backend)
+   */
+  matcher: [
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icons|sw\\.js|workbox-.*\\.js|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)).*)',
+  ],
+}

@@ -70,11 +70,6 @@ export function FixturesSection() {
               fixture={fixture}
               customWidth="297px"
               customHeight="88px"
-            <FixtureCard 
-              key={fixture.id} 
-              fixture={fixture} 
-              customWidth="297px" 
-              customHeight="88px" 
               onClick={() => router.push(`/app/match/${fixture.id}`)}
             />
           ))}
@@ -119,12 +114,9 @@ export function FixturesSection() {
 function FixtureCard({ fixture, customWidth, customHeight, onClick }: { fixture: Fixture, customWidth?: string, customHeight?: string, onClick?: () => void }) {
   return (
     <div
-      className="bg-[#1a1b2e]/60 rounded-[28.03px] border border-[#2E2F3E] p-4 flex items-center justify-between shadow-lg"
-      style={{
-    <div 
       onClick={onClick}
       className={`bg-[#1a1b2e]/60 rounded-[28.03px] border border-[#2E2F3E] p-4 flex items-center justify-between shadow-lg ${onClick ? 'cursor-pointer active:scale-[0.98] hover:bg-[#1a1b2e]/80 transition-all' : ''}`}
-      style={{ 
+      style={{
         width: customWidth || '302.25px',
         height: customHeight || '110.15px',
         backdropFilter: 'blur(8px)'

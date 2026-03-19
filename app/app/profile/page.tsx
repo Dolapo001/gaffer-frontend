@@ -7,7 +7,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/store/authStore'
-import { getProfile, updateProfile } from '@/lib/services/user.service'
+import { getProfile, updateProfile, type UserProfile } from '@/lib/services/user.service'
 import { updateProfileSchema, type UpdateProfileFormData } from '@/lib/schemas'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -20,11 +20,10 @@ export default function ProfilePage() {
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['profile'],
     queryFn: getProfile,
-    onSuccess: (data) => setProfile(data),
-  } as any)
+  })
 
   const {
     register,

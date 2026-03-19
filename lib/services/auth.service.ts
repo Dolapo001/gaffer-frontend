@@ -43,6 +43,11 @@ export async function refreshToken(): Promise<RefreshResponse> {
   return data
 }
 
+// POST /auth/forgot-password
+export async function resetPassword(email: string): Promise<void> {
+  await api.post<{ message: string }>('/auth/forgot-password', { email }, { public: true })
+}
+
 // POST /auth/logout
 export async function logout(): Promise<void> {
   try {

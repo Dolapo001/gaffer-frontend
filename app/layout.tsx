@@ -3,6 +3,8 @@ import { PWAProvider } from '@/components/PWAProvider'
 import { AuthProvider } from '@/components/AuthProvider'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { ToastContainer } from '@/components/ToastContainer'
+import { QueryProvider } from '@/components/QueryProvider'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -58,14 +60,18 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
-        <PWAProvider>
-          <AuthProvider>
-            <BrowserProtection>
-              <ToastContainer />
-              {children}
-            </BrowserProtection>
-          </AuthProvider>
-        </PWAProvider>
+        <QueryProvider>
+          <PWAProvider>
+            <AuthProvider>
+              <BrowserProtection>
+                <ErrorBoundary>
+                  <ToastContainer />
+                  {children}
+                </ErrorBoundary>
+              </BrowserProtection>
+            </AuthProvider>
+          </PWAProvider>
+        </QueryProvider>
       </body>
     </html>
   )

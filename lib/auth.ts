@@ -12,4 +12,4 @@ export const getAuth = (): Auth => ({})
 
 // Kept for compatibility with useAuthListener — calls the refresh endpoint
 // on mount to restore the session from the rt cookie.
-export { refreshToken as onAuthInit } from '@/lib/services/auth.service'
+export { refreshToken as onAuthInit, resetPassword } from '@/lib/services/auth.service'
