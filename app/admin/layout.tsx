@@ -1,11 +1,9 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useAuthStore } from '@/store/authStore'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 import Link from 'next/link'
-import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, CalendarClock, Award, FileText } from 'lucide-react'
 
@@ -20,30 +18,16 @@ const NAV_ITEMS = [
 ]
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading, role } = useAuthStore()
-  const isReady = useStandaloneGuard()
+  const { isReady } = useAuthGuard('organization')
 
-  useEffect(() => {
-    if (!isReady || isLoading) return
-    if (!isAuthenticated) {
-      router.replace('/auth/login')
-    } else if (role !== 'organization') {
-      // Personal users have no business on admin routes
-      router.replace('/app/dashboard')
-    }
-  }, [isReady, isAuthenticated, isLoading, role, router])
-
-  if (!isReady || isLoading) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
       </div>
     )
   }
-
-  if (!isAuthenticated || role !== 'organization') return null
 
   return (
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">

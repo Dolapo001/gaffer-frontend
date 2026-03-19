@@ -31,8 +31,8 @@ export function middleware(request: NextRequest) {
   const isAppRoute = APP_ROUTES.some((r) => pathname.startsWith(r))
   const isAuthRoute = AUTH_ROUTES.some((r) => pathname.startsWith(r))
 
-  // Unauthenticated user trying to access protected routes → login
-  if ((isAdminRoute || isAppRoute) && !authToken) {
+  // Unauthenticated user trying to access ANY non-public route → login
+  if (!isAuthRoute && !authToken) {
     const loginUrl = new URL('/auth/login', request.url)
     loginUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(loginUrl)

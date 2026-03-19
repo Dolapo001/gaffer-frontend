@@ -123,7 +123,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
 
   const handleFinalConfirm = () => {
     if (!orgId) {
-      toast.addToast('Please login to create tournament', 'error')
+      toast.addToast('You must create an Organization to host tournaments.', 'error')
       return
     }
 

@@ -33,6 +33,12 @@ export function useAuthListener() {
     refreshToken()
       .then((res) => {
         if (cancelled) return
+        
+        // Sync the role from the token so it overrides any stale UI / cookie state
+        if (res.user?.lastRole) {
+          setRole(res.user.lastRole as 'personal' | 'organization')
+        }
+        
         setUser(res.user, res.accessToken)
       })
       .catch(() => {

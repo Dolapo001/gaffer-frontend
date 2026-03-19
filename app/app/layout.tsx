@@ -1,10 +1,8 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useAuthStore } from '@/store/authStore'
-import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
+import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Gamepad2 } from 'lucide-react'
 import Link from 'next/link'
@@ -21,18 +19,10 @@ const NAV_ITEMS = [
 ]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading } = useAuthStore()
-  const isReady = useStandaloneGuard()
+  const { isReady } = useAuthGuard('personal')
 
-  useEffect(() => {
-    if (isReady && !isLoading && !isAuthenticated) {
-      router.replace('/auth/login')
-    }
-  }, [isReady, isAuthenticated, isLoading, router])
-
-  if (!isReady || isLoading) {
+  if (!isReady) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
         <div className="space-y-4 text-center">
@@ -42,8 +32,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
     )
   }
-
-  if (!isAuthenticated) return null
 
   return (
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">

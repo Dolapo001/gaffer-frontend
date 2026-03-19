@@ -158,6 +158,14 @@ export async function finalizeAllPricing(competitionId: string): Promise<{ messa
   return api.post<{ message: string }>(`/fantasy/${competitionId}/pricing/finalize`)
 }
 
+export async function validateTeamPricing(competitionId: string, teamId: string): Promise<{ message: string; data: any }> {
+  return api.post(`/fantasy/${competitionId}/pricing/teams/${teamId}/validate`)
+}
+
+export async function finalizeTeamPricing(competitionId: string, teamId: string): Promise<{ message: string }> {
+  return api.post<{ message: string }>(`/fantasy/${competitionId}/pricing/teams/${teamId}/finalize`)
+}
+
 // POST /fantasy/:competitionId/team
 export async function createFantasyTeam(
   competitionId: string,
