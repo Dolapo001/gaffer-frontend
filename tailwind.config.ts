@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'bg-base': '#0A0C10',
+        'bg-base': '#181928',
         'bg-surface': '#131720',
         'bg-card': '#1A1F2E',
         'border-gaffer': '#252D3D',
@@ -20,7 +20,7 @@ const config: Config = {
         'text-muted': '#8892A4',
         'text-subtle': '#4A5568',
         gaffer: {
-          bg: '#0A0C10',
+          bg: '#181928',
           surface: '#131720',
           card: '#1A1F2E',
           border: '#252D3D',

@@ -4,6 +4,10 @@ export interface AuthUser {
   id: string
   email: string
   status: 'active' | 'pending' | 'suspended' | 'deleted'
+  fullName?: string
+  isPersonalActive?: boolean
+  isOrgActive?: boolean
+  lastRole?: 'personal' | 'organization'
 }
 
 export interface AuthResponse {

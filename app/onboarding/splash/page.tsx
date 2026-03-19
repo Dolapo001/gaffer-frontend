@@ -25,41 +25,33 @@ export default function SplashPage() {
   }, [router, isAuthenticated, role, isLoading])
 
   return (
-    <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
+    <div className="min-h-screen bg-[#181928] flex items-center justify-center">
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-        className="flex flex-col items-center gap-4"
+        className="flex flex-col items-center gap-6"
       >
-        {/* Animated logo letter-by-letter */}
-        <div className="font-display font-black text-6xl tracking-wider">
-          {[
-            { char: 'G', color: '#FF6B00' },
-            { char: 'A', color: '#FF7A00' },
-            { char: 'F', color: '#FF5500' },
-            { char: 'F', color: '#EE3A00' },
-            { char: 'E', color: '#E02000' },
-            { char: 'R', color: '#CC1500' },
-          ].map(({ char, color }, i) => (
-            <motion.span
-              key={i}
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 + i * 0.08, ease: [0.16, 1, 0.3, 1] }}
-              style={{ color }}
-            >
-              {char}
-            </motion.span>
-          ))}
-        </div>
+        {/* Brand Logo */}
+        <motion.div
+           initial={{ opacity: 0, y: 10 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ duration: 0.8 }}
+           className="relative w-72 h-32"
+        >
+          <img 
+            src="/images/gaffer-logo.png" 
+            alt="GAFFER Logo" 
+            className="w-full h-full object-contain"
+          />
+        </motion.div>
 
         {/* Pulsing dots loader */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
-          className="flex gap-1.5 mt-4"
+          className="flex gap-1.5"
         >
           {[0, 1, 2].map((i) => (
             <motion.span

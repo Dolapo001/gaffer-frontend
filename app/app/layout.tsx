@@ -11,6 +11,8 @@ import Link from 'next/link'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
 
+import { BottomNavbar } from '@/components/BottomNavbar'
+
 const NAV_ITEMS = [
   { href: '/app/dashboard', icon: Home, label: 'Home' },
   { href: '/app/fantasy', icon: Gamepad2, label: 'Fantasy' },
@@ -57,42 +59,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </motion.main>
         </ErrorBoundary>
 
-        {/* Bottom navigation (Design Matched Bar) */}
-        <div id="global-nav-bar" className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none transition-opacity duration-300 h-28 flex items-end">
-          <nav 
-            className="w-full h-24 flex items-center justify-around px-6 backdrop-blur-2xl pointer-events-auto shadow-[0_-20px_40px_rgba(0,0,0,0.5)] border-t border-white/5"
-            style={{ 
-              backgroundColor: '#1b1c28',
-              borderRadius: '2.5rem 2.5rem 0 0',
-            }}
-          >
-            {NAV_ITEMS.map((item) => {
-              const isActive = pathname.startsWith(item.href)
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex flex-col items-center gap-1 transition-all"
-                >
-                  <div className="w-10 h-10 flex items-center justify-center relative">
-                    <item.icon 
-                      size={24} 
-                      strokeWidth={isActive ? 2.5 : 2} 
-                      className={isActive ? 'text-[#FF4D00]' : 'text-white/40'} 
-                    />
-                  </div>
-                  <span
-                    className={`text-[10px] font-bold tracking-wide ${
-                      isActive ? 'text-[#FF4D00]' : 'text-white/40'
-                    }`}
-                  >
-                    {item.label}
-                  </span>
-                </Link>
-              )
-            })}
-          </nav>
-        </div>
+        <BottomNavbar items={NAV_ITEMS} id="global-nav-bar" />
       </div>
   )
 }

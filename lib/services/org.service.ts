@@ -8,6 +8,7 @@ export interface Org {
   email?: string
   website?: string
   logoUrl?: string
+  sport?: string
   ownerId: string
   lifecycleStatus: string
   verificationStatus: string
@@ -41,6 +42,8 @@ export interface CreateOrgPayload {
   email?: string
   website?: string
   logoUrl?: string
+  sport?: string
+  ownerId?: string
 }
 
 // GET /orgs

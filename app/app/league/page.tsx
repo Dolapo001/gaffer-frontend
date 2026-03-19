@@ -69,7 +69,7 @@ export default function LeaguePage() {
   const isLoading = orgsLoading || compsLoading
 
   return (
-    <div className="min-h-screen bg-gaffer-bg pb-28">
+    <div className="min-h-screen bg-[#181928] pb-28">
       <div className="flex items-center justify-between px-4 pt-12 pb-4">
         <GafferLogo size="sm" />
       </div>

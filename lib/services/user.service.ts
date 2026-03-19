@@ -11,6 +11,9 @@ export interface UserProfile {
   emailVerified: boolean
   phoneVerified: boolean
   lastLoginAt: string | null
+  isPersonalActive: boolean
+  isOrgActive: boolean
+  lastRole: 'personal' | 'organization' | null
   createdAt: string
   updatedAt: string
 }
@@ -20,6 +23,9 @@ export interface UpdateProfilePayload {
   username?: string
   avatarUrl?: string
   phone?: string
+  isPersonalActive?: boolean
+  isOrgActive?: boolean
+  lastRole?: 'personal' | 'organization'
 }
 
 // GET /users — authenticated user's profile

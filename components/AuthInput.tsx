@@ -9,12 +9,14 @@ interface AuthInputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   error?: FieldError
   showPasswordToggle?: boolean
+  prefix?: string
 }
 
 export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(({
   label,
   error,
   showPasswordToggle = false,
+  prefix,
   type,
   className = '',
   ...props
@@ -26,24 +28,30 @@ export const AuthInput = forwardRef<HTMLInputElement, AuthInputProps>(({
     : type
 
   return (
-    <div className="w-full space-y-1.5">
+    <div className="w-full space-y-2">
       {label && (
-        <label className="block text-sm font-body font-medium text-white/80 pl-1">
+        <label className="block text-sm font-chakra font-medium text-white/70 pl-1">
           {label}
         </label>
       )}
       <div className="relative">
+        {prefix && (
+          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-chakra text-sm pointer-events-none">
+            {prefix}
+          </div>
+        )}
         <input
           ref={ref}
           type={inputType}
           className={`
-            w-full px-4 py-3.5 rounded-xl
-            bg-gaffer-card border border-gaffer-border
-            text-white placeholder:text-gaffer-subtle
-            font-body text-sm
+            w-full py-3.5 rounded-xl
+            bg-white/5 border border-white/10
+            text-white placeholder:text-white/20
+            font-chakra text-sm
             transition-all duration-200
-            focus:outline-none focus:border-gaffer-orange focus:shadow-input-focus
+            focus:outline-none focus:border-gaffer-orange focus:ring-1 focus:ring-gaffer-orange/20
             disabled:opacity-50 disabled:cursor-not-allowed
+            ${prefix ? 'pl-9' : 'px-4'}
             ${error ? 'border-red-500 focus:border-red-500' : ''}
             ${showPasswordToggle ? 'pr-12' : ''}
             ${className}

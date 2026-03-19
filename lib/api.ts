@@ -12,8 +12,22 @@ let _accessToken: string | null = null
 
 export const tokenStore = {
   get: (): string | null => _accessToken,
-  set: (token: string | null) => { _accessToken = token },
-  clear: () => { _accessToken = null },
+  set: (token: string | null) => { 
+    _accessToken = token
+    if (typeof document !== 'undefined') {
+      if (token) {
+        document.cookie = `gaffer-auth-token=${token}; path=/; max-age=31536000; SameSite=Lax`
+      } else {
+        document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+      }
+    }
+  },
+  clear: () => { 
+    _accessToken = null
+    if (typeof document !== 'undefined') {
+      document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+    }
+  },
 }
 
 // ─── Standard API error ───────────────────────────────────────────────────────

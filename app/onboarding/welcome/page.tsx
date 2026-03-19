@@ -2,66 +2,81 @@
 
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { GradientButton } from '@/components/GradientButton'
+
+function GradientBorderButton({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="relative w-full p-[2px] rounded-xl bg-gradient-to-r from-[#FF8904] to-[#E7000B]"
+    >
+      <div className="w-full h-full bg-[#181928] rounded-[10px] py-4 text-center font-chakra font-bold text-lg tracking-wide text-white">
+        {children}
+      </div>
+    </button>
+  )
+}
 
 export default function WelcomePage() {
   const router = useRouter()
 
   return (
-    <div className="relative min-h-screen bg-gaffer-bg overflow-hidden flex flex-col">
-      {/* Hero background image */}
+    <div className="relative min-h-screen bg-[#181928] overflow-hidden flex flex-col">
+      
+      {/* Background */}
       <div className="absolute inset-0">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/images/hero-bg.jpg"
           alt=""
-          className="absolute inset-0 w-full h-full object-cover object-center"
+          className="absolute inset-0 w-full h-full object-cover"
         />
-        {/* Single gradient overlay — dark at bottom for text, semi-transparent top to show image */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/30 to-gaffer-bg" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-[#181928]" />
       </div>
 
-      {/* Safe area spacer */}
-      <div className="relative z-10 pt-safe" />
-
-      {/* Bottom content */}
-      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-10 pt-[52vh]">
+      {/* Content */}
+      <div className="relative z-10 flex-1 flex flex-col justify-end px-6 pb-14 pt-[52vh]">
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, ease: 'easeOut' }}
-          className="space-y-5"
+          transition={{ duration: 0.5 }}
+          className="space-y-6"
         >
-          {/* Headline */}
-          <div>
-            <h1 className="font-display font-black text-5xl leading-none text-white tracking-tight">
+          
+          {/* Heading */}
+          <div className="space-y-1">
+            <h1 className="font-chakra font-bold text-[48px] leading-[44px] text-white tracking-[2px] uppercase">
               DOMINATE
             </h1>
-            <h1 className="font-display font-black text-5xl leading-none text-gradient-orange tracking-tight">
+
+            <h1 className="font-chakra font-bold text-[48px] leading-[44px] tracking-[2px] uppercase bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent">
               THE FIELD
             </h1>
           </div>
 
           {/* Subtitle */}
-          <p className="font-body text-white/70 text-sm leading-relaxed max-w-xs">
-            lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-            incididunt ut labore et dolore magna aliqua.
+          <p className="font-chakra text-white/80 text-sm leading-relaxed max-w-xs font-medium">
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.
           </p>
 
-          {/* CTAs */}
-          <div className="space-y-3 pt-2">
-            <GradientButton
-              variant="outline"
+          {/* CTA */}
+          <div className="space-y-4 pt-4">
+            
+            {/* Primary */}
+            <motion.button
+              whileTap={{ scale: 0.97 }}
               onClick={() => router.push('/onboarding/role-select')}
+              className="w-full bg-white text-black py-4 rounded-xl font-chakra font-bold text-lg tracking-wide shadow-lg"
             >
-              Get Started
-            </GradientButton>
-            <GradientButton
-              variant="primary"
-              onClick={() => router.push('/auth/login')}
-            >
-              Login
-            </GradientButton>
+              GET STARTED
+            </motion.button>
+
+            {/* Gradient Border (matches your screenshot spec) */}
+            <motion.div whileTap={{ scale: 0.97 }}>
+              <GradientBorderButton onClick={() => router.push('/auth/login')}>
+                LOGIN
+              </GradientBorderButton>
+            </motion.div>
+
           </div>
         </motion.div>
       </div>

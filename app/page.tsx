@@ -46,7 +46,7 @@ export default function LandingPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#222232] text-white antialiased selection:bg-orange-gaffer/30 overflow-x-hidden pt-20 relative">
+    <main className="min-h-screen bg-[#181928] text-white antialiased selection:bg-orange-gaffer/30 overflow-x-hidden pt-20 relative">
 
       {/* ── Main Gaffer Background ── */}
       <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">

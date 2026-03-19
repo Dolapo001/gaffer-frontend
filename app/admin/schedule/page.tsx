@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Menu, ChevronDown, Calendar, Clock, X, ChevronLeft } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { useToast } from '@/store/toastStore'
+import { useUIStore } from '@/store/uiStore'
 
 type Match = {
   id: string
@@ -19,77 +20,107 @@ type Match = {
   isLive: boolean
 }
 
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { listFixtures, createFixture, Fixture } from '@/lib/services/fixture.service'
+import { listCompetitions } from '@/lib/services/competition.service'
+import { listOrgs } from '@/lib/services/org.service'
+import { useAuthStore } from '@/store/authStore'
+import { useRouter } from 'next/navigation'
+
 export default function SchedulePage() {
+  const router = useRouter()
+  const { user } = useAuthStore()
   const { addToast } = useToast()
+  const queryClient = useQueryClient()
   const [showScheduleForm, setShowScheduleForm] = useState(false)
-  const [matches, setMatches] = useState<Match[]>([
-    {
-      id: '1',
-      teamA: 'Engineering',
-      teamB: 'Law',
-      teamALogo: '/images/mc_logo.png',
-      teamBLogo: '/images/barca_logo.png',
-      time: '14:00',
-      date: 'SAT 14:00',
-      round: 'Round 4',
-      isLive: false
-    },
-    {
-      id: '2',
-      teamA: 'Engineering',
-      teamB: 'Law',
-      teamALogo: '/images/mc_logo.png',
-      teamBLogo: '/images/barca_logo.png',
-      time: '14:00',
-      date: 'SAT 14:00',
-      round: 'Round 4',
-      isLive: false
-    }
-  ])
 
-  const [previousMatches] = useState<Match[]>([
-    {
-      id: '3',
-      teamA: 'Engineering',
-      teamB: 'Law',
-      teamALogo: '/images/mc_logo.png',
-      teamBLogo: '/images/barca_logo.png',
-      time: '14:00',
-      date: 'SAT 14:00',
-      round: 'Round 1',
-      score: '1:0',
-      isLive: false
-    },
-    {
-      id: '4',
-      teamA: 'Engineering',
-      teamB: 'Law',
-      teamALogo: '/images/mc_logo.png',
-      teamBLogo: '/images/barca_logo.png',
-      time: '14:00',
-      date: 'SAT 14:00',
-      round: 'Round 1',
-      score: '1:3',
-      isLive: false
-    },
-    {
-      id: '5',
-      teamA: 'Engineering',
-      teamB: 'Law',
-      teamALogo: '/images/mc_logo.png',
-      teamBLogo: '/images/barca_logo.png',
-      time: '14:00',
-      date: 'SAT 14:00',
-      round: 'Round 1',
-      score: '1:0',
-      isLive: false
-    }
-  ])
+  // 1. Fetch Org
+  const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
+    queryKey: ['orgs'],
+    queryFn: listOrgs,
+    enabled: !!user
+  })
 
-  const isEmpty = matches.length === 0 && previousMatches.length === 0
+  const orgId = orgs?.[0]?._id
+
+  // 2. Fetch Competitions
+  const { data: competitions, isLoading: isLoadingComps } = useQuery({
+    queryKey: ['competitions', orgId],
+    queryFn: () => listCompetitions(orgId!),
+    enabled: !!orgId
+  })
+
+  const competitionId = competitions?.[0]?._id
+
+  // Mutate: Create Fixture
+  const createFixtureMutation = useMutation({
+    mutationFn: (payload: any) => createFixture(competitionId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixtures', competitionId] })
+      addToast('Game scheduled successfully!', 'success')
+      setShowScheduleForm(false)
+    },
+    onError: (err: any) => {
+      addToast(err?.message || 'Failed to schedule game', 'error')
+    }
+  })
+
+  // 3. Fetch Fixtures
+  const { data: backendFixtures, isLoading: isLoadingFixtures } = useQuery({
+    queryKey: ['fixtures', competitionId],
+    queryFn: () => listFixtures(competitionId!),
+    enabled: !!competitionId
+  })
+
+  // 4. Fetch Teams (for dropdowns)
+  const { data: teams } = useQuery({
+    queryKey: ['teams', orgId],
+    queryFn: () => listTeams(orgId!),
+    enabled: !!orgId
+  })
+
+  // Format mapping
+  const matches: Match[] = backendFixtures
+    ?.filter(f => f.status === 'scheduled' || f.status === 'live' || f.status === 'halftime')
+    .map(f => ({
+      id: f._id,
+      teamA: typeof f.homeTeamId === 'string' ? 'Team A' : f.homeTeamId.name,
+      teamB: typeof f.awayTeamId === 'string' ? 'Team B' : f.awayTeamId.name,
+      teamALogo: typeof f.homeTeamId === 'string' ? '/images/mc_logo.png' : (f.homeTeamId.logoUrl || '/images/mc_logo.png'),
+      teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
+      time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
+      round: (f.roundId as any)?.name || 'Round 4',
+      isLive: f.status === 'live' || f.status === 'halftime'
+    })) || []
+
+  const previousMatches: Match[] = backendFixtures
+    ?.filter(f => f.status === 'completed')
+    .map(f => ({
+      id: f._id,
+      teamA: typeof f.homeTeamId === 'string' ? 'Team A' : f.homeTeamId.name,
+      teamB: typeof f.awayTeamId === 'string' ? 'Team B' : f.awayTeamId.name,
+      teamALogo: typeof f.homeTeamId === 'string' ? '/images/mc_logo.png' : (f.homeTeamId.logoUrl || '/images/mc_logo.png'),
+      teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
+      time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short' }),
+      round: (f.roundId as any)?.name || 'Round 1',
+      score: `${f.score.home}:${f.score.away}`,
+      isLive: false
+    })) || []
+
+  const isEmpty = (matches.length === 0 && previousMatches.length === 0) || !competitionId
+
+  if (isLoadingOrgs || isLoadingComps || isLoadingFixtures) {
+    return (
+      <div className="min-h-screen bg-[#181928] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
-    <div className="min-h-screen bg-[#0F111A] text-white">
+    <div className="min-h-screen bg-[#181928] text-white">
       {/* Header */}
       <div className="px-6 pt-12 pb-6 flex items-center gap-4">
         {showScheduleForm ? (
@@ -127,32 +158,32 @@ export default function SchedulePage() {
             </p>
           </motion.div>
         ) : !showScheduleForm ? (
-          <div className="space-y-8">
-            {/* Next Match Section */}
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <h3 className="font-chakra font-black text-lg uppercase">Next Match</h3>
-                <span className="text-orange-500 font-bold text-xs">Round 4</span>
-              </div>
-              <div className="space-y-3">
-                {matches.map((match) => (
+          <div className="flex-1 overflow-y-auto px-6 pb-20 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {/* Next Matches Section */}
+            {matches.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white text-base font-bold tracking-tight">Next Match</h3>
+                  <span className="text-[#FF4D00] text-[11px] font-black uppercase tracking-widest">{matches[0].round}</span>
+                </div>
+                {matches.map(match => (
                   <MatchCard key={match.id} match={match} />
                 ))}
               </div>
-            </div>
+            )}
 
             {/* Previous Matches Section */}
-            <div className="space-y-4">
-              <div className="space-y-1">
-                <h3 className="font-chakra font-black text-lg uppercase">Previous Matches</h3>
-                <p className="text-orange-500 font-bold text-xs uppercase tracking-widest">Round 1</p>
-              </div>
-              <div className="space-y-3">
-                {previousMatches.map((match) => (
+            {previousMatches.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-t border-white/5 pt-6">
+                  <h3 className="text-white text-base font-bold tracking-tight">Previous Matches</h3>
+                  <span className="text-[#FF4D00] text-[11px] font-black uppercase tracking-widest">{previousMatches[0].round}</span>
+                </div>
+                {previousMatches.map(match => (
                   <MatchCard key={match.id} match={match} />
                 ))}
               </div>
-            </div>
+            )}
           </div>
         ) : (
           <motion.div 
@@ -164,7 +195,7 @@ export default function SchedulePage() {
               <div className="space-y-2">
                 <label className="text-[13px] text-white/50 font-medium ml-1">Round</label>
                 <div className="relative">
-                  <select className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
                     <option>Round 1</option>
                     <option>Round 2</option>
                   </select>
@@ -176,14 +207,14 @@ export default function SchedulePage() {
                 <div className="space-y-2">
                   <label className="text-[13px] text-white/50 font-medium ml-1">Date</label>
                   <div className="relative">
-                    <input type="text" defaultValue="20/4/26" className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
+                    <input type="text" defaultValue="20/4/26" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[13px] text-white/50 font-medium ml-1">Start Time</label>
                   <div className="relative">
-                    <input type="text" defaultValue="2:00 PM" className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
+                    <input type="text" defaultValue="2:00 PM" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
                 </div>
@@ -192,7 +223,7 @@ export default function SchedulePage() {
               <div className="space-y-2">
                 <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team A</label>
                 <div className="relative">
-                  <select className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
                     <option>Barcelona</option>
                     <option>Engineering</option>
                   </select>
@@ -203,7 +234,7 @@ export default function SchedulePage() {
               <div className="space-y-2">
                 <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team B</label>
                 <div className="relative">
-                  <select className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
                     <option>Real Madrid</option>
                     <option>Law</option>
                   </select>
@@ -214,20 +245,15 @@ export default function SchedulePage() {
               <div className="pt-4">
                 <GradientButton 
                   onClick={() => {
-                    const newMatch: Match = {
-                      id: Date.now().toString(),
-                      teamA: 'Barcelona',
-                      teamB: 'Real Madrid',
-                      teamALogo: '/images/barca_logo.png',
-                      teamBLogo: '/images/mc_logo.png',
-                      time: '14:00',
-                      date: 'SUN 14:00',
-                      round: 'Round 1',
-                      isLive: false
-                    };
-                    setMatches([newMatch, ...matches]);
-                    setShowScheduleForm(false);
-                    addToast('Game scheduled successfully!', 'success');
+                    if (!competitionId) return
+                    createFixtureMutation.mutate({
+                      competitionId: competitionId,
+                      homeTeamId: 'Team A ID', // This would normally come from a dropdown
+                      awayTeamId: 'Team B ID',
+                      kickoffAt: new Date().toISOString(),
+                      stageType: 'groups',
+                      venue: 'Main Stadium'
+                    })
                   }}
                   className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
                 >
@@ -264,7 +290,6 @@ export default function SchedulePage() {
   )
 }
 
-import { useRouter } from 'next/navigation'
 
 function MatchCard({ match }: { match: Match }) {
   const router = useRouter()
@@ -282,47 +307,47 @@ function MatchCard({ match }: { match: Match }) {
   return (
     <div 
       onClick={() => router.push(`/admin/schedule/${match.id}`)}
-      className="bg-[#1C1F2D] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+      className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
     >
       <div className="flex items-center justify-between">
         {/* Team A */}
-        <div className="flex flex-col items-center gap-2 w-20">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-black/20 p-1">
-            <img src={match.teamALogo} className="w-full h-full object-contain" alt="" />
+        <div className="flex flex-col items-center gap-2 w-24">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
+            <img src={match.teamALogo} className="w-9 h-9 object-contain" alt="" />
           </div>
-          <span className="text-[11px] font-chakra font-bold text-white uppercase truncate w-full text-center">
+          <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
             {match.teamA}
           </span>
         </div>
 
         {/* Center Info */}
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[9px] text-white/40 font-bold uppercase tracking-[0.2em]">
+        <div className="flex flex-col items-center gap-1.5 flex-1">
+          <span className="text-[11px] text-white/40 font-bold uppercase tracking-tight">
             {match.date}
           </span>
-          <div className="bg-[#0F111A]/60 px-4 py-2 rounded-xl border border-white/5">
-            <span className="font-chakra font-black text-xl text-white tracking-widest leading-none">
+          <div className="bg-[#0F111A] min-w-[100px] h-11 flex items-center justify-center rounded-xl border border-white/5 shadow-inner">
+            <span className="font-chakra font-black text-lg text-white tracking-widest leading-none">
               {match.score || match.time}
             </span>
           </div>
           
           {!match.score && (
-            <div className="flex flex-col items-center gap-1.5 pt-1" onClick={(e) => e.stopPropagation()}>
-              <label className="relative inline-flex items-center cursor-pointer">
+            <div className="flex flex-col items-center gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+              <label className="relative inline-flex items-center cursor-pointer scale-90">
                 <input type="checkbox" className="sr-only peer" checked={isLive} onChange={handleToggleLive} />
-                <div className="w-9 h-5 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-600"></div>
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
               </label>
-              <span className="text-[8px] text-orange-500 font-bold uppercase tracking-widest italic leading-none">Go Live</span>
+              <span className="text-[9px] text-[#FF4D00] font-black uppercase tracking-[0.2em] italic leading-none">Go Live</span>
             </div>
           )}
         </div>
 
         {/* Team B */}
-        <div className="flex flex-col items-center gap-2 w-20">
-          <div className="w-12 h-12 rounded-full overflow-hidden bg-black/20 p-1">
-            <img src={match.teamBLogo} className="w-full h-full object-contain" alt="" />
+        <div className="flex flex-col items-center gap-2 w-24">
+          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
+            <img src={match.teamBLogo} className="w-9 h-9 object-contain" alt="" />
           </div>
-          <span className="text-[11px] font-chakra font-bold text-white uppercase truncate w-full text-center">
+          <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
             {match.teamB}
           </span>
         </div>

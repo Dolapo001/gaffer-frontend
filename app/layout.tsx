@@ -50,7 +50,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&family=Chakra+Petch:wght@500&family=Poppins:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Barlow+Condensed:wght@500;600;700;800;900&family=Chakra+Petch:wght@500;600;700&family=Poppins:wght@400;500;600&display=swap"
           rel="stylesheet"
         />
         {/* apple-touch-icon: 180x180 is the canonical size for modern iOS */}

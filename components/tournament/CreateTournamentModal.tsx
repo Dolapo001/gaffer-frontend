@@ -122,7 +122,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-start">
           <h3 className="text-[12px] text-white font-chakra font-black uppercase tracking-[0.2em] ml-1">Knockout</h3>
-          <div className="bg-[#1C1F2D] border border-white/5 rounded-[28px] p-6 space-y-6">
+          <div className="bg-[#1E2032] border border-white/5 rounded-[28px] p-6 space-y-6">
             <div className="space-y-4">
               <label className="text-base text-white font-chakra font-black uppercase">Starting Round</label>
               <div className="space-y-3">
@@ -162,7 +162,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-start">
           <h3 className="text-[12px] text-white font-chakra font-black uppercase tracking-[0.2em] ml-1">Groups Configuration</h3>
-          <div className="bg-[#1C1F2D] border border-white/5 rounded-[28px] p-6 space-y-8">
+          <div className="bg-[#1E2032] border border-white/5 rounded-[28px] p-6 space-y-8">
             <div className="space-y-4">
               <label className="text-base text-white font-chakra font-black uppercase">Teams per Group</label>
               <div className="grid grid-cols-1 gap-2">
@@ -197,7 +197,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       return (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-start">
           <h3 className="text-[12px] text-white font-chakra font-black uppercase tracking-[0.2em] ml-1">League Setup</h3>
-          <div className="bg-[#1C1F2D] border border-white/5 rounded-[28px] p-6 space-y-6">
+          <div className="bg-[#1E2032] border border-white/5 rounded-[28px] p-6 space-y-6">
             <div className="space-y-4">
               <label className="text-base text-white font-chakra font-black uppercase">Number of Teams</label>
               <input 
@@ -228,27 +228,22 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-[#0F111A]">
+    <div className="fixed inset-0 z-[60] flex flex-col bg-[#181928]">
       {/* Header */}
-      <div className="flex items-center gap-4 px-6 pt-12 pb-4">
+      <div className="flex items-center gap-6 px-6 pt-12 pb-4">
         <button 
           onClick={step === 0 ? onClose : prevStep} 
-          className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all"
+          className="w-11 h-11 rounded-full bg-[#1E2032] border border-white/5 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-lg"
         >
-          <ChevronLeft size={20} />
+          <ChevronLeft size={22} strokeWidth={2.5} />
         </button>
-        <h1 className="font-chakra font-bold text-lg text-white tracking-tight uppercase">Create Tournament</h1>
+        <h1 className="font-chakra font-black text-lg text-white tracking-widest uppercase">Create Tournament</h1>
       </div>
 
       {/* Stepper */}
       <div className="px-12 py-10 relative">
-        <div className="absolute top-[84px] left-20 right-20 h-[2px] -z-0">
-          <div className="absolute inset-0 border-b-2 border-dashed border-white/5" />
-          <motion.div 
-            className="absolute inset-y-0 left-0 border-b-2 border-dashed border-orange-600/60"
-            initial={{ width: 0 }}
-            animate={{ width: `${(step / (STEPS.length - 1)) * 100}%` }}
-          />
+        <div className="absolute top-[84px] left-20 right-20 h-[1px] -z-0">
+          <div className="absolute inset-x-0 border-b border-dashed border-white/10" />
         </div>
 
         <div className="flex justify-between relative z-10">
@@ -259,20 +254,15 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               </span>
               <div 
                 className={`w-5 h-5 rounded-full transition-all duration-500 relative z-10 ${
-                  i <= step ? 'shadow-[0_0_15px_rgba(255,102,0,0.4)]' : ''
+                  i <= step ? 'bg-gradient-to-b from-[#FF8904] to-[#FD0200] shadow-[0_0_20px_rgba(255,102,0,0.5)]' : 'bg-[#1E2032] border border-white/10'
                 }`}
-                style={{
-                  background: i <= step 
-                    ? 'linear-gradient(180deg, #FF8A00 0%, #FD0200 100%)' 
-                    : '#8E8E8E'
-                }}
               />
             </div>
           ))}
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-32">
+      <div className="flex-1 overflow-y-auto px-6 pb-40 no-scrollbar">
         <AnimatePresence mode="wait">
           {step === 0 && (
             <motion.div 
@@ -280,64 +270,72 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8 py-4"
+              className="space-y-6 py-4"
             >
-              <div className="flex flex-col items-center gap-3">
+              <div className="flex flex-col items-center gap-3 mb-4">
                 <label className="cursor-pointer">
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1C1F2D] shadow-2xl relative group">
+                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1E2032] shadow-2xl relative group">
                     <img src={details.photo} className="w-full h-full object-cover" alt="Profile" />
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <Plus size={24} className="text-white" />
                     </div>
                   </div>
                 </label>
-                <span className="text-[13px] text-white/60 font-medium tracking-tight">Choose Photo</span>
               </div>
 
-              <div className="space-y-5">
+              <div className="space-y-6">
                 <div className="space-y-2 text-start">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Tournament Name</label>
-                  <input type="text" value={details.name} onChange={(e) => setDetails({...details, name: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium" />
+                   <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center shadow-inner">
+                      <input type="text" value={details.name} onChange={(e) => setDetails({...details, name: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                   </div>
                 </div>
+
                 <div className="space-y-2 text-start">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Host Organization</label>
-                  <input type="text" value={details.host} onChange={(e) => setDetails({...details, host: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium" />
-                </div>
-                <div className="space-y-2 text-start">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Sport</label>
+                  <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Sport</label>
                   <div className="relative">
-                    <select value={details.sport} onChange={(e) => setDetails({...details, sport: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium appearance-none">
+                    <select value={details.sport} onChange={(e) => setDetails({...details, sport: e.target.value})} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none">
                       <option>Football</option>
                       <option>Basketball</option>
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
                 </div>
+
                 <div className="space-y-2 text-start">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Gender</label>
+                  <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Gender</label>
                   <div className="relative">
-                    <select value={details.gender} onChange={(e) => setDetails({...details, gender: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium appearance-none">
+                    <select value={details.gender} onChange={(e) => setDetails({...details, gender: e.target.value})} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none">
                       <option>Male</option>
                       <option>Female</option>
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2 text-start">
-                    <label className="text-[13px] text-white/50 font-medium ml-1">Start Date</label>
-                    <input type="text" value={details.startDate} onChange={(e) => setDetails({...details, startDate: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium" />
+                    <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Start Date</label>
+                    <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center">
+                        <input type="text" value={details.startDate} onChange={(e) => setDetails({...details, startDate: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                    </div>
                   </div>
                   <div className="space-y-2 text-start">
-                    <label className="text-[13px] text-white/50 font-medium ml-1">End date</label>
-                    <input type="text" value={details.endDate} onChange={(e) => setDetails({...details, endDate: e.target.value})} className="w-full h-14 bg-[#1C1F2D] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none focus:border-orange-500/30 transition-all font-medium" />
+                    <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">End date</label>
+                    <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center">
+                        <input type="text" value={details.endDate} onChange={(e) => setDetails({...details, endDate: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4">
-                <GradientButton onClick={nextStep} className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider">Next</GradientButton>
+              <div className="pt-8">
+                <button 
+                  onClick={nextStep} 
+                  className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+                >
+                    Next
+                </button>
               </div>
             </motion.div>
           )}
@@ -351,51 +349,34 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               className="space-y-8 py-4"
             >
               <div className="space-y-4 text-start">
-                <h3 className="text-[13px] text-white/50 font-medium ml-1">Format</h3>
+                <h3 className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Format</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {FORMAT_OPTIONS.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => setSelectedFormat(f.id)}
                       className={`h-40 p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden group ${
-                        selectedFormat === f.id ? 'bg-orange-500/10 border-orange-500/50 shadow-[0_0_20px_rgba(249,115,22,0.1)]' : 'bg-[#1C1F2D] border-white/5 hover:border-white/10'
+                        selectedFormat === f.id ? 'bg-[#FF4D00]/10 border-[#FF4D00]/50' : 'bg-[#1E2032] border-white/5'
                       }`}
                     >
-                      <f.icon size={28} className={selectedFormat === f.id ? 'text-orange-500' : 'text-white/20'} />
+                      <f.icon size={28} className={selectedFormat === f.id ? 'text-[#FF4D00]' : 'text-white/20'} />
                       <div className="space-y-1">
-                        <p className={`text-[13px] font-chakra font-bold transition-colors ${selectedFormat === f.id ? 'text-white' : 'text-white/80'}`}>{f.label}</p>
-                        {f.subtitle && <p className="text-[9px] text-orange-500/80 font-medium italic">{f.subtitle}</p>}
+                        <p className="text-[13px] font-chakra font-black text-white uppercase tracking-tight">{f.label}</p>
+                        {f.subtitle && <p className="text-[9px] text-[#FF4D00]/80 font-chakra font-bold italic uppercase tracking-wider">{f.subtitle}</p>}
                       </div>
-                      {f.accent && selectedFormat === f.id && (
-                        <div className="absolute top-2 right-2 flex gap-0.5">
-                           <div className="w-1.5 h-1.5 rounded-sm bg-orange-500" />
-                           <div className="w-1.5 h-1.5 rounded-sm bg-white" />
-                        </div>
-                      )}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="space-y-4 text-start">
-                <h3 className="text-[13px] text-white/50 font-medium ml-1">Point System</h3>
-                <div className="bg-[#1C1F2D] rounded-[24px] p-2 border border-white/5">
-                  <div className="flex bg-[#0F111A]/60 rounded-xl p-1">
-                    {['Standard', 'Custom'].map(t => (
-                      <button key={t} onClick={() => setPointSystem(t)} className={`flex-1 h-10 rounded-[10px] text-xs font-chakra font-bold transition-all ${pointSystem === t ? 'bg-[#1C1F2D] text-white shadow-xl' : 'text-white/40'}`}>{t}</button>
-                    ))}
-                  </div>
-                  <div className="flex justify-around py-5">
-                    <div className="text-center"><span className="text-green-500 text-[11px] font-bold">Win</span><span className="text-white text-xs font-bold ml-1.5">- 3 points</span></div>
-                    <div className="text-center"><span className="text-orange-500 text-[11px] font-bold">Draw</span><span className="text-white text-xs font-bold ml-1.5">- 1 points</span></div>
-                    <div className="text-center"><span className="text-red-500 text-[11px] font-bold">Loss</span><span className="text-white text-xs font-bold ml-1.5">- 1 points</span></div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 pt-6">
+              <div className="flex items-center gap-6 pt-6 pb-12">
                 <button onClick={prevStep} className="font-chakra font-black text-sm text-white/40 uppercase tracking-widest hover:text-white transition-colors pl-4">Back</button>
-                <GradientButton onClick={nextStep} className="h-14 flex-1 rounded-2xl font-chakra font-black text-base uppercase tracking-wider">Next</GradientButton>
+                <button 
+                  onClick={nextStep} 
+                  className="flex-1 py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+                >
+                    Next
+                </button>
               </div>
             </motion.div>
           )}
@@ -411,9 +392,9 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               {!activeConfigType ? (
                 <>
                   <div className="space-y-6 text-start">
-                    <h3 className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Format</h3>
+                    <h3 className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Configuration</h3>
                     
-                    <div className="bg-[#1C1F2D] border border-white/5 rounded-[24px] overflow-hidden">
+                    <div className="bg-[#1E2032] border border-white/5 rounded-[24px] overflow-hidden">
                       {addedFormats.filter(f => f.type === 'Groups').map((f, i, arr) => (
                         <div 
                           key={f.id}
@@ -424,15 +405,15 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                             <div className="grid grid-cols-2 gap-0.5">
                               <div className="w-2.5 h-2.5 bg-orange-500 rounded-sm" />
                               <div className="w-2.5 h-2.5 bg-white/40 rounded-sm" />
-                              <div className="w-2.5 h-2.5 bg-orange-600 rounded-sm" />
+                              <div className="w-2.5 h-2.5 bg-[#FF4D00] rounded-sm" />
                               <div className="w-2.5 h-2.5 bg-white rounded-sm" />
                             </div>
                           </div>
                           <div className="flex-1">
                             <h4 className="font-chakra font-black text-base text-white uppercase tracking-tight leading-none mb-1">{f.name}</h4>
-                            <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-none">Groups • {f.teamCount}</p>
+                            <p className="text-[10px] text-white/30 font-chakra font-black uppercase tracking-widest leading-none">Groups • {f.teamCount}</p>
                           </div>
-                          <button onClick={(e) => removeFormat(f.id, e)} className="p-2 text-white/20 hover:text-red-500 transition-colors">
+                          <button onClick={(e) => removeFormat(f.id, e)} className="p-2 text-white/20 hover:text-[#E7000B] transition-colors">
                             <Trash2 size={24} strokeWidth={2.5} />
                           </button>
                         </div>
@@ -442,9 +423,9 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                     <div className="px-10">
                       <button 
                         onClick={addSelectedFormat}
-                        className="w-full h-11 flex items-center justify-center gap-2 rounded-xl border border-white/20 text-white font-chakra font-bold text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all"
+                        className="w-full h-12 flex items-center justify-center gap-2 rounded-xl border border-white/10 text-white font-chakra font-black text-[11px] uppercase tracking-widest hover:bg-white/5 transition-all"
                       >
-                        <Plus size={14} /> Add Format
+                        <Plus size={16} /> Add Format
                       </button>
                     </div>
 
@@ -452,39 +433,43 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                       <div 
                         key={f.id}
                         onClick={() => { setEditingFormatId(f.id); setActiveConfigType(f.type); }}
-                        className="bg-[#1C1F2D] border border-white/5 rounded-[24px] p-6 flex items-center gap-4 cursor-pointer hover:border-white/10 transition-all text-start"
+                        className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 flex items-center gap-4 cursor-pointer hover:border-white/10 transition-all text-start"
                       >
                         <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center">
                           {f.type === 'Knockout' ? (
                             <div className="relative">
-                              <div className="w-3 h-3 bg-orange-600 rounded-sm mb-1" />
-                              <div className="w-3 h-3 bg-orange-500 rounded-sm absolute left-3 top-2" />
+                              <div className="w-3 h-3 bg-[#E7000B] rounded-sm mb-1" />
+                              <div className="w-3 h-3 bg-[#FF8904] rounded-sm absolute left-3 top-2" />
                               <div className="w-3 h-3 bg-white rounded-sm absolute left-5 top-0" />
                             </div>
-                          ) : <Trophy className="text-orange-500" size={24} />}
+                          ) : <Trophy className="text-[#FF8904]" size={24} />}
                         </div>
                         <div className="flex-1">
                           <h4 className="font-chakra font-black text-base text-white uppercase tracking-tight leading-none mb-1">{f.name}</h4>
-                          <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest leading-none">{f.info || f.type}</p>
+                          <p className="text-[10px] text-white/30 font-chakra font-black uppercase tracking-widest leading-none">{f.info || f.type}</p>
                         </div>
-                        <button onClick={(e) => removeFormat(f.id, e)} className="p-2 text-white/20 hover:text-red-500 transition-colors">
+                        <button onClick={(e) => removeFormat(f.id, e)} className="p-2 text-white/20 hover:text-[#E7000B] transition-colors">
                           <Trash2 size={24} strokeWidth={2.5} />
                         </button>
                       </div>
                     ))}
                   </div>
 
-                  <div className="pt-8 w-full">
-                    <GradientButton 
+                  <div className="pt-8 w-full pb-12">
+                    <button 
                       onClick={() => addedFormats.length > 0 && setShowConfirm(true)} 
                       disabled={addedFormats.length === 0}
-                      className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
+                      className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
                     >
                       Create Tournament
-                    </GradientButton>
+                    </button>
                   </div>
                 </>
-              ) : renderConfigScreen()}
+              ) : (
+                  <div className="pb-12">
+                    {renderConfigScreen()}
+                  </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
@@ -495,43 +480,19 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
         {showConfirm && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-xl" onClick={() => setShowConfirm(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-sm bg-[#1C1F2D] rounded-[40px] p-8 border border-white/10 shadow-3xl text-center space-y-6">
+            <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="relative w-full max-w-sm bg-[#1E2032] rounded-[40px] p-8 border border-white/10 shadow-3xl text-center space-y-6">
               <div className="space-y-2 text-center">
                 <h2 className="text-3xl font-chakra font-black text-white uppercase tracking-tight">Last chance !</h2>
-                <p className="text-sm text-white/50 font-medium px-4">Are you sure you want to create this Tournament?</p>
+                <p className="text-sm text-white/50 font-chakra font-bold">Are you sure you want to create this Tournament?</p>
               </div>
               <div className="flex gap-4">
-                <button onClick={() => setShowConfirm(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-chakra font-bold text-sm hover:bg-white/5 transition-all">Back</button>
-                <button onClick={handleFinalConfirm} className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-orange-600 to-red-600 text-white font-chakra font-black text-sm uppercase tracking-wider shadow-lg shadow-orange-600/20">Confirm</button>
+                <button onClick={() => setShowConfirm(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-chakra font-black text-sm uppercase hover:bg-white/5 transition-all">Back</button>
+                <button onClick={handleFinalConfirm} className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white font-chakra font-black text-sm uppercase tracking-widest shadow-lg shadow-[#FF8904]/20">Confirm</button>
               </div>
             </motion.div>
           </div>
         )}
       </AnimatePresence>
-
-      {/* Bottom Nav */}
-      <div className="fixed bottom-0 inset-x-0 h-24 bg-[#141621] border-t border-white/5 flex items-center justify-around px-10 pb-6 rounded-t-[40px] z-50 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
-        <div className="flex flex-col items-center gap-1.5 opacity-40">
-           <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <Building2 size={24} className="text-white" />
-           </div>
-           <span className="text-[11px] font-bold text-white tracking-wide">Home</span>
-        </div>
-        
-        <div className="flex flex-col items-center gap-1.5">
-           <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <Trophy size={24} className="text-orange-500" />
-           </div>
-           <span className="text-[11px] font-bold text-orange-500 tracking-wide">League</span>
-        </div>
-
-        <div className="flex flex-col items-center gap-1.5 opacity-40">
-           <div className="w-10 h-10 rounded-xl flex items-center justify-center">
-              <Layers size={24} className="text-white" />
-           </div>
-           <span className="text-[11px] font-bold text-white tracking-wide">News</span>
-        </div>
-      </div>
     </div>
   )
 }

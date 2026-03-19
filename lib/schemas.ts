@@ -17,6 +17,9 @@ export const signUpSchema = z
     confirmPassword: z
       .string({ required_error: 'Please confirm your password' })
       .min(1, 'Please confirm your password'),
+    gender: z.enum(['male', 'female'], {
+      required_error: 'Please select a gender',
+    }).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
@@ -74,6 +77,38 @@ export const createOrgSchema = z.object({
 })
 
 export type CreateOrgFormData = z.infer<typeof createOrgSchema>
+
+export const organizationSignUpSchema = z
+  .object({
+    name: z
+      .string({ required_error: 'Name is required' })
+      .min(1, 'Name is required')
+      .max(100, 'Name must be at most 100 characters'),
+    email: z
+      .string({ required_error: 'Email is required' })
+      .min(1, 'Email is required')
+      .email('Please enter a valid email address'),
+    handle: z
+      .string({ required_error: 'Handle is required' })
+      .min(3, 'Handle must be at least 3 characters')
+      .max(30, 'Handle must be at most 30 characters')
+      .regex(/^[a-z0-9_]+$/, 'Handle may only contain lowercase letters, numbers and underscores'),
+    password: z
+      .string({ required_error: 'Password is required' })
+      .min(8, 'Password must be at least 8 characters')
+      .max(72, 'Password must be at most 72 characters'),
+    confirmPassword: z
+      .string({ required_error: 'Please confirm your password' })
+      .min(1, 'Please confirm your password'),
+    sport: z.string({ required_error: 'Sport is required' }).min(1, 'Sport is required'),
+    description: z.string().max(500, 'Description must be at most 500 characters').optional(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
+
+export type OrganizationSignUpFormData = z.infer<typeof organizationSignUpSchema>
 
 // ─── Teams ────────────────────────────────────────────────────────────────────
 
@@ -147,9 +182,3 @@ export const addCommentSchema = z.object({
     .min(1, 'Comment cannot be empty')
     .max(2000, 'Comment must be at most 2000 characters'),
 })
-
-// ─── Legacy export (kept for any remaining consumers) ────────────────────────
-
-/** @deprecated Use signUpSchema instead */
-export const organizationSignUpSchema = createOrgSchema
-export type OrganizationSignUpFormData = CreateOrgFormData

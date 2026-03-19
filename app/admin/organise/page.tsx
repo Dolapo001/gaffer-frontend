@@ -11,76 +11,86 @@ import { OrganiseShare } from './components/OrganiseShare'
 import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
 
-const INITIAL_TEAMS: Team[] = [
-  {
-    id: '1',
-    name: 'COCCS',
-    playerCount: '11/22',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png',
-  },
-  {
-    id: '2',
-    name: 'COAES',
-    playerCount: '11/22',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png',
-  },
-]
-
+import { useEffect } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { listTeams, createTeam, Team as BackendTeam } from '@/lib/services/team.service'
+import { listOrgs } from '@/lib/services/org.service'
+import { useAuthStore } from '@/store/authStore'
+import { useToast } from '@/store/toastStore'
 const INITIAL_GROUPS: Group[] = [
   {
     id: '1',
     name: 'GROUP A',
     color: '#A855F7',
-    teams: [
-      { id: '1', name: 'COCCS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-      { id: '101', name: 'COSMS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-      { id: '2', name: 'COAES', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png' },
-    ],
-  },
-  {
-    id: '2',
-    name: 'GROUP B',
-    color: '#3B82F6',
-    teams: [
-      { id: '1', name: 'COCCS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-      { id: '101', name: 'COSMS', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/eb/Manchester_City_FC_badge.svg/1200px-Manchester_City_FC_badge.svg.png' },
-      { id: '2', name: 'COAES', playerCount: '11/22', logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/FC_Barcelona_%28crest%29.svg/1200px-FC_Barcelona_%28crest%29.svg.png' },
-    ],
+    teams: [],
   },
 ]
 
 const INITIAL_PLAYERS: Player[] = [
   { id: '1', name: 'Olaniyi Ojedokun', position: 'THE GAFFER', price: '7.5M', isSelected: true },
   { id: '2', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: false },
-  { id: '3', name: 'Ojedokun Olaniyi', position: 'Center-Back', price: '7.5M', isSelected: false },
-  { id: '4', name: 'Ikpi David', position: 'Center-Back', price: '7.5M', isSelected: false },
-  { id: '5', name: 'Ayomide Lawal', position: 'Center-Back', price: '7.5M', isSelected: true },
-  { id: '6', name: 'Ayomide Lawal', position: 'Center-Back', price: '7.5M', isSelected: true },
-  { id: '7', name: 'Ayomide Lawal', position: 'Left-back', price: '7.5M', isSelected: true },
-  { id: '8', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
-  { id: '9', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
-  { id: '10', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: true },
 ]
 
 export default function OrganizePage() {
+  const { user } = useAuthStore()
+  const { addToast } = useToast()
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'Teams' | 'Groups'>('Teams')
   const [view, setView] = useState<OrganiseView>('list')
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
 
-  const [teams, setTeams] = useState<Team[]>(INITIAL_TEAMS)
+  // 1. Fetch Organization
+  const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
+    queryKey: ['orgs'],
+    queryFn: listOrgs,
+    enabled: !!user
+  })
+
+  const orgId = orgs?.[0]?._id
+
+  // 2. Fetch Teams
+  const { data: backendTeams, isLoading: isLoadingTeams } = useQuery({
+    queryKey: ['teams', orgId],
+    queryFn: () => listTeams(orgId!),
+    enabled: !!orgId
+  })
+
+  // Local state for UI components (Groups/Players currently mostly local)
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS)
   const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS)
 
   // Create form state
-  const [teamName, setTeamName] = useState('Chelsea')
+  const [teamName, setTeamName] = useState('')
   const [maxPlayers, setMaxPlayers] = useState('11')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState('#A855F7')
   const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
 
-  // Hide the bottom nav bar while the create sheet is open.
+  // Map backend teams to UI teams
+  const teams: Team[] = backendTeams?.map(t => ({
+    id: t._id,
+    name: t.name,
+    playerCount: '0/22', // Backend doesn't return count directly yet
+    logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
+  })) || []
+
+  // Mutate: Create Team
+  const createTeamMutation = useMutation({
+    mutationFn: (payload: any) => createTeam(orgId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      addToast('Team created successfully!', 'success')
+      setView('list')
+      setTeamName('')
+      setLogoPreview(null)
+    },
+    onError: (err: any) => {
+      addToast(err?.message || 'Failed to create team', 'error')
+    }
+  })
+
   const isCreateOpen = view === 'create'
 
   const getUnassignedTeams = () => {
@@ -89,19 +99,15 @@ export default function OrganizePage() {
   }
 
   const handleCreate = () => {
-    if (!teamName) return
+    if (!teamName || !orgId) return
 
     if (activeTab === 'Teams') {
-      const newTeam: Team = {
-        id: crypto.randomUUID(),
+      createTeamMutation.mutate({
         name: teamName,
-        playerCount: `0/${maxPlayers}`,
-        logo: logoPreview || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-      }
-      setTeams((prev) => [...prev, newTeam])
-      setSelectedTeam(newTeam)
-      setSelectedGroup(null)
-      setView('details')
+        handle: teamName.toLowerCase().replace(/\s+/g, '-'),
+        sport: 'Football',
+        logoUrl: logoPreview || undefined
+      })
     } else {
       const selectedTeamObjects = teams.filter((t) => selectedTeamsForGroup.includes(t.id))
       const newGroup: Group = {
@@ -114,9 +120,8 @@ export default function OrganizePage() {
       setSelectedGroup(newGroup)
       setSelectedTeam(null)
       setView('details')
-      setTeamName('Chelsea')
+      setTeamName('')
       setSelectedTeamsForGroup([])
-      setLogoPreview(null)
     }
   }
 
@@ -144,6 +149,14 @@ export default function OrganizePage() {
     )
     setSelectedGroup((prev) => (prev ? { ...prev, teams: [...prev.teams, team] } : null))
     setView('list')
+  }
+
+  if (isLoadingOrgs || isLoadingTeams) {
+    return (
+      <div className="min-h-screen bg-[#181928] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
+      </div>
+    )
   }
 
   return (

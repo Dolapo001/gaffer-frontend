@@ -31,52 +31,63 @@ export default function RoleSelectPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gaffer-bg flex flex-col">
+    <div className="relative min-h-screen bg-[#181928] overflow-hidden flex flex-col">
+      {/* Background with explicit color and image */}
+      <div className="absolute inset-0">
+        <img
+          src="/images/hero-bg.jpg"
+          alt="hero bg"
+          className="absolute inset-0 w-full h-full object-cover opacity-80"
+        />
+        <div className="absolute inset-0 bg-[#181928]/40" />
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#181928]/60 to-[#181928]" />
+      </div>
+
       {/* Header */}
-      <div className="relative z-10 flex items-center gap-3 px-6 pt-12 pb-4">
+      <div className="relative z-10 flex items-center gap-4 px-6 pt-14 pb-4">
         <button
           onClick={() => router.back()}
           aria-label="Go back"
-          className="flex items-center justify-center w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border text-white"
+          className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white backdrop-blur-sm"
         >
-          <ChevronLeft size={18} />
+          <ChevronLeft size={20} />
         </button>
-        <span className="text-xs text-gaffer-muted font-body tracking-wide">New Account</span>
+        <h2 className="text-xl text-white font-chakra font-bold tracking-tight">New Account</h2>
       </div>
 
       {/* Main content */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative z-10 flex-1 flex flex-col px-6 pb-10"
+        transition={{ duration: 0.6 }}
+        className="relative z-10 flex-1 flex flex-col px-6 pb-12"
       >
         {/* Title Area */}
-        <div className="mb-6 mt-2 px-1">
-          <h1 className="font-chakra font-bold text-4xl text-white leading-tight">Hello,</h1>
-          <h1 className="font-chakra font-black text-5xl text-gradient-orange leading-tight uppercase tracking-tight">
+        <div className="mb-10 mt-4 px-1">
+          <h1 className="font-chakra font-bold text-5xl text-white leading-tight">Hello,</h1>
+          <h1 className="font-chakra font-black text-5xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent leading-tight uppercase tracking-tight">
             GAFFER
           </h1>
-          <p className="font-body text-gaffer-muted text-sm mt-3 leading-relaxed font-medium">
+          <p className="font-chakra text-white/60 text-base mt-4 font-medium">
             Select an account type that suits your needs
           </p>
         </div>
 
         {/* Role cards */}
-        <div className="grid grid-cols-2 gap-3 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-10">
           <RoleCard
             title="Personal"
-            description="Manage your personal Sporting activities"
-            icon={<User size={24} className="text-white" />}
-            imageSrc="/images/onboarding-preview.jpg"
+            description="Manage your personal Spoting activities"
+            icon={null} // We'll use the image in circular container now
+            imageSrc="/images/hero-bg.jpg"
             selected={selectedRole === 'personal'}
             onSelect={() => setSelectedRole('personal')}
           />
           <RoleCard
             title="Organization"
             description="Manage your Sports organization or activities"
-            icon={<Building2 size={24} className="text-white" />}
-            imageSrc="/images/hero-bg.jpg"
+            icon={null}
+            imageSrc="/images/handshake_news.png"
             selected={selectedRole === 'organization'}
             onSelect={() => setSelectedRole('organization')}
           />
@@ -85,20 +96,25 @@ export default function RoleSelectPage() {
         <div className="flex-1" />
 
         {/* Actions */}
-        <div className="space-y-3">
-          <GradientButton
+        <div className="space-y-4">
+          <motion.button
+            whileTap={{ scale: 0.98 }}
             onClick={handleNext}
             disabled={!selectedRole}
-            className={!selectedRole ? 'opacity-50' : ''}
+            className={`w-full py-4 rounded-2xl font-chakra font-bold text-xl tracking-wide shadow-xl transition-all ${
+              selectedRole 
+                ? 'bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white' 
+                : 'bg-white/10 text-white/30 cursor-not-allowed blur-[0.5px]'
+            }`}
           >
             Next
-          </GradientButton>
+          </motion.button>
 
-          <p className="text-center text-gaffer-muted text-xs font-body">
+          <p className="text-center text-white/40 text-sm font-chakra font-medium">
             Already have an account?{' '}
             <button
               onClick={() => router.push('/auth/login')}
-              className="text-gaffer-orange font-medium hover:underline"
+              className="text-[#FF8904] font-bold hover:underline"
             >
               Login
             </button>

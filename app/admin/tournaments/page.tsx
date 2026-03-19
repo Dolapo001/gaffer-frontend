@@ -1,20 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Search, Plus, Trophy } from 'lucide-react'
-import { GradientButton } from '@/components/GradientButton'
+import { Search, ChevronRight, CheckCircle2 } from 'lucide-react'
 import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal'
 import { listOrgs } from '@/lib/services/org.service'
-import { listCompetitions, type Competition } from '@/lib/services/competition.service'
-
-function statusStyle(status: Competition['status']) {
-  if (status === 'published') return 'text-green-400 bg-green-400/10 border-green-400/30'
-  if (status === 'archived') return 'text-gaffer-subtle bg-gaffer-card border-gaffer-border'
-  return 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
-}
+import { listCompetitions } from '@/lib/services/competition.service'
 
 export default function TournamentsPage() {
   const router = useRouter()
@@ -35,98 +28,111 @@ export default function TournamentsPage() {
   )
 
   return (
-    <>
-      <div className="min-h-screen bg-[#0F111A]">
-        {/* Header */}
-        <div className="px-6 pt-12 pb-6 space-y-8">
-          <div className="flex items-center justify-between">
-            <div className="flex-1 max-w-[280px] h-12 bg-[#1C1F2D] border border-white/5 rounded-2xl flex items-center px-4 gap-3">
-              <Search size={20} className="text-white/30" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-transparent border-none outline-none text-white text-sm w-full font-medium"
-              />
-            </div>
+    <div className="h-screen flex flex-col bg-[#181928] overflow-hidden relative">
+      <div className="flex-1 overflow-y-auto no-scrollbar">
+        {/* Header / Search */}
+        <div className="px-6 pt-12 pb-6 space-y-6">
+          <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl flex items-center px-4 gap-3 shadow-sm">
+            <Search size={22} className="text-white/20" />
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-medium placeholder:text-white/20"
+            />
           </div>
-          <h2 className="font-chakra font-black text-xl text-white tracking-tight uppercase">Your Tournaments</h2>
+          
+          <h2 className="font-chakra font-black text-lg text-white tracking-widest uppercase">Your Tournament</h2>
         </div>
 
+        {/* List / Empty State */}
         <div className="px-6 pb-40">
           {isLoading ? (
             <div className="space-y-4">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-20 bg-[#1C1F2D] rounded-2xl animate-pulse" />
+                <div key={i} className="h-24 bg-[#1E2032] rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-[#1C1F2D] rounded-[40px] overflow-hidden border border-white/5 shadow-2xl relative p-8 text-center space-y-6"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="bg-[#1E2032] rounded-[32px] overflow-hidden border border-white/5 shadow-2xl flex flex-col items-center text-center p-6 space-y-6"
             >
-              <div className="bg-[#0F111A]/40 rounded-[32px] p-10 flex items-center justify-center">
-                <Trophy size={64} className="text-white/10" />
+              <div className="w-full h-44 rounded-2xl overflow-hidden bg-white/5">
+                <img 
+                    src="/images/empty_tournament.png" 
+                    className="w-full h-full object-cover opacity-80" 
+                    alt="No Tournaments"
+                />
               </div>
-              <div className="space-y-2">
-                <h4 className="font-chakra font-black text-xl text-white uppercase tracking-tight">
-                  {searchQuery ? 'No tournaments found' : "You Don't have any Tournament"}
-                </h4>
-                <p className="text-white/40 text-sm font-medium">
-                  {searchQuery ? 'Try a different search' : 'Create your first league to get started'}
-                </p>
-              </div>
-              {!searchQuery && (
-                <GradientButton
-                  onClick={() => setShowCreate(true)}
-                  className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider shadow-2xl shadow-orange-500/20"
-                >
-                  Create Tournament
-                </GradientButton>
-              )}
+              
+              <p className="font-chakra font-bold text-lg text-white">
+                {searchQuery ? 'No Results Found' : "You Don't have any Tournament"}
+              </p>
+
+              <button
+                onClick={() => setShowCreate(true)}
+                className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+              >
+                Create Tournament
+              </button>
             </motion.div>
           ) : (
             <div className="space-y-4">
               {filtered.map((comp, i) => (
                 <motion.button
                   key={comp._id}
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={() => router.push(`/admin/tournaments/${comp._id}`)}
-                  className="w-full text-left bg-[#1C1F2D] border border-white/5 rounded-2xl p-4 flex items-center gap-4 hover:bg-white/5 transition-all"
+                  className="w-full bg-[#1E2032] border border-white/5 rounded-2xl p-4 flex items-center gap-4 group"
                 >
-                  <div className="w-12 h-12 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center flex-shrink-0">
-                    <Trophy size={22} className="text-gaffer-orange" />
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 bg-gaffer-dark flex-shrink-0 relative">
+                     {comp.bannerUrl ? (
+                         <img src={comp.bannerUrl} alt="" className="w-full h-full object-cover" />
+                     ) : (
+                         <div className="w-full h-full flex items-center justify-center bg-white/5 text-gaffer-orange font-chakra font-black text-xl">
+                            {comp.name.charAt(0)}
+                         </div>
+                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white font-chakra font-bold text-base truncate">{comp.name}</p>
-                    <p className="text-white/40 text-xs capitalize">{comp.sport} · {comp.gender}</p>
+                  
+                  <div className="flex-1 text-left">
+                    <div className="flex items-center gap-1.5">
+                        <p className="text-white font-chakra font-black text-lg uppercase tracking-tight">{comp.name}</p>
+                        <CheckCircle2 size={16} className="text-[#FF8904] fill-[#FF8904]/10" />
+                    </div>
+                    <p className="text-white/40 text-[11px] font-chakra font-bold uppercase tracking-wide">
+                        {new Date(comp.startDate).toLocaleDateString()} - {new Date(comp.endDate).toLocaleDateString()}
+                    </p>
+                    <p className={`text-[10px] font-chakra font-black uppercase mt-1 tracking-wider ${comp.status === 'published' ? 'text-green-500' : 'text-red-500'}`}>
+                        {comp.status === 'published' ? 'LIVE' : 'ENDED'}
+                    </p>
                   </div>
-                  <span className={`text-[10px] font-display font-bold px-2 py-0.5 rounded-full border ${statusStyle(comp.status)}`}>
-                    {comp.status}
-                  </span>
+                  
+                  <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/40 group-hover:text-white transition-colors">
+                     <ChevronRight size={20} />
+                  </div>
                 </motion.button>
               ))}
+
+              <button
+                onClick={() => setShowCreate(true)}
+                className="w-full py-4 mt-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+              >
+                Create Tournament
+              </button>
             </div>
           )}
         </div>
       </div>
 
-      {/* Floating Action Button */}
-      <button
-        onClick={() => setShowCreate(true)}
-        className="fixed bottom-32 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white shadow-[0_10px_30px_rgba(255,138,0,0.4)] z-40 active:scale-95 transition-transform"
-      >
-        <Plus size={32} strokeWidth={3} />
-      </button>
-
       <AnimatePresence>
         {showCreate && <CreateTournamentModal onClose={() => setShowCreate(false)} />}
       </AnimatePresence>
-    </>
+    </div>
   )
 }

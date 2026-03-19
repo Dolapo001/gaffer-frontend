@@ -23,6 +23,7 @@ interface AuthState {
 
   // Actions
   setUser: (user: AuthUser | null, token?: string) => void
+  updateUser: (user: Partial<AuthUser>) => void
   setProfile: (profile: UserProfile | null) => void
   setRole: (role: UserRole) => void
   setLoading: (loading: boolean) => void
@@ -50,12 +51,23 @@ export const useAuthStore = create<AuthState>()(
         set({ user, isAuthenticated: !!user, accessToken: token ?? null })
       },
 
+      updateUser: (newData) => {
+          set((state) => ({
+              user: state.user ? { ...state.user, ...newData } : null
+          }))
+      },
+
       setProfile: (profile) => set({ profile }),
 
       setRole: (role) => {
         // Mirror role into cookie so middleware can gate routes server-side.
-        // In production this should be set by the server (HttpOnly cookie from
-        // a /api/session endpoint that verifies the Firebase ID token).
+        if (typeof document !== 'undefined') {
+          if (role) {
+            document.cookie = `gaffer-user-role=${role}; path=/; max-age=31536000; SameSite=Lax`
+          } else {
+            document.cookie = `gaffer-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+          }
+        }
         set({ role })
       },
 
@@ -114,6 +126,9 @@ export const useAuthStore = create<AuthState>()(
           // Ignore logout errors — clear state regardless
         } finally {
           tokenStore.clear()
+          if (typeof document !== 'undefined') {
+            document.cookie = 'gaffer-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
+          }
           set({
             user: null,
             profile: null,
@@ -136,6 +151,7 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         accessToken: state.accessToken,
+        role: state.role, // Now persisting role as it's a preference
       }),
       // On rehydration, restore the token to the in-memory store
       onRehydrateStorage: () => (state) => {

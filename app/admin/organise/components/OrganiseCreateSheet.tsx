@@ -1,9 +1,10 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
 import type { Team } from '../types'
+import { useUIStore } from '@/store/uiStore'
 
 const GROUP_COLORS = [
   '#A855F7', '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#EC4899',
@@ -51,6 +52,12 @@ export function OrganiseCreateSheet({
   getUnassignedTeams,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { hideNavbar, showNavbar } = useUIStore()
+
+  useEffect(() => {
+    hideNavbar()
+    return () => showNavbar()
+  }, [hideNavbar, showNavbar])
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -80,7 +87,7 @@ export function OrganiseCreateSheet({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 bg-[#FFFFFF78] backdrop-blur-[7.8px] z-[45]"
+        className="fixed inset-0 bg-black/60 backdrop-blur-md z-[105]"
         onClick={onClose}
       />
       <motion.div
@@ -88,7 +95,7 @@ export function OrganiseCreateSheet({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        className="fixed bottom-0 left-0 right-0 z-50 h-[70%] flex flex-col px-8 pt-6 pb-6 overflow-hidden bg-[#0F172BB0] backdrop-blur-[20px] rounded-t-[30px] border-t-[1.23px] border-white/10 shadow-[0_-20px_80px_rgba(0,0,0,0.4)] before:absolute before:inset-0 before:rounded-t-[30px] before:bg-gradient-to-b before:from-white/5 before:to-transparent before:pointer-events-none"
+        className="fixed bottom-0 left-0 right-0 z-[110] h-[70%] flex flex-col px-8 pt-6 pb-6 overflow-hidden bg-[#1E2032] backdrop-blur-[20px] rounded-t-[40px] border-t border-white/10 shadow-3xl text-center"
       >
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 shrink-0 relative z-10" />
 
@@ -143,10 +150,10 @@ export function OrganiseCreateSheet({
               <img
                 src={logoPreview ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'}
                 alt="Avatar"
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-110"
               />
             </div>
-            <button onClick={() => fileInputRef.current?.click()} className="text-gray-400 text-xs font-medium">
+            <button onClick={() => fileInputRef.current?.click()} className="text-[#FF4D00] text-xs font-bold uppercase tracking-wider mt-2">
               Choose Photo
             </button>
             {logoError && <p className="text-red-400 text-xs mt-1 text-center">{logoError}</p>}
@@ -163,7 +170,7 @@ export function OrganiseCreateSheet({
               value={teamName}
               onChange={(e) => onTeamNameChange(e.target.value)}
               placeholder={activeTab === 'Teams' ? 'Chelsea' : 'Tournament Group A'}
-              className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none focus:border-white/20 placeholder-gray-500 text-sm"
+              className="w-full bg-[#181928] text-white px-5 py-4 rounded-xl border border-white/10 focus:outline-none focus:border-[#FF5C00]/50 placeholder-gray-600 text-sm"
             />
           </div>
 
@@ -174,7 +181,7 @@ export function OrganiseCreateSheet({
                 <select
                   value={maxPlayers}
                   onChange={(e) => onMaxPlayersChange(e.target.value)}
-                  className="w-full bg-[#1C2237] text-white px-5 py-3.5 rounded-xl border border-white/5 focus:outline-none appearance-none text-sm"
+                  className="w-full bg-[#181928] text-white px-5 py-4 rounded-xl border border-white/10 focus:outline-none appearance-none text-sm"
                 >
                   {[1, 2, 3, 4, 5, 11, 22].map((n) => (
                     <option key={n} value={n}>
@@ -190,7 +197,7 @@ export function OrganiseCreateSheet({
           ) : (
             <div className="space-y-1 flex-1 flex flex-col min-h-0">
               <label className="block text-gray-300 text-[13px] font-medium ml-1">Add Teams</label>
-              <div className="flex-1 overflow-y-auto bg-[#1C2237] rounded-xl border border-white/5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="flex-1 overflow-y-auto bg-[#181928] rounded-xl border border-white/10 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                 {getUnassignedTeams().length === 0 ? (
                   <div className="p-8 text-center text-gray-500 text-xs">
                     All teams are already assigned to groups

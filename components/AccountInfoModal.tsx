@@ -17,14 +17,14 @@ const modalContent = {
     description:
       'Personal accounts are designed for players, fans, and individual sports enthusiasts. Join leagues, track your stats, and build your dream team.',
     cta: 'Continue as Personal',
-    image: '/images/onboarding-preview.jpg',
+    image: '/images/messi.png',
   },
   organization: {
     title: 'Organization Account',
     description:
-      'Organization accounts are designed for sport academies, clubs, competitions organizers, federations, Teams, Schools, and Companies. It requires verification in order to safeguard our sport community',
+      'Organization accounts are designed for sport academies, clubs, competitions organizers, federations, Teams, Schools, and Companies.',
     cta: 'Continue as Organization',
-    image: '/images/org-handshake.png',
+    image: '/images/handshake_news.png',
   },
 }
 
@@ -98,7 +98,7 @@ export function AccountInfoModal({
                     onClick={onContinue}
                     className="w-full h-14 rounded-xl text-sm font-bold tracking-wide shadow-lg shadow-orange-500/20"
                     style={{
-                      background: 'linear-gradient(90deg, #FF8A00 0%, #FF0000 100%)'
+                      background: 'linear-gradient(90deg, #FF8904 0%, #E7000B 100%)'
                     }}
                   >
                     {content.cta}

@@ -11,12 +11,20 @@ import { tokenStore } from '@/lib/api'
  * If it fails (no cookie / expired) the user remains unauthenticated.
  */
 export function useAuthListener() {
-  const { setUser, setLoading, isAuthenticated, accessToken } = useAuthStore()
+  const { setUser, setLoading, setRole, isAuthenticated, accessToken } = useAuthStore()
 
   useEffect(() => {
     // If we already have a valid token in memory, no need to refresh
     if (isAuthenticated && tokenStore.get()) {
       return
+    }
+
+    // Also hydrate role from cookie if possible
+    if (typeof document !== 'undefined') {
+      const match = document.cookie.match(/gaffer-user-role=([^;]+)/)
+      if (match && match[1]) {
+        setRole(match[1] as any)
+      }
     }
 
     let cancelled = false
