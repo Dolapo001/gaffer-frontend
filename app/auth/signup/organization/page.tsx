@@ -52,7 +52,8 @@ export default function OrganizationSignupPage() {
     resolver: zodResolver(organizationSignUpSchema),
     mode: 'onTouched',
     defaultValues: {
-      name: '',
+      orgName: '',
+      fullName: '',
       email: '',
       handle: '',
       password: '',
@@ -63,9 +64,9 @@ export default function OrganizationSignupPage() {
   })
 
   const handleNext = async (e?: React.MouseEvent) => {
-    const fields: any[] = ['name', 'handle']
+    const fields: any[] = ['orgName', 'handle']
     if (!isAuthenticated) {
-      fields.push('email', 'password', 'confirmPassword')
+      fields.push('fullName', 'email', 'password', 'confirmPassword')
     }
     const isStep1Valid = await trigger(fields)
     if (isStep1Valid) {
@@ -86,17 +87,17 @@ export default function OrganizationSignupPage() {
         }
         finalUser = await registerUser(data.email, data.password)
       }
-      
+
       // 2. Create the organization and update user profile in one backend operation
       await createOrg({
-        name: data.name,
+        name: data.orgName,
         handle: data.handle,
         description: data.description || '',
         sport: data.sport,
         ownerId: finalUser.id,
-        userFullName: data.name
+        userFullName: data.fullName || finalUser.fullName || undefined,
       })
-      
+
       setRole('organization')
       router.replace('/admin')
     } catch (err) {
@@ -184,11 +185,11 @@ export default function OrganizationSignupPage() {
                   className="space-y-4"
                 >
                   <AuthInput
-                    label="Name"
-                    placeholder="Charlie Westervelt"
+                    label="Organization Name"
+                    placeholder="Westervelt Athletic Club"
                     className="bg-white/5 border-white/10 rounded-lg h-14"
-                    error={errors.name}
-                    {...register('name')}
+                    error={errors.orgName}
+                    {...register('orgName')}
                   />
 
                   <AuthInput
@@ -203,9 +204,16 @@ export default function OrganizationSignupPage() {
                   {!isAuthenticated && (
                     <>
                       <AuthInput
+                        label="Your Full Name"
+                        placeholder="Charlie Westervelt"
+                        className="bg-white/5 border-white/10 rounded-lg h-14"
+                        error={errors.fullName}
+                        {...register('fullName')}
+                      />
+                      <AuthInput
                         label="Email"
                         type="email"
-                        placeholder="organizationname@gmial.com"
+                        placeholder="organization@email.com"
                         className="bg-white/5 border-white/10 rounded-lg h-14"
                         error={errors.email}
                         {...register('email')}

@@ -93,6 +93,11 @@ export default function AdminNewsPage() {
               </div>
             </div>
 
+            {!firstOrg && (
+              <p className="text-center text-white/40 text-xs font-chakra py-1">
+                You need an organization to post news.
+              </p>
+            )}
             <button
               onClick={() => canPost && postMutation.mutate()}
               disabled={!canPost || postMutation.isPending}
