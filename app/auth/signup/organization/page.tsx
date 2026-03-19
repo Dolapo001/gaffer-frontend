@@ -148,7 +148,7 @@ export default function OrganizationSignupPage() {
               GAFFER
             </h1>
             <p className="font-chakra text-white text-[15px] mt-4 font-medium italic opacity-90">
-              Let's create your organization
+              Let&apos;s create your organization
             </p>
           </div>
 

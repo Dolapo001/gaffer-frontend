@@ -146,7 +146,7 @@ export function OrganizationHome() {
                   <div className="w-full h-40 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center grayscale">
                      <img src="/images/empty_tournament.png" className="w-full h-full object-cover opacity-60" alt="" />
                   </div>
-                  <p className="text-white font-chakra font-bold text-lg">You Don't have any Tournament</p>
+                  <p className="text-white font-chakra font-bold text-lg">You Don&apos;t have any Tournament</p>
                   <button
                     onClick={() => router.push('/admin/tournaments')}
                     className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"

@@ -42,3 +42,10 @@ export async function updateProfile(payload: UpdateProfilePayload): Promise<User
 export async function deleteAccount(): Promise<{ message: string }> {
   return api.delete<{ message: string }>('/users')
 }
+
+// PATCH /users/avatar — upload avatar via Cloudinary
+export async function uploadAvatar(file: File): Promise<{ success: boolean; data: { imageUrl: string; publicId: string } }> {
+  const formData = new FormData()
+  formData.append('avatar', file)
+  return api.patch('/users/avatar', formData)
+}

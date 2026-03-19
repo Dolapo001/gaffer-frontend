@@ -8,6 +8,16 @@ export interface NotificationPreferences {
   followedCompetitions: string[]
 }
 
+export interface InboxNotification {
+  _id: string
+  title: string
+  body: string
+  type: string
+  read: boolean
+  metadata: Record<string, unknown>
+  createdAt: string
+}
+
 // GET /notifications/vapid-key — PUBLIC
 export async function getVapidKey(): Promise<{ vapidPublicKey: string }> {
   return api.get<{ vapidPublicKey: string }>('/notifications/vapid-key', { public: true })
@@ -67,6 +77,16 @@ export async function followCompetition(competitionId: string): Promise<{ messag
 // DELETE /notifications/follow/competition/:competitionId
 export async function unfollowCompetition(competitionId: string): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/notifications/follow/competition/${competitionId}`)
+}
+
+// GET /notifications — inbox
+export async function getInboxNotifications(page = 1): Promise<{ notifications: InboxNotification[]; total: number; page: number; unreadCount: number }> {
+  return api.get(`/notifications?page=${page}`)
+}
+
+// PATCH /notifications/:id/read
+export async function markNotificationRead(id: string): Promise<{ message: string; notification: InboxNotification }> {
+  return api.patch(`/notifications/${id}/read`, {})
 }
 
 // All mutable event types (for preferences UI)

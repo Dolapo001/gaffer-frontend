@@ -65,3 +65,8 @@ export async function logout(): Promise<void> {
     tokenStore.clear()
   }
 }
+
+// Google OAuth — redirects to backend which handles the full OAuth flow
+export function startGoogleOAuth(): void {
+  window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`
+}

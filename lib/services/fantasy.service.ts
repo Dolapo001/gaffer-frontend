@@ -136,6 +136,24 @@ export async function setPlayerPrice(
   return api.put(`/fantasy/${competitionId}/pricing/teams/${teamId}/players/${fantasyPlayerId}`, { tier, price })
 }
 
+export async function validateTeamPricing(
+  competitionId: string,
+  teamId: string,
+): Promise<{ valid: boolean; errors?: string[] }> {
+  return api.post<{ valid: boolean; errors?: string[] }>(
+    `/fantasy/${competitionId}/pricing/teams/${teamId}/validate`,
+  )
+}
+
+export async function finalizeTeamPricing(
+  competitionId: string,
+  teamId: string,
+): Promise<{ message: string }> {
+  return api.post<{ message: string }>(
+    `/fantasy/${competitionId}/pricing/teams/${teamId}/finalize`,
+  )
+}
+
 export async function finalizeAllPricing(competitionId: string): Promise<{ message: string }> {
   return api.post<{ message: string }>(`/fantasy/${competitionId}/pricing/finalize`)
 }

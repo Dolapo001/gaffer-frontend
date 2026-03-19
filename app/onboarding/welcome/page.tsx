@@ -1,9 +1,10 @@
 'use client'
 
+import React from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 
-function GradientBorderButton({ children, onClick }) {
+function GradientBorderButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
   return (
     <button
       onClick={onClick}

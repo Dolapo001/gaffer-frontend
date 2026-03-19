@@ -23,6 +23,10 @@ export default function LoginPage() {
     return () => clearError()
   }, [clearError])
 
+  const handleGoogleAuth = () => {
+    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
+  }
+
   const {
     register,
     handleSubmit,
@@ -52,6 +56,9 @@ export default function LoginPage() {
       setIsSubmitting(false)
     }
   }
+
+  // suppress unused variable warning
+  void getErrorMessage
 
   return (
     <div className="relative min-h-screen bg-[#181928] flex flex-col overflow-hidden">
@@ -148,8 +155,8 @@ export default function LoginPage() {
             </div>
 
             <div className="pt-4 flex flex-col gap-5 text-center">
-              <GradientButton 
-                type="submit" 
+              <GradientButton
+                type="submit"
                 loading={isSubmitting}
                 className="h-16 rounded-lg font-chakra font-bold text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] border-none shadow-none"
               >
@@ -160,6 +167,7 @@ export default function LoginPage() {
 
               <GradientButton
                 variant="google"
+                onClick={handleGoogleAuth}
                 className="h-16 rounded-lg bg-white/5 border-white/10 hover:bg-white/10 font-chakra font-semibold text-[15px]"
               >
                 <GoogleIcon className="w-6 h-6 mr-3" />
@@ -170,7 +178,7 @@ export default function LoginPage() {
 
           {/* Footer */}
           <div className="mt-12 text-center pb-8">
-            <span className="text-white/40 font-chakra text-sm font-medium">Don't have an account? </span>
+            <span className="text-white/40 font-chakra text-sm font-medium">Don&apos;t have an account? </span>
             <button
               onClick={() => router.push('/onboarding/role-select')}
               className="text-orange-gaffer font-chakra font-semibold text-sm hover:underline"

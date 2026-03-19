@@ -76,9 +76,11 @@ export async function deleteOrg(orgId: string): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/orgs/${orgId}`)
 }
 
-// PATCH /orgs/:orgId/logo
-export async function updateOrgLogo(orgId: string, logoUrl: string): Promise<Org> {
-  return api.patch<Org>(`/orgs/${orgId}/logo`, { logoUrl })
+// PATCH /orgs/:orgId/logo — upload via Cloudinary (multipart/form-data)
+export async function updateOrgLogo(orgId: string, file: File): Promise<{ success: boolean; data: { imageUrl: string; publicId: string }; org: Org }> {
+  const formData = new FormData()
+  formData.append('logo', file)
+  return api.patch(`/orgs/${orgId}/logo`, formData)
 }
 
 // GET /orgs/:orgId/members

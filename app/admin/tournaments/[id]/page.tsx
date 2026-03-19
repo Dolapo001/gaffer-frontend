@@ -6,11 +6,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
-  BarChart2, Trash2,
+  BarChart2, Trash2, Star,
 } from 'lucide-react'
 import { getCompetition, archiveCompetition } from '@/lib/services/competition.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getStandings } from '@/lib/services/standings.service'
+import {
+  getTeamPricing,
+  validateTeamPricing,
+  finalizeTeamPricing,
+  finalizeAllPricing,
+} from '@/lib/services/fantasy.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -43,6 +49,8 @@ export default function TournamentDetailPage() {
   const toast = useToastStore()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [showDelete, setShowDelete] = useState(false)
+  const [pricingStatus, setPricingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [pricingMessage, setPricingMessage] = useState('')
 
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', id],
@@ -61,6 +69,12 @@ export default function TournamentDetailPage() {
     enabled: activeTab === 'standings',
   })
 
+  const { data: teamPricingData } = useQuery({
+    queryKey: ['team-pricing', id],
+    queryFn: () => getTeamPricing(id),
+    enabled: activeTab === 'fantasy',
+  })
+
   const archiveMutation = useMutation({
     mutationFn: () => archiveCompetition(id),
     onSuccess: () => {
@@ -70,6 +84,35 @@ export default function TournamentDetailPage() {
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
+
+  const handleFinalizePricing = async () => {
+    const teams = (teamPricingData as { teams?: { id: string }[] } | null)?.teams ?? []
+    setPricingStatus('loading')
+    setPricingMessage('')
+    try {
+      // Validate each team first
+      for (const team of teams) {
+        const result = await validateTeamPricing(id, team.id)
+        if (!result.valid) {
+          setPricingStatus('error')
+          setPricingMessage(`Validation failed: ${(result.errors ?? ['Unknown error']).join(', ')}`)
+          return
+        }
+      }
+      // Finalize each team
+      for (const team of teams) {
+        await finalizeTeamPricing(id, team.id)
+      }
+      // Global finalize
+      await finalizeAllPricing(id)
+      setPricingStatus('success')
+      setPricingMessage('All pricing finalized successfully')
+      qc.invalidateQueries({ queryKey: ['team-pricing', id] })
+    } catch (err: unknown) {
+      setPricingStatus('error')
+      setPricingMessage(getErrorMessage(err))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -117,6 +160,7 @@ export default function TournamentDetailPage() {
           </div>
 
           {/* Tabs */}
+          <div className="flex gap-0 px-4 pb-0">
           <div className="flex gap-0 px-4 pb-0 overflow-x-auto no-scrollbar">
             {(['overview', 'schedule', 'standings', 'fantasy'] as Tab[]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
