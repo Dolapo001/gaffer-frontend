@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import Image from 'next/image';
+import { MATCHES, getTeamCrest } from '@/lib/leagueMockData';
 
 interface Scorer {
   name: string;
@@ -22,81 +22,26 @@ interface MatchData {
   score: string;
 }
 
-const LIVE_MATCHES: MatchData[] = [
-  {
-    id: 'm1',
+const LIVE_MATCHES: MatchData[] = MATCHES
+  .filter((m) => m.status === 'live' || m.status === 'finished')
+  .map((m) => ({
+    id: m.id,
     homeTeam: {
-      name: 'Barcelona',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg',
-      scorers: [
-        { name: 'De Jong', minute: "66'" },
-        { name: 'Depay', minute: "79'" }
-      ]
+      name: m.homeTeam.name,
+      crest: getTeamCrest(m.homeTeam.id),
+      scorers: (m.goalScorers ?? [])
+        .filter((s) => s.team === 'home')
+        .map((s) => ({ name: s.name, minute: `${s.minute}'` })),
     },
     awayTeam: {
-      name: 'Man City',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg',
-      scorers: [
-        { name: 'Alvarez', minute: "21'" },
-        { name: 'Palmer', minute: "70'" }
-      ]
+      name: m.awayTeam.name,
+      crest: getTeamCrest(m.awayTeam.id),
+      scorers: (m.goalScorers ?? [])
+        .filter((s) => s.team === 'away')
+        .map((s) => ({ name: s.name, minute: `${s.minute}'` })),
     },
-    score: '2 - 2'
-  },
-  {
-    id: 'm2',
-    homeTeam: {
-      name: 'Brighton',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Brighton_&_Hove_Albion_logo.svg',
-      scorers: [
-        { name: 'Samuel', minute: "40'" }
-      ]
-    },
-    awayTeam: {
-      name: 'Chelsea',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg',
-      scorers: []
-    },
-    score: '1 - 0'
-  },
-  {
-    id: 'm3',
-    homeTeam: {
-      name: 'Arsenal',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg',
-      scorers: [
-        { name: 'Saka', minute: "12'" },
-        { name: 'Odegaard', minute: "34'" }
-      ]
-    },
-    awayTeam: {
-      name: 'Liverpool',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg',
-      scorers: [
-        { name: 'Salah', minute: "50'" }
-      ]
-    },
-    score: '2 - 1'
-  },
-  {
-    id: 'm4',
-    homeTeam: {
-      name: 'Real Madrid',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg',
-      scorers: [
-        { name: 'Benzema', minute: "20'" }
-      ]
-    },
-    awayTeam: {
-      name: 'PSG',
-      crest: 'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg',
-      scorers: [
-        { name: 'Mbappe', minute: "45'" }
-      ]
-    },
-    score: '1 - 1'
-  }
-];
+    score: `${m.homeScore ?? 0} - ${m.awayScore ?? 0}`,
+  }));
 
 export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -123,7 +68,7 @@ export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) 
         {/* Sliding Track - Positioned at 50% by default, then offset by activeCenterOffset */}
         <motion.div
           className="flex items-center absolute"
-          style={{ 
+          style={{
             left: '50%',
             gap: `${GAP}px`,
             width: 'max-content',
@@ -134,21 +79,21 @@ export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) 
         >
           {LIVE_MATCHES.map((match, index) => {
             const isActive = index === currentIndex;
-            
+
             return (
               <motion.div
                 key={match.id}
                 onClick={onCardClick}
-                animate={{ 
+                animate={{
                   width: isActive ? `${ACTIVE_WIDTH}px` : `${INACTIVE_WIDTH}px`,
                   opacity: isActive ? 1 : 0.4,
                   scale: isActive ? 1 : 0.9
                 }}
                 transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
                 className="relative h-[140.17px] rounded-[15.05px] overflow-hidden shadow-2xl shrink-0 cursor-pointer"
-                style={{ 
-                  background: isActive 
-                    ? 'linear-gradient(91.01deg, #4568DC 0%, #B06AB3 100%)' 
+                style={{
+                  background: isActive
+                    ? 'linear-gradient(91.01deg, #4568DC 0%, #B06AB3 100%)'
                     : '#1a1b2e',
                   border: '1.27px solid rgba(255,255,255,0.05)'
                 }}
@@ -166,7 +111,7 @@ export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) 
                       <span className="text-[9px] font-bold text-white uppercase mb-4 tracking-[0.2em] w-full text-right pr-2">
                         LIVE MATCH
                       </span>
-                      
+
                       <div className="flex items-center justify-between w-full mt-1 px-1">
                         <div className="w-10 h-10 flex items-center justify-center shrink-0">
                           <img src={match.homeTeam.crest} className="max-w-full max-h-full object-contain" alt="" />
@@ -190,10 +135,10 @@ export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) 
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full px-2">
                       <div className="w-10 h-10 flex items-center justify-center mb-4">
-                        <img 
-                          src={match.homeTeam.crest} 
-                          className="max-w-full max-h-full object-contain opacity-70" 
-                          alt="" 
+                        <img
+                          src={match.homeTeam.crest}
+                          className="max-w-full max-h-full object-contain opacity-70"
+                          alt=""
                         />
                       </div>
                       <span className="text-[11px] font-medium text-white/60 text-center leading-tight truncate w-full">
@@ -213,4 +158,3 @@ export function LiveMatchSection({ onCardClick }: { onCardClick?: () => void }) 
     </div>
   );
 }
-

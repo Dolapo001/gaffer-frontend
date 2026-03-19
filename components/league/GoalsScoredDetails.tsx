@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, Triangle, Minus } from 'lucide-react';
+import { ALL_PLAYERS, getTeamCrest } from '@/lib/leagueMockData';
 
 interface ScorerDetail {
   id: string;
@@ -11,27 +12,28 @@ interface ScorerDetail {
   teamName: string;
 }
 
-const detailedScorers: ScorerDetail[] = [
-  { id: '0', name: 'Omoba', goals: 9, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg', trend: 'stable', portrait: '/images/omoba.png', teamName: 'Barcelona' },
-  { id: '1', name: 'Dahood', goals: 2, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg', trend: 'stable', portrait: '/images/dahood.png', teamName: 'Man City' },
-  { id: '2', name: 'Cooper Calzoni', goals: 4, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg', trend: 'up', portrait: '/images/cooper.png', teamName: 'Engineering' },
-  { id: '3', name: 'Alfredo Saris', goals: 4, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg', trend: 'down', portrait: '/images/omoba.png', teamName: 'Arts' },
-  { id: '4', name: 'Jakob Levin', goals: 4, teamLogo: '/images/law_logo.png', trend: 'up', portrait: '/images/jakob.png', teamName: 'Science' },
-  { id: '5', name: 'Alfonso Kenter', goals: 3, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg', trend: 'up', portrait: '/images/dahood.png', teamName: 'Business' },
-  { id: '6', name: 'Emerson Septimus', goals: 3, teamLogo: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg', trend: 'down', portrait: '/images/cooper.png', teamName: 'Education' },
-  { id: '7', name: 'Brandon Vaccaro', goals: 2, teamLogo: '/images/law_logo.png', trend: 'stable', portrait: '/images/dahood.png', teamName: 'Social' },
-];
+const detailedScorers: ScorerDetail[] = [...ALL_PLAYERS]
+  .sort((a, b) => b.goals - a.goals)
+  .map((p, i) => ({
+    id: p.id,
+    name: p.name,
+    goals: p.goals,
+    teamName: p.teamName,
+    teamLogo: getTeamCrest(p.teamId),
+    portrait: `https://i.pravatar.cc/200?u=${p.id}`,
+    trend: i === 0 ? 'stable' : i % 3 === 0 ? 'down' : 'up',
+  }));
 
 export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
   const [selectedPlayer, setSelectedPlayer] = useState<ScorerDetail>(detailedScorers[0]);
 
   return (
-    <div 
+    <div
       className="mx-auto relative flex flex-col pb-6"
-      style={{ 
-        width: '328.53px', 
-        height: '711.38px', 
-        borderRadius: '28.03px', 
+      style={{
+        width: '328.53px',
+        height: '711.38px',
+        borderRadius: '28.03px',
         backgroundColor: '#181928',
         fontFamily: "'Poppins', sans-serif",
         overflow: 'hidden',
@@ -39,15 +41,15 @@ export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
       }}
     >
       {/* Header (Step 508 Specs) */}
-      <div 
+      <div
         className="relative flex items-center px-6 mb-8"
-        style={{ 
-          width: '328.53px', 
+        style={{
+          width: '328.53px',
           height: '49.06px'
         }}
       >
-        <button 
-          onClick={onBack} 
+        <button
+          onClick={onBack}
           className="absolute text-white hover:opacity-70 transition-opacity flex items-center justify-center"
           style={{
             width: '21.03px',
@@ -62,19 +64,19 @@ export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Featured Player Card (Step 517 Specs) */}
-      <div 
-        style={{ 
+      <div
+        style={{
           paddingLeft: '14.02px',
           marginTop: '13.14px',
-          marginBottom: '28.15px' 
+          marginBottom: '28.15px'
         }}
       >
-        <div 
+        <div
           className="relative bg-[#1a1b2e] rounded-[24px] overflow-hidden flex shadow-lg"
-          style={{ 
-            width: '300.5px', 
-            height: '169.1px', 
-            border: '1px solid rgba(255,255,255,0.05)' 
+          style={{
+            width: '300.5px',
+            height: '169.1px',
+            border: '1px solid rgba(255,255,255,0.05)'
           }}
         >
           {/* Card Content Left */}
@@ -82,41 +84,41 @@ export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
             <div>
               <div className="flex items-center gap-2 mb-3">
                 {selectedPlayer.teamLogo && (
-                  <img 
-                    src={selectedPlayer.teamLogo} 
-                    alt={selectedPlayer.teamName} 
+                  <img
+                    src={selectedPlayer.teamLogo}
+                    alt={selectedPlayer.teamName}
                     className="w-5 h-5 object-contain"
                   />
                 )}
                 <span className="text-white text-[12px] opacity-80">{selectedPlayer.teamName}</span>
               </div>
-              
-              <h2 
-                className="text-white text-[20px] font-bold mb-0.5" 
+
+              <h2
+                className="text-white text-[20px] font-bold mb-0.5"
                 style={{ lineHeight: '1.2', maxWidth: '140px' }}
               >
                 {selectedPlayer.name}
               </h2>
               <span className="text-white text-[11px] opacity-60">Goals Score</span>
             </div>
-            
+
             <span className="text-[#FF9100] text-[42px] font-bold leading-none">{selectedPlayer.goals}</span>
           </div>
 
           {/* Player Image (Step 523 Specs) */}
-          <div 
+          <div
             className="absolute z-0"
-            style={{ 
-              width: '147.77px', 
-              height: '121px', 
-              top: '46.52px', 
-              left: '146.02px' 
+            style={{
+              width: '147.77px',
+              height: '121px',
+              top: '46.52px',
+              left: '146.02px'
             }}
           >
             {selectedPlayer.portrait && (
-              <img 
-                src={selectedPlayer.portrait} 
-                alt={selectedPlayer.name} 
+              <img
+                src={selectedPlayer.portrait}
+                alt={selectedPlayer.name}
                 className="w-full h-full object-contain"
               />
             )}
@@ -125,9 +127,9 @@ export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Scorers List (Step 550 Specs) */}
-      <div 
-        className="overflow-y-auto no-scrollbar" 
-        style={{ 
+      <div
+        className="overflow-y-auto no-scrollbar"
+        style={{
           width: '299px',
           height: '371.46px',
           paddingLeft: '14px',
@@ -137,8 +139,8 @@ export function GoalsScoredDetails({ onBack }: { onBack: () => void }) {
         }}
       >
         {detailedScorers.map((scorer) => (
-          <button 
-            key={scorer.id} 
+          <button
+            key={scorer.id}
             onClick={() => setSelectedPlayer(scorer)}
             className={`w-full flex items-center gap-4 group text-left transition-all p-2 rounded-xl h-[45px] ${selectedPlayer.id === scorer.id ? 'bg-white/5 border border-white/10' : 'hover:bg-white/[0.02]'}`}
           >
