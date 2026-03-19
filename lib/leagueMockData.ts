@@ -311,6 +311,22 @@ export const SOCIAL_POSTS: SocialPost[] = [
   },
 ]
 
+// ─── Team Crests ────────────────────────────────────────────────────────────
+
+export const TEAM_CRESTS: Record<string, string> = {
+  barca: 'https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg',
+  mancity: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg',
+  engineering: 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg',
+  cococ: 'https://upload.wikimedia.org/wikipedia/en/f/f2/Brighton_%26_Hove_Albion_logo.svg',
+  coaks: 'https://upload.wikimedia.org/wikipedia/en/5/53/Arsenal_FC.svg',
+  cobas: 'https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg',
+  cojun: 'https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg',
+  coake: 'https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg',
+}
+
+export const getTeamCrest = (teamId: string): string =>
+  TEAM_CRESTS[teamId] ?? 'https://upload.wikimedia.org/wikipedia/en/e/eb/Manchester_City_FC_badge.svg'
+
 // ─── Fantasy Stats ──────────────────────────────────────────────────────────
 
 export const FANTASY_STATS = {

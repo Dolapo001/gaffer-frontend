@@ -1,30 +1,25 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { TOP_PLAYERS } from '@/lib/leagueMockData';
 
-interface Scorer {
-  name: string;
-  goals: number;
-  avatar: string;
-}
-
-const scorers: Scorer[] = [
-  { name: 'Omoba', goals: 9, avatar: 'https://i.pravatar.cc/100?u=1' },
-  { name: 'Dahood', goals: 6, avatar: 'https://i.pravatar.cc/100?u=2' },
-  { name: 'Kola', goals: 4, avatar: 'https://i.pravatar.cc/100?u=3' },
-  { name: 'Choco', goals: 4, avatar: 'https://i.pravatar.cc/100?u=4' },
-  { name: 'Wisdom', goals: 3, avatar: 'https://i.pravatar.cc/100?u=5' },
-  { name: 'Toberu', goals: 3, avatar: 'https://i.pravatar.cc/100?u=6' },
-];
+const scorers = [...TOP_PLAYERS]
+  .sort((a, b) => b.goals - a.goals)
+  .slice(0, 6)
+  .map((p) => ({
+    name: p.name,
+    goals: p.goals,
+    avatar: `https://i.pravatar.cc/100?u=${p.id}`,
+  }));
 
 export function TopScorers({ onSeeAll }: { onSeeAll?: () => void }) {
   return (
     <div className="w-full flex justify-center mb-20 px-4 text-white">
-      <div 
+      <div
         className="bg-[#1a1b2e]/60 backdrop-blur-sm p-5 flex flex-col shadow-2xl"
-        style={{ 
-          width: '302.25px', 
-          height: '378.47px', 
+        style={{
+          width: '302.25px',
+          height: '378.47px',
           borderRadius: '28.03px',
           border: '1.31px solid #2E2F3E',
           fontFamily: "'Poppins', sans-serif"
@@ -33,7 +28,7 @@ export function TopScorers({ onSeeAll }: { onSeeAll?: () => void }) {
         {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-[17px] font-bold tracking-tight">Top Scorer</h2>
-          <button 
+          <button
             onClick={onSeeAll}
             className="text-[#a855f7] text-[13px] font-bold hover:text-[#d8b4fe] transition-colors"
           >
@@ -49,9 +44,9 @@ export function TopScorers({ onSeeAll }: { onSeeAll?: () => void }) {
 
         {/* Scorer Rows - Controlled height to fit container */}
         <div className="flex-1 overflow-hidden space-y-0.5">
-          {scorers.slice(0, 6).map((scorer, i) => (
-            <div 
-              key={i} 
+          {scorers.map((scorer, i) => (
+            <div
+              key={i}
               className="flex items-center py-2.5 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors rounded-lg group"
             >
               <div className="flex-1 flex items-center gap-3">
@@ -70,4 +65,3 @@ export function TopScorers({ onSeeAll }: { onSeeAll?: () => void }) {
     </div>
   );
 }
-

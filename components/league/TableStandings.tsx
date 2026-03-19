@@ -1,5 +1,7 @@
 'use client';
 
+import { STANDINGS } from '@/lib/leagueMockData';
+
 interface TeamRow {
   name: string;
   w: number;
@@ -9,28 +11,29 @@ interface TeamRow {
   status?: 'qualified' | 'playoffs';
 }
 
-const teams: TeamRow[] = [
-  { name: 'COCCS', w: 3, d: 0, l: 0, pts: 9, status: 'qualified' },
-  { name: 'COHES', w: 2, d: 1, l: 0, pts: 7, status: 'qualified' },
-  { name: 'COSMS', w: 2, d: 1, l: 0, pts: 7, status: 'qualified' },
-  { name: 'COLAW', w: 1, d: 2, l: 0, pts: 5, status: 'qualified' },
-  { name: 'COAES', w: 1, d: 1, l: 1, pts: 4, status: 'playoffs' },
-];
+const teams: TeamRow[] = STANDINGS.map((s) => ({
+  name: s.team.shortName,
+  w: s.wins,
+  d: s.draws,
+  l: s.losses,
+  pts: s.points,
+  status: s.position <= 3 ? 'qualified' : s.position === 4 ? 'playoffs' : undefined,
+}));
 
 export function TableStandings() {
   return (
     <div className="w-full flex justify-center mb-6 px-4">
-      <div 
+      <div
         className="bg-[#1a1b2e]/60 rounded-[28.03px] p-5 backdrop-blur-sm shadow-xl flex flex-col mx-auto"
-        style={{ 
-          width: '302.25px', 
-          height: '378.47px', 
+        style={{
+          width: '302.25px',
+          height: '378.47px',
           border: '1.31px solid #2E2F3E',
           fontFamily: "'Poppins', sans-serif"
         }}
       >
         <div className="flex items-center justify-between mb-5">
-          <h2 
+          <h2
             className="text-white whitespace-nowrap"
             style={{
               width: '119px',
@@ -44,7 +47,7 @@ export function TableStandings() {
           >
             Table Standings
           </h2>
-          <button 
+          <button
             className="transition-colors whitespace-nowrap"
             style={{
               width: '43px',
@@ -64,7 +67,7 @@ export function TableStandings() {
 
         {/* Table Headers */}
         <div className="flex items-center text-[#94a3b8] mb-3 px-1 w-full">
-          <span 
+          <span
             className="text-white"
             style={{
               width: '30px',
@@ -91,8 +94,8 @@ export function TableStandings() {
         {/* Team Rows - Controlled height to fit container */}
         <div className="flex-1 overflow-hidden space-y-0.5">
           {teams.map((team, i) => (
-            <div 
-              key={i} 
+            <div
+              key={i}
               className="flex items-center border-b border-[#2E2F3E]/40 last:border-0 hover:bg-white/[0.02] transition-colors px-1 group w-full"
               style={{
                 height: '35px',
@@ -100,16 +103,16 @@ export function TableStandings() {
             >
               <div className="flex-1 flex items-center gap-2.5 min-w-0">
                 {/* Status indicator (Step 305) */}
-                <div 
+                <div
                   className="rounded-full shrink-0"
                   style={{
                     width: '5.51px',
                     height: '5.26px',
-                    backgroundColor: team.status === 'qualified' ? '#00D1FF' : 
+                    backgroundColor: team.status === 'qualified' ? '#00D1FF' :
                                      team.status === 'playoffs' ? '#ff9100' : 'transparent'
                   }}
                 />
-                <span 
+                <span
                   className="text-white truncate"
                   style={{
                     fontFamily: "'Poppins', sans-serif",
@@ -124,7 +127,7 @@ export function TableStandings() {
                   {team.name}
                 </span>
               </div>
-              
+
               <div className="flex items-center justify-end gap-3">
                 <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.w}</span>
                 <span className="w-[20px] text-center text-white text-[12.27px] font-medium" style={{ fontFamily: "'Poppins', sans-serif" }}>{team.d}</span>
@@ -150,4 +153,3 @@ export function TableStandings() {
     </div>
   );
 }
-
