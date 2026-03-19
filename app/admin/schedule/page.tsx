@@ -24,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listFixtures, createFixture, Fixture } from '@/lib/services/fixture.service'
 import { listCompetitions } from '@/lib/services/competition.service'
 import { listOrgs } from '@/lib/services/org.service'
+import { listTeams } from '@/lib/services/team.service' // Added listTeams import
 import { useAuthStore } from '@/store/authStore'
 import { useRouter } from 'next/navigation'
 
@@ -120,44 +121,129 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] text-white">
+    <div className="min-h-screen bg-[#181928] pb-32 flex flex-col pt-12 overflow-x-hidden relative">
       {/* Header */}
-      <div className="px-6 pt-12 pb-6 flex items-center gap-4">
-        {showScheduleForm ? (
-          <button 
-            onClick={() => setShowScheduleForm(false)}
-            className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-lg"
-          >
-            <ChevronLeft size={20} />
-          </button>
-        ) : (
-          <button 
-            onClick={() => addToast('Menu coming soon', 'info')}
-            className="text-white/60"
-          >
-            <Menu size={28} />
-          </button>
-        )}
-        <h1 className="font-chakra font-black text-xl uppercase tracking-tight">
-          {showScheduleForm ? 'Schedule Game' : 'Your Schedule'}
-        </h1>
-      </div>
+      {!showScheduleForm && (
+        <div className="flex items-center justify-between px-6 mb-8 shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => addToast('Menu coming soon', 'info')}
+              className="text-white/60"
+            >
+              <Menu size={24} />
+            </button>
+            <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Your Schedule</h1>
+          </div>
+        </div>
+      )}
 
-      <div className="px-6 pb-40 flex-1 flex flex-col justify-center min-h-[60vh]">
-        {isEmpty ? (
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col min-h-0">
+        {showScheduleForm ? (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center justify-center text-center space-y-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="px-6 space-y-8"
           >
-            <h2 className="font-chakra font-black text-3xl text-white uppercase tracking-tight">
-              What&apos;s up next?
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={() => setShowScheduleForm(false)}
+                className="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-white/60 hover:text-white transition-all shadow-lg"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <h2 className="font-chakra font-black text-xl uppercase tracking-tight">Schedule Game</h2>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1">Round</label>
+                <div className="relative">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                    <option>Round 1</option>
+                    <option>Round 2</option>
+                    <option>Round 3</option>
+                    <option>Round 4</option>
+                  </select>
+                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-[13px] text-white/50 font-medium ml-1">Date</label>
+                  <div className="relative">
+                    <input type="text" defaultValue="20/4/26" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
+                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[13px] text-white/50 font-medium ml-1">Start Time</label>
+                  <div className="relative">
+                    <input type="text" defaultValue="2:00 PM" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
+                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team A</label>
+                <div className="relative">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                    {teams?.map(t => (
+                      <option key={t._id} value={t._id}>{t.name}</option>
+                    )) || <option>Select Team</option>}
+                  </select>
+                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team B</label>
+                <div className="relative">
+                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                    {teams?.map(t => (
+                      <option key={t._id} value={t._id}>{t.name}</option>
+                    )) || <option>Select Team</option>}
+                  </select>
+                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <GradientButton 
+                  onClick={() => {
+                    if (!competitionId) return
+                    createFixtureMutation.mutate({
+                      competitionId,
+                      homeTeamId: teams?.[0]?._id, // Using actual team ID
+                      awayTeamId: teams?.[1]?._id, // Using actual team ID
+                      kickoffAt: new Date().toISOString(),
+                      stageType: 'groups',
+                      venue: 'Main Stadium'
+                    })
+                  }}
+                  className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
+                >
+                  Schedule Game
+                </GradientButton>
+              </div>
+            </div>
+          </motion.div>
+        ) : isEmpty ? (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex-1 flex flex-col items-center justify-center px-10 text-center"
+          >
+            <h2 className="text-white text-3xl font-chakra font-black mb-4 uppercase leading-tight tracking-tighter">
+              What's up next?
             </h2>
-            <p className="text-white/40 max-w-[280px] text-sm font-medium leading-[1.6]">
-              Manage your schedule for matches ,ceremonies , Schedule now and for later
+            <p className="text-white/40 text-sm font-medium leading-relaxed max-w-[240px]">
+              Manage your schedule for matches, ceremonies, Schedule now and for later
             </p>
           </motion.div>
-        ) : !showScheduleForm ? (
+        ) : (
           <div className="flex-1 overflow-y-auto px-6 pb-20 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             {/* Next Matches Section */}
             {matches.length > 0 && (
@@ -185,83 +271,6 @@ export default function SchedulePage() {
               </div>
             )}
           </div>
-        ) : (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-8"
-          >
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1">Round</label>
-                <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
-                    <option>Round 1</option>
-                    <option>Round 2</option>
-                  </select>
-                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Date</label>
-                  <div className="relative">
-                    <input type="text" defaultValue="20/4/26" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
-                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[13px] text-white/50 font-medium ml-1">Start Time</label>
-                  <div className="relative">
-                    <input type="text" defaultValue="2:00 PM" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
-                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team A</label>
-                <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
-                    <option>Barcelona</option>
-                    <option>Engineering</option>
-                  </select>
-                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team B</label>
-                <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
-                    <option>Real Madrid</option>
-                    <option>Law</option>
-                  </select>
-                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                </div>
-              </div>
-
-              <div className="pt-4">
-                <GradientButton 
-                  onClick={() => {
-                    if (!competitionId) return
-                    createFixtureMutation.mutate({
-                      competitionId: competitionId,
-                      homeTeamId: 'Team A ID', // This would normally come from a dropdown
-                      awayTeamId: 'Team B ID',
-                      kickoffAt: new Date().toISOString(),
-                      stageType: 'groups',
-                      venue: 'Main Stadium'
-                    })
-                  }}
-                  className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
-                >
-                  Schedule Game
-                </GradientButton>
-              </div>
-            </div>
-          </motion.div>
         )}
       </div>
 
