@@ -52,6 +52,11 @@ export async function resetPassword(email: string): Promise<void> {
   await api.post<{ message: string }>('/auth/forgot-password', { email }, { public: true })
 }
 
+// POST /auth/reset-password — consumes the one-time token from the email link
+export async function confirmPasswordReset(token: string, password: string): Promise<void> {
+  await api.post<{ message: string }>('/auth/reset-password', { token, password }, { public: true })
+}
+
 // POST /auth/logout
 export async function logout(): Promise<void> {
   try {
