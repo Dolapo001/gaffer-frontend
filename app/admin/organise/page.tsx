@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Plus, Menu } from 'lucide-react'
+import { Plus, Menu, Trophy } from 'lucide-react'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { OrganiseList } from './components/OrganiseList'
 import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
@@ -16,6 +16,7 @@ import { listOrgs } from '@/lib/services/org.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
+import { useRouter } from 'next/navigation'
 const INITIAL_GROUPS: Group[] = [
   {
     id: '1',
@@ -33,6 +34,7 @@ const INITIAL_PLAYERS: Player[] = [
 export default function OrganizePage() {
   const { user } = useAuthStore()
   const { addToast } = useToast()
+  const router = useRouter()
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<'Teams' | 'Groups'>('Teams')
   const [view, setView] = useState<OrganiseView>('list')
@@ -44,30 +46,16 @@ export default function OrganizePage() {
     queryKey: ['orgs'],
     queryFn: listOrgs,
     enabled: !!user,
+    retry: 2,
   })
 
-  // Track if we've already warned about no orgs to avoid double toasts
-  const hasWarnedNoOrgs = useRef(false)
-  const hasWarnedFetchError = useRef(false)
-
   useEffect(() => {
-    if (orgsError && !hasWarnedFetchError.current) {
-      addToast(`Organization fetch error: ${getErrorMessage(orgsError)}`, 'error')
-      hasWarnedFetchError.current = true
+    if (orgsError) {
+      addToast(`Failed to load organization: ${getErrorMessage(orgsError)}`, 'error')
     }
   }, [orgsError, addToast])
 
   const orgId = orgs?.[0]?._id
-  
-  useEffect(() => {
-    if (orgs) {
-      console.log('Orgs fetched:', orgs)
-      if (orgs.length === 0 && !hasWarnedNoOrgs.current) {
-        addToast(`No organizations found for user ${user?.id}. Please create one to continue.`, 'info')
-        hasWarnedNoOrgs.current = true
-      }
-    }
-  }, [orgs, user?.id, addToast])
 
   // 2. Fetch Teams
   const { data: backendTeams, isLoading: isLoadingTeams } = useQuery({
@@ -194,6 +182,39 @@ export default function OrganizePage() {
     )
   }
 
+  // No organization found — show setup CTA instead of a broken empty page
+  if (!orgId && !isLoadingOrgs) {
+    return (
+      <BrowserProtection>
+        <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden">
+          <div className="flex items-center px-6 pt-12 pb-4 border-b border-white/10 shrink-0">
+            <Menu size={24} className="mr-4 text-white/60" />
+            <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-6">
+            <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
+              <Trophy size={40} className="text-orange-500" />
+            </div>
+            <div className="space-y-2">
+              <p className="text-white font-chakra font-bold text-xl uppercase tracking-tight">No Organization Found</p>
+              <p className="text-white/40 text-sm font-chakra max-w-[260px]">
+                {orgsError
+                  ? 'Could not load your organization. Please try again.'
+                  : 'You need an organization to manage teams and groups.'}
+              </p>
+            </div>
+            <button
+              onClick={() => router.push('/auth/signup/organization')}
+              className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg"
+            >
+              Create Organization
+            </button>
+          </div>
+        </div>
+      </BrowserProtection>
+    )
+  }
+
   return (
     <BrowserProtection>
       <div
@@ -301,8 +322,8 @@ export default function OrganizePage() {
           </AnimatePresence>
         </div>
 
-        {/* Floating Action Button */}
-        {(view === 'list' || view === 'share') && !!orgId && (
+        {/* Floating Action Button — only visible on list/share views when org is ready */}
+        {(view === 'list' || view === 'share') && (
           <button
             onClick={() => setView('create')}
             className="fixed bottom-[130px] right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF6B00] to-[#FF2400] flex items-center justify-center text-white shadow-2xl z-40 active:scale-95 transition-transform"

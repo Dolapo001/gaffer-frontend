@@ -35,6 +35,12 @@ export default function SchedulePage() {
   const queryClient = useQueryClient()
   const [showScheduleForm, setShowScheduleForm] = useState(false)
 
+  // Schedule form state
+  const [formHomeTeamId, setFormHomeTeamId] = useState('')
+  const [formAwayTeamId, setFormAwayTeamId] = useState('')
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [formTime, setFormTime] = useState('14:00')
+
   // 1. Fetch Org
   const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
     queryKey: ['orgs'],
@@ -60,6 +66,8 @@ export default function SchedulePage() {
       queryClient.invalidateQueries({ queryKey: ['fixtures', competitionId] })
       addToast('Game scheduled successfully!', 'success')
       setShowScheduleForm(false)
+      setFormHomeTeamId('')
+      setFormAwayTeamId('')
     },
     onError: (err: any) => {
       addToast(err?.message || 'Failed to schedule game', 'error')
@@ -156,73 +164,87 @@ export default function SchedulePage() {
             </div>
 
             <div className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1">Round</label>
-                <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
-                    <option>Round 1</option>
-                    <option>Round 2</option>
-                    <option>Round 3</option>
-                    <option>Round 4</option>
-                  </select>
-                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                </div>
-              </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-[13px] text-white/50 font-medium ml-1">Date</label>
-                  <div className="relative">
-                    <input type="text" defaultValue="20/4/26" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
-                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                  </div>
+                  <input
+                    type="date"
+                    value={formDate}
+                    onChange={(e) => setFormDate(e.target.value)}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-4 text-white text-sm focus:outline-none font-medium"
+                  />
                 </div>
                 <div className="space-y-2">
                   <label className="text-[13px] text-white/50 font-medium ml-1">Start Time</label>
-                  <div className="relative">
-                    <input type="text" defaultValue="2:00 PM" className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none font-medium" />
-                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
-                  </div>
+                  <input
+                    type="time"
+                    value={formTime}
+                    onChange={(e) => setFormTime(e.target.value)}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-4 text-white text-sm focus:outline-none font-medium"
+                  />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team A</label>
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Home Team</label>
                 <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                  <select
+                    value={formHomeTeamId}
+                    onChange={(e) => setFormHomeTeamId(e.target.value)}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
+                  >
+                    <option value="">Select Home Team</option>
                     {teams?.map(t => (
                       <option key={t._id} value={t._id}>{t.name}</option>
-                    )) || <option>Select Team</option>}
+                    ))}
                   </select>
                   <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Team B</label>
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Away Team</label>
                 <div className="relative">
-                  <select className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                  <select
+                    value={formAwayTeamId}
+                    onChange={(e) => setFormAwayTeamId(e.target.value)}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
+                  >
+                    <option value="">Select Away Team</option>
                     {teams?.map(t => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
-                    )) || <option>Select Team</option>}
+                      <option key={t._id} value={t._id} disabled={t._id === formHomeTeamId}>{t.name}</option>
+                    ))}
                   </select>
                   <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 </div>
               </div>
 
               <div className="pt-4">
-                <GradientButton 
+                <GradientButton
                   onClick={() => {
-                    if (!competitionId) return
+                    if (!competitionId) {
+                      addToast('No competition found. Create a tournament first.', 'error')
+                      return
+                    }
+                    if (!formHomeTeamId || !formAwayTeamId) {
+                      addToast('Please select both teams', 'error')
+                      return
+                    }
+                    if (formHomeTeamId === formAwayTeamId) {
+                      addToast('Home and away teams must be different', 'error')
+                      return
+                    }
+                    const kickoffAt = new Date(`${formDate}T${formTime}`).toISOString()
                     createFixtureMutation.mutate({
                       competitionId,
-                      homeTeamId: teams?.[0]?._id, // Using actual team ID
-                      awayTeamId: teams?.[1]?._id, // Using actual team ID
-                      kickoffAt: new Date().toISOString(),
+                      homeTeamId: formHomeTeamId,
+                      awayTeamId: formAwayTeamId,
+                      kickoffAt,
                       stageType: 'groups',
-                      venue: 'Main Stadium'
+                      venue: 'Main Stadium',
                     })
                   }}
+                  loading={createFixtureMutation.isPending}
                   className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
                 >
                   Schedule Game

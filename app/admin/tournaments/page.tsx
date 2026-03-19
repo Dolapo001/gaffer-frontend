@@ -14,8 +14,16 @@ export default function TournamentsPage() {
   const [showCreate, setShowCreate] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
-  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
+  const { data: orgs, isLoading: isLoadingOrgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
+
+  const handleCreateTournament = () => {
+    if (!firstOrg) {
+      router.push('/auth/signup/organization')
+      return
+    }
+    setShowCreate(true)
+  }
 
   const { data: competitions, isLoading } = useQuery({
     queryKey: ['competitions', firstOrg?._id],
@@ -73,10 +81,10 @@ export default function TournamentsPage() {
               </p>
 
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={handleCreateTournament}
                 className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
               >
-                Create Tournament
+                {firstOrg ? 'Create Tournament' : 'Set Up Organization First'}
               </button>
             </motion.div>
           ) : (
@@ -120,7 +128,7 @@ export default function TournamentsPage() {
               ))}
 
               <button
-                onClick={() => setShowCreate(true)}
+                onClick={handleCreateTournament}
                 className="w-full py-4 mt-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
               >
                 Create Tournament

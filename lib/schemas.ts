@@ -80,10 +80,16 @@ export type CreateOrgFormData = z.infer<typeof createOrgSchema>
 
 export const organizationSignUpSchema = z
   .object({
-    name: z
-      .string({ required_error: 'Name is required' })
-      .min(1, 'Name is required')
+    orgName: z
+      .string({ required_error: 'Organization name is required' })
+      .min(1, 'Organization name is required')
       .max(100, 'Name must be at most 100 characters'),
+    fullName: z
+      .string()
+      .min(2, 'Your name must be at least 2 characters')
+      .max(80, 'Name must be at most 80 characters')
+      .optional()
+      .or(z.literal('')),
     email: z
       .string()
       .email('Please enter a valid email address')
