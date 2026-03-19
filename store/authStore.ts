@@ -52,7 +52,12 @@ export const useAuthStore = create<AuthState>()(
 
       setProfile: (profile) => set({ profile }),
 
-      setRole: (role) => set({ role }),
+      setRole: (role) => {
+        // Mirror role into cookie so middleware can gate routes server-side.
+        // In production this should be set by the server (HttpOnly cookie from
+        // a /api/session endpoint that verifies the Firebase ID token).
+        set({ role })
+      },
 
       setLoading: (isLoading) => set({ isLoading }),
 
@@ -123,9 +128,11 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'gaffer-auth',
       storage: createJSONStorage(() => localStorage),
-      // Persist the minimum required for session restore
+      // Only persist isAuthenticated as a hydration hint.
+      // Role is intentionally excluded — it is re-hydrated from the auth cookie
+      // by middleware and re-set via setRole() after login/onboarding.
+      // This prevents a malicious localStorage edit from granting admin access.
       partialize: (state) => ({
-        role: state.role,
         isAuthenticated: state.isAuthenticated,
         user: state.user,
         accessToken: state.accessToken,

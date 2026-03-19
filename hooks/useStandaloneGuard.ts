@@ -5,19 +5,27 @@ import { useRouter } from 'next/navigation'
 import { isStandalone } from '@/lib/pwa'
 
 /**
- * Redirects to the landing page if the app is not running in PWA standalone mode.
- * Returns true once the check passes (standalone confirmed).
- * Returns false while checking or when redirecting (caller should render a loader).
+ * Enforces PWA standalone mode in production.
+ *
+ * - In development: always passes so engineers can iterate in the browser.
+ * - In production:  redirects to the landing page (/) if the app is not
+ *   running as an installed PWA.
+ *
+ * Returns `true` once the check passes (standalone confirmed or dev mode).
+ * Returns `false` while the check is pending — callers should render a loader.
  */
 export function useStandaloneGuard(): boolean {
   const router = useRouter()
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    // For development and testing, we'll allow access in all environments
-    // Original logic: if (process.env.NODE_ENV === 'development' || isStandalone())
-    setIsReady(true)
-  }, [])
+    if (process.env.NODE_ENV === 'development' || isStandalone()) {
+      setIsReady(true)
+    } else {
+      // Not running as installed PWA in production — send to landing page
+      router.replace('/')
+    }
+  }, [router])
 
   return isReady
 }

@@ -4,19 +4,25 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
-import { useAuthListener } from '@/hooks/useAuthListener'
 import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Gamepad2 } from 'lucide-react'
 import Link from 'next/link'
-import { QueryProvider } from '@/components/QueryProvider'
+
+// useAuthListener is called once at the root via AuthProvider — not here.
+
+const NAV_ITEMS = [
+  { href: '/app/dashboard', icon: Home, label: 'Home' },
+  { href: '/app/fantasy', icon: Gamepad2, label: 'Fantasy' },
+  { href: '/app/league', icon: Trophy, label: 'League' },
+  { href: '/app/news', icon: Newspaper, label: 'News' },
+]
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
   const { isAuthenticated, isLoading } = useAuthStore()
   const isReady = useStandaloneGuard()
-
-  useAuthListener()
 
   useEffect(() => {
     if (isReady && !isLoading && !isAuthenticated) {
@@ -37,25 +43,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) return null
 
-  const navItems = [
-    { href: '/app/dashboard', icon: Home, label: 'Home' },
-    { href: '/app/fantasy', icon: Gamepad2, label: 'Fantasy' },
-    { href: '/app/league', icon: Trophy, label: 'League' },
-    { href: '/app/news', icon: Newspaper, label: 'News' },
-  ]
-
   return (
-    <QueryProvider>
-      <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
-        <motion.main
-          key={pathname}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex-1 pb-32"
-        >
-          {children}
-        </motion.main>
+    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
+        <ErrorBoundary>
+          <motion.main
+            key={pathname}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex-1 pb-32"
+          >
+            {children}
+          </motion.main>
+        </ErrorBoundary>
 
         {/* Bottom navigation (Design Matched Bar) */}
         <div id="global-nav-bar" className="fixed bottom-0 left-0 right-0 z-50 pointer-events-none transition-opacity duration-300 h-28 flex items-end">
@@ -66,7 +66,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               borderRadius: '2.5rem 2.5rem 0 0',
             }}
           >
-            {navItems.map((item) => {
+            {NAV_ITEMS.map((item) => {
               const isActive = pathname.startsWith(item.href)
               return (
                 <Link
@@ -94,6 +94,5 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </div>
-    </QueryProvider>
   )
 }

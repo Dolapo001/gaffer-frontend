@@ -4,9 +4,9 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
-import { useAuthListener } from '@/hooks/useAuthListener'
 import Link from 'next/link'
 import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Calendar, ShieldCheck } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -20,13 +20,18 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading } = useAuthStore()
+  const { isAuthenticated, isLoading, role } = useAuthStore()
   const isReady = useStandaloneGuard()
-  useAuthListener()
 
   useEffect(() => {
-    if (isReady && !isLoading && !isAuthenticated) router.replace('/auth/login')
-  }, [isReady, isAuthenticated, isLoading, router])
+    if (!isReady || isLoading) return
+    if (!isAuthenticated) {
+      router.replace('/auth/login')
+    } else if (role !== 'organization') {
+      // Personal users have no business on admin routes
+      router.replace('/app/dashboard')
+    }
+  }, [isReady, isAuthenticated, isLoading, role, router])
 
   if (!isReady || isLoading) {
     return (
@@ -36,19 +41,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     )
   }
 
-  if (!isAuthenticated) return null
+  if (!isAuthenticated || role !== 'organization') return null
 
   return (
     <div className="min-h-screen bg-[#0F111A] flex flex-col">
-      <motion.main
-        key={pathname}
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex-1 pb-40"
-      >
-        {children}
-      </motion.main>
+      <ErrorBoundary>
+        <motion.main
+          key={pathname}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="flex-1 pb-40"
+        >
+          {children}
+        </motion.main>
+      </ErrorBoundary>
 
       {/* Bottom navigation (Premium Pill Design) */}
       <div id="admin-nav-bar" className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-opacity duration-300">
