@@ -27,10 +27,16 @@ const SPORT_OPTIONS = [
 
 export default function OrganizationSignupPage() {
   const router = useRouter()
-  const { register: registerUser, error, clearError, setRole } = useAuthStore()
-  const [step, setStep] = useState<1 | 2>(1)
+  const { user, register: registerUser, isAuthenticated, error, clearError, setRole } = useAuthStore()
+  const [step, setStep] = useState<1 | 2>(isAuthenticated ? 2 : 1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orgError, setOrgError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAuthenticated && step === 1) {
+      setStep(2)
+    }
+  }, [isAuthenticated, step])
 
   useEffect(() => {
     return () => clearError()
@@ -57,8 +63,11 @@ export default function OrganizationSignupPage() {
   })
 
   const handleNext = async (e?: React.MouseEvent) => {
-    e?.preventDefault()
-    const isStep1Valid = await trigger(['name', 'email', 'handle', 'password', 'confirmPassword'])
+    const fields: any[] = ['name', 'handle']
+    if (!isAuthenticated) {
+      fields.push('email', 'password', 'confirmPassword')
+    }
+    const isStep1Valid = await trigger(fields)
     if (isStep1Valid) {
       setStep(2)
     }
@@ -68,24 +77,24 @@ export default function OrganizationSignupPage() {
     setIsSubmitting(true)
     setOrgError(null)
     try {
-      // 1. Register the user
-      const user = await registerUser(data.email, data.password)
+      let finalUser = user
+
+      // 1. Register the user ONLY if they are not already logged in
+      if (!finalUser) {
+        if (!data.email || !data.password) {
+           throw new Error("Email and password are required for registration");
+        }
+        finalUser = await registerUser(data.email, data.password)
+      }
       
-      // 2. Update user profile with name and role flag
-      const { updateProfile } = await import('@/lib/services/user.service')
-      await updateProfile({
-          fullName: data.name,
-          isOrgActive: true,
-          lastRole: 'organization'
-      })
-      
-      // 3. Create the organization
+      // 2. Create the organization and update user profile in one backend operation
       await createOrg({
         name: data.name,
         handle: data.handle,
         description: data.description || '',
         sport: data.sport,
-        ownerId: user.id
+        ownerId: finalUser.id,
+        userFullName: data.name
       })
       
       setRole('organization')
@@ -183,15 +192,6 @@ export default function OrganizationSignupPage() {
                   />
 
                   <AuthInput
-                    label="Email"
-                    type="email"
-                    placeholder="organizationname@gmial.com"
-                    className="bg-white/5 border-white/10 rounded-lg h-14"
-                    error={errors.email}
-                    {...register('email')}
-                  />
-
-                  <AuthInput
                     label="Handle"
                     prefix="@"
                     placeholder="westervelt_ac"
@@ -200,23 +200,34 @@ export default function OrganizationSignupPage() {
                     {...register('handle')}
                   />
 
-                  <AuthInput
-                    label="Password"
-                    showPasswordToggle
-                    placeholder="************"
-                    className="bg-white/5 border-white/10 rounded-lg h-14"
-                    error={errors.password}
-                    {...register('password')}
-                  />
-
-                  <AuthInput
-                    label="Confirm Password"
-                    showPasswordToggle
-                    placeholder="************"
-                    className="bg-white/5 border-white/10 rounded-lg h-14"
-                    error={errors.confirmPassword}
-                    {...register('confirmPassword')}
-                  />
+                  {!isAuthenticated && (
+                    <>
+                      <AuthInput
+                        label="Email"
+                        type="email"
+                        placeholder="organizationname@gmial.com"
+                        className="bg-white/5 border-white/10 rounded-lg h-14"
+                        error={errors.email}
+                        {...register('email')}
+                      />
+                      <AuthInput
+                        label="Password"
+                        showPasswordToggle
+                        placeholder="************"
+                        className="bg-white/5 border-white/10 rounded-lg h-14"
+                        error={errors.password}
+                        {...register('password')}
+                      />
+                      <AuthInput
+                        label="Confirm Password"
+                        showPasswordToggle
+                        placeholder="************"
+                        className="bg-white/5 border-white/10 rounded-lg h-14"
+                        error={errors.confirmPassword}
+                        {...register('confirmPassword')}
+                      />
+                    </>
+                  )}
 
                   <div className="pt-6">
                     <GradientButton 

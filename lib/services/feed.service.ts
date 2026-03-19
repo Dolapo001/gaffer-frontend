@@ -41,27 +41,32 @@ export interface FeedPage {
 
 // GET /feed — PUBLIC, page 1 cached
 export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
-  return api.get<FeedPage>(`/feed?page=${page}`, { public: true })
+  const data = await api.get<{ feed: FeedPage }>(`/feed?page=${page}`, { public: true })
+  return data.feed
 }
 
 // GET /feed/:id — PUBLIC
 export async function getFeedItem(id: string): Promise<FeedItem> {
-  return api.get<FeedItem>(`/feed/${id}`, { public: true })
+  const data = await api.get<{ item: FeedItem }>(`/feed/${id}`, { public: true })
+  return data.item
 }
 
 // GET /feed/org/:orgId — PUBLIC
 export async function getOrgFeed(orgId: string, page: number = 1): Promise<FeedPage> {
-  return api.get<FeedPage>(`/feed/org/${orgId}?page=${page}`, { public: true })
+  const data = await api.get<{ feed: FeedPage }>(`/feed/org/${orgId}?page=${page}`, { public: true })
+  return data.feed
 }
 
 // GET /feed/team/:teamId — PUBLIC
 export async function getTeamFeed(teamId: string, page: number = 1): Promise<FeedPage> {
-  return api.get<FeedPage>(`/feed/team/${teamId}?page=${page}`, { public: true })
+  const data = await api.get<{ feed: FeedPage }>(`/feed/team/${teamId}?page=${page}`, { public: true })
+  return data.feed
 }
 
 // GET /feed/match/:fixtureId — PUBLIC
 export async function getMatchFeed(fixtureId: string, page: number = 1): Promise<FeedPage> {
-  return api.get<FeedPage>(`/feed/match/${fixtureId}?page=${page}`, { public: true })
+  const data = await api.get<{ feed: FeedPage }>(`/feed/match/${fixtureId}?page=${page}`, { public: true })
+  return data.feed
 }
 
 // POST /feed/news
@@ -71,7 +76,8 @@ export async function publishNews(payload: {
   media?: MediaItem[]
   visibility?: 'public' | 'org'
 }): Promise<FeedItem> {
-  return api.post<FeedItem>('/feed/news', payload)
+  const data = await api.post<{ item: FeedItem }>('/feed/news', payload)
+  return data.item
 }
 
 // POST /feed/posts
@@ -81,27 +87,32 @@ export async function publishPost(payload: {
   media?: MediaItem[]
   visibility?: 'public' | 'team'
 }): Promise<FeedItem> {
-  return api.post<FeedItem>('/feed/posts', payload)
+  const data = await api.post<{ item: FeedItem }>('/feed/posts', payload)
+  return data.item
 }
 
 // POST /feed/:id/repost
 export async function repost(id: string, body?: string): Promise<FeedItem> {
-  return api.post<FeedItem>(`/feed/${id}/repost`, { body })
+  const data = await api.post<{ item: FeedItem }>(`/feed/${id}/repost`, { body })
+  return data.item
 }
 
 // POST /feed/:id/like
 export async function likeFeedItem(id: string): Promise<{ message: string }> {
-  return api.post<{ message: string }>(`/feed/${id}/like`)
+  const data = await api.post<{ message: string; item: FeedItem }>(`/feed/${id}/like`)
+  return data
 }
 
 // DELETE /feed/:id/like
 export async function unlikeFeedItem(id: string): Promise<{ message: string }> {
-  return api.delete<{ message: string }>(`/feed/${id}/like`)
+  const data = await api.delete<{ message: string; item: FeedItem }>(`/feed/${id}/like`)
+  return data
 }
 
 // POST /feed/:id/comments
 export async function addComment(id: string, body: string): Promise<FeedComment> {
-  return api.post<FeedComment>(`/feed/${id}/comments`, { body })
+  const data = await api.post<{ comment: FeedComment }>(`/feed/${id}/comments`, { body })
+  return data.comment
 }
 
 // GET /feed/:id/comments — PUBLIC, newest first, 20/page
@@ -110,11 +121,20 @@ export async function getComments(id: string, page: number = 1): Promise<{
   total: number
   page: number
 }> {
-  return api.get(`/feed/${id}/comments?page=${page}`, { public: true })
+  const data = await api.get<{
+    comments: FeedComment[]
+    total: number
+    page: number
+  }>(`/feed/${id}/comments?page=${page}`, { public: true })
+  return data
 }
 
 // GET /feed/search — Search items by body text
 export async function searchFeedItems(query: string, page: number = 1): Promise<FeedPage> {
   if (!query.trim()) return { items: [], total: 0, page: 1 }
-  return api.get<FeedPage>(`/feed/search?q=${encodeURIComponent(query)}&page=${page}`, { public: true })
+  const data = await api.get<{ feed: FeedPage }>(`/feed/search?q=${encodeURIComponent(query)}&page=${page}`, { public: true })
+  // Backend search returns the full FeedPage object or wraps it in 'feed'?
+  // Controller says: res.status(200).json(result); where result is from service.search
+  // service.search returns { items, total, page }
+  return (data as any).items ? (data as any) : data.feed
 }

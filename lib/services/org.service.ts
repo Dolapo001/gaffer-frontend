@@ -44,31 +44,37 @@ export interface CreateOrgPayload {
   logoUrl?: string
   sport?: string
   ownerId?: string
+  userFullName?: string
 }
 
 // GET /orgs
 export async function listOrgs(): Promise<Org[]> {
-  return api.get<Org[]>('/orgs')
+  const data = await api.get<{ orgs: Org[] }>('/orgs')
+  return data.orgs
 }
 
 // GET /orgs/handle/:handle
 export async function getOrgByHandle(handle: string): Promise<Org> {
-  return api.get<Org>(`/orgs/handle/${handle}`)
+  const data = await api.get<{ org: Org }>(`/orgs/handle/${handle}`)
+  return data.org
 }
 
 // GET /orgs/:orgId
 export async function getOrg(orgId: string): Promise<Org> {
-  return api.get<Org>(`/orgs/${orgId}`)
+  const data = await api.get<{ org: Org }>(`/orgs/${orgId}`)
+  return data.org
 }
 
 // POST /orgs
 export async function createOrg(payload: CreateOrgPayload): Promise<Org> {
-  return api.post<Org>('/orgs', payload)
+  const data = await api.post<{ org: Org }>('/orgs', payload)
+  return data.org
 }
 
 // PUT /orgs/:orgId
 export async function updateOrg(orgId: string, payload: Partial<CreateOrgPayload>): Promise<Org> {
-  return api.put<Org>(`/orgs/${orgId}`, payload)
+  const data = await api.put<{ org: Org }>(`/orgs/${orgId}`, payload)
+  return data.org
 }
 
 // DELETE /orgs/:orgId
@@ -85,7 +91,8 @@ export async function updateOrgLogo(orgId: string, file: File): Promise<{ succes
 
 // GET /orgs/:orgId/members
 export async function listMembers(orgId: string): Promise<OrgMember[]> {
-  return api.get<OrgMember[]>(`/orgs/${orgId}/members`)
+  const data = await api.get<{ members: OrgMember[] }>(`/orgs/${orgId}/members`)
+  return data.members
 }
 
 // POST /orgs/:orgId/members
@@ -94,7 +101,8 @@ export async function addMember(
   userId: string,
   role: 'admin' | 'manager' | 'staff' | 'viewer' = 'viewer',
 ): Promise<OrgMember> {
-  return api.post<OrgMember>(`/orgs/${orgId}/members`, { userId, role })
+  const data = await api.post<{ member: OrgMember }>(`/orgs/${orgId}/members`, { userId, role })
+  return data.member
 }
 
 // DELETE /orgs/:orgId/members/:memberId  (memberId = userId)
@@ -108,12 +116,14 @@ export async function updateMember(
   userId: string,
   payload: { role?: string; status?: string },
 ): Promise<OrgMember> {
-  return api.patch<OrgMember>(`/orgs/${orgId}/members/${userId}`, payload)
+  const data = await api.patch<{ member: OrgMember }>(`/orgs/${orgId}/members/${userId}`, payload)
+  return data.member
 }
 
 // GET /orgs/:orgId/invites
 export async function listInvites(orgId: string): Promise<OrgInvite[]> {
-  return api.get<OrgInvite[]>(`/orgs/${orgId}/invites`)
+  const data = await api.get<{ invites: OrgInvite[] }>(`/orgs/${orgId}/invites`)
+  return data.invites
 }
 
 // POST /orgs/:orgId/invites
@@ -122,20 +132,24 @@ export async function createInvite(
   email: string,
   role: string = 'viewer',
 ): Promise<OrgInvite> {
-  return api.post<OrgInvite>(`/orgs/${orgId}/invites`, { email, role })
+  const data = await api.post<{ invite: OrgInvite }>(`/orgs/${orgId}/invites`, { email, role })
+  return data.invite
 }
 
 // POST /orgs/:orgId/invites/:inviteId/resend
 export async function resendInvite(orgId: string, inviteId: string): Promise<OrgInvite> {
-  return api.post<OrgInvite>(`/orgs/${orgId}/invites/${inviteId}/resend`)
+  const data = await api.post<{ invite: OrgInvite }>(`/orgs/${orgId}/invites/${inviteId}/resend`)
+  return data.invite
 }
 
 // DELETE /orgs/:orgId/invites/:inviteId
-export async function cancelInvite(orgId: string, inviteId: string): Promise<{ message: string }> {
-  return api.delete<{ message: string }>(`/orgs/${orgId}/invites/${inviteId}`)
+export async function cancelInvite(orgId: string, inviteId: string): Promise<OrgInvite> {
+  const data = await api.delete<{ invite: OrgInvite }>(`/orgs/${orgId}/invites/${inviteId}`)
+  return data.invite
 }
 
 // POST /orgs/:orgId/invites/:inviteId/accept
-export async function acceptInvite(orgId: string, inviteId: string): Promise<{ message: string }> {
-  return api.post<{ message: string }>(`/orgs/${orgId}/invites/${inviteId}/accept`)
+export async function acceptInvite(orgId: string, inviteId: string): Promise<OrgInvite> {
+  const data = await api.post<{ invite: OrgInvite }>(`/orgs/${orgId}/invites/${inviteId}/accept`)
+  return data.invite
 }

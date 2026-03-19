@@ -85,25 +85,29 @@ export const organizationSignUpSchema = z
       .min(1, 'Name is required')
       .max(100, 'Name must be at most 100 characters'),
     email: z
-      .string({ required_error: 'Email is required' })
-      .min(1, 'Email is required')
-      .email('Please enter a valid email address'),
+      .string()
+      .email('Please enter a valid email address')
+      .optional()
+      .or(z.literal('')),
     handle: z
       .string({ required_error: 'Handle is required' })
       .min(3, 'Handle must be at least 3 characters')
       .max(30, 'Handle must be at most 30 characters')
       .regex(/^[a-z0-9_]+$/, 'Handle may only contain lowercase letters, numbers and underscores'),
     password: z
-      .string({ required_error: 'Password is required' })
+      .string()
       .min(8, 'Password must be at least 8 characters')
-      .max(72, 'Password must be at most 72 characters'),
+      .max(72, 'Password must be at most 72 characters')
+      .optional()
+      .or(z.literal('')),
     confirmPassword: z
-      .string({ required_error: 'Please confirm your password' })
-      .min(1, 'Please confirm your password'),
+      .string()
+      .optional()
+      .or(z.literal('')),
     sport: z.string({ required_error: 'Sport is required' }).min(1, 'Sport is required'),
     description: z.string().max(500, 'Description must be at most 500 characters').optional(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data) => !data.password || !data.confirmPassword || data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
   })

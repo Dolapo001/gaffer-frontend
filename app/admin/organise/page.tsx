@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Plus, Menu } from 'lucide-react'
 import { BrowserProtection } from '@/components/BrowserProtection'
@@ -10,13 +10,12 @@ import { OrganiseDetails } from './components/OrganiseDetails'
 import { OrganiseShare } from './components/OrganiseShare'
 import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
-
-import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listTeams, createTeam, listPlayers, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 const INITIAL_GROUPS: Group[] = [
   {
     id: '1',
@@ -41,13 +40,34 @@ export default function OrganizePage() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
 
   // 1. Fetch Organization
-  const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
+  const { data: orgs, isLoading: isLoadingOrgs, error: orgsError } = useQuery({
     queryKey: ['orgs'],
     queryFn: listOrgs,
-    enabled: !!user
+    enabled: !!user,
   })
 
+  // Track if we've already warned about no orgs to avoid double toasts
+  const hasWarnedNoOrgs = useRef(false)
+  const hasWarnedFetchError = useRef(false)
+
+  useEffect(() => {
+    if (orgsError && !hasWarnedFetchError.current) {
+      addToast(`Organization fetch error: ${getErrorMessage(orgsError)}`, 'error')
+      hasWarnedFetchError.current = true
+    }
+  }, [orgsError, addToast])
+
   const orgId = orgs?.[0]?._id
+  
+  useEffect(() => {
+    if (orgs) {
+      console.log('Orgs fetched:', orgs)
+      if (orgs.length === 0 && !hasWarnedNoOrgs.current) {
+        addToast(`No organizations found for user ${user?.id}. Please create one to continue.`, 'info')
+        hasWarnedNoOrgs.current = true
+      }
+    }
+  }, [orgs, user?.id, addToast])
 
   // 2. Fetch Teams
   const { data: backendTeams, isLoading: isLoadingTeams } = useQuery({
@@ -114,7 +134,14 @@ export default function OrganizePage() {
   }
 
   const handleCreate = () => {
-    if (!teamName || !orgId) return
+    if (!teamName) {
+      addToast('Please enter a name', 'error')
+      return
+    }
+    if (!orgId) {
+      addToast('No organization found. Please make sure you are logged in correctly.', 'error')
+      return
+    }
 
     if (activeTab === 'Teams') {
       createTeamMutation.mutate({
@@ -159,7 +186,7 @@ export default function OrganizePage() {
     setView('list')
   }
 
-  if (isLoadingOrgs || isLoadingTeams) {
+  if (isLoadingOrgs) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
@@ -192,6 +219,7 @@ export default function OrganizePage() {
                 activeTab={activeTab}
                 teams={teams}
                 groups={groups}
+                hasOrg={!!orgId}
                 onTabChange={setActiveTab}
                 onTeamClick={(team) => {
                   setSelectedTeam(team)
@@ -235,6 +263,7 @@ export default function OrganizePage() {
                 }
                 onCreate={handleCreate}
                 getUnassignedTeams={getUnassignedTeams}
+                isSubmitting={createTeamMutation.isPending}
               />
             )}
 
@@ -273,7 +302,7 @@ export default function OrganizePage() {
         </div>
 
         {/* Floating Action Button */}
-        {(view === 'list' || view === 'share') && (
+        {(view === 'list' || view === 'share') && !!orgId && (
           <button
             onClick={() => setView('create')}
             className="fixed bottom-[130px] right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF6B00] to-[#FF2400] flex items-center justify-center text-white shadow-2xl z-40 active:scale-95 transition-transform"

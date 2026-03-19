@@ -16,6 +16,7 @@ export function OrganizationHome() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
   const [competitions, setCompetitions] = useState<Competition[]>([])
+  const [hasOrg, setHasOrg] = useState<boolean | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -28,9 +29,12 @@ export function OrganizationHome() {
         
         setNews((feed.data || feed.items || []).slice(0, 3))
         
-        if (orgs.length > 0) {
+        if (orgs && orgs.length > 0) {
+           setHasOrg(true)
            const comps = await listCompetitions(orgs[0]._id)
            setCompetitions(comps)
+        } else {
+           setHasOrg(false)
         }
       } catch (err) {
         console.error('Failed to fetch admin data:', err)
@@ -127,6 +131,22 @@ export function OrganizationHome() {
             <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Tournaments</h2>
             {isLoading ? (
                <div className="h-48 bg-white/5 animate-pulse rounded-[24px]" />
+            ) : hasOrg === false ? (
+                <div className="bg-[#1E2032] rounded-[24px] border border-white/5 p-8 flex flex-col items-center text-center space-y-6">
+                  <div className="w-20 h-20 bg-gaffer-orange/10 rounded-full flex items-center justify-center">
+                    <TrophyIcon className="text-gaffer-orange" size={40} />
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-white font-chakra font-bold text-xl uppercase tracking-tight">Complete Your Setup</p>
+                    <p className="text-white/40 text-sm font-chakra max-w-[240px]">You need an organization to create tournaments and manage teams.</p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/auth/signup/organization')}
+                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg shadow-gaffer-orange/20"
+                  >
+                    Create Organization
+                  </button>
+                </div>
             ) : competitions.length > 0 ? (
                <div className="grid grid-cols-1 gap-4">
                  {competitions.slice(0, 2).map(comp => (

@@ -46,17 +46,20 @@ export interface CreateCompetitionPayload {
 
 // GET /orgs/:orgId/competitions
 export async function listCompetitions(orgId: string): Promise<Competition[]> {
-  return api.get<Competition[]>(`/orgs/${orgId}/competitions`)
+  const data = await api.get<{ competitions: Competition[] }>(`/orgs/${orgId}/competitions`)
+  return data.competitions
 }
 
 // POST /orgs/:orgId/competitions
 export async function createCompetition(orgId: string, payload: CreateCompetitionPayload): Promise<Competition> {
-  return api.post<Competition>(`/orgs/${orgId}/competitions`, payload)
+  const data = await api.post<{ competition: Competition }>(`/orgs/${orgId}/competitions`, payload)
+  return data.competition
 }
 
 // GET /competitions/:competitionId — PUBLIC
 export async function getCompetition(competitionId: string): Promise<Competition> {
-  return api.get<Competition>(`/competitions/${competitionId}`, { public: true })
+  const data = await api.get<{ competition: Competition }>(`/competitions/${competitionId}`, { public: true })
+  return data.competition
 }
 
 // PATCH /competitions/:competitionId
@@ -64,7 +67,8 @@ export async function updateCompetition(
   competitionId: string,
   payload: Partial<CreateCompetitionPayload>,
 ): Promise<Competition> {
-  return api.patch<Competition>(`/competitions/${competitionId}`, payload)
+  const data = await api.patch<{ competition: Competition }>(`/competitions/${competitionId}`, payload)
+  return data.competition
 }
 
 // DELETE /competitions/:competitionId
@@ -77,22 +81,26 @@ export async function setFormat(
   competitionId: string,
   format: string,
 ): Promise<Competition> {
-  return api.patch<Competition>(`/competitions/${competitionId}/format`, { format })
+  const data = await api.patch<{ competition: Competition }>(`/competitions/${competitionId}/format`, { format })
+  return data.competition
 }
 
 // PATCH /competitions/:competitionId/stages
 export async function setStages(competitionId: string, stages: Stage[]): Promise<Competition> {
-  return api.patch<Competition>(`/competitions/${competitionId}/stages`, { stages })
+  const data = await api.patch<{ competition: Competition }>(`/competitions/${competitionId}/stages`, { stages })
+  return data.competition
 }
 
 // POST /competitions/:competitionId/publish
 export async function publishCompetition(competitionId: string): Promise<Competition> {
-  return api.post<Competition>(`/competitions/${competitionId}/publish`)
+  const data = await api.post<{ competition: Competition }>(`/competitions/${competitionId}/publish`)
+  return data.competition
 }
 
 // GET /competitions/:competitionId/teams — PUBLIC
 export async function listCompetitionTeams(competitionId: string): Promise<CompetitionTeam[]> {
-  return api.get<CompetitionTeam[]>(`/competitions/${competitionId}/teams`, { public: true })
+  const data = await api.get<{ teams: CompetitionTeam[] }>(`/competitions/${competitionId}/teams`, { public: true })
+  return data.teams
 }
 
 // POST /competitions/:competitionId/teams

@@ -31,6 +31,7 @@ interface Props {
   onToggleTeamForGroup: (id: string) => void
   onCreate: () => void
   getUnassignedTeams: () => Team[]
+  isSubmitting?: boolean
 }
 
 export function OrganiseCreateSheet({
@@ -50,6 +51,7 @@ export function OrganiseCreateSheet({
   onToggleTeamForGroup,
   onCreate,
   getUnassignedTeams,
+  isSubmitting,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { hideNavbar, showNavbar } = useUIStore()
@@ -239,9 +241,17 @@ export function OrganiseCreateSheet({
         <div className="mt-2 shrink-0 relative z-10">
           <button
             onClick={onCreate}
-            className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all text-base shadow-[0_4px_14px_rgba(255,0,0,0.3)]"
+            disabled={isSubmitting}
+            className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold py-3.5 rounded-2xl active:scale-[0.98] transition-all text-base shadow-[0_4px_14px_rgba(255,0,0,0.3)] flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            {activeTab === 'Teams' ? 'Create Team' : 'Create Group'}
+            {isSubmitting ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                <span>Creating...</span>
+              </>
+            ) : (
+              activeTab === 'Teams' ? 'Create Team' : 'Create Group'
+            )}
           </button>
         </div>
       </motion.div>

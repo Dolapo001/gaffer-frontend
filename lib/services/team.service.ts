@@ -53,22 +53,26 @@ export interface CreateTeamPayload {
 
 // POST /orgs/:orgId/teams
 export async function createTeam(orgId: string, payload: CreateTeamPayload): Promise<Team> {
-  return api.post<Team>(`/orgs/${orgId}/teams`, payload)
+  const data = await api.post<{ team: Team }>(`/orgs/${orgId}/teams`, payload)
+  return data.team
 }
 
 // GET /orgs/:orgId/teams
 export async function listTeams(orgId: string): Promise<Team[]> {
-  return api.get<Team[]>(`/orgs/${orgId}/teams`)
+  const data = await api.get<{ teams: Team[] }>(`/orgs/${orgId}/teams`)
+  return data.teams
 }
 
 // GET /teams/:teamId
 export async function getTeam(teamId: string): Promise<Team> {
-  return api.get<Team>(`/teams/${teamId}`)
+  const data = await api.get<{ team: Team }>(`/teams/${teamId}`)
+  return data.team
 }
 
 // PATCH /teams/:teamId
 export async function updateTeam(teamId: string, payload: Partial<CreateTeamPayload>): Promise<Team> {
-  return api.patch<Team>(`/teams/${teamId}`, payload)
+  const data = await api.patch<{ team: Team }>(`/teams/${teamId}`, payload)
+  return data.team
 }
 
 // DELETE /teams/:teamId
@@ -90,12 +94,14 @@ export interface AddPlayerPayload {
 
 // POST /teams/:teamId/players
 export async function addPlayer(teamId: string, payload: AddPlayerPayload): Promise<Player> {
-  return api.post<Player>(`/teams/${teamId}/players`, payload)
+  const data = await api.post<{ player: Player }>(`/teams/${teamId}/players`, payload)
+  return data.player
 }
 
 // GET /teams/:teamId/players
 export async function listPlayers(teamId: string): Promise<Player[]> {
-  return api.get<Player[]>(`/teams/${teamId}/players`)
+  const data = await api.get<{ players: Player[] }>(`/teams/${teamId}/players`)
+  return data.players
 }
 
 // PATCH /teams/:teamId/players/:playerId
@@ -104,7 +110,8 @@ export async function updatePlayer(
   playerId: string,
   payload: { role?: string; squadStatus?: string; jerseyNumber?: number },
 ): Promise<Player> {
-  return api.patch<Player>(`/teams/${teamId}/players/${playerId}`, payload)
+  const data = await api.patch<{ player: Player }>(`/teams/${teamId}/players/${playerId}`, payload)
+  return data.player
 }
 
 // DELETE /teams/:teamId/players/:playerId
@@ -122,7 +129,8 @@ export async function createPlayerInvite(
 
 // GET /teams/:teamId/player-invites
 export async function listPlayerInvites(teamId: string): Promise<PlayerInvite[]> {
-  return api.get<PlayerInvite[]>(`/teams/${teamId}/player-invites`)
+  const data = await api.get<{ invites: PlayerInvite[] }>(`/teams/${teamId}/player-invites`)
+  return data.invites
 }
 
 // POST /player-invites/validate — PUBLIC

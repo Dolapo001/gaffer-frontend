@@ -60,12 +60,14 @@ export async function createRound(
     endDate?: string
   },
 ): Promise<Round> {
-  return api.post<Round>(`/competitions/${competitionId}/rounds`, payload)
+  const data = await api.post<{ round: Round }>(`/competitions/${competitionId}/rounds`, payload)
+  return data.round
 }
 
 // GET /competitions/:competitionId/rounds
 export async function listRounds(competitionId: string): Promise<Round[]> {
-  return api.get<Round[]>(`/competitions/${competitionId}/rounds`)
+  const data = await api.get<{ rounds: Round[] }>(`/competitions/${competitionId}/rounds`)
+  return data.rounds
 }
 
 // PATCH /rounds/:roundId
@@ -73,7 +75,8 @@ export async function updateRound(
   roundId: string,
   payload: Partial<{ name: string; order: number; startDate: string; endDate: string }>,
 ): Promise<Round> {
-  return api.patch<Round>(`/rounds/${roundId}`, payload)
+  const data = await api.patch<{ round: Round }>(`/rounds/${roundId}`, payload)
+  return data.round
 }
 
 // POST /competitions/:competitionId/fixtures
@@ -89,7 +92,8 @@ export async function createFixture(
     venue?: string
   },
 ): Promise<Fixture> {
-  return api.post<Fixture>(`/competitions/${competitionId}/fixtures`, payload)
+  const data = await api.post<{ fixture: Fixture }>(`/competitions/${competitionId}/fixtures`, payload)
+  return data.fixture
 }
 
 // GET /competitions/:competitionId/fixtures — PUBLIC
@@ -100,7 +104,8 @@ export async function listFixtures(
   const qs = params
     ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]).toString()
     : ''
-  return api.get<Fixture[]>(`/competitions/${competitionId}/fixtures${qs}`, { public: true })
+  const data = await api.get<{ fixtures: Fixture[] }>(`/competitions/${competitionId}/fixtures${qs}`, { public: true })
+  return data.fixtures
 }
 
 // POST /competitions/:competitionId/fixtures/generate
@@ -119,7 +124,8 @@ export async function generateFixtures(
 
 // GET /fixtures/:fixtureId — PUBLIC
 export async function getFixture(fixtureId: string): Promise<Fixture> {
-  return api.get<Fixture>(`/fixtures/${fixtureId}`, { public: true })
+  const data = await api.get<{ fixture: Fixture }>(`/fixtures/${fixtureId}`, { public: true })
+  return data.fixture
 }
 
 // PATCH /fixtures/:fixtureId
@@ -127,7 +133,8 @@ export async function updateFixture(
   fixtureId: string,
   payload: { roundId?: string; kickoffAt?: string; venue?: string; status?: string },
 ): Promise<Fixture> {
-  return api.patch<Fixture>(`/fixtures/${fixtureId}`, payload)
+  const data = await api.patch<{ fixture: Fixture }>(`/fixtures/${fixtureId}`, payload)
+  return data.fixture
 }
 
 // DELETE /fixtures/:fixtureId
@@ -137,12 +144,14 @@ export async function deleteFixture(fixtureId: string): Promise<{ message: strin
 
 // POST /fixtures/:fixtureId/start
 export async function startMatch(fixtureId: string): Promise<Fixture> {
-  return api.post<Fixture>(`/fixtures/${fixtureId}/start`)
+  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/start`)
+  return data.fixture
 }
 
 // POST /fixtures/:fixtureId/end
 export async function endMatch(fixtureId: string): Promise<Fixture> {
-  return api.post<Fixture>(`/fixtures/${fixtureId}/end`)
+  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/end`)
+  return data.fixture
 }
 
 // POST /fixtures/:fixtureId/events (legacy)
@@ -157,12 +166,14 @@ export async function recordEvent(
     notes?: string
   },
 ): Promise<FixtureEvent> {
-  return api.post<FixtureEvent>(`/fixtures/${fixtureId}/events`, payload)
+  const data = await api.post<{ event: FixtureEvent }>(`/fixtures/${fixtureId}/events`, payload)
+  return data.event
 }
 
 // GET /fixtures/:fixtureId/events — PUBLIC
 export async function listEvents(fixtureId: string): Promise<FixtureEvent[]> {
-  return api.get<FixtureEvent[]>(`/fixtures/${fixtureId}/events`, { public: true })
+  const data = await api.get<{ events: FixtureEvent[] }>(`/fixtures/${fixtureId}/events`, { public: true })
+  return data.events
 }
 
 // POST /fixtures/:fixtureId/lineups
@@ -170,15 +181,18 @@ export async function submitLineup(
   fixtureId: string,
   payload: { teamId: string; starters: string[]; bench?: string[] },
 ): Promise<Lineup> {
-  return api.post<Lineup>(`/fixtures/${fixtureId}/lineups`, payload)
+  const data = await api.post<{ lineup: Lineup }>(`/fixtures/${fixtureId}/lineups`, payload)
+  return data.lineup
 }
 
 // POST /fixtures/:fixtureId/lineups/approve
 export async function approveLineup(fixtureId: string, teamId: string): Promise<Lineup> {
-  return api.post<Lineup>(`/fixtures/${fixtureId}/lineups/approve`, { teamId })
+  const data = await api.post<{ lineup: Lineup }>(`/fixtures/${fixtureId}/lineups/approve`, { teamId })
+  return data.lineup
 }
 
 // GET /fixtures/:fixtureId/lineups — PUBLIC
 export async function listLineups(fixtureId: string): Promise<Lineup[]> {
-  return api.get<Lineup[]>(`/fixtures/${fixtureId}/lineups`, { public: true })
+  const data = await api.get<{ lineups: Lineup[] }>(`/fixtures/${fixtureId}/lineups`, { public: true })
+  return data.lineups
 }

@@ -2,12 +2,14 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Plus } from 'lucide-react'
+import Link from 'next/link'
 import type { Team, Group } from '../types'
 
 interface Props {
   activeTab: 'Teams' | 'Groups'
   teams: Team[]
   groups: Group[]
+  hasOrg: boolean
   onTabChange: (tab: 'Teams' | 'Groups') => void
   onTeamClick: (team: Team) => void
   onGroupClick: (group: Group) => void
@@ -18,6 +20,7 @@ export function OrganiseList({
   activeTab,
   teams,
   groups,
+  hasOrg,
   onTabChange,
   onTeamClick,
   onGroupClick,
@@ -60,11 +63,24 @@ export function OrganiseList({
               className="flex flex-col"
             >
               {teams.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center">
-                  <h3 className="text-white text-[17px] font-semibold mb-2">Add New Team</h3>
+                <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center mt-20">
+                  <h3 className="text-white text-[17px] font-semibold mb-2">
+                    {hasOrg ? 'Add New Team' : 'Create Organization'}
+                  </h3>
                   <p className="text-[14px] text-[#A1A1AA] max-w-[300px] leading-[1.4]">
-                    Manage your schedule for matches, ceremonies. Schedule now and for later.
+                    {hasOrg 
+                      ? 'Manage your schedule for matches, ceremonies. Schedule now and for later.' 
+                      : 'You need to have an active organization before you can manage teams and groups.'
+                    }
                   </p>
+                  {!hasOrg && (
+                    <Link
+                      href="/auth/signup/organization"
+                      className="mt-6 px-8 py-3 bg-orange-500 rounded-full font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Get Started
+                    </Link>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -101,11 +117,24 @@ export function OrganiseList({
               className="flex flex-col space-y-4"
             >
               {groups.length === 0 ? (
-                <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center">
-                  <h3 className="text-white text-[28px] font-bold mb-3 tracking-tight">Create Group</h3>
-                  <p className="text-[14px] text-[#A1A1AA] max-w-[320px] leading-[1.5]">
-                    Manage your schedule for matches, ceremonies. Schedule now and for later.
+                <div className="flex-1 flex flex-col items-center justify-center px-8 pb-32 text-center mt-20">
+                  <h3 className="text-white text-[17px] font-semibold mb-2">
+                    {hasOrg ? 'Create Group' : 'Create Organization'}
+                  </h3>
+                  <p className="text-[14px] text-[#A1A1AA] max-w-[300px] leading-[1.4]">
+                    {hasOrg 
+                      ? 'Manage your schedule for matches, ceremonies. Schedule now and for later.' 
+                      : 'You need to have an active organization before you can manage teams and groups.'
+                    }
                   </p>
+                  {!hasOrg && (
+                    <Link
+                      href="/auth/signup/organization"
+                      className="mt-6 px-8 py-3 bg-orange-500 rounded-full font-bold text-white transition-opacity hover:opacity-90"
+                    >
+                      Get Started
+                    </Link>
+                  )}
                 </div>
               ) : (
                 groups.map((group) => (

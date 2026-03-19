@@ -44,7 +44,8 @@ export function middleware(request: NextRequest) {
   }
 
   // Authenticated user visiting auth pages → redirect to their home
-  if (isAuthRoute && authToken) {
+  // Exception: Let them finish organization signup if that's where they are
+  if (isAuthRoute && authToken && pathname !== '/auth/signup/organization') {
     const destination =
       userRole === 'organization' ? '/admin' : '/app/dashboard'
     return NextResponse.redirect(new URL(destination, request.url))
