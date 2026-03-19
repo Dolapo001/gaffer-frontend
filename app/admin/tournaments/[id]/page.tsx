@@ -3,48 +3,82 @@
 import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useTournamentStore } from '@/store/tournamentStore'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
-  BarChart2, Edit2, Trash2, AlertCircle,
+  BarChart2, Trash2,
 } from 'lucide-react'
+import { getCompetition, archiveCompetition } from '@/lib/services/competition.service'
+import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
+import { getStandings } from '@/lib/services/standings.service'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 
-const statusStyles = {
-  upcoming:  { bg: 'bg-blue-500/10',  border: 'border-blue-500/30',  text: 'text-blue-400',  label: 'Upcoming'  },
-  ongoing:   { bg: 'bg-green-500/10', border: 'border-green-500/30', text: 'text-green-400', label: 'Live Now'  },
-  completed: { bg: 'bg-gaffer-card',  border: 'border-gaffer-border', text: 'text-gaffer-muted', label: 'Ended' },
+function teamLabel(side: Fixture['homeTeamId']) {
+  if (typeof side === 'string') return 'TBD'
+  return side.shortName ?? side.name
 }
 
-const sportEmoji: Record<string, string> = {
-  football: '⚽', basketball: '🏀', cricket: '🏏', tennis: '🎾', other: '🏆',
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-const MOCK_SCHEDULE = [
-  { id: 'm1', home: 'Team Alpha', away: 'Team Beta',  date: 'Mar 20', time: '3:00 PM', venue: 'Main Ground',   homeScore: 2, awayScore: 1, played: true  },
-  { id: 'm2', home: 'Team Gamma', away: 'Team Delta', date: 'Mar 21', time: '4:00 PM', venue: 'Ground B',      homeScore: 0, awayScore: 0, played: true  },
-  { id: 'm3', home: 'Team Alpha', away: 'Team Gamma', date: 'Mar 25', time: '3:00 PM', venue: 'Main Ground',   homeScore: null, awayScore: null, played: false },
-  { id: 'm4', home: 'Team Beta',  away: 'Team Delta', date: 'Mar 26', time: '4:00 PM', venue: 'Ground B',      homeScore: null, awayScore: null, played: false },
-]
-
-const STANDINGS = [
-  { pos: 1, team: 'Team Alpha', p: 2, w: 2, d: 0, l: 0, gf: 4, ga: 1, pts: 6 },
-  { pos: 2, team: 'Team Gamma', p: 2, w: 1, d: 1, l: 0, gf: 3, ga: 1, pts: 4 },
-  { pos: 3, team: 'Team Beta',  p: 2, w: 1, d: 0, l: 1, gf: 2, ga: 3, pts: 3 },
-  { pos: 4, team: 'Team Delta', p: 2, w: 0, d: 1, l: 1, gf: 1, ga: 4, pts: 1 },
-]
+function formatKickoff(iso: string) {
+  const d = new Date(iso)
+  return {
+    date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
 
 type Tab = 'overview' | 'schedule' | 'standings'
 
 export default function TournamentDetailPage() {
   const router = useRouter()
   const params = useParams()
-  const { tournaments, deleteTournament, updateTournament } = useTournamentStore()
+  const id = params.id as string
+  const qc = useQueryClient()
+  const toast = useToastStore()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [showDelete, setShowDelete] = useState(false)
 
-  const tournament = tournaments.find((t) => t.id === params.id)
+  const { data: competition, isLoading } = useQuery({
+    queryKey: ['competition', id],
+    queryFn: () => getCompetition(id),
+  })
 
-  if (!tournament) {
+  const { data: fixtures } = useQuery({
+    queryKey: ['fixtures', id],
+    queryFn: () => listFixtures(id),
+    enabled: activeTab === 'schedule',
+  })
+
+  const { data: standingsData } = useQuery({
+    queryKey: ['standings', id],
+    queryFn: () => getStandings(id),
+    enabled: activeTab === 'standings',
+  })
+
+  const archiveMutation = useMutation({
+    mutationFn: () => archiveCompetition(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['competitions'] })
+      toast.addToast('Tournament archived', 'success')
+      router.replace('/admin/tournaments')
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
+        <div className="w-10 h-10 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  if (!competition) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center gap-4 px-8">
         <Trophy size={48} className="text-gaffer-subtle" />
@@ -57,19 +91,10 @@ export default function TournamentDetailPage() {
     )
   }
 
-  const style = statusStyles[tournament.status]
-  const progress = Math.round((tournament.registeredTeams / tournament.maxTeams) * 100)
-
-  const handleDelete = () => {
-    deleteTournament(tournament.id)
-    router.replace('/admin/tournaments')
-  }
-
-  const toggleStatus = () => {
-    const next = tournament.status === 'upcoming' ? 'ongoing'
-      : tournament.status === 'ongoing' ? 'completed' : 'upcoming'
-    updateTournament(tournament.id, { status: next })
-  }
+  const standings = standingsData?.standings ?? []
+  const allFixtures = fixtures ?? []
+  const completed = allFixtures.filter((f) => f.status === 'completed')
+  const upcoming = allFixtures.filter((f) => f.status !== 'completed')
 
   return (
     <>
@@ -82,7 +107,7 @@ export default function TournamentDetailPage() {
               <ChevronLeft size={18} />
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="font-display font-bold text-white text-base truncate">{tournament.name}</h1>
+              <h1 className="font-display font-bold text-white text-base truncate">{competition.name}</h1>
             </div>
             <button onClick={() => setShowDelete(true)}
               className="w-9 h-9 flex items-center justify-center rounded-full bg-red-500/10 border border-red-500/20 text-red-400">
@@ -112,163 +137,166 @@ export default function TournamentDetailPage() {
             {/* ── OVERVIEW ── */}
             {activeTab === 'overview' && (
               <motion.div key="ov" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                {/* Hero card */}
                 <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-5 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-14 h-14 rounded-2xl bg-gaffer-surface flex items-center justify-center text-3xl flex-shrink-0">
-                      {sportEmoji[tournament.sport] || '🏆'}
+                      🏆
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h2 className="font-display font-bold text-xl text-white leading-tight">{tournament.name}</h2>
-                      <span className={`inline-flex mt-1 text-[10px] font-body font-semibold px-2 py-0.5 rounded-full border ${style.bg} ${style.border} ${style.text}`}>
-                        {style.label}
+                      <h2 className="font-display font-bold text-xl text-white leading-tight">{competition.name}</h2>
+                      <span className={`inline-flex mt-1 text-[10px] font-body font-semibold px-2 py-0.5 rounded-full border capitalize ${
+                        competition.status === 'published'
+                          ? 'text-green-400 bg-green-400/10 border-green-400/30'
+                          : competition.status === 'archived'
+                          ? 'text-gaffer-subtle bg-gaffer-card border-gaffer-border'
+                          : 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
+                      }`}>
+                        {competition.status}
                       </span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { icon: Calendar, label: 'Start', value: new Date(tournament.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) },
-                      { icon: Calendar, label: 'End',   value: new Date(tournament.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) },
-                      { icon: MapPin, label: 'Venue',  value: tournament.location },
-                      { icon: BarChart2, label: 'Format', value: tournament.format.replace('+', ' + ') },
+                      { icon: Calendar, label: 'Start', value: formatDate(competition.startDate) },
+                      { icon: Calendar, label: 'End', value: formatDate(competition.endDate) },
+                      { icon: BarChart2, label: 'Sport', value: competition.sport },
+                      { icon: Users, label: 'Gender', value: competition.gender },
                     ].map((item) => (
                       <div key={item.label} className="bg-gaffer-surface rounded-xl p-3">
                         <div className="flex items-center gap-1.5 mb-1">
                           <item.icon size={12} className="text-gaffer-subtle" />
                           <span className="text-gaffer-subtle text-[10px] font-body uppercase tracking-wide">{item.label}</span>
                         </div>
-                        <p className="text-white font-body font-medium text-xs leading-tight">{item.value}</p>
+                        <p className="text-white font-body font-medium text-xs leading-tight capitalize">{item.value}</p>
                       </div>
                     ))}
                   </div>
 
-                  {/* Capacity bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1.5">
-                        <Users size={13} className="text-gaffer-subtle" />
-                        <span className="text-gaffer-muted text-xs font-body">
-                          {tournament.registeredTeams} / {tournament.maxTeams} teams
-                        </span>
+                  {competition.format && (
+                    <div className="bg-gaffer-surface rounded-xl p-3">
+                      <div className="flex items-center gap-1.5 mb-1">
+                        <MapPin size={12} className="text-gaffer-subtle" />
+                        <span className="text-gaffer-subtle text-[10px] font-body uppercase tracking-wide">Format</span>
                       </div>
-                      <span className="text-gaffer-orange text-xs font-body font-semibold">{progress}%</span>
+                      <p className="text-white font-body font-medium text-xs">{competition.format}</p>
                     </div>
-                    <div className="w-full h-2 bg-gaffer-surface rounded-full overflow-hidden">
-                      <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }}
-                        transition={{ duration: 0.8, ease: 'easeOut' }}
-                        className="h-full bg-orange-gradient-btn rounded-full" />
-                    </div>
-                  </div>
+                  )}
                 </div>
-
-                {tournament.description && (
-                  <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
-                    <p className="text-xs font-body font-semibold text-gaffer-muted uppercase tracking-widest mb-2">About</p>
-                    <p className="text-white/70 font-body text-sm leading-relaxed">{tournament.description}</p>
-                  </div>
-                )}
-
-                {/* Status action */}
-                <button onClick={toggleStatus}
-                  className="w-full py-4 rounded-xl bg-gaffer-card border border-gaffer-border text-white font-body font-medium text-sm hover:border-gaffer-orange/40 transition-all flex items-center justify-center gap-2">
-                  <Edit2 size={15} className="text-gaffer-orange" />
-                  Mark as {tournament.status === 'upcoming' ? 'Live' : tournament.status === 'ongoing' ? 'Completed' : 'Upcoming'}
-                </button>
               </motion.div>
             )}
 
             {/* ── SCHEDULE ── */}
             {activeTab === 'schedule' && (
-              <motion.div key="sc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
-                {MOCK_SCHEDULE.map((match, i) => (
-                  <motion.div key={match.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                    className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
-                    {/* Teams row */}
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="flex-1 text-right">
-                        <p className="text-white font-body font-semibold text-sm">{match.home}</p>
-                      </div>
-                      <div className={`px-3 py-1 rounded-xl ${match.played ? 'bg-gaffer-surface' : 'bg-gaffer-orange/10 border border-gaffer-orange/20'}`}>
-                        <p className={`font-display font-black text-base leading-none text-center ${match.played ? 'text-white' : 'text-gaffer-orange'}`}>
-                          {match.played ? `${match.homeScore} - ${match.awayScore}` : 'vs'}
-                        </p>
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-white font-body font-semibold text-sm">{match.away}</p>
-                      </div>
+              <motion.div key="sc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                {upcoming.length > 0 && (
+                  <div>
+                    <p className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest mb-2">Upcoming</p>
+                    <div className="space-y-3">
+                      {upcoming.map((f, i) => {
+                        const { date, time } = formatKickoff(f.kickoffAt)
+                        return (
+                          <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                            className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="flex-1 text-right">
+                                <p className="text-white font-body font-semibold text-sm">{teamLabel(f.homeTeamId)}</p>
+                              </div>
+                              <div className="px-3 py-1 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20">
+                                <p className="font-display font-black text-base leading-none text-center text-gaffer-orange">vs</p>
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-white font-body font-semibold text-sm">{teamLabel(f.awayTeamId)}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3 text-gaffer-subtle text-xs font-body">
+                              <div className="flex items-center gap-1"><Calendar size={11} />{date}</div>
+                              <span>·</span>
+                              <span>{time}</span>
+                              {f.venue && <><span>·</span><div className="flex items-center gap-1"><MapPin size={11} />{f.venue}</div></>}
+                            </div>
+                          </motion.div>
+                        )
+                      })}
                     </div>
-                    {/* Meta */}
-                    <div className="flex items-center gap-3 text-gaffer-subtle text-xs font-body">
-                      <div className="flex items-center gap-1"><Calendar size={11} />{match.date}</div>
-                      <span>·</span>
-                      <span>{match.time}</span>
-                      <span>·</span>
-                      <div className="flex items-center gap-1"><MapPin size={11} />{match.venue}</div>
+                  </div>
+                )}
+
+                {completed.length > 0 && (
+                  <div>
+                    <p className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest mb-2">Results</p>
+                    <div className="space-y-3">
+                      {completed.map((f, i) => (
+                        <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
+                          className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
+                          <div className="flex items-center gap-3">
+                            <div className="flex-1 text-right">
+                              <p className="text-white font-body font-semibold text-sm">{teamLabel(f.homeTeamId)}</p>
+                            </div>
+                            <div className="px-3 py-1 rounded-xl bg-gaffer-surface">
+                              <p className="font-display font-black text-base leading-none text-center text-white">
+                                {f.score.home} - {f.score.away}
+                              </p>
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-white font-body font-semibold text-sm">{teamLabel(f.awayTeamId)}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
                     </div>
-                  </motion.div>
-                ))}
+                  </div>
+                )}
+
+                {allFixtures.length === 0 && (
+                  <div className="py-12 text-center">
+                    <p className="text-gaffer-muted text-sm font-body">No fixtures scheduled yet</p>
+                  </div>
+                )}
               </motion.div>
             )}
 
             {/* ── STANDINGS ── */}
             {activeTab === 'standings' && (
               <motion.div key="st" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
-                  {/* Table header */}
-                  <div className="grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
-                    {['#', 'Team', 'P', 'W', 'D', 'L', 'Pts'].map((h) => (
-                      <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
+                {standings.length === 0 ? (
+                  <div className="py-12 text-center">
+                    <p className="text-gaffer-muted text-sm font-body">No standings data yet</p>
+                  </div>
+                ) : (
+                  <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
+                    <div className="grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
+                      {['#', 'Team', 'P', 'W', 'D', 'L', 'Pts'].map((h) => (
+                        <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
+                      ))}
+                    </div>
+                    {standings.map((row, i) => (
+                      <motion.div key={row.teamId._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                        className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < standings.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
+                        <span className={`font-display font-bold text-sm text-center ${i < 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{i + 1}</span>
+                        <span className="text-white font-body font-medium text-sm truncate">{row.teamId.name}</span>
+                        {[row.played, row.won, row.drawn, row.lost, row.points].map((val, j) => (
+                          <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
+                        ))}
+                      </motion.div>
                     ))}
                   </div>
-                  {STANDINGS.map((row, i) => (
-                    <motion.div key={row.team} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                      className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < STANDINGS.length - 1 ? 'border-b border-gaffer-border' : ''} ${row.pos === 1 ? 'bg-gaffer-orange/5' : ''}`}>
-                      <span className={`font-display font-bold text-sm text-center ${row.pos <= 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{row.pos}</span>
-                      <span className="text-white font-body font-medium text-sm truncate">{row.team}</span>
-                      {[row.p, row.w, row.d, row.l, row.pts].map((val, j) => (
-                        <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
-                      ))}
-                    </motion.div>
-                  ))}
-                </div>
+                )}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
       </div>
 
-      {/* Delete confirmation */}
-      <AnimatePresence>
-        {showDelete && (
-          <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50" onClick={() => setShowDelete(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.92 }}
-              className="fixed inset-x-6 top-1/2 -translate-y-1/2 z-50 bg-gaffer-surface border border-gaffer-border rounded-3xl p-6 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
-                <AlertCircle size={24} className="text-red-400" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-display font-bold text-white text-lg">Delete Tournament?</h3>
-                <p className="text-gaffer-muted text-sm font-body mt-1 leading-relaxed">
-                  This will permanently delete <span className="text-white font-medium">{tournament.name}</span> and all its data.
-                </p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => setShowDelete(false)}
-                  className="py-3.5 rounded-xl border border-gaffer-border text-white font-body font-medium text-sm hover:bg-gaffer-card transition-colors">
-                  Cancel
-                </button>
-                <button onClick={handleDelete}
-                  className="py-3.5 rounded-xl bg-red-500 text-white font-display font-bold text-sm hover:bg-red-600 transition-colors">
-                  Delete
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <ConfirmDialog
+        open={showDelete}
+        title="Archive Tournament?"
+        message={`This will archive "${competition.name}" and remove it from active tournaments.`}
+        confirmLabel="Archive"
+        destructive
+        onConfirm={() => archiveMutation.mutate()}
+        onCancel={() => setShowDelete(false)}
+      />
     </>
   )
 }

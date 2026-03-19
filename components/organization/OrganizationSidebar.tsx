@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { Home, Trophy, Newspaper, Gamepad2, X, Plus } from 'lucide-react'
+import { useToast } from '@/store/toastStore'
 
 interface OrganizationSidebarProps {
   onClose: () => void
@@ -12,9 +13,19 @@ interface OrganizationSidebarProps {
 
 export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
   const router = useRouter()
-  const { user, setRole } = useAuthStore()
+  const { user, setRole, role: currentRole } = useAuthStore()
+  const { addToast } = useToast()
 
   const displayName = user?.displayName || user?.email?.split('@')[0] || 'Ojedokun Olaniyi'
+
+  const handleNav = (path: string, label: string) => {
+    if (path === '#') {
+      addToast(`${label} feature is coming soon!`, 'info')
+      return
+    }
+    router.push(path)
+    onClose()
+  }
 
   const handleRoleSwitch = (role: 'personal' | 'organization') => {
     setRole(role)
@@ -25,6 +36,12 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
       router.push('/admin')
     }
   }
+
+  const MENU_ITEMS = [
+    { label: 'Home', icon: Home, path: '/admin' },
+    { label: 'Tournaments', icon: Trophy, path: '/admin/tournaments' },
+    { label: 'Matches', icon: Gamepad2, path: '#' }
+  ]
 
   return (
     <motion.aside
@@ -61,35 +78,32 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
         </div>
       </div>
 
-      {/* Role Switcher Section (As per design 2) */}
+      {/* Role Switcher Section */}
       <div className="space-y-3 pt-4">
         <button
           onClick={() => handleRoleSwitch('personal')}
-          className="w-full h-12 rounded-xl font-chakra font-black text-xs uppercase tracking-wider text-white transition-all transform active:scale-95 shadow-lg shadow-orange-900/10"
+          className={`w-full h-12 rounded-xl font-chakra font-black text-xs uppercase tracking-wider text-white transition-all transform active:scale-95 shadow-lg shadow-orange-900/10 ${currentRole === 'personal' ? 'ring-2 ring-orange-500' : ''}`}
           style={{ background: 'linear-gradient(90deg, #FF8A00 0%, #FF0000 100%)' }}
         >
           Personal Account
         </button>
         <button
           onClick={() => handleRoleSwitch('organization')}
-          className="w-full h-12 rounded-xl font-chakra font-bold text-xs uppercase tracking-wider text-white/90 hover:text-white transition-all bg-white/5 border border-white/5"
+          className={`w-full h-12 rounded-xl font-chakra font-bold text-xs uppercase tracking-wider transition-all bg-white/5 border ${currentRole === 'organization' ? 'border-orange-500 text-orange-500' : 'border-white/5 text-white/90'}`}
         >
           Organization Account
         </button>
       </div>
 
-      {/* Static Menu (Optional extension) */}
+      {/* Static Menu */}
       <div className="flex-1 border-t border-white/5 pt-8 -mx-8 px-8">
         <nav className="space-y-2">
-          {[
-            { label: 'Home', icon: Home, active: true },
-            { label: 'Tournaments', icon: Trophy },
-            { label: 'Matches', icon: Gamepad2 }
-          ].map((item) => (
+          {MENU_ITEMS.map((item) => (
             <button
               key={item.label}
+              onClick={() => handleNav(item.path, item.label)}
               className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-colors font-chakra font-bold uppercase tracking-tight text-xs ${
-                item.active ? 'bg-orange-600/10 text-orange-500' : 'text-white/40 hover:text-white hover:bg-white/5'
+                item.label === 'Home' ? 'bg-orange-600/10 text-orange-500' : 'text-white/40 hover:text-white hover:bg-white/5'
               }`}
             >
               <item.icon size={18} />

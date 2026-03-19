@@ -7,15 +7,22 @@ import { useAuthStore } from '@/store/authStore'
 
 export default function SplashPage() {
   const router = useRouter()
-  const { isAuthenticated, role } = useAuthStore()
-
+  const { isAuthenticated, role, isLoading } = useAuthStore()
+  
   useEffect(() => {
+    // We want the splash to show for at least 1.5 seconds for branding
     const timer = setTimeout(() => {
-      router.replace('/onboarding/welcome')
-    }, 1500)
+      if (!isLoading) {
+        if (isAuthenticated) {
+          router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
+        } else {
+          router.replace('/onboarding/welcome')
+        }
+      }
+    }, 2000)
 
     return () => clearTimeout(timer)
-  }, [router, isAuthenticated, role])
+  }, [router, isAuthenticated, role, isLoading])
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">

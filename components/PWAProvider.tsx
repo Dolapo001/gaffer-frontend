@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect, type ReactNode } from 'react'
-import { registerServiceWorker, setDeferredPrompt } from '@/lib/pwa'
+import { setDeferredPrompt } from '@/lib/pwa'
 
 export function PWAProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
-    // Register service worker on mount
-    registerServiceWorker()
-
-    // Capture Chrome's install prompt globally
+    // next-pwa (register: true) handles SW registration automatically.
+    // We only need to capture the install prompt here.
     const handleBeforeInstall = (e: Event) => {
       e.preventDefault()
       setDeferredPrompt(e)

@@ -4,235 +4,226 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useAuthStore } from '@/store/authStore'
-import { organizationSignUpSchema, type OrganizationSignUpFormData } from '@/lib/schemas'
+import { createOrg } from '@/lib/services/org.service'
+import { signUpSchema, createOrgSchema, type SignUpFormData, type CreateOrgFormData } from '@/lib/schemas'
 import { AuthInput } from '@/components/AuthInput'
-import { TextArea } from '@/components/TextArea'
 import { GradientButton } from '@/components/GradientButton'
-import { ChevronLeft, Check } from 'lucide-react'
-
-const sportsList = [
-  'Football', 'Basketball', 'Tennis', 'Cricket', 'Rugby', 
-  'Athletics', 'Swimming', 'Cycling', 'Golf', 'Boxing'
-]
+import { ChevronLeft } from 'lucide-react'
+import { getErrorMessage } from '@/lib/api'
 
 export default function OrganizationSignupPage() {
   const router = useRouter()
-  const { register: registerUser, isLoading, error, clearError, setRole } = useAuthStore()
-  const [step, setStep] = useState(1)
-  const [selectedSports, setSelectedSports] = useState<string[]>([])
-
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    watch,
-    trigger,
-    formState: { errors },
-  } = useForm<OrganizationSignUpFormData>({
-    resolver: zodResolver(organizationSignUpSchema),
-    mode: 'onTouched',
-    defaultValues: {
-      name: '',
-      email: '',
-      handle: '@',
-      password: '',
-      confirmPassword: '',
-      sports: [],
-      description: '',
-    },
-  })
+  const { register: registerUser, isLoading: authLoading, error, clearError, setRole } = useAuthStore()
+  const [step, setStep] = useState<1 | 2>(1)
+  const [registeredEmail, setRegisteredEmail] = useState('')
+  const [isCreatingOrg, setIsCreatingOrg] = useState(false)
+  const [orgError, setOrgError] = useState<string | null>(null)
 
   useEffect(() => {
     return () => clearError()
   }, [clearError])
 
-  const handleNext = async () => {
-    const isStep1Valid = await trigger(['name', 'email', 'handle', 'password', 'confirmPassword'])
-    if (isStep1Valid) {
-      setStep(2)
+  // Step 1: user credentials
+  const authForm = useForm<SignUpFormData>({
+    resolver: zodResolver(signUpSchema),
+    mode: 'onTouched',
+    defaultValues: { email: '', password: '', confirmPassword: '' },
+  })
+
+  // Step 2: org details
+  const orgForm = useForm<Pick<CreateOrgFormData, 'name' | 'handle' | 'description'>>(
+    {
+      mode: 'onTouched',
+      defaultValues: { name: '', handle: '', description: '' },
     }
-  }
+  )
 
-  const toggleSport = (sport: string) => {
-    const newSports = selectedSports.includes(sport)
-      ? selectedSports.filter(s => s !== sport)
-      : [...selectedSports, sport]
-    
-    setSelectedSports(newSports)
-    setValue('sports', newSports, { shouldValidate: true })
-  }
-
-  const onSubmit = async (data: OrganizationSignUpFormData) => {
+  const handleStep1 = async (data: SignUpFormData) => {
     try {
       await registerUser(data.email, data.password)
-      setRole('organization')
-      router.replace('/admin')
+      setRegisteredEmail(data.email)
+      setStep(2)
     } catch {
       // Error displayed from store
     }
   }
+
+  const handleStep2 = async (data: Pick<CreateOrgFormData, 'name' | 'handle' | 'description'>) => {
+    setIsCreatingOrg(true)
+    setOrgError(null)
+    try {
+      await createOrg({
+        name: data.name,
+        handle: data.handle,
+        description: data.description,
+      })
+      setRole('organization')
+      router.replace('/admin')
+    } catch (err) {
+      setOrgError(getErrorMessage(err))
+    } finally {
+      setIsCreatingOrg(false)
+    }
+  }
+
+  const isLoading = authLoading || isCreatingOrg
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col overflow-x-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-6 pt-12 pb-4 flex-shrink-0 z-10">
         <button
-          onClick={() => step === 1 ? router.back() : setStep(1)}
+          onClick={() => (step === 1 ? router.back() : setStep(1))}
           aria-label="Go back"
           className="flex items-center justify-center w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border text-white transition-transform active:scale-95"
         >
           <ChevronLeft size={18} />
         </button>
-        <span className="text-xs text-gaffer-muted font-body tracking-wide">New Account</span>
+        <span className="text-xs text-gaffer-muted font-body tracking-wide">
+          {step === 1 ? 'Create Account' : 'Organization Details'}
+        </span>
+        <span className="ml-auto text-xs text-gaffer-subtle font-body">{step}/2</span>
       </div>
 
-      <div className="flex-1 flex flex-col px-6 pb-10 relative">
-        {/* Background Decorative Element */}
-        <div className="absolute top-0 right-0 w-64 h-64 bg-gaffer-orange/5 blur-[100px] pointer-events-none" />
+      <div className="flex-1 flex flex-col px-6 pb-10">
+        {/* Title */}
+        <div className="mb-8 mt-2">
+          <h1 className="font-display font-bold text-3xl text-white leading-tight">Welcome to</h1>
+          <h1 className="font-display font-bold text-3xl text-gradient-orange leading-tight uppercase">
+            GAFFER
+          </h1>
+          <p className="font-body text-gaffer-muted text-sm mt-2">
+            {step === 1 ? "Let's create your account" : "Tell us about your organization"}
+          </p>
+        </div>
 
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, x: step === 1 ? -20 : 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: step === 1 ? 20 : -20 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="flex-1 flex flex-col"
-        >
-          {/* Title Area */}
-          <div className="mb-8 mt-2">
-            <h1 className="font-chakra font-bold text-[36px] text-white leading-[1.1]">Welcome to</h1>
-            <h1 className="font-chakra font-black text-[40px] text-gradient-orange leading-[1.1] mb-2 uppercase">
-              GAFFER
-            </h1>
-            <p className="font-body text-gaffer-muted text-[15px] font-medium opacity-80">
-              Let's create your organization
-            </p>
-          </div>
+        {/* Auth error (step 1) */}
+        {error && step === 1 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-body"
+          >
+            {error}
+          </motion.div>
+        )}
 
-          {error && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-medium"
-            >
-              {error}
-            </motion.div>
-          )}
+        {/* Org error (step 2) */}
+        {orgError && step === 2 && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-body"
+          >
+            {orgError}
+          </motion.div>
+        )}
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 flex-1 flex flex-col">
-            {step === 1 ? (
-              <div className="space-y-5">
-                <AuthInput
-                  label="Name"
-                  placeholder="Charlie Westervelt"
-                  error={errors.name}
-                  {...register('name')}
-                />
-                <AuthInput
-                  label="Email"
-                  type="email"
-                  placeholder="organizationname@gmail.com"
-                  error={errors.email}
-                  {...register('email')}
-                />
-                <AuthInput
-                  label="Handle"
-                  placeholder="@organization"
-                  error={errors.handle}
-                  {...register('handle')}
-                />
-                <AuthInput
-                  label="Password"
-                  type="password"
-                  showPasswordToggle
-                  placeholder="••••••••••••"
-                  error={errors.password}
-                  {...register('password')}
-                />
-                <AuthInput
-                  label="Confirm Password"
-                  type="password"
-                  showPasswordToggle
-                  placeholder="••••••••••••"
-                  error={errors.confirmPassword}
-                  {...register('confirmPassword')}
-                />
-                
-                <div className="pt-4 mt-auto">
-                  <GradientButton 
-                    onClick={(e) => {
-                      e.preventDefault()
-                      handleNext()
-                    }}
-                    style={{ background: 'linear-gradient(90deg, #FF8A00 0%, #FF0000 100%)' }}
-                    className="h-[58px] rounded-2xl shadow-lg shadow-orange-900/20"
-                  >
-                    Next
-                  </GradientButton>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6 flex-1 flex flex-col">
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-body font-medium text-white/80 pl-1">
-                    Select Sports
-                  </label>
-                  <div className="flex flex-wrap gap-2 pt-1">
-                    {sportsList.map(sport => {
-                      const isSelected = selectedSports.includes(sport)
-                      return (
-                        <button
-                          key={sport}
-                          type="button"
-                          onClick={() => toggleSport(sport)}
-                          className={`
-                            px-4 py-2.5 rounded-full text-xs font-bold transition-all duration-300
-                            flex items-center gap-2 border
-                            ${isSelected 
-                              ? 'bg-gaffer-orange border-gaffer-orange text-white shadow-lg shadow-orange-500/30' 
-                              : 'bg-gaffer-card border-gaffer-border text-gaffer-subtle hover:border-gaffer-orange/50'}
-                          `}
-                        >
-                          {isSelected && <Check size={12} />}
-                          {sport}
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {errors.sports && (
-                    <p className="text-xs text-red-400 pl-1 mt-1">{errors.sports.message}</p>
-                  )}
-                </div>
-
-                <TextArea
-                  label="Description"
-                  placeholder="Tell us about your organization..."
-                  error={errors.description}
-                  {...register('description')}
-                />
-
-                <div className="pt-4 mt-auto">
-                  <GradientButton 
-                    type="submit" 
-                    loading={isLoading}
-                    style={{ background: 'linear-gradient(90deg, #FF8A00 0%, #FF0000 100%)' }}
-                    className="h-[58px] rounded-2xl shadow-lg shadow-orange-900/20"
-                  >
-                    Get started
-                  </GradientButton>
-                </div>
-              </div>
-            )}
+        {step === 1 ? (
+          <form onSubmit={authForm.handleSubmit(handleStep1)} className="space-y-4" noValidate>
+            <AuthInput
+              label="Email"
+              type="email"
+              placeholder="you@organization.com"
+              autoComplete="email"
+              error={authForm.formState.errors.email}
+              {...authForm.register('email')}
+            />
+            <AuthInput
+              label="Password"
+              showPasswordToggle
+              placeholder="Min 8 characters"
+              autoComplete="new-password"
+              error={authForm.formState.errors.password}
+              {...authForm.register('password')}
+            />
+            <AuthInput
+              label="Confirm Password"
+              showPasswordToggle
+              placeholder="••••••••••••"
+              autoComplete="new-password"
+              error={authForm.formState.errors.confirmPassword}
+              {...authForm.register('confirmPassword')}
+            />
+            <div className="pt-2">
+              <GradientButton type="submit" loading={authLoading}>
+                Next
+              </GradientButton>
+            </div>
           </form>
-        </motion.div>
+        ) : (
+          <form onSubmit={orgForm.handleSubmit(handleStep2)} className="space-y-4" noValidate>
+            <div>
+              <label className="block text-gaffer-muted text-xs font-body mb-1">Organization Name *</label>
+              <input
+                {...orgForm.register('name', { required: 'Name is required', maxLength: { value: 100, message: 'Max 100 characters' } })}
+                placeholder="Westervelt Athletic Club"
+                className="w-full bg-gaffer-card border border-gaffer-border rounded-xl px-4 py-3 text-white text-sm font-body placeholder:text-gaffer-subtle focus:outline-none focus:border-gaffer-orange/50"
+              />
+              {orgForm.formState.errors.name && (
+                <p className="text-red-400 text-xs mt-1">{orgForm.formState.errors.name.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-gaffer-muted text-xs font-body mb-1">
+                Handle * <span className="text-gaffer-subtle">(lowercase, letters/numbers/underscores)</span>
+              </label>
+              <input
+                {...orgForm.register('handle', {
+                  required: 'Handle is required',
+                  minLength: { value: 3, message: 'Min 3 characters' },
+                  maxLength: { value: 30, message: 'Max 30 characters' },
+                  pattern: { value: /^[a-z0-9_]+$/, message: 'Only lowercase letters, numbers, underscores' },
+                })}
+                placeholder="westervelt_ac"
+                className="w-full bg-gaffer-card border border-gaffer-border rounded-xl px-4 py-3 text-white text-sm font-body placeholder:text-gaffer-subtle focus:outline-none focus:border-gaffer-orange/50"
+              />
+              {orgForm.formState.errors.handle && (
+                <p className="text-red-400 text-xs mt-1">{orgForm.formState.errors.handle.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-gaffer-muted text-xs font-body mb-1">Description</label>
+              <textarea
+                {...orgForm.register('description', { maxLength: { value: 500, message: 'Max 500 characters' } })}
+                placeholder="Tell us about your organization..."
+                rows={3}
+                className="w-full bg-gaffer-card border border-gaffer-border rounded-xl px-4 py-3 text-white text-sm font-body placeholder:text-gaffer-subtle focus:outline-none focus:border-gaffer-orange/50 resize-none"
+              />
+              {orgForm.formState.errors.description && (
+                <p className="text-red-400 text-xs mt-1">{orgForm.formState.errors.description.message}</p>
+              )}
+            </div>
+
+            <div className="pt-2">
+              <GradientButton type="submit" loading={isCreatingOrg}>
+                Create Organization
+              </GradientButton>
+            </div>
+          </form>
+        )}
+
+        {step === 1 && (
+          <p className="text-center text-gaffer-muted text-xs font-body mt-6">
+            Already have an account?{' '}
+            <button
+              onClick={() => router.push('/auth/login')}
+              className="text-gaffer-orange font-medium hover:underline"
+            >
+              Sign In
+            </button>
+          </p>
+        )}
       </div>
 
-      {/* Progress indicator */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
-        <div className={`w-2 h-2 rounded-full transition-all duration-300 ${step === 1 ? 'w-6 bg-gaffer-orange' : 'bg-gaffer-border'}`} />
-        <div className={`w-2 h-2 rounded-full transition-all duration-300 ${step === 2 ? 'w-6 bg-gaffer-orange' : 'bg-gaffer-border'}`} />
+      {/* Progress dots */}
+      <div className="pb-8 flex justify-center gap-2">
+        <div className={`h-2 rounded-full transition-all duration-300 ${step === 1 ? 'w-6 bg-gaffer-orange' : 'w-2 bg-gaffer-border'}`} />
+        <div className={`h-2 rounded-full transition-all duration-300 ${step === 2 ? 'w-6 bg-gaffer-orange' : 'w-2 bg-gaffer-border'}`} />
       </div>
     </div>
   )

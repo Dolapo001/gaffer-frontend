@@ -1,41 +1,39 @@
 'use client'
 
+import React from 'react'
+import Image from 'next/image'
+
 interface GafferLogoProps {
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   className?: string
+  animated?: boolean
 }
 
 export function GafferLogo({ size = 'md', className = '' }: GafferLogoProps) {
-  const sizes = {
-    sm: 'text-3xl',
-    md: 'text-5xl',
-    lg: 'text-6xl',
+  const heights = {
+    sm: 32,
+    md: 48,
+    lg: 80,
+    xl: 120,
   }
 
-  return (
-    <div className={`font-display font-black tracking-wider ${sizes[size]} ${className}`}>
-      <span style={{ color: '#FF6B00' }}>G</span>
-      <span style={{ color: '#FF7A00' }}>A</span>
-      <span style={{ color: '#FF5500' }}>F</span>
-      <span style={{ color: '#EE3A00' }}>F</span>
-      <span style={{ color: '#E02000' }}>E</span>
-      <span style={{ color: '#CC1500' }}>R</span>
-    </div>
-  )
-}
+  const height = heights[size]
+  // Approximate aspect ratio based on the image provided (approx 4.5:1)
+  const width = height * 4.5
 
-export function GafferLogoFull({ className = '' }: { className?: string }) {
   return (
-    <div className={`flex flex-col items-start ${className}`}>
-      <span className="text-white font-display font-bold text-lg tracking-[0.3em] uppercase opacity-80">THE</span>
-      <div className="font-display font-black text-[52px] leading-none tracking-wider">
-        <span style={{ color: '#FF6B00' }}>G</span>
-        <span style={{ color: '#FF7A00' }}>A</span>
-        <span style={{ color: '#FF5500' }}>F</span>
-        <span style={{ color: '#EE3A00' }}>F</span>
-        <span style={{ color: '#E02000' }}>E</span>
-        <span style={{ color: '#CC1500' }}>R</span>
-      </div>
+    <div className={`relative flex items-center ${className}`}>
+      {/* Subtle Glow behind the image */}
+      <div className="absolute inset-0 bg-orange-gaffer/10 blur-2xl -z-10 rounded-full" />
+
+      <Image
+        src="/images/log.svg"
+        alt="The Gaffer Logo"
+        width={width}
+        height={height}
+        className="object-contain"
+        priority
+      />
     </div>
   )
 }

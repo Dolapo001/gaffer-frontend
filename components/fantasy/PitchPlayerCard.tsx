@@ -10,6 +10,8 @@ interface PitchPlayerCardProps {
   highlightMode?: 'none' | 'sub_out' | 'sub_in_valid';
   points?: number;
   kitAreaClassName?: string;
+  status?: 'fit' | 'injured' | 'warning';
+  captaincy?: 'C' | 'V' | null;
 }
 
 /**
@@ -26,6 +28,8 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   highlightMode = 'none',
   points,
   kitAreaClassName = "bg-black/20",
+  status = 'fit',
+  captaincy = null,
 }) => {
   let containerRing = selected ? 'ring-2 ring-[#ff6b00] scale-105 z-10 border-[#ff6b00]' : 'border-white/20';
   let bottomBg = 'bg-[#f4f0f5] text-[#37003c]';
@@ -56,6 +60,29 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
         </div>
       )}
 
+      {/* Injury/Warning Status Badge */}
+      {status !== 'fit' && (
+        <div className="absolute top-1 right-1 z-20 flex shadow-sm">
+           {status === 'injured' && (
+             <div className="w-4 h-4 bg-red-600 rounded-sm flex items-center justify-center border border-white/20">
+                <span className="text-white text-[8px] font-black">!</span>
+             </div>
+           )}
+           {status === 'warning' && (
+             <div className="w-4 h-4 bg-yellow-400 rounded-sm flex items-center justify-center border border-white/20">
+                <span className="text-black text-[8px] font-black">!</span>
+             </div>
+           )}
+        </div>
+      )}
+
+      {/* Captaincy Badge */}
+      {captaincy && (
+        <div className={`absolute top-1 left-1 z-20 w-4 h-4 rounded-full flex items-center justify-center border border-white/20 shadow-sm ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-purple-600'}`}>
+           <span className="text-white text-[8px] font-black">{captaincy}</span>
+        </div>
+      )}
+
       {/* 1. Top Section (Player Image Area) */}
       <div className={`bg-transparent p-0 flex items-center justify-center h-[60px] sm:h-[74px] overflow-hidden`}>
         <img 
@@ -63,7 +90,7 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           alt={`${playerName}`} 
           className={`${kitImageUrl.includes('images') ? 'w-full h-full object-cover object-top' : 'w-[85%] h-[85%] object-contain mt-1'} drop-shadow-lg relative z-10 mx-auto`}
           onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp";
+            (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"
           }}
         />
       </div>

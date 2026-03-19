@@ -1,6 +1,7 @@
 'use client';
 
 import { MATCHES, getTeamCrest } from '@/lib/leagueMockData';
+import { useRouter } from 'next/navigation';
 
 interface Fixture {
   id: string;
@@ -36,6 +37,7 @@ const previousFixtures: Fixture[] = MATCHES
   }));
 
 export function FixturesSection() {
+  const router = useRouter();
   return (
     <div className="flex flex-col w-full px-[13.37px]" style={{ gap: '20px', paddingBottom: '40px' }}>
       {/* Match Schedule (Step 454 & 463 Specs) */}
@@ -68,6 +70,12 @@ export function FixturesSection() {
               fixture={fixture}
               customWidth="297px"
               customHeight="88px"
+            <FixtureCard 
+              key={fixture.id} 
+              fixture={fixture} 
+              customWidth="297px" 
+              customHeight="88px" 
+              onClick={() => router.push(`/app/match/${fixture.id}`)}
             />
           ))}
         </div>
@@ -85,14 +93,22 @@ export function FixturesSection() {
         <div className="flex flex-col gap-3">
           <h3 className="text-[#D2B5FF] text-[12px] font-medium pl-1">Round 1</h3>
           {previousFixtures.slice(0, 3).map((fixture) => (
-            <FixtureCard key={fixture.id} fixture={fixture} />
+            <FixtureCard 
+              key={fixture.id} 
+              fixture={fixture} 
+              onClick={() => router.push(`/app/match/${fixture.id}`)}
+            />
           ))}
         </div>
 
         <div className="flex flex-col gap-3 pt-2">
           <h3 className="text-[#D2B5FF] text-[12px] font-medium pl-1">Round 2</h3>
           {previousFixtures.slice(0, 3).map((fixture) => (
-            <FixtureCard key={`r2-${fixture.id}`} fixture={fixture} />
+            <FixtureCard 
+              key={`r2-${fixture.id}`} 
+              fixture={fixture} 
+              onClick={() => router.push(`/app/match/${fixture.id}`)}
+            />
           ))}
         </div>
       </div>
@@ -100,11 +116,15 @@ export function FixturesSection() {
   );
 }
 
-function FixtureCard({ fixture, customWidth, customHeight }: { fixture: Fixture, customWidth?: string, customHeight?: string }) {
+function FixtureCard({ fixture, customWidth, customHeight, onClick }: { fixture: Fixture, customWidth?: string, customHeight?: string, onClick?: () => void }) {
   return (
     <div
       className="bg-[#1a1b2e]/60 rounded-[28.03px] border border-[#2E2F3E] p-4 flex items-center justify-between shadow-lg"
       style={{
+    <div 
+      onClick={onClick}
+      className={`bg-[#1a1b2e]/60 rounded-[28.03px] border border-[#2E2F3E] p-4 flex items-center justify-between shadow-lg ${onClick ? 'cursor-pointer active:scale-[0.98] hover:bg-[#1a1b2e]/80 transition-all' : ''}`}
+      style={{ 
         width: customWidth || '302.25px',
         height: customHeight || '110.15px',
         backdropFilter: 'blur(8px)'
