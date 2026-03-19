@@ -23,8 +23,13 @@ export interface RefreshResponse {
 }
 
 // POST /auth/register
-export async function register(email: string, password: string): Promise<AuthResponse> {
-  const data = await api.post<AuthResponse>('/auth/register', { email, password }, { public: true })
+export async function register(
+  email: string, 
+  password: string,
+  lastRole?: 'personal' | 'organization',
+  isOrgActive?: boolean
+): Promise<AuthResponse> {
+  const data = await api.post<AuthResponse>('/auth/register', { email, password, lastRole, isOrgActive }, { public: true })
   tokenStore.set(data.accessToken)
   return data
 }

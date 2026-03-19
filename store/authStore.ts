@@ -32,7 +32,7 @@ interface AuthState {
   clearError: () => void
 
   login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string) => Promise<AuthUser>
+  register: (email: string, password: string, role?: UserRole, isOrgActive?: boolean) => Promise<AuthUser>
   logout: () => Promise<void>
 }
 
@@ -135,10 +135,11 @@ export const useAuthStore = create<AuthState>()(
         }
       },
 
-      register: async (email, password) => {
+      register: async (email, password, role, isOrgActive) => {
         set({ isLoading: true, error: null })
         try {
-          const res = await register(email, password)
+          const apiRole = (role === 'personal' || role === 'organization') ? role : undefined
+          const res = await register(email, password, apiRole, isOrgActive)
           tokenStore.set(res.accessToken)
           
           if (typeof window !== 'undefined') {
@@ -148,6 +149,7 @@ export const useAuthStore = create<AuthState>()(
 
           set({
             user: res.user,
+            role: res.user.lastRole || null,
             accessToken: res.accessToken,
             isAuthenticated: true,
             error: null,
