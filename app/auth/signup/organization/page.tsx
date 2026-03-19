@@ -28,7 +28,7 @@ const SPORT_OPTIONS = [
 export default function OrganizationSignupPage() {
   const router = useRouter()
   const { user, register: registerUser, isAuthenticated, error, clearError, setRole } = useAuthStore()
-  const [step, setStep] = useState<1 | 2>(isAuthenticated ? 2 : 1)
+  const [step, setStep] = useState<1 | 2>(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orgError, setOrgError] = useState<string | null>(null)
 

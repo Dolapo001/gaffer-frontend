@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Plus, Menu, Trophy } from 'lucide-react'
+import { Plus, Menu, Trophy, ShieldCheck } from 'lucide-react'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { OrganiseList } from './components/OrganiseList'
 import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
@@ -191,23 +191,21 @@ export default function OrganizePage() {
             <Menu size={24} className="mr-4 text-white/60" />
             <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
           </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-6">
+          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-8">
             <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
-              <Trophy size={40} className="text-orange-500" />
+              <ShieldCheck size={40} className="text-orange-500" />
             </div>
-            <div className="space-y-2">
-              <p className="text-white font-chakra font-bold text-xl uppercase tracking-tight">No Organization Found</p>
-              <p className="text-white/40 text-sm font-chakra max-w-[260px]">
-                {orgsError
-                  ? 'Could not load your organization. Please try again.'
-                  : 'You need an organization to manage teams and groups.'}
+            <div className="space-y-3">
+              <h2 className="text-white font-chakra font-black text-2xl uppercase tracking-tighter">Complete Your Setup</h2>
+              <p className="text-white/40 text-sm font-chakra max-w-[280px] leading-relaxed">
+                Your manager account is active, but your club profile is missing its name. Finish. your setup to start managing tournaments.
               </p>
             </div>
             <button
               onClick={() => router.push('/auth/signup/organization')}
-              className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg"
+              className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all"
             >
-              Create Organization
+              Finish Setup
             </button>
           </div>
         </div>

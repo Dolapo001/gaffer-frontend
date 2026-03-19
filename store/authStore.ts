@@ -60,6 +60,16 @@ export const useAuthStore = create<AuthState>()(
         }
 
         if (accessToken) tokenStore.set(accessToken)
+        
+        // Auto-sync role based on user's flags if they are logged in
+        if (user) {
+          const currentRole = get().role
+          // If the database says they are an organization user, upgrade them if they are still 'personal' or null
+          if (user.isOrgActive && currentRole !== 'organization') {
+             get().setRole('organization')
+          }
+        }
+
         set({
           user,
           accessToken: accessToken ?? null,

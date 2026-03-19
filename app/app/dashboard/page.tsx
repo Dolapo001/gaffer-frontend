@@ -136,16 +136,32 @@ export default function DashboardPage() {
               <div className="w-full h-40 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center">
                  <img src="/images/empty_tournament.png" className="w-full h-full object-cover opacity-60" alt="" />
               </div>
-              <p className="text-white font-chakra font-bold text-lg">Start a New Tournament</p>
-              <button
-                onClick={() => {
-                   if (user?.isOrgActive) router.push('/admin/tournaments')
-                   else setUpgradeModalOpen(true)
-                }}
-                className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
-              >
-                Create Tournament
-              </button>
+              {user?.isOrgActive ? (
+                <>
+                  <p className="text-white font-chakra font-bold text-lg">Switch to Manager Account</p>
+                  <p className="text-white/40 text-xs font-chakra -mt-4">You have an active organization waiting for you in the admin area.</p>
+                  <button
+                    onClick={() => {
+                      const { setRole: setStoreRole } = useAuthStore.getState()
+                      setStoreRole('organization')
+                      router.push('/admin')
+                    }}
+                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
+                  >
+                    Go to Admin
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-white font-chakra font-bold text-lg">Start a New Tournament</p>
+                  <button
+                    onClick={() => setUpgradeModalOpen(true)}
+                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
+                  >
+                    Upgrade to Org
+                  </button>
+                </>
+              )}
             </div>
           </section>
         </main>
