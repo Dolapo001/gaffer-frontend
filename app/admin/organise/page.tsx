@@ -13,7 +13,7 @@ import type { Team, Group, Player, OrganiseView } from './types'
 
 import { useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, Team as BackendTeam } from '@/lib/services/team.service'
+import { listTeams, createTeam, listPlayers, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
@@ -56,9 +56,15 @@ export default function OrganizePage() {
     enabled: !!orgId
   })
 
-  // Local state for UI components (Groups/Players currently mostly local)
+  // 3. Fetch Players (when a team is selected)
+  const { data: backendPlayers, isLoading: isLoadingPlayers } = useQuery({
+    queryKey: ['players', selectedTeam?.id],
+    queryFn: () => listPlayers(selectedTeam!.id),
+    enabled: !!selectedTeam?.id
+  })
+
+  // Local state for groups (saved locally for now till backend group module is ready)
   const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS)
-  const [players, setPlayers] = useState<Player[]>(INITIAL_PLAYERS)
 
   // Create form state
   const [teamName, setTeamName] = useState('')
@@ -69,11 +75,20 @@ export default function OrganizePage() {
   const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
 
   // Map backend teams to UI teams
-  const teams: Team[] = backendTeams?.map(t => ({
+  const teams: Team[] = backendTeams?.map((t: BackendTeam) => ({
     id: t._id,
     name: t.name,
-    playerCount: '0/22', // Backend doesn't return count directly yet
+    playerCount: '0/22', 
     logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
+  })) || []
+
+  // Map backend players to UI players
+  const players: Player[] = backendPlayers?.map((p: any) => ({
+    id: p._id,
+    name: `${p.firstName} ${p.lastName}`,
+    position: p.position || 'Player',
+    price: '7.5M', 
+    isSelected: true
   })) || []
 
   // Mutate: Create Team
@@ -126,18 +141,11 @@ export default function OrganizePage() {
   }
 
   const handleTogglePlayer = (id: string) => {
-    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, isSelected: !p.isSelected } : p)))
+    addToast('Player status update not yet implemented in backend', 'info')
   }
 
   const handlePriceChange = (id: string, increment: boolean) => {
-    setPlayers((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p
-        const current = parseFloat(p.price) || 7.5
-        const next = Math.max(0.5, current + (increment ? 0.5 : -0.5))
-        return { ...p, price: `${next.toFixed(1)}M` }
-      }),
-    )
+    addToast('Price updates not yet implemented in backend', 'info')
   }
 
   const handleAddTeamToGroup = (team: Team) => {

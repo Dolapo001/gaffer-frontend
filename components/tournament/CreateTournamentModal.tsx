@@ -11,6 +11,11 @@ import { GradientButton } from '@/components/GradientButton'
 import { useTournamentStore } from '@/store/tournamentStore'
 import { useAuthStore } from '@/store/authStore'
 
+import { createCompetition } from '@/lib/services/competition.service'
+import { listOrgs } from '@/lib/services/org.service'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useToastStore } from '@/store/toastStore'
+
 const STEPS = ['Details', 'Format', 'Setup']
 
 const FORMAT_OPTIONS = [
@@ -32,8 +37,13 @@ interface CreateTournamentProps {
 }
 
 export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
-  const { addTournament } = useTournamentStore()
+  const queryClient = useQueryClient()
+  const toast = useToastStore()
   const { user } = useAuthStore()
+
+  // Need OrgId
+  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
+  const orgId = orgs?.[0]?._id
 
   const [step, setStep] = useState(0)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -42,12 +52,12 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
   
   // Form State
   const [details, setDetails] = useState({
-    name: 'Charlie Westervelt',
-    host: 'Charlie Westervelt',
+    name: 'Gaffer League',
+    host: 'Gaffer Admin',
     sport: 'Football',
-    gender: 'Male',
-    startDate: '20/4/26',
-    endDate: '20/3/26',
+    gender: 'male' as 'male' | 'female' | 'mixed',
+    startDate: '2026-04-26',
+    endDate: '2026-05-26',
     photo: '/images/hero-bg.jpg'
   })
 
@@ -58,6 +68,19 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     { id: '2', type: 'Groups', name: 'Groups B', info: '4 Teams', teamCount: '4 Teams' },
     { id: '3', type: 'Knockout', name: 'Knockout', info: 'Starts at Round of 16', startingRound: 'Round of 16' }
   ])
+
+  // Mutation
+  const createMutation = useMutation({
+    mutationFn: (payload: any) => createCompetition(orgId!, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['competitions', orgId] })
+      toast.addToast('Tournament created successfully!', 'success')
+      onClose()
+    },
+    onError: (err: any) => {
+      toast.addToast(err?.message || 'Failed to create tournament', 'error')
+    }
+  })
 
   const nextStep = () => {
     if (step === 1 && addedFormats.length === 0) {
@@ -99,19 +122,21 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
   }
 
   const handleFinalConfirm = () => {
-    addTournament({
-      name: details.name || 'Untitled Tournament',
+    if (!orgId) {
+      toast.addToast('Please login to create tournament', 'error')
+      return
+    }
+
+    createMutation.mutate({
+      name: details.name,
       sport: details.sport,
-      startDate: details.startDate,
-      endDate: details.endDate,
-      status: 'upcoming',
-      location: 'Main Stadium',
-      format: addedFormats.map(f => f.type).join(' + '),
-      createdBy: user?.id || 'org_id',
-      maxTeams: 16
+      gender: details.gender,
+      startDate: new Date(details.startDate).toISOString(),
+      endDate: new Date(details.endDate).toISOString(),
+      bannerUrl: details.photo,
+      format: addedFormats.map(f => f.type).join(' + ')
     })
     setShowConfirm(false)
-    onClose()
   }
 
   const renderConfigScreen = () => {
@@ -305,9 +330,14 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 <div className="space-y-2 text-start">
                   <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Gender</label>
                   <div className="relative">
-                    <select value={details.gender} onChange={(e) => setDetails({...details, gender: e.target.value})} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none">
-                      <option>Male</option>
-                      <option>Female</option>
+                    <select 
+                      value={details.gender} 
+                      onChange={(e) => setDetails({...details, gender: e.target.value as 'male' | 'female' | 'mixed'})} 
+                      className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none"
+                    >
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="mixed">Mixed</option>
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
