@@ -6,11 +6,17 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
-  BarChart2, Trash2,
+  BarChart2, Trash2, Star,
 } from 'lucide-react'
 import { getCompetition, archiveCompetition } from '@/lib/services/competition.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getStandings } from '@/lib/services/standings.service'
+import {
+  getTeamPricing,
+  validateTeamPricing,
+  finalizeTeamPricing,
+  finalizeAllPricing,
+} from '@/lib/services/fantasy.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -32,7 +38,7 @@ function formatKickoff(iso: string) {
   }
 }
 
-type Tab = 'overview' | 'schedule' | 'standings'
+type Tab = 'overview' | 'schedule' | 'standings' | 'fantasy'
 
 export default function TournamentDetailPage() {
   const router = useRouter()
@@ -42,6 +48,8 @@ export default function TournamentDetailPage() {
   const toast = useToastStore()
   const [activeTab, setActiveTab] = useState<Tab>('overview')
   const [showDelete, setShowDelete] = useState(false)
+  const [pricingStatus, setPricingStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
+  const [pricingMessage, setPricingMessage] = useState('')
 
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', id],
@@ -60,6 +68,12 @@ export default function TournamentDetailPage() {
     enabled: activeTab === 'standings',
   })
 
+  const { data: teamPricingData } = useQuery({
+    queryKey: ['team-pricing', id],
+    queryFn: () => getTeamPricing(id),
+    enabled: activeTab === 'fantasy',
+  })
+
   const archiveMutation = useMutation({
     mutationFn: () => archiveCompetition(id),
     onSuccess: () => {
@@ -69,6 +83,35 @@ export default function TournamentDetailPage() {
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
+
+  const handleFinalizePricing = async () => {
+    const teams = (teamPricingData as { teams?: { id: string }[] } | null)?.teams ?? []
+    setPricingStatus('loading')
+    setPricingMessage('')
+    try {
+      // Validate each team first
+      for (const team of teams) {
+        const result = await validateTeamPricing(id, team.id)
+        if (!result.valid) {
+          setPricingStatus('error')
+          setPricingMessage(`Validation failed: ${(result.errors ?? ['Unknown error']).join(', ')}`)
+          return
+        }
+      }
+      // Finalize each team
+      for (const team of teams) {
+        await finalizeTeamPricing(id, team.id)
+      }
+      // Global finalize
+      await finalizeAllPricing(id)
+      setPricingStatus('success')
+      setPricingMessage('All pricing finalized successfully')
+      qc.invalidateQueries({ queryKey: ['team-pricing', id] })
+    } catch (err: unknown) {
+      setPricingStatus('error')
+      setPricingMessage(getErrorMessage(err))
+    }
+  }
 
   if (isLoading) {
     return (
@@ -117,7 +160,7 @@ export default function TournamentDetailPage() {
 
           {/* Tabs */}
           <div className="flex gap-0 px-4 pb-0">
-            {(['overview', 'schedule', 'standings'] as Tab[]).map((tab) => (
+            {(['overview', 'schedule', 'standings', 'fantasy'] as Tab[]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
                 className={`relative flex-1 py-3 text-xs font-body font-semibold capitalize transition-colors ${
                   activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle'
@@ -282,6 +325,47 @@ export default function TournamentDetailPage() {
                     ))}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* ── FANTASY ── */}
+            {activeTab === 'fantasy' && (
+              <motion.div key="fy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
+                <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Star size={16} className="text-gaffer-orange" />
+                    <h3 className="font-display font-bold text-white text-sm">Pricing Finalization</h3>
+                  </div>
+                  <p className="text-gaffer-muted text-xs font-body mb-4">
+                    Validate and finalize player pricing for all teams before opening fantasy registration.
+                  </p>
+
+                  {pricingStatus === 'success' && (
+                    <div className="mb-4 p-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-xs font-body">
+                      {pricingMessage}
+                    </div>
+                  )}
+                  {pricingStatus === 'error' && (
+                    <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-body">
+                      {pricingMessage}
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleFinalizePricing}
+                    disabled={pricingStatus === 'loading'}
+                    className="w-full py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {pricingStatus === 'loading' ? (
+                      <>
+                        <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                        Finalizing...
+                      </>
+                    ) : (
+                      'Finalize All Pricing'
+                    )}
+                  </button>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

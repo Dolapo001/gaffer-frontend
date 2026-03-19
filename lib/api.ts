@@ -12,7 +12,7 @@ let _accessToken: string | null = null
 
 export const tokenStore = {
   get: (): string | null => _accessToken,
-  set: (token: string | null) => { 
+  set: (token: string | null) => {
     _accessToken = token
     if (typeof document !== 'undefined') {
       if (token) {
@@ -22,7 +22,7 @@ export const tokenStore = {
       }
     }
   },
-  clear: () => { 
+  clear: () => {
     _accessToken = null
     if (typeof document !== 'undefined') {
       document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
@@ -107,10 +107,15 @@ export async function apiRequest<T = unknown>(
 ): Promise<T> {
   const { body, public: isPublic, skipRefresh, ...fetchOpts } = opts
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(fetchOpts.headers as Record<string, string> ?? {}),
-  }
+  // FormData must not have Content-Type set manually — browser sets it with boundary
+  const isFormData = body instanceof FormData
+
+  const headers: Record<string, string> = isFormData
+    ? { ...(fetchOpts.headers as Record<string, string> ?? {}) }
+    : {
+        'Content-Type': 'application/json',
+        ...(fetchOpts.headers as Record<string, string> ?? {}),
+      }
 
   if (!isPublic) {
     const token = tokenStore.get()
@@ -121,7 +126,7 @@ export async function apiRequest<T = unknown>(
     ...fetchOpts,
     credentials: 'include', // always include cookies for rt cookie
     headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
+    body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
   })
 
   // Automatic token refresh on 401
@@ -133,7 +138,7 @@ export async function apiRequest<T = unknown>(
         ...fetchOpts,
         credentials: 'include',
         headers,
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
       })
       return parseResponse<T>(retryRes)
     } catch {

@@ -1,17 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/store/authStore'
-import { getProfile, updateProfile, type UserProfile } from '@/lib/services/user.service'
+import { getProfile, updateProfile, uploadAvatar, type UserProfile } from '@/lib/services/user.service'
 import { updateProfileSchema, type UpdateProfileFormData } from '@/lib/schemas'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
-import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X } from 'lucide-react'
+import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera } from 'lucide-react'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -19,6 +19,9 @@ export default function ProfilePage() {
   const toast = useToastStore()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['profile'],
@@ -36,7 +39,18 @@ export default function ProfilePage() {
       fullName: profile?.fullName ?? '',
       username: profile?.username ?? '',
       phone: profile?.phone ?? '',
-      avatarUrl: profile?.avatarUrl ?? '',
+    },
+  })
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: (file: File) => uploadAvatar(file),
+    onSuccess: (res) => {
+      const updatedProfile = { ...profile, avatarUrl: res.data.imageUrl } as UserProfile
+      queryClient.setQueryData(['profile'], updatedProfile)
+      setProfile(updatedProfile)
+    },
+    onError: (err) => {
+      toast.addToast({ type: 'error', message: getErrorMessage(err) })
     },
   })
 
@@ -47,6 +61,8 @@ export default function ProfilePage() {
       setProfile(data)
       toast.addToast({ type: 'success', message: 'Profile updated successfully' })
       setEditing(false)
+      setAvatarPreview(null)
+      setSelectedAvatarFile(null)
     },
     onError: (err) => {
       toast.addToast({ type: 'error', message: getErrorMessage(err) })
@@ -62,20 +78,49 @@ export default function ProfilePage() {
     profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
   const email = user?.email || profile?.email || 'Not provided'
 
-  const onSubmit = (data: UpdateProfileFormData) => {
-    // Only send changed fields
+  const onSubmit = async (data: UpdateProfileFormData) => {
+    // Upload avatar first if a file was selected
+    if (selectedAvatarFile) {
+      await uploadAvatarMutation.mutateAsync(selectedAvatarFile)
+    }
+
+    // Only send changed text fields
     const payload: UpdateProfileFormData = {}
     if (data.fullName !== (profile?.fullName ?? '')) payload.fullName = data.fullName
     if (data.username !== (profile?.username ?? '')) payload.username = data.username
     if (data.phone !== (profile?.phone ?? '')) payload.phone = data.phone
-    if (data.avatarUrl !== (profile?.avatarUrl ?? '')) payload.avatarUrl = data.avatarUrl
-    updateMutation.mutate(payload)
+
+    if (Object.keys(payload).length > 0) {
+      updateMutation.mutate(payload)
+    } else if (!selectedAvatarFile) {
+      // nothing changed
+      setEditing(false)
+    } else {
+      // avatar-only update already done
+      toast.addToast({ type: 'success', message: 'Avatar updated successfully' })
+      setEditing(false)
+    }
   }
 
   const cancelEdit = () => {
     reset()
     setEditing(false)
+    setAvatarPreview(null)
+    setSelectedAvatarFile(null)
   }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setSelectedAvatarFile(file)
+    const reader = new FileReader()
+    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.readAsDataURL(file)
+  }
+
+  const currentAvatarUrl = avatarPreview ?? profile?.avatarUrl
+  const isSaving = updateMutation.isPending || uploadAvatarMutation.isPending
+  const hasChanges = isDirty || !!selectedAvatarFile
 
   return (
     <div className="min-h-screen bg-gaffer-bg">
@@ -100,22 +145,42 @@ export default function ProfilePage() {
 
       {/* Avatar */}
       <div className="px-6 pb-6 text-center">
-        {profile?.avatarUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={profile.avatarUrl}
-            alt="Avatar"
-            className="w-20 h-20 rounded-full mx-auto mb-3 object-cover border-2 border-gaffer-orange/40"
-          />
-        ) : (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="w-20 h-20 rounded-full bg-orange-gradient-btn flex items-center justify-center text-white font-display font-black text-3xl mx-auto mb-3 shadow-orange-glow"
-          >
-            {displayName[0].toUpperCase()}
-          </motion.div>
-        )}
+        <div className="relative inline-block">
+          {currentAvatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={currentAvatarUrl}
+              alt="Avatar"
+              className="w-20 h-20 rounded-full mx-auto mb-3 object-cover border-2 border-gaffer-orange/40"
+            />
+          ) : (
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="w-20 h-20 rounded-full bg-orange-gradient-btn flex items-center justify-center text-white font-display font-black text-3xl mx-auto mb-3 shadow-orange-glow"
+            >
+              {displayName[0].toUpperCase()}
+            </motion.div>
+          )}
+          {editing && (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-3 right-0 w-7 h-7 rounded-full bg-gaffer-orange flex items-center justify-center shadow-lg"
+              >
+                <Camera size={13} className="text-white" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/jpg,image/png,image/webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+            </>
+          )}
+        </div>
         {!editing && (
           <>
             <h2 className="font-display font-bold text-xl text-white">{displayName}</h2>
@@ -134,7 +199,6 @@ export default function ProfilePage() {
             { key: 'fullName' as const, label: 'Full Name', placeholder: 'Your full name' },
             { key: 'username' as const, label: 'Username', placeholder: 'your_username' },
             { key: 'phone' as const, label: 'Phone', placeholder: '+1 234 567 8900' },
-            { key: 'avatarUrl' as const, label: 'Avatar URL', placeholder: 'https://...' },
           ].map(({ key, label, placeholder }) => (
             <div key={key}>
               <label className="block text-gaffer-muted text-xs font-body mb-1">{label}</label>
@@ -159,11 +223,11 @@ export default function ProfilePage() {
             </button>
             <button
               type="submit"
-              disabled={!isDirty || updateMutation.isPending}
+              disabled={!hasChanges || isSaving}
               className="flex-1 py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <Check size={15} />
-              {updateMutation.isPending ? 'Saving...' : 'Save'}
+              {isSaving ? 'Saving...' : 'Save'}
             </button>
           </div>
         </form>
