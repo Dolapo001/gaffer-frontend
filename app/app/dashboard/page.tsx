@@ -8,6 +8,8 @@ import { Menu, Share2, Bell, Newspaper as NewsIcon } from 'lucide-react'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { AccountUpgradeModal } from '@/components/AccountUpgradeModal'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getWallet } from '@/lib/services/payment.service'
+import { ShoppingBag } from 'lucide-react'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -16,6 +18,7 @@ export default function DashboardPage() {
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
   const [isLoadingNews, setIsLoadingNews] = useState(true)
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
 
   useLayoutEffect(() => {
     const handleUpgrade = () => setUpgradeModalOpen(true)
@@ -34,7 +37,16 @@ export default function DashboardPage() {
         setIsLoadingNews(false)
       }
     }
+    const fetchWallet = async () => {
+      try {
+        const wallet = await getWallet()
+        setWalletBalance(wallet.balance)
+      } catch (err) {
+        console.error('Failed to fetch wallet:', err)
+      }
+    }
     fetchNews()
+    fetchWallet()
   }, [])
 
   const displayName = profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
@@ -75,9 +87,22 @@ export default function DashboardPage() {
             <h1 className="font-chakra font-black text-xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent tracking-widest uppercase">GAFFER</h1>
             <p className="text-[9px] font-chakra font-bold text-white/40 uppercase tracking-[2px]">Personal</p>
         </div>
-        <button className="w-10 h-10 flex items-center justify-end text-white">
-          <Bell size={20} />
-        </button>
+        <div className="flex items-center gap-4">
+          {walletBalance !== null && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              onClick={() => router.push('/app/shop')}
+              className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-all"
+            >
+              <span className="text-orange-500 text-sm">💰</span>
+              <span className="text-[11px] font-chakra font-black text-white">{walletBalance}</span>
+            </motion.div>
+          )}
+          <button className="text-white">
+            <Bell size={20} />
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}

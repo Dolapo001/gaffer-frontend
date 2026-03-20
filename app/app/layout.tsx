@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, Trophy, Newspaper, Gamepad2 } from 'lucide-react'
+import { Home, Trophy, Newspaper, Gamepad2, ShoppingBag } from 'lucide-react'
 import Link from 'next/link'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { href: '/app/dashboard', icon: Home, label: 'Home' },
   { href: '/app/fantasy', icon: Gamepad2, label: 'Fantasy' },
   { href: '/app/league', icon: Trophy, label: 'League' },
+  { href: '/app/shop', icon: ShoppingBag, label: 'Store' },
   { href: '/app/news', icon: Newspaper, label: 'News' },
 ]
 

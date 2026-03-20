@@ -5,6 +5,8 @@ export type Player = {
   price: string
   photo?: string
   isSelected: boolean
+  role?: 'player' | 'captain' | 'coach'
+  status?: 'active' | 'injured' | 'suspended'
 }
 
 export type Team = {

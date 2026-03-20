@@ -6,7 +6,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents } from '@/lib/services/match.service'
 import { listLineups } from '@/lib/services/fixture.service'
-import { ChevronLeft, Info, Zap } from 'lucide-react'
+import { getPreferences, followMatch, unfollowMatch } from '@/lib/services/notifications.service'
+import { ChevronLeft, Info, Zap, Bell, BellOff } from 'lucide-react'
+import { useToastStore } from '@/store/toastStore'
 import type { MatchEvent } from '@/lib/services/match.service'
 
 // ─── Event Card ───────────────────────────────────────────────────────────────
@@ -142,6 +144,29 @@ export default function MatchCenterPage() {
     enabled: activeTab === 'lineup',
   })
 
+  const { data: prefs, refetch: refetchPrefs } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences
+  })
+
+  const isFollowing = prefs?.preferences?.followedMatches?.includes(matchId) ?? false
+  const toast = useToastStore()
+
+  const toggleFollow = async () => {
+    try {
+      if (isFollowing) {
+        await unfollowMatch(matchId)
+        toast.addToast('Unfollowed match alerts', 'info')
+      } else {
+        await followMatch(matchId)
+        toast.addToast('Following match alerts ⚽', 'success')
+      }
+      refetchPrefs()
+    } catch (err) {
+      toast.addToast('Failed to update alerts', 'error')
+    }
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
@@ -198,7 +223,16 @@ export default function MatchCenterPage() {
           )}
           {round && <p className="text-gaffer-orange text-[10px] font-body">{round.name}</p>}
         </div>
-        <div className="w-9 h-9" />
+        <button
+          onClick={toggleFollow}
+          className={`w-9 h-9 flex items-center justify-center rounded-full border transition-all ${
+            isFollowing 
+              ? 'bg-gaffer-orange/20 border-gaffer-orange text-gaffer-orange' 
+              : 'bg-gaffer-card border-gaffer-border text-white/40'
+          }`}
+        >
+          {isFollowing ? <Bell size={18} fill="currentColor" /> : <BellOff size={18} />}
+        </button>
       </header>
 
       <main className="px-4 space-y-6 pb-20">

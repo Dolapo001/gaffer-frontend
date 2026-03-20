@@ -33,10 +33,10 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
           className="fixed bottom-8 left-1/2 z-[100] pointer-events-none flex justify-center"
         >
           <nav 
-            className="flex items-center justify-between px-8 h-[88px] backdrop-blur-3xl pointer-events-auto border border-white/10 bg-[#181928]/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
+            className="flex items-center justify-around h-[82px] backdrop-blur-3xl pointer-events-auto border border-white/10 bg-[#181928]/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all"
             style={{ 
-              width: 'min(520px, calc(100vw - 40px))',
-              borderRadius: '100px',
+              width: 'min(500px, calc(100vw - 32px))',
+              borderRadius: '80px',
             }}
           >
         {items.map((item) => {
@@ -48,25 +48,25 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-col items-center gap-1 transition-all"
+              className="flex-1 flex flex-col items-center gap-1.5 transition-all py-2"
             >
               <div className="w-10 h-10 flex items-center justify-center relative">
                 <item.icon 
-                  size={24} 
-                  strokeWidth={isActive ? 2.5 : 1.5} 
+                  size={22} 
+                  strokeWidth={isActive ? 2.5 : 2} 
                   fill={isActive ? 'currentColor' : 'none'}
-                  className={isActive ? 'text-[#FF4D00]' : 'text-white/30'} 
+                  className={isActive ? 'text-[#FF6B00]' : 'text-white/20'} 
                 />
                 {isActive && (
                   <motion.div 
                     layoutId="activeDot"
-                    className="absolute -top-1 w-1 h-1 bg-[#FF4D00] rounded-full shadow-[0_0_8px_#FF4D00]" 
+                    className="absolute -top-1 w-1.5 h-1.5 bg-[#FF6B00] rounded-full shadow-[0_0_12px_#FF6B00]" 
                   />
                 )}
               </div>
               <span
-                className={`text-[10px] font-chakra font-bold tracking-wide uppercase ${
-                  isActive ? 'text-[#FF4D00] font-black' : 'text-white/30'
+                className={`${items.length > 5 ? 'text-[8px]' : 'text-[9px]'} font-chakra font-black tracking-widest uppercase transition-colors ${
+                  isActive ? 'text-[#FF6B00]' : 'text-white/20'
                 }`}
               >
                 {item.label}

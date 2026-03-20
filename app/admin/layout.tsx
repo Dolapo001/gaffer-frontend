@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import Link from 'next/link'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, Trophy, CalendarClock, Award, FileText } from 'lucide-react'
+import { Home, Trophy, CalendarClock, Award, FileText, Users } from 'lucide-react'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
 
@@ -13,7 +13,8 @@ const NAV_ITEMS = [
   { href: '/admin', icon: Home, label: 'Home' },
   { href: '/admin/tournaments', icon: Trophy, label: 'League' },
   { href: '/admin/schedule', icon: CalendarClock, label: 'Schedule' },
-  { href: '/admin/organise', icon: Award, label: 'Organise' },
+  { href: '/admin/organise', icon: Award, label: 'Events' },
+  { href: '/admin/collaborators', icon: Users, label: 'Staff' },
   { href: '/admin/news', icon: FileText, label: 'News' },
 ]
 

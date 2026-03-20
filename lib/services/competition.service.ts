@@ -12,6 +12,14 @@ export interface Competition {
   status: 'draft' | 'published' | 'live' | 'completed' | 'archived'
   format?: string
   stages?: Stage[]
+  rules?: {
+    winPoints: number
+    drawPoints: number
+    lossPoints: number
+    perGoalPoints: number
+    cleanSheetPoints: number
+    structure: 'single' | 'aggregate'
+  }
   createdBy: { fullName: string | null; email: string }
   createdAt: string
   updatedAt: string
@@ -44,6 +52,15 @@ export interface CreateCompetitionPayload {
   startDate: string
   endDate: string
   bannerUrl?: string
+  format?: string
+  rules?: {
+    winPoints: number
+    drawPoints: number
+    lossPoints: number
+    perGoalPoints: number
+    cleanSheetPoints: number
+    structure: 'single' | 'aggregate'
+  }
 }
 
 // GET /orgs/:orgId/competitions

@@ -12,7 +12,7 @@ import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, listPlayers, updatePlayer, Team as BackendTeam } from '@/lib/services/team.service'
+import { listTeams, createTeam, listPlayers, updatePlayer, addPlayer, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listGroups, createGroup, updateGroup, Group as BackendGroup } from '@/lib/services/group.service'
 import { listCompetitions, registerTeams, Competition } from '@/lib/services/competition.service'
@@ -143,7 +143,10 @@ export default function OrganizePage() {
       name: (playerData.firstName || playerData.lastName) ? `${playerData.firstName || ''} ${playerData.lastName || ''}`.trim() : (playerData.name || 'Unknown'),
       position: playerData.position || 'Player',
       price: (p.price ?? 7.5).toFixed(1) + 'M', 
-      isSelected: true
+      isSelected: p.squadStatus === 'active',
+      role: p.role || 'player',
+      status: p.squadStatus === 'removed' ? 'suspended' : (p.squadStatus || 'active'),
+      photo: playerData.photoUrl || playerData.profilePhoto || playerData.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerData._id}`
     }
   }) || []
 
@@ -244,7 +247,35 @@ export default function OrganizePage() {
   }, [view, hideNavbar])
 
   const handleTogglePlayer = (id: string) => {
-    addToast('Player status update not yet implemented in backend', 'info')
+    if (!selectedTeam) return
+    const p = players.find(x => x.id === id)
+    if (!p) return
+    
+    // Toggle between active and suspended (or injured) to match backend supported enums
+    const newStatus = p.status === 'active' ? 'suspended' : 'active'
+    updatePlayerMutation.mutate({
+      teamId: selectedTeam.id,
+      playerId: id,
+      payload: { squadStatus: newStatus }
+    })
+  }
+
+  const handleRoleChange = (id: string, role: 'player' | 'captain' | 'coach') => {
+    if (!selectedTeam) return
+    updatePlayerMutation.mutate({
+      teamId: selectedTeam.id,
+      playerId: id,
+      payload: { role }
+    })
+  }
+
+  const handleStatusChange = (id: string, squadStatus: 'active' | 'injured' | 'suspended') => {
+    if (!selectedTeam) return
+    updatePlayerMutation.mutate({
+      teamId: selectedTeam.id,
+      playerId: id,
+      payload: { squadStatus }
+    })
   }
 
   const updatePlayerMutation = useMutation({
@@ -254,6 +285,20 @@ export default function OrganizePage() {
     },
     onError: (err) => addToast(getErrorMessage(err), 'error')
   })
+
+  const addPlayerMutation = useMutation({
+    mutationFn: ({ teamId, data }: { teamId: string, data: any }) => addPlayer(teamId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
+      addToast('Player added to squad!', 'success')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error')
+  })
+
+  const handleManualAddPlayer = (data: any) => {
+    if (!selectedTeam) return
+    addPlayerMutation.mutate({ teamId: selectedTeam.id, data })
+  }
 
   const handlePriceChange = (id: string, increment: boolean) => {
     if (!selectedTeam) return
@@ -415,7 +460,11 @@ export default function OrganizePage() {
                 onAddTeams={() => setView('select_team')}
                 onTogglePlayer={handleTogglePlayer}
                 onPriceChange={handlePriceChange}
+                onRoleChange={handleRoleChange}
+                onStatusChange={handleStatusChange}
                 onAddToTournament={handleRegisterTeamToTournament}
+                onAddPlayerManual={handleManualAddPlayer}
+                orgName={orgs?.[0]?.name}
               />
             )}
 

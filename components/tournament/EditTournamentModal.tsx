@@ -34,7 +34,15 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
     gender: competition.gender,
     startDate: competition.startDate.split('T')[0],
     endDate: competition.endDate.split('T')[0],
-    format: competition.format || 'round_robin'
+    format: competition.format || 'round_robin',
+    rules: {
+      winPoints: competition.rules?.winPoints ?? 3,
+      drawPoints: competition.rules?.drawPoints ?? 1,
+      lossPoints: competition.rules?.lossPoints ?? 0,
+      perGoalPoints: competition.rules?.perGoalPoints ?? 0,
+      cleanSheetPoints: competition.rules?.cleanSheetPoints ?? 0,
+      structure: competition.rules?.structure ?? 'single'
+    }
   })
 
   const { hideNavbar, showNavbar } = useUIStore()
@@ -177,6 +185,62 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
                 ))}
               </select>
               <ChevronDown size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30" />
+            </div>
+          </div>
+
+          {/* Rules Section */}
+          <div className="pt-4 border-t border-white/5 space-y-6">
+            <h3 className="text-[11px] font-display font-black text-gaffer-orange uppercase tracking-[0.2em]">Scoring Rules</h3>
+            
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest ml-1">Win Pts</label>
+                <input 
+                  type="number" 
+                  value={form.rules.winPoints}
+                  onChange={(e) => setForm({ ...form, rules: { ...form.rules, winPoints: parseInt(e.target.value) || 0 }})}
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-center text-white font-display font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest ml-1">Draw Pts</label>
+                <input 
+                  type="number" 
+                  value={form.rules.drawPoints}
+                  onChange={(e) => setForm({ ...form, rules: { ...form.rules, drawPoints: parseInt(e.target.value) || 0 }})}
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-center text-white font-display font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest ml-1">Loss Pts</label>
+                <input 
+                  type="number" 
+                  value={form.rules.lossPoints}
+                  onChange={(e) => setForm({ ...form, rules: { ...form.rules, lossPoints: parseInt(e.target.value) || 0 }})}
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-center text-white font-display font-bold"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest ml-1">Per Goal</label>
+                <input 
+                  type="number" 
+                  value={form.rules.perGoalPoints}
+                  onChange={(e) => setForm({ ...form, rules: { ...form.rules, perGoalPoints: parseInt(e.target.value) || 0 }})}
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-center text-white font-display font-bold"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-display font-black text-white/40 uppercase tracking-widest ml-1">Clean Sheet</label>
+                <input 
+                  type="number" 
+                  value={form.rules.cleanSheetPoints}
+                  onChange={(e) => setForm({ ...form, rules: { ...form.rules, cleanSheetPoints: parseInt(e.target.value) || 0 }})}
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-center text-white font-display font-bold"
+                />
+              </div>
             </div>
           </div>
         </form>

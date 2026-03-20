@@ -7,17 +7,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
-  BarChart2, Trash2, Star, Pencil, Check, LayoutGrid, Plus, Copy
+  BarChart2, Trash2, Star, Pencil, Check, LayoutGrid, Plus, Copy,
+  RefreshCw, Settings
 } from 'lucide-react'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
-import { 
-  getCompetition, 
-  archiveCompetition, 
-  listCompetitionTeams,
-  registerTeams,
-  type CompetitionTeam 
-} from '@/lib/services/competition.service'
+import { getCompetition, archiveCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
+import { api } from '@/lib/api'
 import { listTeams } from '@/lib/services/team.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getStandings } from '@/lib/services/standings.service'
@@ -32,6 +28,7 @@ import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
 import { EditTournamentModal } from '@/components/tournament/EditTournamentModal'
+import { RecordEventModal } from '@/components/admin/RecordEventModal'
 
 function teamLabel(side: Fixture['homeTeamId']) {
   if (typeof side === 'string') return 'TBD'
@@ -65,6 +62,7 @@ export default function TournamentDetailPage() {
   const [pricingMessage, setPricingMessage] = useState('')
   const [showEnrollModal, setShowEnrollModal] = useState(false)
   const [selectedEnrollTeam, setSelectedEnrollTeam] = useState('')
+  const [activeFixtureForEvent, setActiveFixtureForEvent] = useState<Fixture | null>(null)
   const { hideNavbar, showNavbar } = useUIStore() // Added this line
 
   useEffect(() => {
@@ -266,13 +264,29 @@ export default function TournamentDetailPage() {
                         <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight truncate">
                           {competition.name}
                         </h1>
-                        <button 
-                          onClick={() => setShowEdit(true)}
-                          className="flex items-center gap-1.5 mt-2 text-[10px] font-body font-bold text-gaffer-orange hover:text-white transition-colors"
-                        >
-                          <Pencil size={11} />
-                          EDIT TOURNAMENT
-                        </button>
+                        <div className="flex items-center gap-3 mt-4">
+                          <button 
+                            onClick={() => setShowEdit(true)}
+                            className="flex items-center gap-2 px-4 py-2 bg-gaffer-orange text-white rounded-xl text-[10px] font-chakra font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-gaffer-orange/20"
+                          >
+                            <Pencil size={12} />
+                            Edit Tournament
+                          </button>
+                          <button 
+                            onClick={() => {
+                              if (confirm('Recalculate all stats and standings? This may take a moment.')) {
+                                api.post(`/tournaments/${id}/rebuild`, {}).then(() => {
+                                  toast.addToast('Tournament stats rebuilt successfully', 'success')
+                                  qc.invalidateQueries({ queryKey: ['standings', id] })
+                                }).catch(err => toast.addToast(getErrorMessage(err), 'error'))
+                              }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-[10px] font-chakra font-black uppercase tracking-widest transition-all"
+                          >
+                            <RefreshCw size={12} className="text-gaffer-orange" />
+                            Recalculate Stats
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -392,23 +406,27 @@ export default function TournamentDetailPage() {
                         const { date, time } = formatKickoff(f.kickoffAt)
                         return (
                           <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                            className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
+                            className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 cursor-pointer hover:border-gaffer-orange/40 transition-all group"
+                            onClick={() => setActiveFixtureForEvent(f)}
+                          >
                             <div className="flex items-center gap-3 mb-3">
                               <div className="flex-1 text-right">
-                                <p className="text-white font-body font-semibold text-sm">{teamLabel(f.homeTeamId)}</p>
+                                <p className="text-white font-body font-semibold text-sm truncate">{teamLabel(f.homeTeamId)}</p>
                               </div>
                               <div className="px-3 py-1 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20">
                                 <p className="font-display font-black text-base leading-none text-center text-gaffer-orange">vs</p>
                               </div>
                               <div className="flex-1">
-                                <p className="text-white font-body font-semibold text-sm">{teamLabel(f.awayTeamId)}</p>
+                                <p className="text-white font-body font-semibold text-sm truncate">{teamLabel(f.awayTeamId)}</p>
                               </div>
                             </div>
-                            <div className="flex items-center gap-3 text-gaffer-subtle text-xs font-body">
-                              <div className="flex items-center gap-1"><Calendar size={11} />{date}</div>
-                              <span>·</span>
-                              <span>{time}</span>
-                              {f.venue && <><span>·</span><div className="flex items-center gap-1"><MapPin size={11} />{f.venue}</div></>}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3 text-gaffer-subtle text-[11px] font-body">
+                                <div className="flex items-center gap-1 font-black uppercase tracking-widest"><Calendar size={11} />{date}</div>
+                                <span className="opacity-20">·</span>
+                                <span className="font-black uppercase tracking-widest">{time}</span>
+                              </div>
+                              <span className="text-[10px] text-gaffer-orange font-chakra font-black uppercase tracking-tight opacity-0 group-hover:opacity-100 transition-opacity">Record Event &rarr;</span>
                             </div>
                           </motion.div>
                         )
@@ -549,6 +567,22 @@ export default function TournamentDetailPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {activeFixtureForEvent && (
+          <RecordEventModal 
+            fixtureId={activeFixtureForEvent._id}
+            homeTeam={{ 
+              id: typeof activeFixtureForEvent.homeTeamId === 'string' ? activeFixtureForEvent.homeTeamId : activeFixtureForEvent.homeTeamId._id,
+              name: teamLabel(activeFixtureForEvent.homeTeamId),
+            }}
+            awayTeam={{
+              id: typeof activeFixtureForEvent.awayTeamId === 'string' ? activeFixtureForEvent.awayTeamId : activeFixtureForEvent.awayTeamId._id,
+              name: teamLabel(activeFixtureForEvent.awayTeamId),
+            }}
+            onClose={() => setActiveFixtureForEvent(null)}
+          />
         )}
       </AnimatePresence>
     </>

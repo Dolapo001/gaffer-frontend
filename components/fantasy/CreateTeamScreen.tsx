@@ -4,11 +4,40 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Search, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
 import { useFantasyStore } from '@/store/fantasyStore';
 import { PitchLayout } from './PitchLayout';
 import { getJerseyUrl, type FantasySquadPlayer, type Position, GAMEWEEK_INFO } from '@/lib/fantasyMockData';
 import { CreateTeamPlayerDrawer } from './CreateTeamPlayerDrawer';
 import { SaveTeamConfirmationModal } from './SaveTeamConfirmationModal';
+import { listFantasyPlayers, type FantasyPlayer } from '@/lib/services/fantasy.service';
+
+/**
+ * Maps API FantasyPlayer to internal FantasySquadPlayer
+ */
+function mapApiPlayer(p: FantasyPlayer): FantasySquadPlayer {
+  const posMap: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
+  return {
+    id: p._id,
+    name: `${p.playerId.firstName} ${p.playerId.lastName}`,
+    shortName: p.playerId.lastName,
+    teamName: p.teamId.name,
+    teamCode: p.teamId.handle,
+    teamColor: '#ff6b00', // Default
+    position: p.position as Position,
+    points: p.totalPoints || 0,
+    price: p.price,
+    pitchRow: posMap[p.position] ?? 1,
+    isOnPitch: false,
+    isCaptain: false,
+    isViceCaptain: false,
+    goals: 0,
+    assists: 0,
+    form: 0,
+    gwHistory: [],
+    nextFixtures: []
+  };
+}
 
 interface CreateTeamScreenProps {
   onComplete: () => void;
@@ -134,6 +163,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         {isSearchOpen && (
           <PlayerSearchOverlay 
             position={activeSlot?.position || 'GK'}
+            competitionId={useFantasyStore.getState().competitionId || ''}
             onClose={() => setIsSearchOpen(false)}
             onSelect={handleAddPlayer}
           />
@@ -165,157 +195,21 @@ interface PlayerOverlayProps {
   onSelect: (p: FantasySquadPlayer) => void;
 }
 
-const PlayerSearchOverlay: React.FC<PlayerOverlayProps> = ({ position, onClose, onSelect }) => {
+const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string }> = ({ position, competitionId, onClose, onSelect }) => {
     const [searchQuery, setSearchQuery] = useState('');
     
-    // Mock data for search
-    const mockPlayers: FantasySquadPlayer[] = [
-        {
-            id: 'p1',
-            name: 'Akinbiyi Omoba',
-            shortName: 'Omoba',
-            teamName: 'Barcelona',
-            teamCode: 'BAR',
-            teamColor: '#004170',
-            position: 'MID' as Position,
-            points: 257,
-            price: 10.5,
-            pitchRow: 1, // MID
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 12,
-            assists: 15,
-            form: 8.5,
-            gwHistory: [],
-            nextFixtures: [{ homeTeam: 'BAR', awayTeam: 'RMA', homeCode: 'BAR', awayCode: 'RMA', kickoff: 'Sat', gameweek: 5 }],
-        },
-        {
-            id: 'p2',
-            name: 'Akinbiyi Omoba',
-            shortName: 'Omoba',
-            teamName: 'Barcelona',
-            teamCode: 'BAR',
-            teamColor: '#004170',
-            position: 'MID' as Position,
-            points: 257,
-            price: 10.5,
-            pitchRow: 1,
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 12,
-            assists: 15,
-            form: 8.5,
-            gwHistory: [],
-            nextFixtures: [],
-        },
-        {
-            id: 'p5',
-            name: 'Marc Guiu',
-            shortName: 'GURU',
-            teamName: 'West Ham',
-            teamCode: 'WHU',
-            teamColor: '#7A263A',
-            position: 'FWD' as Position,
-            points: 45,
-            price: 5.5,
-            pitchRow: 0, // FWD
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 2,
-            assists: 1,
-            form: 5.5,
-            gwHistory: [],
-            nextFixtures: [{ homeTeam: 'WHU', awayTeam: 'ARS', homeCode: 'WHU', awayCode: 'ARS', kickoff: 'Sun', gameweek: 5 }]
-        },
-        {
-            id: 'p6',
-            name: 'Virgil Van Dijk',
-            shortName: 'Van Dijk',
-            teamName: 'Liverpool',
-            teamCode: 'LIV',
-            teamColor: '#C8102E',
-            position: 'DEF' as Position,
-            points: 120,
-            price: 6.5,
-            pitchRow: 2, // DEF
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 2,
-            assists: 1,
-            form: 7.2,
-            gwHistory: [],
-            nextFixtures: []
-        },
-        {
-            id: 'p8',
-            name: 'Pascal',
-            shortName: 'Pascal',
-            teamName: 'West Ham',
-            teamCode: 'WHU',
-            teamColor: '#7A263A',
-            position: 'DEF' as Position,
-            points: 62,
-            price: 4.5,
-            pitchRow: 2,
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 0,
-            assists: 1,
-            form: 4.5,
-            gwHistory: [],
-            nextFixtures: []
-        },
-        {
-            id: 'p9',
-            name: 'Ikpi',
-            shortName: 'Ikpi',
-            teamName: 'Sunderland',
-            teamCode: 'SUN',
-            teamColor: '#FF0000',
-            position: 'DEF' as Position,
-            points: 44,
-            price: 4.0,
-            pitchRow: 2,
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 0,
-            assists: 0,
-            form: 3.5,
-            gwHistory: [],
-            nextFixtures: []
-        },
-        {
-            id: 'p10',
-            name: 'Ebenezer',
-            shortName: 'Ebenezer',
-            teamName: 'Scorpion',
-            teamCode: 'SCO',
-            teamColor: '#000000',
-            position: 'DEF' as Position,
-            points: 58,
-            price: 4.5,
-            pitchRow: 2,
-            isOnPitch: true,
-            isCaptain: false,
-            isViceCaptain: false,
-            goals: 1,
-            assists: 0,
-            form: 5.2,
-            gwHistory: [],
-            nextFixtures: []
-        }
-    ];
+    const { data: playerResponse, isLoading } = useQuery({
+      queryKey: ['fantasy-market-players', competitionId, position],
+      queryFn: () => listFantasyPlayers(competitionId, { position }),
+      enabled: !!competitionId
+    });
 
-    const filteredPlayers = mockPlayers.filter(p => {
-        const matchesPosition = !position || p.position === position;
+    const apiPlayers = playerResponse?.data || [];
+    const mappedPlayers = apiPlayers.map(mapApiPlayer);
+
+    const filteredPlayers = mappedPlayers.filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesPosition && matchesSearch;
+        return matchesSearch;
     });
 
     return (
@@ -368,7 +262,11 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps> = ({ position, onClose, 
                 
                 {/* Player List */}
                 <div className="flex-1 overflow-y-auto space-y-1 pb-24 scrollbar-hide">
-                   {filteredPlayers.length > 0 ? (
+                   {isLoading ? (
+                     <div className="flex justify-center py-20">
+                       <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                     </div>
+                   ) : filteredPlayers.length > 0 ? (
                        filteredPlayers.map(p => (
                            <PlayerRow key={p.id} player={p} onClick={() => onSelect(p)} />
                        ))

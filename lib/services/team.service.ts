@@ -27,7 +27,7 @@ export interface Player {
   position?: string
   jerseyNumber?: number
   nationality?: string
-  role?: 'player' | 'goalkeeper' | 'captain'
+  role?: 'player' | 'captain' | 'coach'
   squadStatus: 'active' | 'injured' | 'suspended' | 'removed'
   price?: number
   playerId?: any // populated Player document when fetching TeamPlayers
@@ -93,7 +93,7 @@ export interface AddPlayerPayload {
   position?: string
   jerseyNumber?: number
   nationality?: string
-  role?: 'player' | 'goalkeeper' | 'captain'
+  role?: 'player' | 'captain' | 'coach'
 }
 
 // POST /teams/:teamId/players
@@ -112,7 +112,7 @@ export async function listPlayers(teamId: string): Promise<Player[]> {
 export async function updatePlayer(
   teamId: string,
   playerId: string,
-  payload: { role?: string; squadStatus?: string; jerseyNumber?: number; price?: number },
+  payload: { role?: 'player' | 'captain' | 'coach'; squadStatus?: string; jerseyNumber?: number; price?: number },
 ): Promise<Player> {
   const data = await api.patch<{ player: Player }>(`/teams/${teamId}/players/${playerId}`, payload)
   return data.player

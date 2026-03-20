@@ -94,6 +94,24 @@ export default function TeamPricingPage() {
     finalizeMutation.mutate()
   }
 
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null)
+  const [priceInputValue, setPriceInputValue] = useState('')
+
+  const openPriceModal = (p: any) => {
+    setEditingPlayerId(p._id)
+    setPriceInputValue(getPrice(p).toString())
+  }
+
+  const saveModalPrice = () => {
+    if (!editingPlayerId) return
+    const numeric = parseFloat(priceInputValue)
+    if (!isNaN(numeric) && numeric >= 0.5) {
+      const rounded = Math.round(numeric * 10) / 10
+      setPendingPrices(prev => ({ ...prev, [editingPlayerId]: rounded }))
+    }
+    setEditingPlayerId(null)
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center">
@@ -128,27 +146,29 @@ export default function TeamPricingPage() {
       </div>
 
       {/* ── Player List ── */}
-      <div className="flex-1 overflow-y-auto px-4 space-y-2 pb-44">
+      <div className="flex-1 overflow-y-auto px-4 space-y-3 pb-44 no-scrollbar">
         {/* Owner / Gaffer row */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[#1E2235] rounded-2xl p-4 flex items-center gap-3"
+          className="bg-[#1E2235] rounded-2xl p-4 flex items-center gap-3 border border-white/5"
         >
-          <div className="w-12 h-12 rounded-full bg-[#5BB5D5] flex items-center justify-center shrink-0 overflow-hidden">
+          <div className="w-12 h-12 rounded-full bg-[#5BB5D5] flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
             {team.ownerAvatarUrl ? (
               <img src={team.ownerAvatarUrl} className="w-full h-full object-cover" alt="" />
             ) : (
-              <div className="w-full h-full bg-[#5BB5D5] rounded-full" />
+              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 rounded-full" />
             )}
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-white font-bold text-[15px] truncate">
               {team.ownerName || team.name || 'Unknown'}
             </p>
-            <p className="text-[11px] text-white/40 uppercase tracking-widest">THE GAFFER</p>
+            <p className="text-[10px] text-white/40 font-black tracking-[2px] uppercase">PROJECT MANAGER</p>
           </div>
-          <span className="text-[#FF8904] text-[13px] font-bold">Add Price</span>
+          <div className="px-3 py-1.5 bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-xl">
+             <span className="text-gaffer-orange text-[11px] font-black uppercase">Staff</span>
+          </div>
         </motion.div>
 
         {/* Player rows */}
@@ -163,15 +183,19 @@ export default function TeamPricingPage() {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.03 }}
-              className="bg-[#1E2235] rounded-2xl p-4 flex items-center gap-3"
+              className="bg-[#1E2235] border border-white/5 rounded-[24px] p-4 flex items-center gap-3 active:bg-white/5 transition-colors"
             >
               {/* Avatar */}
-              <div className="w-11 h-11 rounded-full bg-[#2A2D45] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-12 h-12 rounded-full bg-[#2A2D45] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative">
                 {p.playerId?.avatarUrl ? (
                   <img src={p.playerId.avatarUrl} className="w-full h-full object-cover" alt="" />
                 ) : (
                   <User size={20} className="text-white/30" />
                 )}
+                {/* Position Badge overlay */}
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full border border-[#181928] flex items-center justify-center shadow-lg" style={{ backgroundColor: positionColor }}>
+                   <span className="text-[8px] font-black text-white">{p.position}</span>
+                </div>
               </div>
 
               {/* Name + Position */}
@@ -179,44 +203,51 @@ export default function TeamPricingPage() {
                 <p className="text-white font-bold text-[14px] truncate leading-tight">
                   {p.playerId?.lastName} {p.playerId?.firstName}
                 </p>
-                <p className="text-[11px] font-medium truncate mt-0.5" style={{ color: positionColor }}>
-                  {p.position === 'GK' ? 'Goalkeeper' :
-                   p.position === 'DEF' ? 'Center Back' :
-                   p.position === 'MID' ? 'Midfielder' :
-                   p.position === 'FWD' ? 'Forward' : p.position}
-                </p>
+                <div className="flex items-center gap-2 mt-1">
+                   <div className="px-2 py-0.5 rounded bg-white/5 border border-white/10">
+                      <span className="text-[9px] text-white/40 font-black uppercase">Standard</span>
+                   </div>
+                </div>
               </div>
 
-              {/* Price stepper */}
-              <div className="flex flex-col items-center justify-center mr-1">
+              {/* Price Display / Stepper */}
+              <div className="flex items-center gap-2">
+                <div className="flex flex-col items-center justify-center">
+                  <button
+                    onClick={() => adjustPrice(p._id, price, PRICE_STEP)}
+                    className="text-white/20 hover:text-gaffer-orange transition-colors p-1"
+                  >
+                    <ChevronUp size={14} strokeWidth={3} />
+                  </button>
+                  <button 
+                    onClick={() => openPriceModal(p)}
+                    className="flex flex-col items-center px-1"
+                  >
+                    <span className="text-white font-black text-[15px] tabular-nums leading-none">
+                      {price.toFixed(1)}
+                    </span>
+                    <span className="text-gaffer-orange text-[8px] font-black uppercase mt-0.5">Coins</span>
+                  </button>
+                  <button
+                    onClick={() => adjustPrice(p._id, price, -PRICE_STEP)}
+                    className="text-white/20 hover:text-gaffer-orange transition-colors p-1"
+                  >
+                    <ChevronDown size={14} strokeWidth={3} />
+                  </button>
+                </div>
+
+                {/* Checkbox */}
                 <button
-                  onClick={() => adjustPrice(p._id, price, PRICE_STEP)}
-                  className="text-white/40 hover:text-white/70 transition-colors p-0.5"
+                  onClick={() => toggleCheck(p)}
+                  className={`w-7 h-7 rounded-xl border flex items-center justify-center transition-all shrink-0 ${
+                    isChecked
+                      ? 'bg-gaffer-orange border-gaffer-orange shadow-orange-glow'
+                      : 'border-white/10 bg-white/5 hover:border-white/20'
+                  }`}
                 >
-                  <ChevronUp size={15} strokeWidth={2.5} />
-                </button>
-                <span className="text-white font-bold text-[14px] leading-4 my-0.5 tabular-nums">
-                  {price.toFixed(1)}M
-                </span>
-                <button
-                  onClick={() => adjustPrice(p._id, price, -PRICE_STEP)}
-                  className="text-white/40 hover:text-white/70 transition-colors p-0.5"
-                >
-                  <ChevronDown size={15} strokeWidth={2.5} />
+                  {isChecked && <Check size={14} strokeWidth={4} className="text-white" />}
                 </button>
               </div>
-
-              {/* Checkbox */}
-              <button
-                onClick={() => toggleCheck(p)}
-                className={`w-6 h-6 rounded-[5px] border-2 flex items-center justify-center transition-all shrink-0 ${
-                  isChecked
-                    ? 'bg-[#FF7A00] border-[#FF7A00]'
-                    : 'border-white/20 bg-transparent'
-                }`}
-              >
-                {isChecked && <Check size={13} strokeWidth={3} className="text-white" />}
-              </button>
             </motion.div>
           )
         })}
@@ -230,19 +261,68 @@ export default function TeamPricingPage() {
       </div>
 
       {/* ── Save Button ── */}
-      {/* Nav bar: bottom-8 (32px) + 88px height = 120px. Add 12px gap = 132px */}
-      <div className="fixed px-4 z-30 w-full" style={{ bottom: 132, maxWidth: 430, left: '50%', transform: 'translateX(-50%)' }}>
+      <div className="fixed px-6 z-40 w-full" style={{ bottom: 120, maxWidth: 430, left: '50%', transform: 'translateX(-50%)' }}>
         <button
           onClick={handleSave}
           disabled={finalizeMutation.isPending}
-          className="w-full py-[18px] rounded-[18px] font-bold text-white text-[17px] shadow-[0_4px_24px_rgba(255,60,0,0.35)] active:scale-[0.98] transition-all disabled:opacity-50"
+          className="w-full h-16 rounded-[24px] font-chakra font-black text-white text-[17px] uppercase tracking-widest shadow-[0_8px_32px_rgba(255,122,0,0.3)] active:scale-[0.98] transition-all disabled:opacity-50"
           style={{
             background: 'linear-gradient(90deg, #FF7A00 0%, #E7000B 100%)',
           }}
         >
-          {finalizeMutation.isPending ? 'Saving...' : 'Save'}
+          {finalizeMutation.isPending ? 'Propagating...' : 'Set Prices'}
         </button>
       </div>
+
+      {/* ── Numeric Price Modal ── */}
+      <AnimatePresence>
+        {editingPlayerId && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-6">
+             <motion.div 
+               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+               className="absolute inset-0 bg-black/60 backdrop-blur-md"
+               onClick={() => setEditingPlayerId(null)}
+             />
+             <motion.div 
+               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+               className="relative w-full max-w-[320px] bg-[#1C1D2B] border border-white/10 rounded-[32px] p-8 space-y-6"
+             >
+                <div className="text-center space-y-1">
+                   <h3 className="font-chakra font-black text-white text-lg uppercase">Set Player Price</h3>
+                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Base value for fantasy draft</p>
+                </div>
+
+                <div className="flex items-center gap-3 bg-black/20 p-4 rounded-2xl border border-white/5">
+                   <input 
+                     type="number" 
+                     step="0.1"
+                     autoFocus
+                     className="bg-transparent border-none focus:ring-0 text-white font-chakra font-black text-3xl w-full text-center"
+                     value={priceInputValue}
+                     onChange={(e) => setPriceInputValue(e.target.value)}
+                     onKeyDown={(e) => e.key === 'Enter' && saveModalPrice()}
+                   />
+                   <span className="text-gaffer-orange font-black uppercase text-xs">Coins</span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                   <button 
+                     onClick={() => setEditingPlayerId(null)}
+                     className="py-4 rounded-2xl bg-white/5 text-white/40 font-black uppercase text-[11px] hover:bg-white/10 transition-colors"
+                   >
+                     Cancel
+                   </button>
+                   <button 
+                     onClick={saveModalPrice}
+                     className="py-4 rounded-2xl bg-gaffer-orange text-white font-black uppercase text-[11px] shadow-orange-glow"
+                   >
+                     Apply
+                   </button>
+                </div>
+             </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

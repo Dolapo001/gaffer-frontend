@@ -4,24 +4,23 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  getPreferences,
+import { 
+  getInboxNotifications, 
+  markNotificationRead, 
+  getPreferences, 
   updatePreferences,
   MUTABLE_EVENT_TYPES,
+  type InboxNotification 
 } from '@/lib/services/notifications.service'
+import { 
+  ChevronLeft, Bell, BellOff, Settings2, CheckCircle2, Trophy, Flame, AlertCircle, 
+  ChevronDown, ChevronUp, BellRing, Inbox, Settings, X
+} from 'lucide-react'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
-import {
-  ChevronLeft,
-  Bell,
-  BellOff,
-  Settings,
-  ChevronDown,
-  ChevronUp,
-  Check,
-} from 'lucide-react'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+type Tab = 'inbox' | 'settings'
 
 const EVENT_LABELS: Record<string, string> = {
   goal: 'Goals',
@@ -40,201 +39,258 @@ const EVENT_LABELS: Record<string, string> = {
   match_resumed: 'Match Resumed',
 }
 
-// ─── Mute Toggle ─────────────────────────────────────────────────────────────
-
-function EventMuteRow({
-  eventType,
-  muted,
-  onToggle,
-}: {
-  eventType: string
-  muted: boolean
-  onToggle: () => void
-}) {
-  return (
-    <div className="flex items-center justify-between py-3 border-b border-gaffer-border/40 last:border-0">
-      <span className="text-white text-sm font-body">
-        {EVENT_LABELS[eventType] ?? eventType}
-      </span>
-      <button
-        onClick={onToggle}
-        className={`w-10 h-5 rounded-full transition-all relative ${
-          muted ? 'bg-gaffer-border' : 'bg-gaffer-orange'
-        }`}
-      >
-        <span
-          className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${
-            muted ? '' : 'translate-x-5'
-          }`}
-        />
-      </button>
-    </div>
-  )
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
 export default function NotificationsPage() {
   const router = useRouter()
+  const qc = useQueryClient()
   const toast = useToastStore()
-  const queryClient = useQueryClient()
+  const [activeTab, setActiveTab] = useState<Tab>('inbox')
   const [showMuteSettings, setShowMuteSettings] = useState(false)
+  const { isSubscribed, isPending: isPushPending, toggle: togglePush } = usePushNotifications()
 
-  const { data, isLoading } = useQuery({
+  // 1. Data Fetching
+  const { data: inbox, isLoading: isLoadingInbox } = useQuery({
+    queryKey: ['notifications-inbox'],
+    queryFn: () => getInboxNotifications(1),
+    enabled: activeTab === 'inbox'
+  })
+
+  const { data: prefsData, isLoading: isLoadingPrefs } = useQuery({
     queryKey: ['notification-preferences'],
     queryFn: getPreferences,
+    enabled: activeTab === 'settings'
   })
 
-  const prefs = data?.preferences
+  // 2. Mutations
+  const readMutation = useMutation({
+    mutationFn: (id: string) => markNotificationRead(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-inbox'] })
+  })
 
-  const mutation = useMutation({
+  const prefsMutation = useMutation({
     mutationFn: updatePreferences,
-    onSuccess: (res) => {
-      queryClient.setQueryData(['notification-preferences'], res)
-    },
-    onError: (err) => {
-      toast.addToast({ type: 'error', message: getErrorMessage(err) })
-    },
+    onSuccess: (res) => qc.setQueryData(['notification-preferences'], res),
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
 
-  const toggleEnabled = () => {
-    if (!prefs) return
-    mutation.mutate({ enabled: !prefs.enabled })
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'match_event': return <Flame className="text-gaffer-orange" size={20} />
+      case 'league':      return <Trophy className="text-yellow-500" size={20} />
+      case 'system':      return <AlertCircle className="text-blue-500" size={20} />
+      default:            return <Bell className="text-white/40" size={20} />
+    }
   }
 
   const toggleMute = (eventType: string) => {
+    const prefs = prefsData?.preferences
     if (!prefs) return
     const current = prefs.mutedEventTypes ?? []
     const next = current.includes(eventType)
       ? current.filter((t) => t !== eventType)
       : [...current, eventType]
-    mutation.mutate({ mutedEventTypes: next })
+    prefsMutation.mutate({ mutedEventTypes: next })
   }
 
   return (
-    <div className="min-h-screen bg-gaffer-bg flex flex-col">
+    <div className="min-h-screen bg-[#181928] text-white flex flex-col font-inter">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gaffer-border">
-        <button
-          onClick={() => router.back()}
-          className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
-        >
-          <ChevronLeft size={18} />
-        </button>
-        <div className="flex-1">
-          <h1 className="font-display font-bold text-white text-base">Notifications</h1>
+      <div className="sticky top-0 z-50 bg-[#181928]/80 backdrop-blur-xl border-b border-white/5">
+        <div className="flex items-center gap-4 px-6 pt-12 pb-4">
+          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
+            <ChevronLeft size={20} />
+          </button>
+          <div className="flex-1">
+            <h1 className="text-lg font-chakra font-black uppercase tracking-tight">Activity</h1>
+            <p className="text-[10px] text-white/30 font-chakra font-bold uppercase tracking-[2px]">Notifications & Alerts</p>
+          </div>
+          <div className="flex p-1 bg-white/5 rounded-2xl">
+             <button 
+               onClick={() => setActiveTab('inbox')}
+               className={`p-2.5 rounded-xl transition-all ${activeTab === 'inbox' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+             >
+               <Inbox size={18} />
+             </button>
+             <button 
+               onClick={() => setActiveTab('settings')}
+               className={`p-2.5 rounded-xl transition-all ${activeTab === 'settings' ? 'bg-white text-black shadow-lg' : 'text-white/40 hover:text-white'}`}
+             >
+               <Settings size={18} />
+             </button>
+          </div>
         </div>
-        <Settings size={18} className="text-gaffer-muted" />
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-12 space-y-4 px-4 pt-4">
-        {/* Master toggle */}
-        <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center">
-              <Bell size={18} className="text-gaffer-orange" />
-            </div>
-            <div>
-              <p className="text-white font-body font-medium text-sm">Push Notifications</p>
-              <p className="text-gaffer-muted text-xs font-body">
-                {prefs?.enabled ? 'Enabled' : 'Disabled'}
-              </p>
-            </div>
-          </div>
-          {isLoading ? (
-            <div className="w-10 h-5 bg-gaffer-border rounded-full animate-pulse" />
+      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 no-scrollbar">
+        <AnimatePresence mode="wait">
+          {activeTab === 'inbox' ? (
+            <motion.div 
+               key="inbox" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+               className="space-y-6"
+            >
+               {/* Push Status Summary (Only if unsubscribed) */}
+               {!isSubscribed && (
+                 <div className="bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-[32px] p-6 flex flex-col gap-4">
+                    <div className="flex items-start gap-4">
+                       <div className="w-10 h-10 rounded-xl bg-gaffer-orange/20 flex items-center justify-center shrink-0">
+                          <BellRing className="text-gaffer-orange" size={20} />
+                       </div>
+                       <div className="space-y-1">
+                          <h4 className="font-chakra font-black text-[11px] uppercase tracking-widest text-gaffer-orange">Enable Push Alerts</h4>
+                          <p className="text-[10px] text-white/40 font-medium leading-relaxed">Never miss a goal! Get real-time alerts even when the app is closed.</p>
+                       </div>
+                    </div>
+                    <button 
+                       onClick={togglePush}
+                       disabled={isPushPending}
+                       className="w-full h-12 rounded-2xl bg-gaffer-orange text-white font-chakra font-black text-[11px] uppercase tracking-widest shadow-lg shadow-gaffer-orange/20 active:scale-95 transition-all"
+                    >
+                       {isPushPending ? 'Syncing...' : 'Activate Now'}
+                    </button>
+                 </div>
+               )}
+
+               {/* Notifications Feed */}
+               <div className="space-y-4">
+                  <div className="flex items-center justify-between px-1">
+                     <h3 className="text-[11px] font-chakra font-black uppercase tracking-[0.2em] text-white/40">Recent Activity</h3>
+                     {inbox && inbox.unreadCount > 0 && (
+                       <span className="text-[9px] font-chakra font-black text-gaffer-orange uppercase">{inbox.unreadCount} Unread</span>
+                     )}
+                  </div>
+
+                  <div className="space-y-3">
+                     {isLoadingInbox ? (
+                       [1, 2, 3].map(i => <div key={i} className="h-24 bg-white/5 rounded-[24px] animate-pulse" />)
+                     ) : inbox && inbox.notifications && inbox.notifications.length > 0 ? (
+                       inbox.notifications.map((n: InboxNotification) => (
+                         <button
+                           key={n._id}
+                           onClick={() => !n.read && readMutation.mutate(n._id)}
+                           className={`w-full bg-[#1E2032] border border-white/5 rounded-[24px] p-5 flex items-start gap-4 text-left transition-all ${
+                               !n.read ? 'border-l-4 border-l-gaffer-orange bg-gaffer-orange/5' : 'opacity-40'
+                           }`}
+                         >
+                           <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                              {getIcon(n.type)}
+                           </div>
+                           <div className="flex-1 space-y-1">
+                              <h4 className="font-chakra font-black text-sm uppercase leading-tight tracking-tight text-white">{n.title}</h4>
+                              <p className="text-xs text-white/40 font-medium leading-normal line-clamp-2">{n.body}</p>
+                              <span className="text-[9px] text-white/20 font-black uppercase inline-block pt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
+                           </div>
+                         </button>
+                       ))
+                     ) : (
+                       <div className="py-20 text-center space-y-4">
+                          <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">
+                             <BellOff className="text-white/10" size={32} />
+                          </div>
+                          <p className="font-chakra font-black uppercase text-white/20 text-xs tracking-widest">No notifications yet</p>
+                       </div>
+                     )}
+                  </div>
+               </div>
+            </motion.div>
           ) : (
-            <button
-              onClick={toggleEnabled}
-              disabled={mutation.isPending}
-              className={`w-10 h-5 rounded-full transition-all relative disabled:opacity-50 ${
-                prefs?.enabled ? 'bg-gaffer-orange' : 'bg-gaffer-border'
-              }`}
+            <motion.div 
+               key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+               className="space-y-8"
             >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform shadow-sm ${
-                  prefs?.enabled ? 'translate-x-5' : ''
-                }`}
-              />
-            </button>
-          )}
-        </div>
+               {/* Push Master Switch */}
+               <div className="bg-[#1E2032] border border-white/5 rounded-[32px] p-6 space-y-6">
+                  <div className="flex items-center justify-between">
+                     <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isSubscribed ? 'bg-green-500/10' : 'bg-white/5'}`}>
+                           {isSubscribed ? <CheckCircle2 className="text-green-500" /> : <BellOff className="text-white/20" />}
+                        </div>
+                        <div>
+                           <h4 className="font-chakra font-black text-xs uppercase tracking-widest">Web Push Delivery</h4>
+                           <p className="text-[10px] text-white/30 font-bold uppercase mt-0.5">{isSubscribed ? 'Subscription Active' : 'Not Subscribed'}</p>
+                        </div>
+                     </div>
+                     <button
+                        onClick={togglePush}
+                        disabled={isPushPending}
+                        className={`w-12 h-6 rounded-full relative transition-all ${isSubscribed ? 'bg-gaffer-orange' : 'bg-white/10'}`}
+                     >
+                        <motion.div 
+                          animate={{ x: isSubscribed ? 24 : 4 }}
+                          className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-lg" 
+                        />
+                     </button>
+                  </div>
 
-        {/* Event type muting */}
-        {prefs?.enabled && (
-          <motion.div
-            initial={{ opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden"
-          >
-            <button
-              onClick={() => setShowMuteSettings((v) => !v)}
-              className="w-full flex items-center justify-between px-4 py-3 border-b border-gaffer-border"
-            >
-              <div className="flex items-center gap-3">
-                <BellOff size={16} className="text-gaffer-muted" />
-                <span className="text-white font-body font-medium text-sm">Mute Event Types</span>
-              </div>
-              {showMuteSettings ? (
-                <ChevronUp size={16} className="text-gaffer-muted" />
-              ) : (
-                <ChevronDown size={16} className="text-gaffer-muted" />
-              )}
-            </button>
+                  {/* Following Summary */}
+                  <div className="pt-6 border-t border-white/5 grid grid-cols-3 gap-4">
+                     {[
+                        { label: 'Matches', count: prefsData?.preferences.followedMatches?.length ?? 0 },
+                        { label: 'Teams', count: prefsData?.preferences.followedTeams?.length ?? 0 },
+                        { label: 'Leagues', count: prefsData?.preferences.followedCompetitions?.length ?? 0 },
+                     ].map(item => (
+                       <div key={item.label} className="text-center space-y-1">
+                          <p className="text-[16px] font-chakra font-black text-white">{item.count}</p>
+                          <p className="text-[9px] text-white/20 font-bold uppercase tracking-widest">{item.label}</p>
+                       </div>
+                     ))}
+                  </div>
+               </div>
 
-            <AnimatePresence>
-              {showMuteSettings && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="px-4 overflow-hidden"
-                >
-                  <p className="text-gaffer-muted text-xs font-body py-3">
-                    Muted events will not trigger push notifications.
+               {/* Mute Preferences */}
+               <div className="bg-[#1E2032] border border-white/5 rounded-[32px] overflow-hidden">
+                  <button 
+                    onClick={() => setShowMuteSettings(!showMuteSettings)}
+                    className="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-all"
+                  >
+                     <div className="flex items-center gap-4 text-left">
+                        <BellOff size={20} className="text-white/40" />
+                        <div>
+                           <h4 className="font-chakra font-black text-xs uppercase tracking-widest">Mute Events</h4>
+                           <p className="text-[10px] text-white/30 font-bold uppercase mt-0.5">Control individual alert types</p>
+                        </div>
+                     </div>
+                     {showMuteSettings ? <ChevronUp size={20} className="text-white/40" /> : <ChevronDown size={20} className="text-white/40" />}
+                  </button>
+
+                  <AnimatePresence>
+                     {showMuteSettings && (
+                       <motion.div 
+                         initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
+                         className="overflow-hidden border-t border-white/5 bg-black/20"
+                       >
+                          <div className="p-6 space-y-4">
+                             {MUTABLE_EVENT_TYPES.map(type => {
+                               const isMuted = prefsData?.preferences.mutedEventTypes?.includes(type)
+                               return (
+                                 <div key={type} className="flex items-center justify-between py-2">
+                                    <span className="text-[11px] font-chakra font-black uppercase text-white/60">{EVENT_LABELS[type]}</span>
+                                    <button 
+                                      onClick={() => toggleMute(type)}
+                                      className={`w-10 h-5 rounded-full relative transition-all ${!isMuted ? 'bg-green-500/20' : 'bg-red-500/20'}`}
+                                    >
+                                       <motion.div 
+                                         animate={{ x: !isMuted ? 20 : 4 }}
+                                         className={`absolute top-0.5 w-4 h-4 rounded-full ${!isMuted ? 'bg-green-500' : 'bg-red-500'}`} 
+                                       />
+                                    </button>
+                                 </div>
+                               )
+                             })}
+                          </div>
+                       </motion.div>
+                     )}
+                  </AnimatePresence>
+               </div>
+
+               {/* Hint */}
+               <div className="bg-white/5 border border-white/10 rounded-[28px] p-6 flex items-start gap-4">
+                  <AlertCircle className="text-gaffer-orange shrink-0" size={18} />
+                  <p className="text-[10px] text-white/40 font-medium leading-relaxed uppercase tracking-wider">
+                     Muted event types will not trigger push notifications even if you follow the match.
                   </p>
-                  {MUTABLE_EVENT_TYPES.map((type) => (
-                    <EventMuteRow
-                      key={type}
-                      eventType={type}
-                      muted={(prefs?.mutedEventTypes ?? []).includes(type)}
-                      onToggle={() => toggleMute(type)}
-                    />
-                  ))}
-                  <div className="h-3" />
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-
-        {/* Followed items summary */}
-        {prefs && (
-          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 space-y-3">
-            <p className="text-white font-body font-medium text-sm">Following</p>
-            {[
-              { label: 'Matches', count: prefs.followedMatches?.length ?? 0 },
-              { label: 'Teams', count: prefs.followedTeams?.length ?? 0 },
-              { label: 'Competitions', count: prefs.followedCompetitions?.length ?? 0 },
-            ].map(({ label, count }) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="text-gaffer-muted text-sm font-body">{label}</span>
-                <span className="text-gaffer-orange font-display font-bold text-sm">{count}</span>
-              </div>
-            ))}
-            <p className="text-gaffer-subtle text-xs font-body">
-              Follow/unfollow from match, team, or competition pages.
-            </p>
-          </div>
-        )}
-
-        {isLoading && (
-          <div className="space-y-3">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="h-16 bg-gaffer-card border border-gaffer-border rounded-2xl animate-pulse" />
-            ))}
-          </div>
-        )}
+               </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   )

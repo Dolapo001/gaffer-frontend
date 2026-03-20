@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/store/toastStore'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { getMyFantasyTeam, listGameweeks } from '@/lib/services/fantasy.service'
+import { getWallet } from '@/lib/services/payment.service'
+import { Sparkles } from 'lucide-react'
 
 const FantasyDashboard: React.FC = () => {
   const router = useRouter()
@@ -104,6 +106,7 @@ const FantasyDashboard: React.FC = () => {
             { label: 'Points', path: '/app/fantasy/points', top: 240 },
             { label: 'Pick Team', path: '/app/fantasy/team', top: 312 },
             { label: 'Transfers', path: '/app/fantasy/transfers', top: 384 },
+            { label: 'Chips Store', path: '/app/fantasy/chips', top: 456 },
           ].map((item) => (
             <button
               key={item.label}

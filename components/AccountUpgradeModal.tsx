@@ -45,7 +45,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
     setIsSubmitting(true)
     try {
       await createOrg({
-        name: data.name,
+        name: data.orgName,
         handle: data.handle,
         sport: data.sport,
         description: data.description,
@@ -132,8 +132,8 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
             <AuthInput
               label="Organization Name"
               placeholder="e.g. Premier League"
-              error={orgForm.formState.errors.name}
-              {...orgForm.register('name')}
+              error={orgForm.formState.errors.orgName}
+              {...orgForm.register('orgName')}
             />
             <AuthInput
               label="Handle"
