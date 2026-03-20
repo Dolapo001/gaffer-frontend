@@ -23,6 +23,7 @@ export default function AdminNewsPage() {
   const toast = useToastStore()
   const [newsContent, setNewsContent] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
@@ -39,15 +40,27 @@ export default function AdminNewsPage() {
     : ((feedData?.items ?? feedData?.data ?? []) as FeedItem[])
 
   const postMutation = useMutation({
-    mutationFn: () =>
-      publishNews({
+    mutationFn: async () => {
+      let media: { url: string; type: 'image' }[] = []
+      
+      // Upload image if selected
+      if (selectedFile && firstOrg) {
+        const { uploadOrgAsset } = await import('@/lib/services/org.service')
+        const { url } = await uploadOrgAsset(firstOrg._id, selectedFile)
+        media = [{ url, type: 'image' }]
+      }
+
+      return publishNews({
         orgId: firstOrg!._id,
         body: newsContent.trim(),
+        media,
         visibility: 'public',
-      }),
+      })
+    },
     onSuccess: () => {
       setNewsContent('')
       setSelectedImage(null)
+      setSelectedFile(null)
       qc.invalidateQueries({ queryKey: ['org-feed', firstOrg?._id] })
       toast.addToast('News published!', 'success')
     },
@@ -57,6 +70,7 @@ export default function AdminNewsPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
+      setSelectedFile(file)
       const url = URL.createObjectURL(file)
       setSelectedImage(url)
     }
