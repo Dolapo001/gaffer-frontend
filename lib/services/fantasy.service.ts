@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 export interface FantasySeason {
   _id: string
@@ -85,6 +85,13 @@ export async function enrollPlayers(
   return api.post(`/fantasy/${competitionId}/players/enroll`, { players })
 }
 
+// POST /fantasy/:competitionId/players/sync
+export async function syncTournamentPlayers(
+  competitionId: string,
+): Promise<{ data: { enrolled: number; skipped: number; errors: unknown[] } }> {
+  return api.post(`/fantasy/${competitionId}/players/sync`)
+}
+
 // POST /fantasy/:competitionId/gameweeks
 export async function createGameweeks(
   competitionId: string,
@@ -93,8 +100,13 @@ export async function createGameweeks(
 }
 
 // GET /fantasy/:competitionId/season
-export async function getFantasySeason(competitionId: string): Promise<FantasySeason> {
-  return api.get<FantasySeason>(`/fantasy/${competitionId}/season`)
+export async function getFantasySeason(competitionId: string): Promise<FantasySeason | null> {
+  try {
+    return await api.get<FantasySeason>(`/fantasy/${competitionId}/season`)
+  } catch (err) {
+    if (err instanceof ApiError && err.code === 'FANTASY_SEASON_NOT_FOUND') return null
+    throw err
+  }
 }
 
 // GET /fantasy/:competitionId/gameweeks

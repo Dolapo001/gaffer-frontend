@@ -1,14 +1,13 @@
-'use client'
-
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Plus } from 'lucide-react'
+import { ChevronLeft, Plus, Check } from 'lucide-react'
 import type { Team, Group } from '../types'
 
 interface Props {
   selectedGroup: Group | null
   teams: Team[]
   onBack: () => void
-  onAddTeam: (team: Team) => void
+  onAddTeams: (teams: Team[]) => void
   onCreateNew: () => void
 }
 
@@ -16,9 +15,23 @@ export function OrganiseSelectTeam({
   selectedGroup,
   teams,
   onBack,
-  onAddTeam,
+  onAddTeams,
   onCreateNew,
 }: Props) {
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+
+  const toggleTeam = (id: string) => {
+    const next = new Set(selectedIds)
+    if (next.has(id)) next.delete(id)
+    else next.add(id)
+    setSelectedIds(next)
+  }
+
+  const handleAdd = () => {
+    const selectedTeams = teams.filter(t => selectedIds.has(t.id))
+    onAddTeams(selectedTeams)
+  }
+
   return (
     <motion.div
       key="select_team"
@@ -38,28 +51,50 @@ export function OrganiseSelectTeam({
         </h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-20">
+      <div className="flex-1 overflow-y-auto px-6 space-y-4 pb-40">
         <div className="bg-[#1C2130] border border-white/5 rounded-[24px] overflow-hidden">
-          <div className="p-5 border-b border-white/5 bg-white/5">
+          <div className="p-5 border-b border-white/5 bg-white/5 flex items-center justify-between">
             <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Available Teams</h3>
+            {teams.length > 0 && selectedIds.size > 0 && (
+              <button 
+                onClick={() => setSelectedIds(new Set())}
+                className="text-[11px] font-bold text-orange-500 uppercase"
+              >
+                Clear All
+              </button>
+            )}
           </div>
-          {teams.map((team) => (
-            <div
-              key={team.id}
-              onClick={() => onAddTeam(team)}
-              className="px-6 py-4 flex items-center justify-between border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-black/20">
-                  <img src={team.logo} className="w-full h-full object-cover" alt="" />
-                </div>
-                <span className="text-white text-sm font-bold uppercase tracking-widest">
-                  {team.name}
-                </span>
-              </div>
-              <Plus size={20} className="text-gray-500" />
+          
+          {teams.length === 0 ? (
+            <div className="p-10 text-center space-y-2">
+              <p className="text-white/40 text-sm">No unassigned teams available</p>
             </div>
-          ))}
+          ) : (
+            teams.map((team) => {
+              const isSelected = selectedIds.has(team.id)
+              return (
+                <div
+                  key={team.id}
+                  onClick={() => toggleTeam(team.id)}
+                  className="px-6 py-4 flex items-center justify-between border-b border-white/5 last:border-0 hover:bg-white/5 cursor-pointer transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full overflow-hidden bg-black/20">
+                      <img src={team.logo} className="w-full h-full object-cover" alt="" />
+                    </div>
+                    <span className="text-white text-sm font-bold uppercase tracking-widest">
+                      {team.name}
+                    </span>
+                  </div>
+                  <div className={`w-6 h-6 rounded border-2 flex items-center justify-center transition-all ${
+                    isSelected ? 'bg-orange-500 border-orange-500' : 'border-white/20'
+                  }`}>
+                    {isSelected && <Check size={14} className="text-white" strokeWidth={3} />}
+                  </div>
+                </div>
+              )
+            })
+          )}
 
           <button
             onClick={onCreateNew}
@@ -68,6 +103,16 @@ export function OrganiseSelectTeam({
             Create New Team for Group
           </button>
         </div>
+      </div>
+
+      <div className="absolute bottom-[124px] left-0 right-0 px-6 pt-4 pb-4 bg-gradient-to-t from-[#181928] via-[#181928] to-transparent z-30">
+        <button
+          onClick={handleAdd}
+          disabled={selectedIds.size === 0}
+          className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-bold text-[17px] py-4 rounded-[16px] shadow-[0_4px_14px_rgba(255,0,0,0.3)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:pointer-events-none"
+        >
+          Add {selectedIds.size > 0 ? `${selectedIds.size} ` : ''}Team{selectedIds.size !== 1 ? 's' : ''}
+        </button>
       </div>
     </motion.div>
   )

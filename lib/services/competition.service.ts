@@ -9,7 +9,7 @@ export interface Competition {
   startDate: string
   endDate: string
   bannerUrl?: string
-  status: 'draft' | 'published' | 'archived'
+  status: 'draft' | 'published' | 'live' | 'completed' | 'archived'
   format?: string
   stages?: Stage[]
   createdBy: { fullName: string | null; email: string }
@@ -33,6 +33,8 @@ export interface CompetitionTeam {
   genderCategory?: string
   seed?: number
   groupName?: string
+  playerCount?: number
+  maxPlayers?: number
 }
 
 export interface CreateCompetitionPayload {
@@ -117,6 +119,14 @@ export async function assignTeamGroups(
   assignments: { teamId: string; groupName: string; seed?: number }[],
 ): Promise<{ message: string }> {
   return api.patch<{ message: string }>(`/competitions/${competitionId}/teams`, { assignments })
+}
+
+// ── Public Routes ──────────────────────────────────────────────────────────
+
+// GET /public/competitions/:slug
+export async function getPublicCompetitionBySlug(slug: string): Promise<Competition> {
+  const data = await api.get<{ competition: Competition }>(`/public/competitions/${slug}`, { public: true })
+  return data.competition
 }
 
 // DELETE /competitions/:competitionId/teams/:teamId

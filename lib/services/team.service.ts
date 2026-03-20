@@ -11,6 +11,8 @@ export interface Team {
   genderCategory?: 'male' | 'female' | 'mixed'
   homeVenue?: string
   status: 'active' | 'archived'
+  playerCount?: number
+  maxPlayers?: number
   createdAt: string
   updatedAt: string
 }
@@ -27,6 +29,8 @@ export interface Player {
   nationality?: string
   role?: 'player' | 'goalkeeper' | 'captain'
   squadStatus: 'active' | 'injured' | 'suspended' | 'removed'
+  price?: number
+  playerId?: any // populated Player document when fetching TeamPlayers
   teamId: string
   leftAt?: string
 }
@@ -108,7 +112,7 @@ export async function listPlayers(teamId: string): Promise<Player[]> {
 export async function updatePlayer(
   teamId: string,
   playerId: string,
-  payload: { role?: string; squadStatus?: string; jerseyNumber?: number },
+  payload: { role?: string; squadStatus?: string; jerseyNumber?: number; price?: number },
 ): Promise<Player> {
   const data = await api.patch<{ player: Player }>(`/teams/${teamId}/players/${playerId}`, payload)
   return data.player
@@ -157,4 +161,17 @@ export async function acceptPlayerInvite(payload: {
 // POST /player-invites/:inviteId/revoke
 export async function revokePlayerInvite(inviteId: string): Promise<{ message: string }> {
   return api.post<{ message: string }>(`/player-invites/${inviteId}/revoke`)
+}
+
+// ── Public Routes (Recruitment) ──────────────────────────────────────────
+
+// GET /public/teams/:teamHandle
+export async function getPublicTeamByHandle(handle: string): Promise<Team> {
+  const data = await api.get<{ team: Team }>(`/public/teams/${handle}`, { public: true })
+  return data.team
+}
+
+// POST /public/teams/:teamHandle/register
+export async function registerPublicPlayer(handle: string, payload: AddPlayerPayload): Promise<{ message: string; player: Player }> {
+  return api.post(`/public/teams/${handle}/register`, payload, { public: true })
 }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Plus, Menu, Trophy, ShieldCheck } from 'lucide-react'
+import { Plus, Menu, ShieldCheck } from 'lucide-react'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { OrganiseList } from './components/OrganiseList'
 import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
@@ -10,26 +10,16 @@ import { OrganiseDetails } from './components/OrganiseDetails'
 import { OrganiseShare } from './components/OrganiseShare'
 import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
+import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, listPlayers, Team as BackendTeam } from '@/lib/services/team.service'
+import { listTeams, createTeam, listPlayers, updatePlayer, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
+import { listGroups, createGroup, updateGroup, Group as BackendGroup } from '@/lib/services/group.service'
+import { listCompetitions, registerTeams, Competition } from '@/lib/services/competition.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { useRouter } from 'next/navigation'
-const INITIAL_GROUPS: Group[] = [
-  {
-    id: '1',
-    name: 'GROUP A',
-    color: '#A855F7',
-    teams: [],
-  },
-]
-
-const INITIAL_PLAYERS: Player[] = [
-  { id: '1', name: 'Olaniyi Ojedokun', position: 'THE GAFFER', price: '7.5M', isSelected: true },
-  { id: '2', name: 'Ayomide Lawal', position: 'Goalkeeper', price: '7.5M', isSelected: false },
-]
 
 export default function OrganizePage() {
   const { user } = useAuthStore()
@@ -65,54 +55,111 @@ export default function OrganizePage() {
   })
 
   // 3. Fetch Players (when a team is selected)
-  const { data: backendPlayers, isLoading: isLoadingPlayers } = useQuery({
+  const { data: backendPlayers } = useQuery({
     queryKey: ['players', selectedTeam?.id],
     queryFn: () => listPlayers(selectedTeam!.id),
     enabled: !!selectedTeam?.id
   })
 
-  // Local state for groups (saved locally for now till backend group module is ready)
-  const [groups, setGroups] = useState<Group[]>(INITIAL_GROUPS)
+  // 4. Fetch Groups
+  const { data: backendGroups, isLoading: isLoadingGroups } = useQuery({
+    queryKey: ['groups', orgId],
+    queryFn: () => listGroups(orgId!),
+    enabled: !!orgId
+  })
+
+  // 5. Fetch Competitions (Tournaments)
+  const { data: competitions, isLoading: isLoadingCompetitions } = useQuery({
+    queryKey: ['competitions', orgId],
+    queryFn: () => listCompetitions(orgId!),
+    enabled: !!orgId
+  })
+
+  // Mutations
+  const createTeamMutation = useMutation({
+    mutationFn: (data: any) => createTeam(orgId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const createGroupMutation = useMutation({
+    mutationFn: (data: any) => createGroup(orgId!, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups', orgId] })
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const updateGroupMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => updateGroup(id, payload),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ['groups', orgId] })
+      addToast('Group updated!', 'success')
+      // Update local selected group if needed
+      if (selectedGroup?.id === updated._id) {
+         setSelectedGroup({
+            id: updated._id,
+            name: updated.name,
+            color: updated.color,
+            teams: updated.teams.map((t: any) => ({
+              id: t._id,
+              name: t.name,
+              handle: t.handle,
+              playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
+              logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name
+            }))
+         })
+      }
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
 
   // Create form state
   const [teamName, setTeamName] = useState('')
   const [maxPlayers, setMaxPlayers] = useState('11')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [selectedColor, setSelectedColor] = useState('#A855F7')
   const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>('')
 
   // Map backend teams to UI teams
   const teams: Team[] = backendTeams?.map((t: BackendTeam) => ({
     id: t._id,
     name: t.name,
-    playerCount: '0/22', 
+    handle: t.handle,
+    playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
     logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
   })) || []
 
   // Map backend players to UI players
-  const players: Player[] = backendPlayers?.map((p: any) => ({
-    id: p._id,
-    name: `${p.firstName} ${p.lastName}`,
-    position: p.position || 'Player',
-    price: '7.5M', 
-    isSelected: true
-  })) || []
-
-  // Mutate: Create Team
-  const createTeamMutation = useMutation({
-    mutationFn: (payload: any) => createTeam(orgId!, payload),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
-      addToast('Team created successfully!', 'success')
-      setView('list')
-      setTeamName('')
-      setLogoPreview(null)
-    },
-    onError: (err: any) => {
-      addToast(err?.message || 'Failed to create team', 'error')
+  const players: Player[] = backendPlayers?.map((p: any) => {
+    const playerData = p.playerId || p
+    return {
+      id: playerData._id,
+      name: (playerData.firstName || playerData.lastName) ? `${playerData.firstName || ''} ${playerData.lastName || ''}`.trim() : (playerData.name || 'Unknown'),
+      position: playerData.position || 'Player',
+      price: (p.price ?? 7.5).toFixed(1) + 'M', 
+      isSelected: true
     }
-  })
+  }) || []
+
+  // Map backend groups to UI groups
+  const groups: Group[] = backendGroups?.map((g: BackendGroup) => ({
+    id: g._id,
+    name: g.name,
+    color: g.color,
+    teams: (g.teams || []).filter(Boolean).map((t: any) => ({
+      id: t._id,
+      name: t.name,
+      handle: t.handle,
+      playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
+      logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name
+    }))
+  })) || []
 
   const isCreateOpen = view === 'create'
 
@@ -121,60 +168,125 @@ export default function OrganizePage() {
     return teams.filter((t) => !assignedIds.has(t.id))
   }
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!teamName) {
       addToast('Please enter a name', 'error')
       return
     }
     if (!orgId) {
-      addToast('No organization found. Please make sure you are logged in correctly.', 'error')
+      addToast('No organization found', 'error')
       return
     }
 
-    if (activeTab === 'Teams') {
-      createTeamMutation.mutate({
-        name: teamName,
-        handle: teamName.toLowerCase().replace(/\s+/g, '-'),
-        sport: 'Football',
-        logoUrl: logoPreview || undefined
-      })
-    } else {
-      const selectedTeamObjects = teams.filter((t) => selectedTeamsForGroup.includes(t.id))
-      const newGroup: Group = {
-        id: crypto.randomUUID(),
-        name: teamName,
-        color: selectedColor,
-        teams: selectedTeamObjects,
+    try {
+      if (activeTab === 'Teams') {
+        let logoUrl = logoPreview || undefined
+        
+        // If we have a local file, upload it to Cloudinary first
+        if (logoFile) {
+          const { uploadOrgAsset } = await import('@/lib/services/org.service')
+          const result = await uploadOrgAsset(orgId!, logoFile)
+          logoUrl = result.url
+        }
+
+        const team = await createTeamMutation.mutateAsync({
+          name: teamName,
+          handle: teamName.toLowerCase().replace(/\s+/g, '-'),
+          sport: 'Football',
+          logoUrl,
+          maxPlayers: parseInt(maxPlayers) || 11
+        })
+
+        // If a competition is selected, auto-register the team
+        if (selectedCompetitionId && team?._id) {
+          await registerTeams(selectedCompetitionId, [{ teamId: team._id }])
+          queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
+        }
+
+        addToast('Team created successfully!', 'success')
+      } else {
+        await createGroupMutation.mutateAsync({
+          name: teamName,
+          color: selectedColor,
+          teams: selectedTeamsForGroup
+        })
+        addToast('Group created successfully!', 'success')
       }
-      setGroups((prev) => [...prev, newGroup])
-      setSelectedGroup(newGroup)
-      setSelectedTeam(null)
-      setView('details')
+
+      // Reset state
+      setView('list')
       setTeamName('')
+      setLogoPreview(null)
+      setSelectedCompetitionId('')
       setSelectedTeamsForGroup([])
+    } catch (err) {
+      addToast(getErrorMessage(err), 'error')
     }
   }
+
+  const handleRegisterTeamToTournament = async (teamId: string, competitionId: string) => {
+    try {
+      await registerTeams(competitionId, [{ teamId }])
+      queryClient.invalidateQueries({ queryKey: ['competition-teams', competitionId] })
+      addToast('Team added to tournament!', 'success')
+    } catch (err) {
+      addToast(getErrorMessage(err), 'error')
+    }
+  }
+
+  const { hideNavbar } = useUIStore()
+
+  // Double-ensure navbar is hidden when creating
+  useEffect(() => {
+    if (view === 'create') {
+      hideNavbar()
+    }
+  }, [view, hideNavbar])
 
   const handleTogglePlayer = (id: string) => {
     addToast('Player status update not yet implemented in backend', 'info')
   }
 
+  const updatePlayerMutation = useMutation({
+    mutationFn: ({ teamId, playerId, payload }: { teamId: string, playerId: string, payload: any }) => updatePlayer(teamId, playerId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error')
+  })
+
   const handlePriceChange = (id: string, increment: boolean) => {
-    addToast('Price updates not yet implemented in backend', 'info')
+    if (!selectedTeam) return
+    const p = backendPlayers?.find((bp: any) => (bp.playerId?._id === id || bp._id === id))
+    if (!p) return
+    
+    const currentPrice = p.price ?? 7.5
+    // Ensure accurate decimal addition and subtraction
+    const newPrice = increment ? Math.round((currentPrice + 0.5) * 10) / 10 : Math.round((currentPrice - 0.5) * 10) / 10
+    if (newPrice < 0) return
+    
+    updatePlayerMutation.mutate({
+      teamId: selectedTeam.id,
+      playerId: id,
+      payload: { price: newPrice }
+    })
   }
 
-  const handleAddTeamToGroup = (team: Team) => {
+  const handleAddTeamsToGroup = (newTeams: Team[]) => {
     if (!selectedGroup) return
-    setGroups((prev) =>
-      prev.map((g) =>
-        g.id === selectedGroup.id ? { ...g, teams: [...g.teams, team] } : g,
-      ),
-    )
-    setSelectedGroup((prev) => (prev ? { ...prev, teams: [...prev.teams, team] } : null))
+    const teamIds = [
+      ...selectedGroup.teams.map(t => t.id),
+      ...newTeams.map(t => t.id)
+    ]
+    console.log('Updating group teams:', { groupId: selectedGroup.id, teamIds });
+    updateGroupMutation.mutate({
+      id: selectedGroup.id,
+      payload: { teams: teamIds }
+    })
     setView('list')
   }
 
-  if (isLoadingOrgs) {
+  if (isLoadingOrgs || isLoadingTeams || isLoadingGroups) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center">
         <div className="w-10 h-10 border-2 border-white/10 border-t-orange-500 rounded-full animate-spin" />
@@ -219,17 +331,19 @@ export default function OrganizePage() {
         className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4"
         data-nav-hidden={isCreateOpen ? 'true' : undefined}
       >
-        {/* Header */}
-        <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
-          <button
-            aria-label="Go back"
-            onClick={() => (view !== 'list' ? setView('list') : undefined)}
-            className="mr-4 hover:opacity-70 transition-opacity"
-          >
-            <Menu size={24} />
-          </button>
-          <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
-        </div>
+        {/* Header - Hidden in details view to avoid duplication with the team's own back button and title */}
+        {view !== 'details' && (
+          <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
+            <button
+              aria-label="Toggle menu"
+              onClick={() => (view !== 'list' ? setView('list') : undefined)}
+              className="mr-4 hover:opacity-70 transition-opacity"
+            >
+              <Menu size={24} />
+            </button>
+            <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
+          </div>
+        )}
 
         <div className="flex-1 relative">
           <AnimatePresence mode="wait">
@@ -270,9 +384,10 @@ export default function OrganizePage() {
                 onClose={() => setView('list')}
                 onTeamNameChange={setTeamName}
                 onMaxPlayersChange={setMaxPlayers}
-                onLogoChange={(preview, error) => {
+                onLogoChange={(preview, error, file) => {
                   setLogoPreview(preview)
                   setLogoError(error)
+                  if (file) setLogoFile(file)
                 }}
                 onColorChange={setSelectedColor}
                 onToggleTeamForGroup={(id) =>
@@ -282,20 +397,25 @@ export default function OrganizePage() {
                 }
                 onCreate={handleCreate}
                 getUnassignedTeams={getUnassignedTeams}
-                isSubmitting={createTeamMutation.isPending}
+                isSubmitting={createTeamMutation.isPending || createGroupMutation.isPending}
+                competitions={competitions || []}
+                selectedCompetitionId={selectedCompetitionId}
+                onCompetitionChange={setSelectedCompetitionId}
               />
             )}
 
             {view === 'details' && (
               <OrganiseDetails
                 selectedTeam={selectedTeam}
-                selectedGroup={selectedGroup}
+                selectedGroup={selectedGroup || groups.find(g => g.teams.some(t => t.id === selectedTeam?.id)) || null}
                 players={players}
+                competitions={competitions || []}
                 onBack={() => setView('list')}
-                onShare={() => setView('share')}
+                onShare={() => setView('list')}
                 onAddTeams={() => setView('select_team')}
                 onTogglePlayer={handleTogglePlayer}
                 onPriceChange={handlePriceChange}
+                onAddToTournament={handleRegisterTeamToTournament}
               />
             )}
 
@@ -311,16 +431,19 @@ export default function OrganizePage() {
             {view === 'select_team' && (
               <OrganiseSelectTeam
                 selectedGroup={selectedGroup}
-                teams={teams}
+                teams={getUnassignedTeams()}
                 onBack={() => setView('list')}
-                onAddTeam={handleAddTeamToGroup}
-                onCreateNew={() => setView('create')}
+                onAddTeams={handleAddTeamsToGroup}
+                onCreateNew={() => {
+                  setActiveTab('Teams')
+                  setView('create')
+                }}
               />
             )}
           </AnimatePresence>
         </div>
 
-        {/* Floating Action Button — only visible on list/share views when org is ready */}
+        {/* Floating Action Button */}
         {(view === 'list' || view === 'share') && (
           <button
             onClick={() => setView('create')}

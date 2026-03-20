@@ -3,13 +3,14 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign } from 'lucide-react'
+import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   getFantasySeason, 
   enableFantasy, 
   getTeamPricing,
-  finalizeAllPricing
+  finalizeAllPricing,
+  syncTournamentPlayers
 } from '@/lib/services/fantasy.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -22,7 +23,7 @@ export function FantasyAdminPanel({ competitionId }: Props) {
   const router = useRouter()
   const qc = useQueryClient()
   const toast = useToastStore()
-  const [isEnabling, setIsEnabling] = useState(false)
+  const [isSyncing, setIsSyncing] = useState(false)
 
   const { data: season, isLoading: isLoadingSeason } = useQuery({
     queryKey: ['fantasy-season', competitionId],
@@ -36,12 +37,24 @@ export function FantasyAdminPanel({ competitionId }: Props) {
     enabled: !!season
   })
 
+  const syncMutation = useMutation({
+    mutationFn: () => syncTournamentPlayers(competitionId),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ['team-pricing', competitionId] })
+      toast.addToast(`Sync complete: ${res.data.enrolled} players enrolled`, 'success')
+      setIsSyncing(false)
+    },
+    onError: (err) => {
+        toast.addToast(getErrorMessage(err), 'error')
+        setIsSyncing(false)
+    }
+  })
+
   const enableMutation = useMutation({
     mutationFn: (budget: number) => enableFantasy(competitionId, budget),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['fantasy-season', competitionId] })
       toast.addToast('Fantasy enabled', 'success')
-      setIsEnabling(false)
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
@@ -81,11 +94,11 @@ export function FantasyAdminPanel({ competitionId }: Props) {
     )
   }
 
-  const teams = (teamPricing as any)?.teams || []
+  const teams = (teamPricing as any)?.data?.teams || []
   const allFinalized = teams.length > 0 && teams.every((t: any) => t.pricingFinalized)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       {/* Status Header */}
       <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
         <div className="flex-1">
@@ -104,10 +117,10 @@ export function FantasyAdminPanel({ competitionId }: Props) {
 
         {!season.pricingFinalized && (
           <button 
-            disabled={!allFinalized || finalizeAllMutation.isPending}
+            disabled={!allFinalized || finalizeAllMutation.isPending || teams.length === 0}
             onClick={() => finalizeAllMutation.mutate()}
-            className={`px-6 py-3 rounded-xl font-display font-bold text-xs uppercase tracking-widest transition-all ${
-              allFinalized 
+            className={`px-6 py-3 rounded-xl font-display font-bold text-[10px] uppercase tracking-widest transition-all ${
+              allFinalized && teams.length > 0
                 ? 'bg-orange-gradient-btn text-white shadow-lg active:scale-95' 
                 : 'bg-gaffer-surface text-gaffer-subtle border border-gaffer-border cursor-not-allowed'
             }`}
@@ -117,49 +130,70 @@ export function FantasyAdminPanel({ competitionId }: Props) {
         )}
       </div>
 
-      {/* Team Pricing List */}
-      <div className="space-y-3">
-        <h4 className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest px-2">Team Pricing Status</h4>
-        <div className="grid grid-cols-1 gap-3">
-          {teams.map((t: any, i: number) => (
-            <motion.button 
-              key={t.teamId}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              onClick={() => router.push(`/admin/fantasy/${competitionId}/pricing/${t.teamId}`)}
-              className="w-full bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center gap-4 group hover:border-gaffer-orange/30 transition-all"
-            >
-              <div className="w-12 h-12 rounded-xl bg-gaffer-surface flex items-center justify-center text-xl overflow-hidden">
-                {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-cover" /> : '⚽'}
-              </div>
-              
-              <div className="flex-1 text-left">
-                <p className="text-white font-display font-bold text-sm truncate uppercase tracking-tight">{t.name}</p>
-                <div className="flex items-center gap-2 mt-0.5">
-                   <div className="flex items-center gap-1 text-[10px] font-body">
-                      {t.pricedCount === t.totalCount ? (
-                        <span className="text-green-400 font-bold">ALL PRICED</span>
-                      ) : (
-                        <span className="text-gaffer-muted">{t.pricedCount}/{t.totalCount} PRICED</span>
-                      )}
-                   </div>
-                   {t.pricingFinalized && (
-                     <div className="flex items-center gap-1 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full">
-                        <CheckCircle2 size={8} className="text-green-400" />
-                        <span className="text-[8px] font-black text-green-400 uppercase tracking-tighter italic">FINAL</span>
-                     </div>
-                   )}
-                </div>
-              </div>
-
-              <div className="w-8 h-8 rounded-full bg-gaffer-surface flex items-center justify-center text-gaffer-subtle group-hover:bg-gaffer-orange/10 group-hover:text-gaffer-orange transition-all">
-                <ChevronRight size={16} />
-              </div>
-            </motion.button>
-          ))}
+      {teams.length === 0 ? (
+        <div className="bg-gaffer-card border border-gaffer-border border-dashed rounded-3xl p-10 text-center space-y-6">
+           <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-gaffer-muted">
+              <Users size={32} />
+           </div>
+           <div>
+              <h4 className="text-white font-display font-bold uppercase tracking-tight">No Teams Enrolled</h4>
+              <p className="text-gaffer-muted text-xs mt-1">First, you need to import your tournament teams and their players.</p>
+           </div>
+           <button 
+             onClick={() => {
+                 setIsSyncing(true)
+                 syncMutation.mutate()
+             }}
+             disabled={isSyncing}
+             className="px-6 py-3 rounded-xl bg-gaffer-surface border border-gaffer-border hover:border-gaffer-orange/50 text-white font-display font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
+           >
+             {isSyncing ? 'Syncing...' : 'Sync Tournament Teams'}
+           </button>
         </div>
-      </div>
+      ) : (
+        <div className="space-y-3">
+            <h4 className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest px-2">Team Pricing Status</h4>
+            <div className="grid grid-cols-1 gap-3">
+            {teams.map((t: any, i: number) => (
+                <motion.button 
+                key={t.teamId}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                onClick={() => router.push(`/admin/fantasy/${competitionId}/pricing/${t.teamId}`)}
+                className="w-full bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center gap-4 group hover:border-gaffer-orange/30 transition-all"
+                >
+                <div className="w-12 h-12 rounded-xl bg-gaffer-surface flex items-center justify-center text-xl overflow-hidden shadow-inner">
+                    {t.logoUrl ? <img src={t.logoUrl} className="w-full h-full object-cover" /> : '⚽'}
+                </div>
+                
+                <div className="flex-1 text-left">
+                    <p className="text-white font-display font-bold text-sm truncate uppercase tracking-tight">{t.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-1 text-[10px] font-body">
+                        {t.pricedCount === t.totalCount ? (
+                            <span className="text-green-400 font-bold">ALL PRICED</span>
+                        ) : (
+                            <span className="text-gaffer-muted">{t.pricedCount}/{t.totalCount} PRICED</span>
+                        )}
+                    </div>
+                    {t.pricingFinalized && (
+                        <div className="flex items-center gap-1 bg-green-500/10 border border-green-500/20 px-1.5 py-0.5 rounded-full">
+                            <CheckCircle2 size={8} className="text-green-400" />
+                            <span className="text-[8px] font-black text-green-400 uppercase tracking-tighter italic">FINAL</span>
+                        </div>
+                    )}
+                    </div>
+                </div>
+
+                <div className="w-8 h-8 rounded-full bg-gaffer-surface flex items-center justify-center text-gaffer-subtle group-hover:bg-gaffer-orange/10 group-hover:text-gaffer-orange transition-all">
+                    <ChevronRight size={16} />
+                </div>
+                </motion.button>
+            ))}
+            </div>
+        </div>
+      )}
     </div>
   )
 }

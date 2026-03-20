@@ -35,6 +35,11 @@ export default function TournamentsPage() {
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
+  const sorted = [...filtered].sort((a, b) => {
+    const order: Record<string, number> = { live: 0, draft: 1, published: 2, completed: 3, archived: 4 }
+    return (order[a.status] ?? 99) - (order[b.status] ?? 99)
+  })
+
   return (
     <div className="h-screen flex flex-col bg-[#181928] overflow-hidden relative">
       <div className="flex-1 overflow-y-auto no-scrollbar">
@@ -62,7 +67,7 @@ export default function TournamentsPage() {
                 <div key={i} className="h-24 bg-[#1E2032] rounded-2xl animate-pulse" />
               ))}
             </div>
-          ) : filtered.length === 0 ? (
+          ) : sorted.length === 0 ? (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -89,7 +94,7 @@ export default function TournamentsPage() {
             </motion.div>
           ) : (
             <div className="space-y-4">
-              {filtered.map((comp, i) => (
+              {sorted.map((comp, i) => (
                 <motion.button
                   key={comp._id}
                   initial={{ opacity: 0, y: 10 }}
@@ -116,8 +121,12 @@ export default function TournamentsPage() {
                     <p className="text-white/40 text-[11px] font-chakra font-bold uppercase tracking-wide">
                         {new Date(comp.startDate).toLocaleDateString()} - {new Date(comp.endDate).toLocaleDateString()}
                     </p>
-                    <p className={`text-[10px] font-chakra font-black uppercase mt-1 tracking-wider ${comp.status === 'published' ? 'text-green-500' : 'text-red-500'}`}>
-                        {comp.status === 'published' ? 'LIVE' : 'ENDED'}
+                    <p className={`text-[10px] font-chakra font-black uppercase mt-1 tracking-wider ${
+                      comp.status === 'live' ? 'text-green-500' : 
+                      comp.status === 'draft' ? 'text-yellow-500' : 
+                      'text-red-500'
+                    }`}>
+                      {comp.status}
                     </p>
                   </div>
                   
@@ -126,17 +135,20 @@ export default function TournamentsPage() {
                   </div>
                 </motion.button>
               ))}
-
-              <button
-                onClick={handleCreateTournament}
-                className="w-full py-4 mt-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
-              >
-                Create Tournament
-              </button>
             </div>
           )}
         </div>
       </div>
+
+      {/* Floating Plus Button */}
+      {competitions && competitions.length > 0 && (
+        <button
+          onClick={handleCreateTournament}
+          className="absolute bottom-28 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8904] to-[#E7000B] text-white flex items-center justify-center shadow-[0_8px_32px_rgba(231,0,11,0.3)] active:scale-90 transition-transform z-30"
+        >
+          <div className="text-4xl font-light">+</div>
+        </button>
+      )}
 
       <AnimatePresence>
         {showCreate && <CreateTournamentModal onClose={() => setShowCreate(false)} />}

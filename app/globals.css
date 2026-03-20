@@ -101,3 +101,12 @@ html {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Force Navbar Hide when modals are up */
+body:has(.modal-open) #admin-nav-bar,
+body:has([data-nav-hidden="true"]) #admin-nav-bar {
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  display: none !important;
+}

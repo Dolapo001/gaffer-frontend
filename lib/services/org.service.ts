@@ -153,3 +153,9 @@ export async function acceptInvite(orgId: string, inviteId: string): Promise<Org
   const data = await api.post<{ invite: OrgInvite }>(`/orgs/${orgId}/invites/${inviteId}/accept`)
   return data.invite
 }
+// POST /orgs/:orgId/upload
+export async function uploadOrgAsset(orgId: string, file: File): Promise<{ url: string; publicId: string }> {
+  const formData = new FormData()
+  formData.append('file', file)
+  return api.post(`/orgs/${orgId}/upload`, formData)
+}

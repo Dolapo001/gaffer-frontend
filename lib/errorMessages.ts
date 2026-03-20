@@ -53,13 +53,14 @@ const ERROR_MAP: Record<string, string> = {
  *  4. generic fallback
  */
 export function translateError(code?: string, message?: string): string {
+  // 1. Prioritize codes if they exist in our map
   if (code && ERROR_MAP[code]) return ERROR_MAP[code]
 
-  // Some backend replies put the code in the message field (e.g. INVALID_CREDENTIALS)
-  if (message && ERROR_MAP[message]) return ERROR_MAP[message]
+  // 2. Map generic codes like INTERNAL_ERROR even if the message is specific
+  if (code === 'INTERNAL_ERROR') return ERROR_MAP.INTERNAL_ERROR
 
-  // If the raw message doesn't look like a snake_case code, surface it
-  if (message && !/^[A-Z_]+$/.test(message)) return message
+  // 3. Fallback: surface the message if it looks human-readable (not snake_case)
+  if (message && !/^[A-Z0-9_]+$/.test(message)) return message
 
   return ERROR_MAP.UNKNOWN_ERROR
 }

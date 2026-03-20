@@ -87,7 +87,19 @@ async function doRefresh(): Promise<string> {
 async function refreshOnce(): Promise<string> {
   // Deduplicate concurrent refresh calls
   if (!_refreshPromise) {
-    _refreshPromise = doRefresh().finally(() => { _refreshPromise = null })
+    console.log('🔄 Attempting token refresh...')
+    _refreshPromise = doRefresh()
+      .then((token) => {
+        console.log('✅ Token refreshed successfully')
+        return token
+      })
+      .catch((err) => {
+        console.error('❌ Token refresh failed:', err)
+        throw err
+      })
+      .finally(() => { 
+        _refreshPromise = null 
+      })
   }
   return _refreshPromise
 }
@@ -156,27 +168,30 @@ export async function apiRequest<T = unknown>(
 
   // If a standard response returns 401 (and we didn't intercept it for auth, usually because
   // skipRefresh was true, or some other reason), eject them.
-  if (res.status === 401 && !isPublic) {
-    forceEjectAndRedirect('Your session has expired. Please log in again.')
-  }
-
   return parseResponse<T>(res)
 }
 
-
+/**
+ * Force clear auth state and redirect to login.
+ * IMPORTANT: Only called when a refresh truly fails (session dead).
+ */
 function forceEjectAndRedirect(message: string): never {
+  console.warn('🔴 Ejecting user:', message)
   tokenStore.clear()
   if (typeof document !== 'undefined') {
+    // Clear role cookie but NOT the whole local storage yet? 
+    // Actually, we must clear the store user state to prevent "App resets to personal"
     document.cookie = 'gaffer-user-role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax'
     const { useAuthStore } = require('@/store/authStore')
     const { useToastStore } = require('@/store/toastStore')
 
     useAuthStore.getState().setUser(null, undefined)
+    useAuthStore.getState().setRole(null) // Reset role to prevent stale admin access
 
     useToastStore.getState().addToast({
       message,
       type: 'error',
-      duration: 4000
+      duration: 5000
     })
 
     if (window.location.pathname !== '/auth/login') {
@@ -209,15 +224,30 @@ export const api = {
 
 export function getErrorMessage(err: unknown): string {
   if (err instanceof ApiError) {
-    // Import inline to avoid circular deps at module level
     const { translateError } = require('@/lib/errorMessages')
 
-    // Surface field-level validation errors first
     if (err.details && typeof err.details === 'object') {
-      const fieldErrors = Object.values(err.details as Record<string, string[]>)
-        .flat()
-        .filter(Boolean)
-      if (fieldErrors.length) return fieldErrors[0]
+      try {
+        // Zod format check: { field: { _errors: [] }, _errors: [] }
+        const details = err.details as any
+        
+        // 1. Check root level _errors
+        if (Array.isArray(details._errors) && details._errors.length > 0) {
+          return details._errors[0]
+        }
+
+        // 2. Check field level _errors
+        const firstField = Object.values(details).find((v: any) => v && Array.isArray(v._errors) && v._errors.length > 0) as any
+        if (firstField) return firstField._errors[0]
+
+        // 3. Fallback: search for any array values (old behavior)
+        const fieldErrors = Object.values(details)
+          .flat()
+          .filter((v) => typeof v === 'string') as string[]
+        if (fieldErrors.length > 0) return fieldErrors[0]
+      } catch (e) {
+        console.error('Error parsing details:', e)
+      }
     }
 
     return translateError(err.code, err.message)

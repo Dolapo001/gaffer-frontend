@@ -10,6 +10,7 @@ export type Player = {
 export type Team = {
   id: string
   name: string
+  handle?: string
   playerCount: string
   logo: string
 }

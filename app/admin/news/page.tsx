@@ -34,7 +34,9 @@ export default function AdminNewsPage() {
     staleTime: 30_000,
   })
 
-  const feedItems: FeedItem[] = ((feedData?.items ?? feedData?.data ?? []) as FeedItem[])
+  const feedItems: FeedItem[] = Array.isArray(feedData)
+    ? feedData
+    : ((feedData?.items ?? feedData?.data ?? []) as FeedItem[])
 
   const postMutation = useMutation({
     mutationFn: () =>

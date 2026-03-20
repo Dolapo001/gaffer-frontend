@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronLeft, Trash2, Plus, Trophy, LayoutGrid, 
   GitFork, Layers, Settings2, ShieldCheck, Calendar,
-  User, Building2, ChevronDown, Check
+  User, Building2, ChevronDown, Check, Camera, Pencil
 } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { useTournamentStore } from '@/store/tournamentStore'
@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore'
 
 import { createCompetition } from '@/lib/services/competition.service'
 import { listOrgs } from '@/lib/services/org.service'
+import { getErrorMessage } from '@/lib/api'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToastStore } from '@/store/toastStore'
 
@@ -52,33 +53,49 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
   
   // Form State
   const [details, setDetails] = useState({
-    name: 'Gaffer League',
+    name: '',
     host: 'Gaffer Admin',
     sport: 'Football',
     gender: 'male' as 'male' | 'female' | 'mixed',
-    startDate: '2026-04-26',
-    endDate: '2026-05-26',
-    photo: '/images/hero-bg.jpg'
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    photo: '',
+    photoFile: null as File | null
   })
 
   const [selectedFormat, setSelectedFormat] = useState('round_robin')
   const [pointSystem, setPointSystem] = useState('Standard')
-  const [addedFormats, setAddedFormats] = useState<any[]>([
-    { id: '1', type: 'Groups', name: 'Groups A', info: '4 Teams', teamCount: '4 Teams' },
-    { id: '2', type: 'Groups', name: 'Groups B', info: '4 Teams', teamCount: '4 Teams' },
-    { id: '3', type: 'Knockout', name: 'Knockout', info: 'Starts at Round of 16', startingRound: 'Round of 16' }
-  ])
+  const [rules, setRules] = useState({
+    winPoints: 3,
+    drawPoints: 1,
+    lossPoints: 0,
+    perGoalPoints: 0,
+    cleanSheetPoints: 0,
+    structure: 'single'
+  })
+  const [addedFormats, setAddedFormats] = useState<any[]>([])
 
   // Mutation
   const createMutation = useMutation({
-    mutationFn: (payload: any) => createCompetition(orgId!, payload),
+    mutationFn: async (payload: any) => {
+      // 1. If we have a local file, upload it first
+      if (details.photoFile) {
+        toast.addToast('Uploading banner...', 'info')
+        const { uploadOrgAsset } = require('@/lib/services/org.service')
+        const { url } = await uploadOrgAsset(orgId!, details.photoFile)
+        payload.bannerUrl = url
+      }
+      
+      console.log('Final Payload after upload:', payload)
+      return createCompetition(orgId!, payload)
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['competitions', orgId] })
       toast.addToast('Tournament created successfully!', 'success')
       onClose()
     },
     onError: (err: any) => {
-      toast.addToast(err?.message || 'Failed to create tournament', 'error')
+      toast.addToast(getErrorMessage(err) || 'Failed to create tournament', 'error')
     }
   })
 
@@ -88,21 +105,35 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     }
     setStep(s => Math.min(s + 1, 2))
   }
-  const prevStep = () => setStep(s => Math.max(s - 1, 0))
+  const prevStep = () => {
+    if (step === 2 && addedFormats.length === 1) {
+       // Optional: if they go back from a single auto-added format, maybe clear it?
+       // For now just allow them to change selectedFormat.
+    }
+    setStep(s => Math.max(s - 1, 0))
+  }
 
   const addSelectedFormat = () => {
     const format = FORMAT_OPTIONS.find(f => f.id === selectedFormat)
     if (format) {
       const newId = crypto.randomUUID()
+      const newType = format.id === 'custom' ? 'Custom' :
+                      format.label.includes('Groups') || format.id === 'groups' ? 'Groups' : 
+                      format.id === 'knockout' ? 'Knockout' : 'League'
+                      
       const newFormat = {
         id: newId,
-        type: format.label.includes('Groups') || format.id === 'groups' ? 'Groups' : 
-              format.id === 'knockout' ? 'Knockout' : 'League',
+        type: newType,
         name: format.label === 'Knockout' ? 'Knockout' : `${format.label} ${addedFormats.length + 1}`,
         formatId: format.id,
-        info: format.id === 'knockout' ? 'Starts at Round of 16' : '4 Teams',
+        info: format.id === 'knockout' ? 'Starts at Round of 16' : 
+              format.id === 'custom' ? 'Custom rules' : '4 Teams',
         startingRound: 'Round of 16',
-        teamCount: '4 Teams'
+        teamCount: '4 Teams',
+        customRules: {
+          pointsPerGoal: 0,
+          pointsPerCleanSheet: 0
+        }
       }
       setAddedFormats([...addedFormats, newFormat])
     }
@@ -117,7 +148,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     const file = e.target.files?.[0]
     if (file) {
       const url = URL.createObjectURL(file)
-      setDetails({ ...details, photo: url })
+      setDetails({ ...details, photo: url, photoFile: file })
     }
   }
 
@@ -127,14 +158,36 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       return
     }
 
+    // Backend expects an ISO string for date coerced objects
+    // Format must be one of: round_robin, groups, knockout, groups_knockout, league_playoff, custom
+    // We'll map the selected format to the backend enum or use "custom" if preferred.
+    
+    console.log('Sending tournament creation payload:', {
+      name: details.name,
+      sport: details.sport,
+      gender: details.gender,
+      startDate: details.startDate,
+      endDate: details.endDate,
+      format: selectedFormat,
+      rules: rules
+    });
+
     createMutation.mutate({
       name: details.name,
       sport: details.sport,
       gender: details.gender,
       startDate: new Date(details.startDate).toISOString(),
       endDate: new Date(details.endDate).toISOString(),
-      bannerUrl: details.photo,
-      format: addedFormats.map(f => f.type).join(' + ')
+      format: selectedFormat,
+      bannerUrl: details.photo.startsWith('blob:') ? undefined : details.photo,
+      rules: {
+         winPoints: rules.winPoints,
+         drawPoints: rules.drawPoints,
+         lossPoints: rules.lossPoints,
+         perGoalPoints: rules.perGoalPoints,
+         cleanSheetPoints: rules.cleanSheetPoints,
+         structure: rules.structure
+      }
     })
     setShowConfirm(false)
   }
@@ -250,6 +303,64 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
         </motion.div>
       )
     }
+    if (format.type === 'Custom') {
+      return (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6 text-start">
+          <h3 className="text-[12px] text-white font-chakra font-black uppercase tracking-[0.2em] ml-1">Custom Builder</h3>
+          <div className="bg-[#1E2032] border border-white/5 rounded-[28px] p-6 space-y-6">
+            <div className="space-y-4">
+              <label className="text-base text-white font-chakra font-black uppercase">Structure</label>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { id: 'single', label: 'Single Match' },
+                  { id: 'aggregate', label: 'Aggregate' }
+                ].map(s => (
+                  <button 
+                    key={s.id} 
+                    onClick={() => setRules({ ...rules, structure: s.id })}
+                    className={`h-14 rounded-2xl border transition-all font-chakra font-black text-xs uppercase tracking-widest ${
+                      rules.structure === s.id ? 'bg-orange-500 border-orange-500 text-white shadow-[0_0_20px_rgba(255,122,0,0.3)]' : 'border-white/5 bg-white/5 text-white/40'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-4">
+              <label className="text-base text-white font-chakra font-black uppercase">Bonus Points</label>
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="space-y-2">
+                    <span className="text-[10px] text-white/40 uppercase font-chakra font-bold">Per Goal</span>
+                    <input 
+                      type="number" 
+                      value={rules.perGoalPoints} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setRules({ ...rules, perGoalPoints: e.target.value === '' ? '' : parseInt(e.target.value) || 0 } as any)}
+                      className="w-full h-12 bg-black/20 border border-white/5 rounded-xl px-4 text-white font-chakra font-bold transition-all focus:border-orange-500/50" 
+                    />
+                 </div>
+                 <div className="space-y-2">
+                    <span className="text-[10px] text-white/40 uppercase font-chakra font-bold">Clean Sheet</span>
+                    <input 
+                      type="number" 
+                      value={rules.cleanSheetPoints} 
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => setRules({ ...rules, cleanSheetPoints: e.target.value === '' ? '' : parseInt(e.target.value) || 0 } as any)}
+                      className="w-full h-12 bg-black/20 border border-white/5 rounded-xl px-4 text-white font-chakra font-bold transition-all focus:border-orange-500/50" 
+                    />
+                 </div>
+              </div>
+            </div>
+          </div>
+          <div className="pt-8">
+            <GradientButton onClick={handleFinalConfirm} className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider">
+              Create Tournament
+            </GradientButton>
+          </div>
+        </motion.div>
+      )
+    }
   }
 
   return (
@@ -300,10 +411,17 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               <div className="flex flex-col items-center gap-3 mb-4">
                 <label className="cursor-pointer">
                   <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
-                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1E2032] shadow-2xl relative group">
-                    <img src={details.photo} className="w-full h-full object-cover" alt="Profile" />
+                  <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-[#1E2032] shadow-2xl relative group bg-[#161726] flex items-center justify-center">
+                    {details.photo ? (
+                      <img src={details.photo} className="w-full h-full object-cover" alt="Profile" />
+                    ) : (
+                      <div className="flex flex-col items-center gap-2 text-white/20">
+                         <Camera size={40} />
+                         <span className="text-[10px] uppercase font-bold tracking-widest font-chakra">Add Banner</span>
+                      </div>
+                    )}
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Plus size={24} className="text-white" />
+                      <Pencil size={24} className="text-white" />
                     </div>
                   </div>
                 </label>
@@ -312,7 +430,13 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               <div className="space-y-6">
                 <div className="space-y-2 text-start">
                    <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center shadow-inner">
-                      <input type="text" value={details.name} onChange={(e) => setDetails({...details, name: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                      <input 
+                        type="text" 
+                        value={details.name} 
+                        placeholder="e.g. Gaffer Summer Cup"
+                        onChange={(e) => setDetails({...details, name: e.target.value})} 
+                        className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold placeholder:text-white/20" 
+                      />
                    </div>
                 </div>
 
@@ -347,25 +471,35 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                   <div className="space-y-2 text-start">
                     <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Start Date</label>
                     <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center">
-                        <input type="text" value={details.startDate} onChange={(e) => setDetails({...details, startDate: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                        <input type="date" value={details.startDate} onChange={(e) => setDetails({...details, startDate: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold [color-scheme:dark]" />
                     </div>
                   </div>
                   <div className="space-y-2 text-start">
-                    <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">End date</label>
-                    <div className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center">
-                        <input type="text" value={details.endDate} onChange={(e) => setDetails({...details, endDate: e.target.value})} className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold" />
+                    <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">End Date</label>
+                    <div className={`w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center ${details.endDate <= details.startDate ? 'border-red-500/50' : ''}`}>
+                        <input 
+                          type="date" 
+                          value={details.endDate} 
+                          min={details.startDate}
+                          onChange={(e) => setDetails({...details, endDate: e.target.value})} 
+                          className="bg-transparent border-none outline-none text-white text-sm w-full font-chakra font-bold [color-scheme:dark]" 
+                        />
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-8">
+              <div className="pt-8 text-center">
                 <button 
                   onClick={nextStep} 
-                  className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+                  disabled={!details.name.trim() || details.endDate <= details.startDate}
+                  className="w-full py-4 rounded-2xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
                     Next
                 </button>
+                {details.endDate <= details.startDate && (
+                  <p className="text-[10px] text-red-400 font-chakra font-black uppercase tracking-[0.2em] mt-3 animate-pulse">End Date must be after Start Date</p>
+                )}
               </div>
             </motion.div>
           )}
@@ -376,7 +510,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
-              className="space-y-8 py-4"
+              className="space-y-12 py-4"
             >
               <div className="space-y-4 text-start">
                 <h3 className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Format</h3>
@@ -384,9 +518,12 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                   {FORMAT_OPTIONS.map((f) => (
                     <button
                       key={f.id}
-                      onClick={() => setSelectedFormat(f.id)}
+                      onClick={() => {
+                        setSelectedFormat(f.id)
+                        setAddedFormats([]) // Reset stages if they change overall format
+                      }}
                       className={`h-40 p-4 rounded-2xl border transition-all flex flex-col items-center justify-center text-center gap-3 relative overflow-hidden group ${
-                        selectedFormat === f.id ? 'bg-[#FF4D00]/10 border-[#FF4D00]/50' : 'bg-[#1E2032] border-white/5'
+                        selectedFormat === f.id ? 'bg-[#FF4D00]/10 border-[#FF4D00]/50 shadow-[0_0_20px_rgba(255,77,0,0.15)]' : 'bg-[#1E2032] border-white/5'
                       }`}
                     >
                       <f.icon size={28} className={selectedFormat === f.id ? 'text-[#FF4D00]' : 'text-white/20'} />
@@ -399,11 +536,99 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 </div>
               </div>
 
-              <div className="flex items-center gap-6 pt-6 pb-12">
+              <div className="space-y-6 text-start pt-4 border-t border-white/5">
+                <h3 className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Scoring System</h3>
+                <div className="bg-[#1E2032] border border-white/5 p-1.5 rounded-2xl flex relative h-16 overflow-hidden">
+                   <div 
+                      className="absolute inset-y-1.5 transition-all duration-300 bg-[#2B2E42] rounded-xl shadow-lg"
+                      style={{ 
+                        left: pointSystem === 'Standard' ? '6px' : 'calc(50% + 3px)', 
+                        width: 'calc(50% - 9px)' 
+                      }}
+                   />
+                   <button 
+                      onClick={() => {
+                        setPointSystem('Standard')
+                        setRules({ ...rules, winPoints: 3, drawPoints: 1, lossPoints: 0 })
+                      }}
+                      className={`flex-1 flex items-center justify-center font-chakra font-black text-sm uppercase tracking-wider relative z-10 transition-colors ${pointSystem === 'Standard' ? 'text-white' : 'text-white/20 hover:text-white/40'}`}
+                   >
+                      Standard
+                   </button>
+                   <button 
+                      onClick={() => setPointSystem('Custom')}
+                      className={`flex-1 flex items-center justify-center font-chakra font-black text-sm uppercase tracking-wider relative z-10 transition-colors ${pointSystem === 'Custom' ? 'text-white' : 'text-white/20 hover:text-white/40'}`}
+                   >
+                      Custom
+                   </button>
+                </div>
+
+                <AnimatePresence mode="wait">
+                  {pointSystem === 'Standard' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="flex justify-between px-2"
+                    >
+                       <p className="text-[13px] font-chakra font-black flex items-center gap-2"><span className="text-green-500 uppercase text-[10px]">Win</span> <span className="text-white/20">—</span> 3 points</p>
+                       <p className="text-[13px] font-chakra font-black flex items-center gap-2"><span className="text-yellow-500 uppercase text-[10px]">Draw</span> <span className="text-white/20">—</span> 1 points</p>
+                       <p className="text-[13px] font-chakra font-black flex items-center gap-2"><span className="text-red-500 uppercase text-[10px]">Loss</span> <span className="text-white/20">—</span> 0 points</p>
+                    </motion.div>
+                  )}
+                  {pointSystem === 'Custom' && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="grid grid-cols-3 gap-4"
+                    >
+                       <div className="space-y-2 group">
+                          <label className="text-[10px] font-chakra font-black text-white/40 uppercase tracking-widest ml-1 group-focus-within:text-orange-500 transition-colors">Win</label>
+                          <div className="bg-[#1C2032] border border-white/5 rounded-2xl h-14 flex items-center justify-center focus-within:border-orange-500/50 transition-all">
+                            <input 
+                              type="number" 
+                              value={rules.winPoints} 
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setRules({ ...rules, winPoints: e.target.value === '' ? '' : parseInt(e.target.value) || 0 } as any)}
+                              className="bg-transparent border-none outline-none text-white font-chakra font-black text-lg text-center w-full" 
+                            />
+                          </div>
+                       </div>
+                       <div className="space-y-2 group">
+                          <label className="text-[10px] font-chakra font-black text-white/40 uppercase tracking-widest ml-1 group-focus-within:text-orange-500 transition-colors">Draw</label>
+                          <div className="bg-[#1C2032] border border-white/5 rounded-2xl h-14 flex items-center justify-center focus-within:border-orange-500/50 transition-all">
+                            <input 
+                              type="number" 
+                              value={rules.drawPoints} 
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setRules({ ...rules, drawPoints: e.target.value === '' ? '' : parseInt(e.target.value) || 0 } as any)}
+                              className="bg-transparent border-none outline-none text-white font-chakra font-black text-lg text-center w-full" 
+                            />
+                          </div>
+                       </div>
+                       <div className="space-y-2 group">
+                          <label className="text-[10px] font-chakra font-black text-white/40 uppercase tracking-widest ml-1 group-focus-within:text-orange-500 transition-colors">Loss</label>
+                          <div className="bg-[#1C2032] border border-white/5 rounded-2xl h-14 flex items-center justify-center focus-within:border-orange-500/50 transition-all">
+                            <input 
+                              type="number" 
+                              value={rules.lossPoints} 
+                              onFocus={(e) => e.target.select()}
+                              onChange={(e) => setRules({ ...rules, lossPoints: e.target.value === '' ? '' : parseInt(e.target.value) || 0 } as any)}
+                              className="bg-transparent border-none outline-none text-white font-chakra font-black text-lg text-center w-full" 
+                            />
+                          </div>
+                       </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              <div className="flex items-center gap-6 pt-10 pb-12">
                 <button onClick={prevStep} className="font-chakra font-black text-sm text-white/40 uppercase tracking-widest hover:text-white transition-colors pl-4">Back</button>
                 <button 
                   onClick={nextStep} 
-                  className="flex-1 py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+                  className="flex-1 py-4 rounded-2xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all"
                 >
                     Next
                 </button>

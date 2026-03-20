@@ -21,8 +21,8 @@ type Match = {
 }
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFixtures, createFixture, Fixture } from '@/lib/services/fixture.service'
-import { listCompetitions } from '@/lib/services/competition.service'
+import { listFixtures, createFixture, Fixture, listRounds, Round } from '@/lib/services/fixture.service'
+import { listCompetitions, Competition, listCompetitionTeams, CompetitionTeam } from '@/lib/services/competition.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listTeams } from '@/lib/services/team.service' // Added listTeams import
 import { useAuthStore } from '@/store/authStore'
@@ -36,6 +36,8 @@ export default function SchedulePage() {
   const [showScheduleForm, setShowScheduleForm] = useState(false)
 
   // Schedule form state
+  const [formCompetitionId, setFormCompetitionId] = useState('')
+  const [formRoundId, setFormRoundId] = useState('')
   const [formHomeTeamId, setFormHomeTeamId] = useState('')
   const [formAwayTeamId, setFormAwayTeamId] = useState('')
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10))
@@ -49,7 +51,7 @@ export default function SchedulePage() {
   })
 
   const orgId = orgs?.[0]?._id
-
+  
   // 2. Fetch Competitions
   const { data: competitions, isLoading: isLoadingComps } = useQuery({
     queryKey: ['competitions', orgId],
@@ -57,11 +59,30 @@ export default function SchedulePage() {
     enabled: !!orgId
   })
 
-  const competitionId = competitions?.[0]?._id
+  const competitionId = formCompetitionId || (competitions?.[0]?._id as string)
+  
+  // 3. Fetch Rounds (for selection)
+  const { data: rounds } = useQuery({
+    queryKey: ['rounds', formCompetitionId],
+    queryFn: () => listRounds(formCompetitionId!),
+    enabled: !!formCompetitionId
+  })
+
+  useEffect(() => {
+    if (competitions?.length && !formCompetitionId) {
+       setFormCompetitionId(competitions[0]._id)
+    }
+  }, [competitions, formCompetitionId])
+
+  useEffect(() => {
+    if (rounds?.length && !formRoundId) {
+       setFormRoundId(rounds[0]._id)
+    }
+  }, [rounds, formRoundId])
 
   // Mutate: Create Fixture
   const createFixtureMutation = useMutation({
-    mutationFn: (payload: any) => createFixture(competitionId!, payload),
+    mutationFn: (payload: any) => createFixture(payload.competitionId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['fixtures', competitionId] })
       addToast('Game scheduled successfully!', 'success')
@@ -81,11 +102,11 @@ export default function SchedulePage() {
     enabled: !!competitionId
   })
 
-  // 4. Fetch Teams (for dropdowns)
+  // 4. Fetch Teams (specifically for the selected tournament)
   const { data: teams } = useQuery({
-    queryKey: ['teams', orgId],
-    queryFn: () => listTeams(orgId!),
-    enabled: !!orgId
+    queryKey: ['competition-teams', formCompetitionId],
+    queryFn: () => listCompetitionTeams(formCompetitionId!),
+    enabled: !!formCompetitionId
   })
 
   // Format mapping
@@ -99,7 +120,7 @@ export default function SchedulePage() {
       teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
       time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
-      round: (f.roundId as any)?.name || 'Round 4',
+      round: (f.roundId as any)?.name || 'General Schedule',
       isLive: f.status === 'live' || f.status === 'halftime'
     })) || []
 
@@ -113,7 +134,7 @@ export default function SchedulePage() {
       teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
       time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short' }),
-      round: (f.roundId as any)?.name || 'Round 1',
+      round: (f.roundId as any)?.name || 'General Schedule',
       score: `${f.score.home}:${f.score.away}`,
       isLive: false
     })) || []
@@ -132,15 +153,31 @@ export default function SchedulePage() {
     <div className="min-h-screen bg-[#181928] pb-32 flex flex-col pt-12 overflow-x-hidden relative">
       {/* Header */}
       {!showScheduleForm && (
-        <div className="flex items-center justify-between px-6 mb-8 shrink-0">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => addToast('Menu coming soon', 'info')}
-              className="text-white/60"
+        <div className="flex flex-col gap-4 px-6 mb-8 shrink-0">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => addToast('Menu coming soon', 'info')}
+                className="text-white/60"
+              >
+                <Menu size={24} />
+              </button>
+              <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Your Schedule</h1>
+            </div>
+          </div>
+          
+          <div className="relative group/select">
+            <select
+              value={competitionId}
+              onChange={(e) => setFormCompetitionId(e.target.value)}
+              className="w-full h-12 bg-[#1E2032] border border-white/5 rounded-xl px-4 text-white text-[13px] font-chakra font-black uppercase tracking-widest focus:outline-none appearance-none cursor-pointer transition-all hover:border-[#FF4D00]/30"
             >
-              <Menu size={24} />
-            </button>
-            <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Your Schedule</h1>
+              <option value="">Select Tournament</option>
+              {competitions?.map((c: Competition) => (
+                <option key={c._id} value={c._id}>{c.name}</option>
+              ))}
+            </select>
+            <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none group-hover/select:text-[#FF4D00]/50 transition-colors" />
           </div>
         </div>
       )}
@@ -186,6 +223,46 @@ export default function SchedulePage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Tournament</label>
+                <div className="relative">
+                  <select
+                    value={formCompetitionId}
+                    onChange={(e) => {
+                      setFormCompetitionId(e.target.value)
+                      setFormRoundId('')
+                      setFormHomeTeamId('')
+                      setFormAwayTeamId('')
+                    }}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
+                  >
+                    <option value="">Select Tournament</option>
+                    {competitions?.map((c: Competition) => (
+                      <option key={c._id} value={c._id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Round</label>
+                <div className="relative">
+                  <select
+                    value={formRoundId}
+                    onChange={(e) => setFormRoundId(e.target.value)}
+                    className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
+                  >
+                    <option value="">Select Round</option>
+                    {rounds?.map((r: Round) => (
+                      <option key={r._id} value={r._id}>{r.name}</option>
+                    ))}
+                    {!rounds?.length && <option value="" disabled>No rounds defined for this tournament</option>}
+                  </select>
+                  <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Home Team</label>
                 <div className="relative">
                   <select
@@ -194,8 +271,8 @@ export default function SchedulePage() {
                     className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
                   >
                     <option value="">Select Home Team</option>
-                    {teams?.map(t => (
-                      <option key={t._id} value={t._id}>{t.name}</option>
+                    {teams?.map((t: CompetitionTeam) => (
+                      <option key={t.teamId} value={t.teamId}>{t.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -211,8 +288,8 @@ export default function SchedulePage() {
                     className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
                   >
                     <option value="">Select Away Team</option>
-                    {teams?.map(t => (
-                      <option key={t._id} value={t._id} disabled={t._id === formHomeTeamId}>{t.name}</option>
+                    {teams?.map((t: CompetitionTeam) => (
+                      <option key={t.teamId} value={t.teamId} disabled={t.teamId === formHomeTeamId}>{t.name}</option>
                     ))}
                   </select>
                   <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -234,15 +311,19 @@ export default function SchedulePage() {
                       addToast('Home and away teams must be different', 'error')
                       return
                     }
-                    const kickoffAt = new Date(`${formDate}T${formTime}`).toISOString()
-                    createFixtureMutation.mutate({
-                      competitionId,
+                    const round = rounds?.find(r => r._id === formRoundId)
+                    const payload = {
+                      competitionId: formCompetitionId,
                       homeTeamId: formHomeTeamId,
                       awayTeamId: formAwayTeamId,
-                      kickoffAt,
-                      stageType: 'groups',
+                      kickoffAt: new Date(`${formDate}T${formTime}`).toISOString(),
+                      roundId: formRoundId || undefined,
+                      stageType: round?.stageType || 'groups',
                       venue: 'Main Stadium',
-                    })
+                    }
+
+                    console.log('SUBMITTING FIXTURE:', payload)
+                    createFixtureMutation.mutate(payload)
                   }}
                   loading={createFixtureMutation.isPending}
                   className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
