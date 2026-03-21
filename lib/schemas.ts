@@ -74,6 +74,7 @@ export const createOrgSchema = z.object({
   email: z.string().email('Must be a valid email').optional().or(z.literal('')),
   website: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   logoUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  sports: z.array(z.string()).optional(),
 })
 
 export type CreateOrgFormData = z.infer<typeof createOrgSchema>
@@ -110,7 +111,7 @@ export const organizationSignUpSchema = z
       .string()
       .optional()
       .or(z.literal('')),
-    sport: z.string({ required_error: 'Sport is required' }).min(1, 'Sport is required'),
+    sports: z.array(z.string()).min(1, 'Select at least one sport'),
     description: z.string().max(500, 'Description must be at most 500 characters').optional(),
   })
   .refine((data) => !data.password || !data.confirmPassword || data.password === data.confirmPassword, {

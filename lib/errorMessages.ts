@@ -33,6 +33,9 @@ const ERROR_MAP: Record<string, string> = {
   NOT_FOUND:             'The requested item could not be found.',
   FORBIDDEN:             "You don't have permission to do that.",
   CONFLICT:              'This item already exists.',
+  JERSEY_TAKEN:          'This jersey number is already taken in the team.',
+  TEAM_FULL:             'This team has reached its maximum player capacity.',
+  PLAYER_ALREADY_ON_TEAM: 'This player is already a member of the team.',
 
   // ── Network / Server ────────────────────────────────────────────────────
   INTERNAL_ERROR:        'Something went wrong on our end. Please try again.',

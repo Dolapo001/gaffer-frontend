@@ -25,6 +25,10 @@ export interface Fixture {
   score: { home: number; away: number }
   startedAt?: string
   completedAt?: string
+  homeFormation?: string
+  awayFormation?: string
+  homeLineup?: Record<string, any>
+  awayLineup?: Record<string, any>
 }
 
 export interface FixtureEvent {
@@ -33,8 +37,11 @@ export interface FixtureEvent {
   type: string
   minute: number
   teamId: string | { name: string; shortName?: string }
-  playerId?: string | { firstName: string; lastName: string; jerseyNumber?: number; position?: string }
-  relatedPlayerId?: string
+  playerId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
+  assistPlayerId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
+  playerInId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
+  playerOutId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
+  commentaryText?: string
   notes?: string
   createdAt: string
 }
@@ -131,7 +138,7 @@ export async function getFixture(fixtureId: string): Promise<Fixture> {
 // PATCH /fixtures/:fixtureId
 export async function updateFixture(
   fixtureId: string,
-  payload: { roundId?: string; kickoffAt?: string; venue?: string; status?: string },
+  payload: Partial<Fixture> & { roundId?: string; kickoffAt?: string; venue?: string; status?: string },
 ): Promise<Fixture> {
   const data = await api.patch<{ fixture: Fixture }>(`/fixtures/${fixtureId}`, payload)
   return data.fixture
@@ -163,6 +170,10 @@ export async function recordEvent(
     teamId: string
     playerId?: string
     relatedPlayerId?: string
+    assistPlayerId?: string
+    playerInId?: string
+    playerOutId?: string
+    commentaryText?: string
     notes?: string
   },
 ): Promise<FixtureEvent> {

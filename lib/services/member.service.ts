@@ -48,6 +48,12 @@ export async function revokeInvite(orgId: string, inviteId: string): Promise<voi
   await api.delete(`/orgs/${orgId}/invites/${inviteId}`)
 }
 
+// POST /orgs/:orgId/invites/:inviteId/resend
+export async function resendInvite(orgId: string, inviteId: string): Promise<OrgInvite> {
+  const data = await api.post<{ invite: OrgInvite }>(`/orgs/${orgId}/invites/${inviteId}/resend`)
+  return data.invite
+}
+
 // PATCH /orgs/:orgId/members/:userId
 export async function updateMemberRole(
   orgId: string,

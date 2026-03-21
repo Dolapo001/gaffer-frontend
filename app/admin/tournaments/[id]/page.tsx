@@ -8,11 +8,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
   BarChart2, Trash2, Star, Pencil, Check, LayoutGrid, Plus, Copy,
-  RefreshCw, Settings
+  RefreshCw, Settings, Share2
 } from 'lucide-react'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
-import { getCompetition, archiveCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
+import { getCompetition, archiveCompetition, publishCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
 import { api } from '@/lib/api'
 import { listTeams } from '@/lib/services/team.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
@@ -144,6 +144,16 @@ export default function TournamentDetailPage() {
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
+  const publishMutation = useMutation({
+    mutationFn: () => publishCompetition(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['competition', id] })
+      toast.addToast('Tournament published successfully!', 'success')
+      router.push(`/admin/tournaments/${id}/success`)
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
   const handleFinalizePricing = async () => {
     const teams = (teamPricingData as { teams?: { id: string }[] } | null)?.teams ?? []
     setPricingStatus('loading')
@@ -264,30 +274,53 @@ export default function TournamentDetailPage() {
                         <h1 className="text-2xl font-display font-black text-white uppercase tracking-tight leading-tight truncate">
                           {competition.name}
                         </h1>
-                        <div className="flex items-center gap-3 mt-4">
-                          <button 
-                            onClick={() => setShowEdit(true)}
-                            className="flex items-center gap-2 px-4 py-2 bg-gaffer-orange text-white rounded-xl text-[10px] font-chakra font-black uppercase tracking-widest hover:scale-105 transition-all shadow-lg shadow-gaffer-orange/20"
-                          >
-                            <Pencil size={12} />
-                            Edit Tournament
-                          </button>
-                          <button 
-                            onClick={() => {
-                              if (confirm('Recalculate all stats and standings? This may take a moment.')) {
-                                api.post(`/tournaments/${id}/rebuild`, {}).then(() => {
-                                  toast.addToast('Tournament stats rebuilt successfully', 'success')
-                                  qc.invalidateQueries({ queryKey: ['standings', id] })
-                                }).catch(err => toast.addToast(getErrorMessage(err), 'error'))
-                              }
-                            }}
-                            className="flex items-center gap-2 px-4 py-2 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-[10px] font-chakra font-black uppercase tracking-widest transition-all"
-                          >
-                            <RefreshCw size={12} className="text-gaffer-orange" />
-                            Recalculate Stats
-                          </button>
-                        </div>
                       </div>
+                    </div>
+                    
+                    {/* Buttons Row */}
+                    <div className="relative z-10 grid grid-cols-2 gap-3 mt-5">
+                      {competition.status === 'draft' && (
+                        <button 
+                          onClick={() => {
+                            if (confirm('Are you ready to publish this tournament? This will make it publicly visible.')) {
+                              publishMutation.mutate()
+                            }
+                          }}
+                          disabled={publishMutation.isPending}
+                          className="col-span-2 flex items-center justify-center gap-1.5 px-3 py-4 bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white rounded-2xl text-[11px] font-chakra font-black uppercase tracking-[0.2em] hover:scale-[1.01] transition-all shadow-[0_10px_30px_rgba(231,0,11,0.3)] active:scale-[0.98] mb-1"
+                        >
+                          {publishMutation.isPending ? (
+                            <RefreshCw size={14} className="animate-spin" />
+                          ) : (
+                            <>
+                              <Check size={14} className="shrink-0" />
+                              <span>Publish Tournament</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => setShowEdit(true)}
+                        className="flex items-center justify-center gap-1.5 px-3 py-3 bg-gaffer-orange text-white rounded-xl text-[9px] font-chakra font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(255,107,0,0.2)]"
+                      >
+                        <Pencil size={12} className="shrink-0" />
+                        <span className="truncate">Edit Tourney</span>
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm('Recalculate all stats and standings? This may take a moment.')) {
+                            api.post(`/tournaments/${id}/rebuild`, {}).then(() => {
+                              toast.addToast('Tournament stats rebuilt successfully', 'success')
+                              qc.invalidateQueries({ queryKey: ['standings', id] })
+                            }).catch(err => toast.addToast(getErrorMessage(err), 'error'))
+                          }
+                        }}
+                        className="flex items-center justify-center gap-1.5 px-3 py-3 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-xl text-[9px] font-chakra font-black uppercase tracking-widest transition-all hover:bg-white/10"
+                      >
+                        <RefreshCw size={12} className="text-gaffer-orange shrink-0" />
+                        <span className="truncate">Recalculate</span>
+                      </button>
                     </div>
                   </div>
 
@@ -319,22 +352,85 @@ export default function TournamentDetailPage() {
                   </div>
                 </div>
 
-                {/* ── ROSTER LIST ── */}
+                  {/* ── SHARE INFO (If Published) ── */}
+                  {competition.status !== 'draft' && (
+                    <motion.div 
+                      key="share-section"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="bg-gaffer-card border border-gaffer-border rounded-[24px] p-6 space-y-4 shadow-xl"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <Share2 size={14} className="text-gaffer-orange" />
+                        <h3 className="font-display font-black text-[10px] text-white uppercase tracking-[0.2em] opacity-80">Share & Invite</h3>
+                      </div>
+
+                      <div className="grid gap-3">
+                        {/* Public Link */}
+                        <div className="group relative">
+                          <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mb-1.5 ml-1 opacity-50">Tournament Page Link</label>
+                          <div className="flex items-center gap-2 bg-gaffer-surface border border-gaffer-border rounded-xl px-4 py-3 group-hover:border-gaffer-orange/30 transition-all">
+                            <p className="text-[11px] text-white/70 font-medium truncate flex-1 font-body">
+                              {typeof window !== 'undefined' ? `${window.location.origin}/${slugify(competition.name)}` : `/${slugify(competition.name)}`}
+                            </p>
+                            <button 
+                              onClick={() => {
+                                const url = typeof window !== 'undefined' ? `${window.location.origin}/${slugify(competition.name)}` : `/${slugify(competition.name)}`
+                                navigator.clipboard.writeText(url)
+                                toast.addToast('Link copied!', 'success')
+                              }}
+                              className="w-8 h-8 rounded-lg bg-gaffer-orange/10 hover:bg-gaffer-orange/20 flex items-center justify-center text-gaffer-orange border border-gaffer-orange/20 transition-all active:scale-95"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Join Code */}
+                        <div className="group relative">
+                          <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mb-1.5 ml-1 opacity-50">Invitation Code</label>
+                          <div className="flex items-center gap-2 bg-gaffer-surface border border-gaffer-border rounded-xl px-4 py-3 group-hover:border-gaffer-orange/30 transition-all">
+                            <p className={`text-lg font-chakra font-black tracking-[0.25em] flex-1 ${competition.joinCode ? 'text-white' : 'text-white/20'}`}>
+                              {competition.joinCode || 'PENDING'}
+                            </p>
+                            <button 
+                              onClick={() => {
+                                if (competition.joinCode) {
+                                  navigator.clipboard.writeText(competition.joinCode)
+                                  toast.addToast('Code copied!', 'success')
+                                } else {
+                                  toast.addToast('No code available until tournament is public.', 'info')
+                                }
+                              }}
+                              className="w-8 h-8 rounded-lg bg-gaffer-orange/10 hover:bg-gaffer-orange/20 flex items-center justify-center text-gaffer-orange border border-gaffer-orange/20 transition-all active:scale-95"
+                            >
+                              <Copy size={12} />
+                            </button>
+                          </div>
+                          {!competition.joinCode && competition.status === 'published' && (
+                            <p className="text-[9px] text-gaffer-orange/60 font-medium mt-1 ml-1 italic">Publish action failed to generate code. Contact support.</p>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {/* ── ROSTER LIST ── */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between px-2">
-                    <h3 className="font-display font-black text-xs text-gaffer-subtle uppercase tracking-widest">
+                  <div className="flex items-center justify-between px-2 mb-4">
+                    <h3 className="font-display font-black text-[11px] text-gaffer-subtle uppercase tracking-widest">
                       Tournament Roster
                     </h3>
                     <div className="flex items-center gap-2">
                       <button 
                         onClick={() => setShowEnrollModal(true)}
-                        className="text-[10px] font-display font-black text-gaffer-orange bg-gaffer-orange/10 px-3 py-1 rounded-full border border-gaffer-orange/20 uppercase hover:bg-gaffer-orange/20 transition-all"
+                        className="text-[9px] font-display font-black text-gaffer-orange bg-gaffer-orange/10 px-3 py-1.5 rounded-full border border-gaffer-orange/20 uppercase hover:bg-gaffer-orange/20 transition-all active:scale-95"
                       >
                         Enroll Existing Team
                       </button>
-                      <span className="text-[10px] font-body font-black text-white bg-white/5 px-2 py-0.5 rounded-full border border-white/10 uppercase">
+                      <div className="text-[9px] font-body font-black text-white/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 uppercase tracking-tighter">
                         {compTeams?.length || 0} teams
-                      </span>
+                      </div>
                     </div>
                   </div>
 
@@ -363,14 +459,14 @@ export default function TournamentDetailPage() {
                               </p>
                               <p className="text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mt-1 opacity-60">Players</p>
                             </div>
-                            <button
+                             <button
                               onClick={(e) => {
                                 e.stopPropagation()
-                                const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                                const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
                                 const compName = slugify(competition?.name || 'tournament')
-                                const groupName = slugify(tm.groupName || 'unassigned')
+                                const groupName = tm.groupName && tm.groupName !== 'unassigned' ? slugify(tm.groupName) : null
                                 const teamHandle = tm.handle || tm.teamId
-                                const link = `${baseUrl}/${compName}/${groupName}/${teamHandle}`
+                                const link = groupName ? `${baseUrl}/${compName}/${groupName}/${teamHandle}` : `${baseUrl}/${compName}/${teamHandle}`
                                 navigator.clipboard.writeText(link)
                                 toast.addToast(`Recruitment link for ${tm.name} copied!`, 'success')
                               }}

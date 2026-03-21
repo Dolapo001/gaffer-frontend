@@ -123,12 +123,32 @@ export async function removePlayer(teamId: string, playerId: string): Promise<{ 
   return api.delete<{ message: string }>(`/teams/${teamId}/players/${playerId}`)
 }
 
+// POST /teams/:teamId/players/:playerId/photo  (multipart)
+export async function uploadPlayerPhoto(
+  teamId: string,
+  playerId: string,
+  file: File,
+): Promise<{ photoUrl: string; photoPublicId: string }> {
+  const form = new FormData()
+  form.append('photo', file)
+  const data = await api.post<{ player: any }>(
+    `/teams/${teamId}/players/${playerId}/photo`,
+    form,
+  )
+  return { photoUrl: data.player.photoUrl, photoPublicId: data.player.photoPublicId }
+}
+
 // POST /teams/:teamId/player-invites
 export async function createPlayerInvite(
   teamId: string,
   email: string,
-): Promise<{ invite: { email: string; expiresAt: string; inviteLink: string } }> {
-  return api.post(`/teams/${teamId}/player-invites`, { email })
+): Promise<{ email: string; expiresAt: string; inviteLink: string }> {
+  // Backend returns { message, invite: { email, expiresAt, inviteLink } }
+  const data = await api.post<{ invite: { email: string; expiresAt: string; inviteLink: string } }>(
+    `/teams/${teamId}/player-invites`,
+    { email },
+  )
+  return data.invite
 }
 
 // GET /teams/:teamId/player-invites
@@ -174,4 +194,15 @@ export async function getPublicTeamByHandle(handle: string): Promise<Team> {
 // POST /public/teams/:teamHandle/register
 export async function registerPublicPlayer(handle: string, payload: AddPlayerPayload): Promise<{ message: string; player: Player }> {
   return api.post(`/public/teams/${handle}/register`, payload, { public: true })
+}
+
+// POST /public/teams/:teamHandle/players/:playerId/photo  (multipart, no auth)
+export async function uploadPublicPlayerPhoto(
+  teamHandle: string,
+  playerId: string,
+  file: File,
+): Promise<void> {
+  const form = new FormData()
+  form.append('photo', file)
+  await api.post(`/public/teams/${teamHandle}/players/${playerId}/photo`, form, { public: true })
 }

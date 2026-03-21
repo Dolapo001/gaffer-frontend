@@ -6,10 +6,16 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, X, Users, Search, ChevronDown } from 'lucide-react'
+import {
+  Plus, X, Users, Search, ChevronDown, Mail, Link2,
+  Copy, Check, Clock, RefreshCw, Trash2,
+} from 'lucide-react'
 import { listOrgs } from '@/lib/services/org.service'
 import { listTeams, type Team } from '@/lib/services/team.service'
-import { listPlayers, addPlayer, removePlayer, type Player } from '@/lib/services/team.service'
+import {
+  listPlayers, addPlayer, removePlayer, createPlayerInvite,
+  listPlayerInvites, revokePlayerInvite, type Player, type PlayerInvite,
+} from '@/lib/services/team.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -25,13 +31,28 @@ type AddFormData = z.infer<typeof addSchema>
 
 const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
 
+function timeUntil(iso: string) {
+  const diff = new Date(iso).getTime() - Date.now()
+  if (diff <= 0) return 'Expired'
+  const d = Math.floor(diff / 86400000)
+  if (d > 0) return `${d}d left`
+  const h = Math.floor(diff / 3600000)
+  return `${h}h left`
+}
+
+type SheetMode = 'add' | 'invite' | null
+
 export default function PlayersPage() {
   const qc = useQueryClient()
   const toast = useToastStore()
-  const [showAdd, setShowAdd] = useState(false)
+  const [sheetMode, setSheetMode] = useState<SheetMode>(null)
   const [query, setQuery] = useState('')
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [removeTarget, setRemoveTarget] = useState<Player | null>(null)
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null)
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [revokeTarget, setRevokeTarget] = useState<string | null>(null)
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
@@ -47,6 +68,12 @@ export default function PlayersPage() {
   const { data: players, isLoading } = useQuery({
     queryKey: ['players', activeTeamId],
     queryFn: () => listPlayers(activeTeamId!),
+    enabled: !!activeTeamId,
+  })
+
+  const { data: pendingInvites } = useQuery({
+    queryKey: ['player-invites', activeTeamId],
+    queryFn: () => listPlayerInvites(activeTeamId!),
     enabled: !!activeTeamId,
   })
 
@@ -67,7 +94,7 @@ export default function PlayersPage() {
       qc.invalidateQueries({ queryKey: ['players', activeTeamId] })
       toast.addToast('Player added', 'success')
       reset()
-      setShowAdd(false)
+      setSheetMode(null)
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
@@ -82,12 +109,41 @@ export default function PlayersPage() {
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
+  const inviteMutation = useMutation({
+    mutationFn: (email: string) => createPlayerInvite(activeTeamId!, email),
+    onSuccess: (data) => {
+      qc.invalidateQueries({ queryKey: ['player-invites', activeTeamId] })
+      if (data?.inviteLink) setGeneratedLink(data.inviteLink)
+      toast.addToast('Invite created! Email sent.', 'success')
+      setInviteEmail('')
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const revokeMutation = useMutation({
+    mutationFn: (inviteId: string) => revokePlayerInvite(inviteId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['player-invites', activeTeamId] })
+      toast.addToast('Invite revoked', 'info')
+      setRevokeTarget(null)
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const copyLink = (link: string) => {
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2000)
+    })
+  }
+
   const filtered = (players ?? []).filter((p) =>
     `${p.firstName} ${p.lastName}`.toLowerCase().includes(query.toLowerCase()) ||
     (p.position ?? '').toLowerCase().includes(query.toLowerCase())
   )
 
   const activeTeam = teams?.find((t: Team) => t._id === activeTeamId)
+  const pendingCount = pendingInvites?.filter(i => i.status === 'pending').length ?? 0
 
   return (
     <div className="min-h-screen bg-gaffer-bg">
@@ -96,16 +152,31 @@ export default function PlayersPage() {
         <div className="flex items-center justify-between px-4 pt-12 pb-3">
           <div>
             <h1 className="font-display font-bold text-xl text-white">Players</h1>
-            <p className="text-gaffer-muted text-xs font-body mt-0.5">{players?.length ?? 0} registered</p>
+            <p className="text-gaffer-muted text-xs font-body mt-0.5">
+              {players?.length ?? 0} registered
+              {pendingCount > 0 && <span className="ml-2 text-gaffer-orange">{pendingCount} invite{pendingCount > 1 ? 's' : ''} pending</span>}
+            </p>
           </div>
-          <button
-            onClick={() => setShowAdd(true)}
-            disabled={!activeTeamId}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow disabled:opacity-40"
-          >
-            <Plus size={16} />
-            Add
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Invite button */}
+            <button
+              onClick={() => { setSheetMode('invite'); setGeneratedLink(null) }}
+              disabled={!activeTeamId}
+              title="Invite via link"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-gaffer-border text-white/60 font-display font-bold text-sm disabled:opacity-40"
+            >
+              <Link2 size={15} />
+            </button>
+            {/* Add button */}
+            <button
+              onClick={() => setSheetMode('add')}
+              disabled={!activeTeamId}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow disabled:opacity-40"
+            >
+              <Plus size={16} />
+              Add
+            </button>
+          </div>
         </div>
 
         {/* Team selector */}
@@ -140,6 +211,45 @@ export default function PlayersPage() {
           />
         </div>
 
+        {/* Pending Invites list */}
+        {(pendingInvites ?? []).filter(i => i.status === 'pending').length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[11px] font-body font-bold text-gaffer-muted uppercase tracking-widest px-1 flex items-center gap-1.5">
+              <Clock size={12} className="text-gaffer-orange" />
+              Pending Invites
+            </p>
+            {pendingInvites!.filter(i => i.status === 'pending').map((inv) => (
+              <motion.div
+                key={inv._id}
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 bg-gaffer-card/60 border border-dashed border-gaffer-border rounded-xl px-4 py-3"
+              >
+                <div className="w-9 h-9 rounded-full bg-gaffer-orange/10 flex items-center justify-center text-gaffer-orange flex-shrink-0">
+                  <Mail size={16} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-white/70 font-body font-medium text-sm truncate">{inv.email}</p>
+                  <p className="text-gaffer-muted text-xs font-body">{timeUntil(inv.expiresAt)}</p>
+                </div>
+                <button
+                  onClick={() => copyLink(inv.inviteLink)}
+                  title="Copy invite link"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-white transition-colors"
+                >
+                  <Copy size={14} />
+                </button>
+                <button
+                  onClick={() => setRevokeTarget(inv._id)}
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-red-400 transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        )}
+
         {/* Player list */}
         {!activeTeamId ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -162,13 +272,18 @@ export default function PlayersPage() {
             <div className="text-center">
               <p className="text-white font-body font-medium">{query ? 'No players found' : 'No players yet'}</p>
               <p className="text-gaffer-muted text-sm font-body mt-1">
-                {query ? 'Try a different search' : `Add players to ${activeTeam?.name ?? 'the roster'}`}
+                {query ? 'Try a different search' : `Add or invite players to ${activeTeam?.name ?? 'the roster'}`}
               </p>
             </div>
             {!query && (
-              <button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-6 py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow">
-                <Plus size={16} />Add Player
-              </button>
+              <div className="flex gap-3">
+                <button onClick={() => setSheetMode('add')} className="flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow">
+                  <Plus size={16} />Add
+                </button>
+                <button onClick={() => { setSheetMode('invite'); setGeneratedLink(null) }} className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white/70 font-display font-bold text-sm">
+                  <Link2 size={16} />Invite
+                </button>
+              </div>
             )}
           </div>
         ) : (
@@ -211,12 +326,12 @@ export default function PlayersPage() {
         )}
       </div>
 
-      {/* Add Player Sheet */}
+      {/* ─── Add Player Sheet ─── */}
       <AnimatePresence>
-        {showAdd && (
+        {sheetMode === 'add' && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={() => setShowAdd(false)} />
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40" onClick={() => setSheetMode(null)} />
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               className="fixed inset-x-0 bottom-0 z-50 bg-gaffer-surface border-t border-gaffer-border rounded-t-3xl">
@@ -225,7 +340,7 @@ export default function PlayersPage() {
               </div>
               <div className="flex items-center justify-between px-5 py-3 border-b border-gaffer-border">
                 <h2 className="font-display font-bold text-white text-lg">Add Player</h2>
-                <button onClick={() => setShowAdd(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-gaffer-muted hover:text-white transition-colors">
+                <button onClick={() => setSheetMode(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-gaffer-muted hover:text-white transition-colors">
                   <X size={16} />
                 </button>
               </div>
@@ -281,6 +396,84 @@ export default function PlayersPage() {
         )}
       </AnimatePresence>
 
+      {/* ─── Invite Player Sheet ─── */}
+      <AnimatePresence>
+        {sheetMode === 'invite' && (
+          <>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-40"
+              onClick={() => { setSheetMode(null); setGeneratedLink(null) }} />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              className="fixed inset-x-0 bottom-0 z-50 bg-gaffer-surface border-t border-gaffer-border rounded-t-3xl">
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="w-10 h-1 rounded-full bg-gaffer-border" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-gaffer-border">
+                <div>
+                  <h2 className="font-display font-bold text-white text-lg">Invite Player</h2>
+                  <p className="text-gaffer-muted text-xs font-body">A magic link will be emailed to the player</p>
+                </div>
+                <button onClick={() => { setSheetMode(null); setGeneratedLink(null) }}
+                  className="w-8 h-8 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-gaffer-muted hover:text-white transition-colors">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="px-5 py-5 pb-10 space-y-5">
+                {/* Generated link display */}
+                <AnimatePresence>
+                  {generatedLink && (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.97 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="bg-green-500/10 border border-green-500/20 rounded-2xl p-4 space-y-3"
+                    >
+                      <p className="text-green-400 font-body font-bold text-sm flex items-center gap-2">
+                        <Check size={16} /> Invite created! Email sent to player.
+                      </p>
+                      <div className="flex items-center gap-2 bg-black/20 rounded-xl p-3">
+                        <p className="text-white/50 text-xs font-mono flex-1 truncate">{generatedLink}</p>
+                        <button
+                          onClick={() => copyLink(generatedLink)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gaffer-orange/10 border border-gaffer-orange/20 text-gaffer-orange text-xs font-bold transition-colors hover:bg-gaffer-orange/20"
+                        >
+                          {linkCopied ? <><Check size={12} /> Copied!</> : <><Copy size={12} /> Copy Link</>}
+                        </button>
+                      </div>
+                      <p className="text-white/30 text-[11px] font-body">Share this link with the player — expires in 7 days</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="space-y-2">
+                  <label className="block text-xs font-body font-medium text-white/80">Player Email</label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="player@example.com"
+                    className="w-full px-4 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+                  />
+                </div>
+
+                <button
+                  onClick={() => inviteMutation.mutate(inviteEmail)}
+                  disabled={!inviteEmail || inviteMutation.isPending}
+                  className="w-full py-4 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow disabled:opacity-60 flex items-center justify-center gap-2"
+                >
+                  {inviteMutation.isPending
+                    ? <><RefreshCw size={16} className="animate-spin" />Sending…</>
+                    : <><Mail size={16} />Send Invite Link</>
+                  }
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <ConfirmDialog
         open={!!removeTarget}
         title="Remove Player?"
@@ -289,6 +482,16 @@ export default function PlayersPage() {
         destructive
         onConfirm={() => removeTarget && removeMutation.mutate(removeTarget._id)}
         onCancel={() => setRemoveTarget(null)}
+      />
+
+      <ConfirmDialog
+        open={!!revokeTarget}
+        title="Revoke Invite?"
+        message="This invite link will no longer work."
+        confirmLabel="Revoke"
+        destructive
+        onConfirm={() => revokeTarget && revokeMutation.mutate(revokeTarget)}
+        onCancel={() => setRevokeTarget(null)}
       />
     </div>
   )

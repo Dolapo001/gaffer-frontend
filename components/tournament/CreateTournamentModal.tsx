@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   ChevronLeft, Trash2, Plus, Trophy, LayoutGrid, 
@@ -44,7 +44,8 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
 
   // Need OrgId
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
-  const orgId = orgs?.[0]?._id
+  const org = orgs?.[0]
+  const orgId = org?._id
 
   const [step, setStep] = useState(0)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -74,6 +75,12 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     structure: 'single'
   })
   const [addedFormats, setAddedFormats] = useState<any[]>([])
+
+  useEffect(() => {
+    if (org?.sports && org.sports.length > 0) {
+      setDetails(prev => ({ ...prev, sport: (org.sports as string[])[0] }))
+    }
+  }, [org])
 
   // Mutation
   const createMutation = useMutation({
@@ -443,9 +450,10 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 <div className="space-y-2 text-start">
                   <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">Sport</label>
                   <div className="relative">
-                    <select value={details.sport} onChange={(e) => setDetails({...details, sport: e.target.value})} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none">
-                      <option>Football</option>
-                      <option>Basketball</option>
+                    <select value={details.sport} onChange={(e) => setDetails({...details, sport: e.target.value})} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none transition-all font-chakra font-bold appearance-none capitalize">
+                      {(org?.sports?.length ? org.sports : ['Football', 'Basketball']).map(s => (
+                        <option key={s} value={s}>{s}</option>
+                      ))}
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
@@ -476,7 +484,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                   </div>
                   <div className="space-y-2 text-start">
                     <label className="text-[11px] font-chakra font-black uppercase tracking-widest text-white/40 ml-1">End Date</label>
-                    <div className={`w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center ${details.endDate <= details.startDate ? 'border-red-500/50' : ''}`}>
+                    <div className={`w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 flex items-center ${details.endDate < details.startDate ? 'border-red-500/50' : ''}`}>
                         <input 
                           type="date" 
                           value={details.endDate} 
@@ -492,13 +500,13 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
               <div className="pt-8 text-center">
                 <button 
                   onClick={nextStep} 
-                  disabled={!details.name.trim() || details.endDate <= details.startDate}
+                  disabled={!details.name.trim() || details.endDate < details.startDate}
                   className="w-full py-4 rounded-2xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
                     Next
                 </button>
-                {details.endDate <= details.startDate && (
-                  <p className="text-[10px] text-red-400 font-chakra font-black uppercase tracking-[0.2em] mt-3 animate-pulse">End Date must be after Start Date</p>
+                {details.endDate < details.startDate && (
+                  <p className="text-[10px] text-red-400 font-chakra font-black uppercase tracking-[0.2em] mt-3 animate-pulse">End Date cannot be before Start Date</p>
                 )}
               </div>
             </motion.div>
@@ -741,8 +749,23 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 <p className="text-sm text-white/50 font-chakra font-bold">Are you sure you want to create this Tournament?</p>
               </div>
               <div className="flex gap-4">
-                <button onClick={() => setShowConfirm(false)} className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-chakra font-black text-sm uppercase hover:bg-white/5 transition-all">Back</button>
-                <button onClick={handleFinalConfirm} className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white font-chakra font-black text-sm uppercase tracking-widest shadow-lg shadow-[#FF8904]/20">Confirm</button>
+                <button 
+                  onClick={() => setShowConfirm(false)} 
+                  disabled={createMutation.isPending}
+                  className="flex-1 h-14 rounded-2xl border border-white/10 text-white font-chakra font-black text-sm uppercase hover:bg-white/5 transition-all disabled:opacity-50"
+                >
+                  Back
+                </button>
+                <button 
+                  onClick={handleFinalConfirm} 
+                  disabled={createMutation.isPending}
+                  className="flex-1 h-14 rounded-2xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white font-chakra font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-[#FF8904]/20 disabled:opacity-50"
+                >
+                  {createMutation.isPending && (
+                    <div className="w-4 h-4 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+                  )}
+                  {createMutation.isPending ? 'Creating...' : 'Confirm'}
+                </button>
               </div>
             </motion.div>
           </div>

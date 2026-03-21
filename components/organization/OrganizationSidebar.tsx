@@ -4,9 +4,11 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { X } from 'lucide-react'
+import { X, LogOut, User, Settings as SettingsIcon, Home } from 'lucide-react'
 import { useToast } from '@/store/toastStore'
 import { AccountUpgradeModal } from '../AccountUpgradeModal'
+import { useQuery } from '@tanstack/react-query'
+import { listOrgs } from '@/lib/services/org.service'
 
 interface OrganizationSidebarProps {
   onClose: () => void
@@ -19,7 +21,16 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
   const { user, setRole, role: currentRole } = useAuthStore()
   const { addToast } = useToast()
 
-  const displayName = user?.fullName || user?.email?.split('@')[0] || 'Gaffer'
+  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
+  const org = orgs?.[0]
+
+  const displayName = currentRole === 'organization' && org?.name 
+      ? org.name 
+      : user?.fullName || user?.email?.split('@')[0] || 'Gaffer'
+
+  const displayImage = currentRole === 'organization' && org?.logoUrl 
+      ? org.logoUrl 
+      : user?.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
 
   const handleRoleSwitch = (role: 'personal' | 'organization') => {
     if (role === currentRole) {
@@ -70,10 +81,10 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
       </button>
 
       {/* Profile Section */}
-      <div className="flex flex-col items-center space-y-4 mt-12 mb-10">
-        <div className="w-24 h-24 rounded-full overflow-hidden border-2 border-white/10 shadow-xl ring-4 ring-black/20">
+      <div className="flex flex-col items-center space-y-4 mt-6 mb-10 cursor-pointer" onClick={() => router.push('/admin/profile')}>
+        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 shadow-xl ring-4 ring-black/20">
           <img 
-            src="https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky" 
+            src={displayImage} 
             className="w-full h-full object-cover" 
             alt={displayName} 
           />
@@ -83,10 +94,35 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
             {displayName}
           </h3>
           <p className="text-[10px] font-chakra font-bold text-[#FF8A00] uppercase tracking-[2px] mt-1 italic">
-             {currentRole === 'organization' ? 'Manager' : 'Personal'}
+             {currentRole === 'organization' ? 'Admin / Manager' : 'Personal Account'}
           </p>
         </div>
       </div>
+
+      {/* Navigation Links */}
+      <nav className="flex flex-col gap-2 mb-10 w-full">
+        <button 
+          onClick={() => { router.push('/admin'); onClose(); }}
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 border border-white/5 hover:border-[#FF8A00]/40 group transition-all"
+        >
+          <Home size={20} className="text-white/40 group-hover:text-[#FF8A00]" />
+          <span className="font-chakra font-bold text-sm text-white/80 group-hover:text-white uppercase tracking-wider">Dashboard</span>
+        </button>
+        <button 
+          onClick={() => { router.push('/admin/profile'); onClose(); }}
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 border border-white/5 hover:border-[#FF8A00]/40 group transition-all"
+        >
+          <User size={20} className="text-white/40 group-hover:text-[#FF8A00]" />
+          <span className="font-chakra font-bold text-sm text-white/80 group-hover:text-white uppercase tracking-wider">My Profile</span>
+        </button>
+        <button 
+          onClick={() => { router.push('/admin/settings'); onClose(); }}
+          className="flex items-center gap-4 px-5 py-4 rounded-2xl bg-white/5 border border-white/5 hover:border-[#FF8A00]/40 group transition-all"
+        >
+          <SettingsIcon size={20} className="text-white/40 group-hover:text-[#FF8A00]" />
+          <span className="font-chakra font-bold text-sm text-white/80 group-hover:text-white uppercase tracking-wider">Settings</span>
+        </button>
+      </nav>
 
       {/* Role Switcher Section */}
       <div className="space-y-4 pt-10 border-t border-white/5">
@@ -118,18 +154,16 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
         </motion.button>
       </div>
 
-      {/* System Spacer */}
-      <div className="flex-1" />
-
-      {/* Optional: Logout button at the very bottom */}
+      {/* Logout button at the very bottom */}
       <button
         onClick={async () => {
             const { logout } = useAuthStore.getState();
             await logout();
             router.push('/auth/login');
         }}
-        className="text-white/20 text-xs font-chakra font-bold uppercase tracking-widest hover:text-red-500 transition-colors pb-4 flex items-center justify-center gap-2"
+        className="text-white/40 hover:text-red-500 font-chakra font-bold text-sm uppercase tracking-widest transition-all py-4 px-5 rounded-2xl border border-white/5 hover:border-red-500/30 flex items-center justify-center gap-3 mt-auto"
       >
+        <LogOut size={18} />
         Sign Out
       </button>
     </motion.aside>

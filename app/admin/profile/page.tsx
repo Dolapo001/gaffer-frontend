@@ -132,7 +132,7 @@ export default function ProfilePage() {
         >
           <ChevronLeft size={18} />
         </button>
-        <h1 className="font-display font-bold text-white text-base flex-1">Profile</h1>
+        <h1 className="font-display font-bold text-white text-base flex-1">Owner Profile</h1>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
@@ -186,7 +186,7 @@ export default function ProfilePage() {
             <h2 className="font-display font-bold text-xl text-white">{displayName}</h2>
             <p className="text-gaffer-muted text-sm font-body mt-1">{email}</p>
             <span className="inline-flex mt-2 text-xs bg-gaffer-orange/10 text-gaffer-orange border border-gaffer-orange/20 px-3 py-1 rounded-full font-body">
-              {role === 'organization' ? 'Organization Account' : 'Personal Account'}
+              {role === 'organization' ? 'Organization Owner Account' : 'Personal Account'}
             </span>
           </>
         )}
@@ -244,7 +244,7 @@ export default function ProfilePage() {
               { icon: AtSign, label: 'Username', value: profile?.username },
               { icon: Mail, label: 'Email', value: email },
               { icon: Phone, label: 'Phone', value: profile?.phone },
-              { icon: Shield, label: 'Account Type', value: role === 'organization' ? 'Organization' : 'Personal' },
+              { icon: Shield, label: 'Account Type', value: role === 'organization' ? 'Organization Owner' : 'Personal' },
             ].map(({ icon: Icon, label, value }, i) => (
               <motion.div
                 key={label}

@@ -158,7 +158,7 @@ export default function AdminSettingsPage() {
             {[
               { label: 'Name', value: org.name },
               { label: 'Handle', value: `@${org.handle}` },
-              { label: 'Sport', value: org.sport },
+              { label: 'Sports', value: org.sports?.join(', ') || '—' },
               { label: 'Status', value: org.lifecycleStatus },
               { label: 'Verified', value: org.verificationStatus },
             ].map(({ label, value }) => (

@@ -21,6 +21,7 @@ export interface Competition {
     structure: 'single' | 'aggregate'
   }
   createdBy: { fullName: string | null; email: string }
+  joinCode?: string
   createdAt: string
   updatedAt: string
 }

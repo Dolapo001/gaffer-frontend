@@ -48,6 +48,7 @@ export default function OrganizationSignupPage() {
     trigger,
     formState: { errors },
     watch,
+    setValue,
   } = useForm<OrganizationSignUpFormData>({
     resolver: zodResolver(organizationSignUpSchema),
     mode: 'onTouched',
@@ -58,7 +59,7 @@ export default function OrganizationSignupPage() {
       handle: '',
       password: '',
       confirmPassword: '',
-      sport: '',
+      sports: [],
       description: '',
     },
   })
@@ -93,7 +94,7 @@ export default function OrganizationSignupPage() {
         name: data.orgName,
         handle: data.handle,
         description: data.description || '',
-        sport: data.sport,
+        sports: data.sports,
         ownerId: finalUser.id,
         userFullName: data.fullName || finalUser.fullName || undefined,
       })
@@ -256,14 +257,47 @@ export default function OrganizationSignupPage() {
                   transition={{ duration: 0.3 }}
                   className="space-y-4"
                 >
-                  <AuthSelect
-                    label="Select Sports"
-                    placeholder="Select your Sports"
-                    options={SPORT_OPTIONS}
-                    className="bg-white/5 border-white/10 rounded-lg h-14"
-                    error={errors.sport}
-                    {...register('sport')}
-                  />
+                  <div className="space-y-2">
+                    <label className="block text-sm font-chakra font-medium text-white/70 pl-1">
+                      Select Sports
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {SPORT_OPTIONS.map((opt) => {
+                        const currentSports = watch('sports') || []
+                        const isSelected = currentSports.includes(opt.value)
+                        
+                        return (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setValue('sports', currentSports.filter(s => s !== opt.value), { shouldValidate: true })
+                              } else {
+                                setValue('sports', [...currentSports, opt.value], { shouldValidate: true })
+                              }
+                            }}
+                            className={`px-4 py-2 rounded-xl font-chakra text-sm transition-all duration-200 border ${
+                              isSelected 
+                                ? 'bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white border-transparent shadow-[0_0_15px_rgba(255,137,4,0.3)]' 
+                                : 'bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:border-white/30'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                    {errors.sports && (
+                      <motion.p
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xs text-red-400 pl-1"
+                      >
+                        {errors.sports.message}
+                      </motion.p>
+                    )}
+                  </div>
 
                   <div className="space-y-2">
                     <label className="block text-sm font-chakra font-medium text-white/70 pl-1">

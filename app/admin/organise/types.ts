@@ -7,6 +7,7 @@ export type Player = {
   isSelected: boolean
   role?: 'player' | 'captain' | 'coach'
   status?: 'active' | 'injured' | 'suspended'
+  jerseyNumber?: string | number
 }
 
 export type Team = {

@@ -12,7 +12,7 @@ import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, listPlayers, updatePlayer, addPlayer, Team as BackendTeam } from '@/lib/services/team.service'
+import { listTeams, createTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listGroups, createGroup, updateGroup, Group as BackendGroup } from '@/lib/services/group.service'
 import { listCompetitions, registerTeams, Competition } from '@/lib/services/competition.service'
@@ -146,7 +146,8 @@ export default function OrganizePage() {
       isSelected: p.squadStatus === 'active',
       role: p.role || 'player',
       status: p.squadStatus === 'removed' ? 'suspended' : (p.squadStatus || 'active'),
-      photo: playerData.photoUrl || playerData.profilePhoto || playerData.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerData._id}`
+      photo: playerData.photoUrl || playerData.profilePhoto || playerData.photo || `https://api.dicebear.com/7.x/avataaars/svg?seed=${playerData._id}`,
+      jerseyNumber: p.jerseyNumber || playerData.jerseyNumber || ''
     }
   }) || []
 
@@ -287,8 +288,20 @@ export default function OrganizePage() {
   })
 
   const addPlayerMutation = useMutation({
-    mutationFn: ({ teamId, data }: { teamId: string, data: any }) => addPlayer(teamId, data),
-    onSuccess: () => {
+    mutationFn: ({ teamId, data }: { teamId: string, data: any }) => {
+      // Strip the local-only _photoFile before sending JSON to the backend
+      const { _photoFile, ...payload } = data
+      return addPlayer(teamId, payload)
+    },
+    onSuccess: async (player, variables) => {
+      // If a photo file was attached, upload it immediately after player creation
+      if (variables.data._photoFile && player?._id && selectedTeam) {
+        try {
+          await uploadPlayerPhoto(selectedTeam.id, player._id, variables.data._photoFile)
+        } catch {
+          // non-fatal — player still created
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
       addToast('Player added to squad!', 'success')
     },
@@ -298,6 +311,12 @@ export default function OrganizePage() {
   const handleManualAddPlayer = (data: any) => {
     if (!selectedTeam) return
     addPlayerMutation.mutate({ teamId: selectedTeam.id, data })
+  }
+
+  const handleUploadPlayerPhoto = async (playerId: string, file: File) => {
+    if (!selectedTeam) return
+    await uploadPlayerPhoto(selectedTeam.id, playerId, file)
+    queryClient.invalidateQueries({ queryKey: ['players', selectedTeam.id] })
   }
 
   const handlePriceChange = (id: string, increment: boolean) => {
@@ -464,7 +483,13 @@ export default function OrganizePage() {
                 onStatusChange={handleStatusChange}
                 onAddToTournament={handleRegisterTeamToTournament}
                 onAddPlayerManual={handleManualAddPlayer}
+                onUploadPlayerPhoto={handleUploadPlayerPhoto}
+                onUpdatePlayer={(playerId: string, payload: any) => {
+                  if (!selectedTeam) return
+                  updatePlayerMutation.mutate({ teamId: selectedTeam.id, playerId, payload })
+                }}
                 orgName={orgs?.[0]?.name}
+                orgLogoUrl={orgs?.[0]?.logoUrl}
               />
             )}
 

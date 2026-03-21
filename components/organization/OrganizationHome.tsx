@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Share2, Trophy as TrophyIcon, Newspaper as NewsIcon } from 'lucide-react'
+import { Menu, Share2, Trophy as TrophyIcon, Newspaper as NewsIcon, Bell, User as UserIcon } from 'lucide-react'
 import { OrganizationSidebar } from './OrganizationSidebar'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 import { listOrgs } from '@/lib/services/org.service'
@@ -75,7 +75,21 @@ export function OrganizationHome() {
             <h1 className="font-chakra font-black text-xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent tracking-widest uppercase">GAFFER</h1>
             <p className="text-[9px] font-chakra font-bold text-white/40 uppercase tracking-[2px]">Admin</p>
         </div>
-        <div className="w-10 h-10" />
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => router.push('/admin/notifications')}
+            className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors relative"
+          >
+            <Bell size={22} />
+            <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-[#E7000B] rounded-full border-2 border-[#181928]" />
+          </button>
+          <button 
+            onClick={() => router.push('/admin/profile')}
+            className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+          >
+            <UserIcon size={22} />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto no-scrollbar">

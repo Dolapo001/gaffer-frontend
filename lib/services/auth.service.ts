@@ -5,6 +5,7 @@ export interface AuthUser {
   email: string
   status: 'active' | 'pending' | 'suspended' | 'deleted'
   fullName?: string
+  avatarUrl?: string
   isPersonalActive?: boolean
   isOrgActive?: boolean
   lastRole?: 'personal' | 'organization'

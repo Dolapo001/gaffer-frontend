@@ -8,7 +8,7 @@ export interface Org {
   email?: string
   website?: string
   logoUrl?: string
-  sport?: string
+  sports?: string[]
   ownerId: string
   lifecycleStatus: string
   verificationStatus: string
@@ -42,7 +42,7 @@ export interface CreateOrgPayload {
   email?: string
   website?: string
   logoUrl?: string
-  sport?: string
+  sports?: string[]
   ownerId?: string
   userFullName?: string
 }
@@ -85,7 +85,7 @@ export async function deleteOrg(orgId: string): Promise<{ message: string }> {
 // PATCH /orgs/:orgId/logo — upload via Cloudinary (multipart/form-data)
 export async function updateOrgLogo(orgId: string, file: File): Promise<{ success: boolean; data: { imageUrl: string; publicId: string }; org: Org }> {
   const formData = new FormData()
-  formData.append('logo', file)
+  formData.append('file', file)
   return api.patch(`/orgs/${orgId}/logo`, formData)
 }
 
