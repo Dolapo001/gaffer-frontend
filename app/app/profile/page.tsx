@@ -11,7 +11,8 @@ import { getProfile, updateProfile, uploadAvatar, type UserProfile } from '@/lib
 import { updateProfileSchema, type UpdateProfileFormData } from '@/lib/schemas'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
-import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera } from 'lucide-react'
+import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera, Trophy, ChevronRight } from 'lucide-react'
+import { listJoinedCompetitions } from '@/lib/services/competition.service'
 
 export default function ProfilePage() {
   const router = useRouter()
@@ -26,6 +27,12 @@ export default function ProfilePage() {
   const { data: profile, isLoading } = useQuery<UserProfile>({
     queryKey: ['profile'],
     queryFn: getProfile,
+  })
+
+  const { data: competitions, isLoading: loadingLeagues } = useQuery({
+    queryKey: ['joined-competitions'],
+    queryFn: listJoinedCompetitions,
+    enabled: role === 'personal',
   })
 
   const {
@@ -264,6 +271,63 @@ export default function ProfilePage() {
                 </div>
               </motion.div>
             ))
+          )}
+        </div>
+      )}
+
+      {/* My Leagues Section (New) */}
+      {!editing && role === 'personal' && (
+        <div className="px-6 pt-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display font-bold text-white text-base">My Leagues</h3>
+            <button 
+              onClick={() => router.push('/app/league')}
+              className="text-gaffer-orange text-xs font-bold font-body"
+            >
+              BROWSE ALL
+            </button>
+          </div>
+
+          {loadingLeagues ? (
+            <div className="h-20 bg-gaffer-card border border-gaffer-border rounded-xl animate-pulse" />
+          ) : competitions && competitions.length > 0 ? (
+            <div className="space-y-3">
+              {competitions.slice(0, 3).map((comp) => (
+                <motion.button
+                  key={comp._id}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => router.push(`/app/league/${comp._id}`)}
+                  className="w-full flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-xl p-4 text-left hover:border-gaffer-orange/30 transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full bg-gaffer-orange/10 flex items-center justify-center flex-shrink-0">
+                    {comp.bannerUrl ? (
+                      <img src={comp.bannerUrl} alt={comp.name} className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <Trophy size={18} className="text-gaffer-orange" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-body text-white text-sm font-bold truncate uppercase tracking-wide">
+                      {comp.name}
+                    </p>
+                    <p className="text-gaffer-muted text-[10px] font-body uppercase tracking-wider mt-0.5">
+                      {comp.sport} · {comp.status}
+                    </p>
+                  </div>
+                  <ChevronRight size={16} className="text-gaffer-subtle" />
+                </motion.button>
+              ))}
+            </div>
+          ) : (
+            <div className="bg-gaffer-card border border-gaffer-border rounded-xl p-6 text-center">
+              <p className="text-gaffer-muted text-xs font-body mb-3">You haven&apos;t joined any leagues yet.</p>
+              <button
+                onClick={() => router.push('/app/league')}
+                className="text-gaffer-orange text-xs font-bold font-body border border-gaffer-orange/30 px-4 py-2 rounded-full"
+              >
+                Join a League
+              </button>
+            </div>
           )}
         </div>
       )}

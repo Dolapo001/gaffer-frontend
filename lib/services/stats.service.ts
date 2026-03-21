@@ -1,8 +1,8 @@
 import { api } from '@/lib/api'
 
 export interface PlayerStatEntry {
-  playerId: { _id: string; firstName: string; lastName: string }
-  teamId: { _id: string; name: string; handle: string }
+  playerId: { _id: string; firstName: string; lastName: string; handle?: string; photoUrl?: string }
+  teamId: { _id: string; name: string; handle: string; shortName?: string }
   goals?: number
   assists?: number
   yellowCards?: number
@@ -26,32 +26,66 @@ export interface TeamStatEntry {
 
 // GET /tournaments/:tournamentId/stats/players/top-scorers — PUBLIC
 export async function getTopScorers(tournamentId: string): Promise<PlayerStatEntry[]> {
-  return api.get<PlayerStatEntry[]>(`/tournaments/${tournamentId}/stats/players/top-scorers`, { public: true })
+  const data = await api.get<{ results: PlayerStatEntry[] }>(`/tournaments/${tournamentId}/stats/players/top-scorers`, { public: true })
+  // Backwards compatibility/mapping nested stats if needed
+  return (data.results || []).map(r => ({
+    ...r,
+    goals: (r as any).stats?.goals ?? r.goals,
+    assists: (r as any).stats?.assists ?? r.assists,
+    yellowCards: (r as any).stats?.yellowCards ?? r.yellowCards,
+    redCards: (r as any).stats?.redCards ?? r.redCards,
+  }))
 }
 
 // GET /tournaments/:tournamentId/stats/players/top-assists — PUBLIC
 export async function getTopAssists(tournamentId: string): Promise<PlayerStatEntry[]> {
-  return api.get<PlayerStatEntry[]>(`/tournaments/${tournamentId}/stats/players/top-assists`, { public: true })
+  const data = await api.get<{ results: PlayerStatEntry[] }>(`/tournaments/${tournamentId}/stats/players/top-assists`, { public: true })
+  return (data.results || []).map(r => ({
+    ...r,
+    goals: (r as any).stats?.goals ?? r.goals,
+    assists: (r as any).stats?.assists ?? r.assists,
+    yellowCards: (r as any).stats?.yellowCards ?? r.yellowCards,
+    redCards: (r as any).stats?.redCards ?? r.redCards,
+  }))
 }
 
 // GET /tournaments/:tournamentId/stats/players/discipline — PUBLIC
 export async function getDisciplineStats(tournamentId: string): Promise<PlayerStatEntry[]> {
-  return api.get<PlayerStatEntry[]>(`/tournaments/${tournamentId}/stats/players/discipline`, { public: true })
+  const data = await api.get<{ results: PlayerStatEntry[] }>(`/tournaments/${tournamentId}/stats/players/discipline`, { public: true })
+  return (data.results || []).map(r => ({
+    ...r,
+    goals: (r as any).stats?.goals ?? r.goals,
+    assists: (r as any).stats?.assists ?? r.assists,
+    yellowCards: (r as any).stats?.yellowCards ?? r.yellowCards,
+    redCards: (r as any).stats?.redCards ?? r.redCards,
+  }))
 }
 
 // GET /tournaments/:tournamentId/stats/teams — PUBLIC
 export async function getTeamStats(tournamentId: string): Promise<TeamStatEntry[]> {
-  return api.get<TeamStatEntry[]>(`/tournaments/${tournamentId}/stats/teams`, { public: true })
+  const data = await api.get<{ results: TeamStatEntry[] }>(`/tournaments/${tournamentId}/stats/teams`, { public: true })
+  return (data.results || []).map(r => ({
+    ...r,
+    ...((r as any).stats || {}), // Backend might wrap them in stats
+  }))
 }
 
 // GET /tournaments/:tournamentId/stats/teams/attack — PUBLIC
 export async function getTeamAttackStats(tournamentId: string): Promise<TeamStatEntry[]> {
-  return api.get<TeamStatEntry[]>(`/tournaments/${tournamentId}/stats/teams/attack`, { public: true })
+  const data = await api.get<{ results: TeamStatEntry[] }>(`/tournaments/${tournamentId}/stats/teams/attack`, { public: true })
+  return (data.results || []).map(r => ({
+    ...r,
+    ...((r as any).stats || {}),
+  }))
 }
 
 // GET /tournaments/:tournamentId/stats/teams/discipline — PUBLIC
 export async function getTeamDisciplineStats(tournamentId: string): Promise<TeamStatEntry[]> {
-  return api.get<TeamStatEntry[]>(`/tournaments/${tournamentId}/stats/teams/discipline`, { public: true })
+  const data = await api.get<{ results: TeamStatEntry[] }>(`/tournaments/${tournamentId}/stats/teams/discipline`, { public: true })
+  return (data.results || []).map(r => ({
+    ...r,
+    ...((r as any).stats || {}),
+  }))
 }
 
 // POST /tournaments/:tournamentId/rebuild — requires admin+

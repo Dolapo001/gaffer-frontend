@@ -1,155 +1,147 @@
 'use client';
 
-import { MATCHES, getTeamCrest } from '@/lib/leagueMockData';
 import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 
-interface Fixture {
-  id: string;
-  homeTeam: { name: string; logo: string };
-  awayTeam: { name: string; logo: string };
-  time: string;
-  date: string;
-  status: 'upcoming' | 'finished';
-  score?: { home: number; away: number };
+interface FixturesSectionProps {
+  fixtures?: any[];
 }
 
-const upcomingFixtures: Fixture[] = MATCHES
-  .filter((m) => m.status === 'scheduled')
-  .map((m) => ({
-    id: m.id,
-    homeTeam: { name: m.homeTeam.name, logo: getTeamCrest(m.homeTeam.id) },
-    awayTeam: { name: m.awayTeam.name, logo: getTeamCrest(m.awayTeam.id) },
-    time: m.matchTime,
-    date: m.matchDate,
-    status: 'upcoming',
-  }));
-
-const previousFixtures: Fixture[] = MATCHES
-  .filter((m) => m.status === 'finished')
-  .map((m) => ({
-    id: m.id,
-    homeTeam: { name: m.homeTeam.name, logo: getTeamCrest(m.homeTeam.id) },
-    awayTeam: { name: m.awayTeam.name, logo: getTeamCrest(m.awayTeam.id) },
-    time: m.matchTime,
-    date: m.matchDate,
-    status: 'finished',
-    score: { home: m.homeScore ?? 0, away: m.awayScore ?? 0 },
-  }));
-
-export function FixturesSection() {
+export function FixturesSection({ fixtures }: FixturesSectionProps) {
   const router = useRouter();
+
+  const finished = fixtures?.filter(f => f.status === 'completed') || [];
+  const upcoming = fixtures?.filter(f => f.status === 'scheduled' || f.status === 'live') || [];
+
+  // Group finished fixtures by round if available
+  const rounds = finished.reduce((acc: any, fixture: any) => {
+    const roundName = fixture.roundId?.name || fixture.stageId?.name || 'Previous Fixtures';
+    if (!acc[roundName]) acc[roundName] = [];
+    acc[roundName].push(fixture);
+    return acc;
+  }, {});
+
+  if (!fixtures || fixtures.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-10 text-center w-full">
+         <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/5 shadow-2xl">
+            <div className="w-8 h-8 rounded-full border-2 border-white/10" />
+         </div>
+         <h2 className="text-white text-lg font-black uppercase tracking-tight mb-2">No Fixtures Scheduled</h2>
+         <p className="text-white/30 text-xs font-medium max-w-[200px]">Matches for this competition haven't been generated yet.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col w-full px-[13.37px]" style={{ gap: '20px', paddingBottom: '40px' }}>
-      {/* Match Schedule (Step 454 & 463 Specs) */}
-      <div
-        className="flex flex-col mx-auto"
-        style={{
-          width: '297px',
-          height: '223px',
-        }}
-      >
-        <h2
-          className="text-white text-[15.93px] font-medium"
-          style={{
-            fontFamily: "'Poppins', sans-serif",
-            height: '39px', // Header + spacing offset
-            display: 'flex',
-            alignItems: 'center'
-          }}
-        >
-          Match Schedule
-        </h2>
+    <div className="flex flex-col w-full px-5 py-6 gap-10">
+      {/* Match Schedule (Upcoming) */}
+      {upcoming.length > 0 && (
+        <section className="flex flex-col gap-5 max-w-sm mx-auto w-full">
+          <h2 className="text-white text-[16px] font-bold tracking-tight">Match Schedule</h2>
+          
+          <div className="flex flex-col gap-4">
+            {upcoming.map((fixture) => (
+              <FixtureCard
+                key={fixture._id}
+                fixture={fixture}
+                onClick={() => router.push(`/app/match/${fixture._id}`)}
+                type="upcoming"
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
-        <div
-          className="flex flex-col gap-[8px]"
-          style={{ height: '184px' }}
-        >
-          {upcomingFixtures.map((fixture) => (
-            <FixtureCard
-              key={fixture.id}
-              fixture={fixture}
-              customWidth="297px"
-              customHeight="88px"
-              onClick={() => router.push(`/app/match/${fixture.id}`)}
-            />
+      {/* Previous Fixtures (Finished) */}
+      {finished.length > 0 && (
+        <section className="flex flex-col gap-6 max-w-sm mx-auto w-full">
+          <h2 className="text-white text-[16px] font-bold tracking-tight">Previous Fixtures</h2>
+          
+          {Object.entries(rounds).map(([roundName, roundFixtures]: [string, any], roundIdx) => (
+            <div key={roundIdx} className="flex flex-col gap-4">
+              <h3 className="text-[#D2B5FF]/50 text-[13px] font-bold tracking-widest uppercase mb-1">
+                {roundName}
+              </h3>
+              <div className="flex flex-col gap-4">
+                {roundFixtures.map((fixture: any) => (
+                  <FixtureCard
+                    key={fixture._id}
+                    fixture={fixture}
+                    onClick={() => router.push(`/app/match/${fixture._id}`)}
+                    type="finished"
+                  />
+                ))}
+              </div>
+            </div>
           ))}
-        </div>
-      </div>
+        </section>
+      )}
 
-      {/* Previous Fixtures */}
-      <div className="flex flex-col gap-4">
-        <h2
-          className="text-white text-[15.93px] font-medium"
-          style={{ fontFamily: "'Poppins', sans-serif" }}
-        >
-          Previous Fixtures
-        </h2>
-
-        <div className="flex flex-col gap-3">
-          <h3 className="text-[#D2B5FF] text-[12px] font-medium pl-1">Round 1</h3>
-          {previousFixtures.slice(0, 3).map((fixture) => (
-            <FixtureCard 
-              key={fixture.id} 
-              fixture={fixture} 
-              onClick={() => router.push(`/app/match/${fixture.id}`)}
-            />
-          ))}
-        </div>
-
-        <div className="flex flex-col gap-3 pt-2">
-          <h3 className="text-[#D2B5FF] text-[12px] font-medium pl-1">Round 2</h3>
-          {previousFixtures.slice(0, 3).map((fixture) => (
-            <FixtureCard 
-              key={`r2-${fixture.id}`} 
-              fixture={fixture} 
-              onClick={() => router.push(`/app/match/${fixture.id}`)}
-            />
-          ))}
-        </div>
-      </div>
+      {upcoming.length === 0 && finished.length === 0 && (
+         <div className="text-center py-10 opacity-20 italic font-black text-xs uppercase tracking-widest">
+            No fixtures found.
+         </div>
+      )}
     </div>
   );
 }
 
-function FixtureCard({ fixture, customWidth, customHeight, onClick }: { fixture: Fixture, customWidth?: string, customHeight?: string, onClick?: () => void }) {
+function FixtureCard({ fixture, onClick, type, score }: { fixture: any, onClick?: () => void, type: 'upcoming' | 'finished', score?: string }) {
+  const home = typeof fixture.homeTeamId === 'string' ? { name: 'Home', logoUrl: '' } : fixture.homeTeamId;
+  const away = typeof fixture.awayTeamId === 'string' ? { name: 'Away', logoUrl: '' } : fixture.awayTeamId;
+  
+  const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date();
+  const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const day = kickoff.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
+  
+  const displayScore = score || (fixture.score ? `${fixture.score.home} : ${fixture.score.away}` : '0 : 0');
+
   return (
-    <div
+    <motion.div
+      whileTap={{ scale: 0.98 }}
       onClick={onClick}
-      className={`bg-[#1a1b2e]/60 rounded-[28.03px] border border-[#2E2F3E] p-4 flex items-center justify-between shadow-lg ${onClick ? 'cursor-pointer active:scale-[0.98] hover:bg-[#1a1b2e]/80 transition-all' : ''}`}
-      style={{
-        width: customWidth || '302.25px',
-        height: customHeight || '110.15px',
-        backdropFilter: 'blur(8px)'
-      }}
+      className="bg-[#1a2138]/60 border border-white/[0.03] rounded-[24px] p-5 flex items-center justify-between backdrop-blur-md shadow-xl hover:bg-white/[0.02] transition-all cursor-pointer"
     >
-      {/* Home Team */}
-      <div className="flex flex-col items-center gap-2 w-[80px]">
-        <div className="w-10 h-10 flex items-center justify-center">
-          <img src={fixture.homeTeam.logo} alt={fixture.homeTeam.name} className="w-full h-full object-contain" />
+      {/* Home */}
+      <div className="flex flex-col items-center gap-2.5 w-[85px]">
+        <div className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full shadow-inner p-1 overflow-hidden">
+          {home?.logoUrl ? (
+            <img src={home.logoUrl} alt="" className="w-full h-full object-contain" />
+          ) : (
+            <div className="text-white/20 font-black text-xs">{home?.name?.charAt(0)}</div>
+          )}
         </div>
-        <span className="text-white text-[10.6px] font-medium text-center">{fixture.homeTeam.name}</span>
+        <span className="text-white text-[12px] font-bold tracking-tight truncate w-full text-center">
+          {home?.name}
+        </span>
       </div>
 
       {/* Center Info */}
-      <div className="flex flex-col items-center gap-1.5">
-        <span className="text-[#94A3B8] text-[9.3px] font-medium uppercase">{fixture.date}</span>
-        <div
-          className="bg-[#2a2b45] rounded-[5.3px] flex items-center justify-center"
-          style={{ width: '60px', height: '35px' }}
-        >
-          <span className="text-white text-[14.6px] font-bold">
-            {fixture.status === 'finished' ? `${fixture.score?.home} : ${fixture.score?.away}` : fixture.time}
-          </span>
+      <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
+        <span className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">
+          {day} {time}
+        </span>
+        <div className="bg-[#1a2138] border border-white/5 rounded-[8px] h-[34px] px-4 flex items-center justify-center shadow-lg">
+           <span className="text-white text-[16px] font-black tracking-tight italic">
+              {type === 'upcoming' && fixture.status !== 'live' ? time : displayScore}
+           </span>
         </div>
       </div>
 
-      {/* Away Team */}
-      <div className="flex flex-col items-center gap-2 w-[80px]">
-        <div className="w-10 h-10 flex items-center justify-center">
-          <img src={fixture.awayTeam.logo} alt={fixture.awayTeam.name} className="w-full h-full object-contain" />
+      {/* Away */}
+      <div className="flex flex-col items-center gap-2.5 w-[85px]">
+        <div className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full shadow-inner p-1 overflow-hidden">
+          {away?.logoUrl ? (
+            <img src={away.logoUrl} alt="" className="w-full h-full object-contain" />
+          ) : (
+            <div className="text-white/20 font-black text-xs">{away?.name?.charAt(0)}</div>
+          )}
         </div>
-        <span className="text-white text-[10.6px] font-medium text-center">{fixture.awayTeam.name}</span>
+        <span className="text-white text-[12px] font-bold tracking-tight truncate w-full text-center">
+          {away?.name}
+        </span>
       </div>
-    </div>
+    </motion.div>
   );
 }
