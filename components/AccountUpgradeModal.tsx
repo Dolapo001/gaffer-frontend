@@ -32,6 +32,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
     resolver: zodResolver(organizationSignUpSchema),
     defaultValues: {
       email: user?.email || '',
+      sports: [],
     }
   })
 
@@ -47,7 +48,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
       await createOrg({
         name: data.orgName,
         handle: data.handle,
-        sport: data.sport,
+        sports: data.sports,
         description: data.description,
         ownerId: user.id
       })
@@ -150,8 +151,10 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
                 { value: 'basketball', label: 'Basketball' },
                 { value: 'tennis', label: 'Tennis' },
               ]}
-              error={orgForm.formState.errors.sport}
-              {...orgForm.register('sport')}
+              error={orgForm.formState.errors.sports}
+              {...orgForm.register('sports', { 
+                setValueAs: (v) => v ? [v] : [] 
+              })}
             />
             <div className="pt-4">
               <GradientButton type="submit" loading={isSubmitting} className="w-full py-4 rounded-xl text-lg uppercase font-black">
