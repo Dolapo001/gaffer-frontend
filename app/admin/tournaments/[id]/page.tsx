@@ -12,7 +12,7 @@ import {
 } from 'lucide-react'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
-import { getCompetition, archiveCompetition, publishCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
+import { getCompetition, deleteCompetition, publishCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
 import { api } from '@/lib/api'
 import { listTeams } from '@/lib/services/team.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
@@ -134,11 +134,11 @@ export default function TournamentDetailPage() {
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
-  const archiveMutation = useMutation({
-    mutationFn: () => archiveCompetition(id),
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteCompetition(id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['competitions'] })
-      toast.addToast('Tournament archived', 'success')
+      toast.addToast('Tournament deleted', 'success')
       router.replace('/admin/tournaments')
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
@@ -607,11 +607,11 @@ export default function TournamentDetailPage() {
 
       <ConfirmDialog
         open={showDelete}
-        title="Archive Tournament?"
-        message={`This will archive "${competition.name}" and remove it from active tournaments.`}
-        confirmLabel="Archive"
+        title="Delete Tournament?"
+        message={`This will permanently delete "${competition.name}" and all its related records.`}
+        confirmLabel="Delete"
         destructive
-        onConfirm={() => archiveMutation.mutate()}
+        onConfirm={() => deleteMutation.mutate()}
         onCancel={() => setShowDelete(false)}
       />
 

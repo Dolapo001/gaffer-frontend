@@ -12,10 +12,10 @@ import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
+import { listTeams, createTeam, deleteTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listGroups, createGroup, updateGroup, Group as BackendGroup } from '@/lib/services/group.service'
-import { listCompetitions, registerTeams, Competition } from '@/lib/services/competition.service'
+import { listCompetitions, registerTeams, removeCompetitionTeam, Competition } from '@/lib/services/competition.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -30,6 +30,16 @@ export default function OrganizePage() {
   const [view, setView] = useState<OrganiseView>('list')
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
+
+  // Create form state & filters
+  const [teamName, setTeamName] = useState('')
+  const [maxPlayers, setMaxPlayers] = useState('11')
+  const [logoPreview, setLogoPreview] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [selectedColor, setSelectedColor] = useState('#A855F7')
+  const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
+  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>('')
 
   // 1. Fetch Organization
   const { data: orgs, isLoading: isLoadingOrgs, error: orgsError } = useQuery({
@@ -56,8 +66,8 @@ export default function OrganizePage() {
 
   // 3. Fetch Players (when a team is selected)
   const { data: backendPlayers } = useQuery({
-    queryKey: ['players', selectedTeam?.id],
-    queryFn: () => listPlayers(selectedTeam!.id),
+    queryKey: ['players', selectedTeam?.id, selectedCompetitionId],
+    queryFn: () => listPlayers(selectedTeam!.id, selectedCompetitionId),
     enabled: !!selectedTeam?.id
   })
 
@@ -76,6 +86,16 @@ export default function OrganizePage() {
   })
 
   // Mutations
+  const deleteTeamMutation = useMutation({
+    mutationFn: (id: string) => deleteTeam(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      addToast('Team deleted successfully', 'success')
+      setView('list')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
   const createTeamMutation = useMutation({
     mutationFn: (data: any) => createTeam(orgId!, data),
     onSuccess: () => {
@@ -116,15 +136,7 @@ export default function OrganizePage() {
     onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
-  // Create form state
-  const [teamName, setTeamName] = useState('')
-  const [maxPlayers, setMaxPlayers] = useState('11')
-  const [logoPreview, setLogoPreview] = useState<string | null>(null)
-  const [logoFile, setLogoFile] = useState<File | null>(null)
-  const [logoError, setLogoError] = useState<string | null>(null)
-  const [selectedColor, setSelectedColor] = useState('#A855F7')
-  const [selectedTeamsForGroup, setSelectedTeamsForGroup] = useState<string[]>([])
-  const [selectedCompetitionId, setSelectedCompetitionId] = useState<string>('')
+  // ── Mappings ─────────────────────────────────────────────────────────────
 
   // Map backend teams to UI teams
   const teams: Team[] = backendTeams?.map((t: BackendTeam) => ({
@@ -133,6 +145,7 @@ export default function OrganizePage() {
     handle: t.handle,
     playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
     logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
+    competitionId: t.competitionId || (t as any).enrollment?.competitionId, // Check both possibilities
   })) || []
 
   // Map backend players to UI players
@@ -228,6 +241,15 @@ export default function OrganizePage() {
     }
   }
 
+  const removeTeamFromTournamentMutation = useMutation({
+    mutationFn: ({ competitionId, teamId }: { competitionId: string, teamId: string }) => removeCompetitionTeam(competitionId, teamId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      addToast(' team removed from tournament', 'success')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error')
+  })
+
   const handleRegisterTeamToTournament = async (teamId: string, competitionId: string) => {
     try {
       await registerTeams(competitionId, [{ teamId }])
@@ -291,7 +313,10 @@ export default function OrganizePage() {
     mutationFn: ({ teamId, data }: { teamId: string, data: any }) => {
       // Strip the local-only _photoFile before sending JSON to the backend
       const { _photoFile, ...payload } = data
-      return addPlayer(teamId, payload)
+      return addPlayer(teamId, { 
+        ...payload, 
+        competitionId: selectedCompetitionId || undefined 
+      })
     },
     onSuccess: async (player, variables) => {
       // If a photo file was attached, upload it immediately after player creation
@@ -417,6 +442,7 @@ export default function OrganizePage() {
                 teams={teams}
                 groups={groups}
                 hasOrg={!!orgId}
+                selectedCompetitionId={selectedCompetitionId}
                 onTabChange={setActiveTab}
                 onTeamClick={(team) => {
                   setSelectedTeam(team)
@@ -432,6 +458,8 @@ export default function OrganizePage() {
                   setSelectedGroup(group)
                   setView('select_team')
                 }}
+                onAddTeamToTournament={(teamId) => handleRegisterTeamToTournament(teamId, selectedCompetitionId)}
+                onRemoveTeamFromTournament={(teamId) => removeTeamFromTournamentMutation.mutate({ competitionId: selectedCompetitionId, teamId })}
               />
             )}
 
@@ -487,6 +515,9 @@ export default function OrganizePage() {
                 onUpdatePlayer={(playerId: string, payload: any) => {
                   if (!selectedTeam) return
                   updatePlayerMutation.mutate({ teamId: selectedTeam.id, playerId, payload })
+                }}
+                onDeleteTeam={() => {
+                  if (selectedTeam) deleteTeamMutation.mutate(selectedTeam.id)
                 }}
                 orgName={orgs?.[0]?.name}
                 orgLogoUrl={orgs?.[0]?.logoUrl}

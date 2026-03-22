@@ -76,7 +76,7 @@ export function OrganiseCreateSheet({
       e.target.value = ''
       return
     }
-    if (file.size > MAX_LOGO_SIZE) {
+      if (file.size > MAX_LOGO_SIZE) {
       onLogoChange(null, 'File too large. Maximum size is 2 MB.')
       e.target.value = ''
       return
@@ -88,6 +88,17 @@ export function OrganiseCreateSheet({
     }
     reader.readAsDataURL(file)
   }
+
+  // Calculate current counts for the selected competition
+  const selectedComp = competitions.find(c => c._id === selectedCompetitionId);
+  const isTeamCreation = activeTab === 'Teams';
+  
+  // Total teams enrolled in this competition
+  const enrolledTeamsCount = teams.filter(t => t.competitionId === selectedCompetitionId).length;
+  // Total groups in this competition (using global group model matching selectedCompetitionId)
+  // Actually, better to just check if total teams in the competition >= maxTeams in the competition
+  const competitionTeamLimit = selectedComp?.maxTeams || 25;
+  const isTeamLimitReached = isTeamCreation && enrolledTeamsCount >= competitionTeamLimit;
 
   return (
     <>
@@ -118,6 +129,13 @@ export function OrganiseCreateSheet({
           <p className="text-gray-500 text-[13px] leading-tight mt-0.5">
             Manage your schedule for matches, ceremonies. Schedule now and for later.
           </p>
+          {selectedCompetitionId && (
+            <div className="mt-2 py-1 px-3 bg-white/5 rounded-full inline-block border border-white/10">
+              <span className="text-[10px] uppercase font-bold text-[#FF4D00]">
+                 {enrolledTeamsCount} / {competitionTeamLimit} Teams enrolled
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Scrollable Content Area */}
@@ -154,8 +172,8 @@ export function OrganiseCreateSheet({
                 accept="image/*"
               />
               <div
-                onClick={() => fileInputRef.current?.click()}
-                className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 mb-1 cursor-pointer active:scale-95 transition-transform bg-black/20 flex items-center justify-center shadow-2xl"
+                onClick={() => !isTeamLimitReached && fileInputRef.current?.click()}
+                className={`relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/20 mb-1 cursor-pointer active:scale-95 transition-transform bg-black/20 flex items-center justify-center shadow-2xl ${isTeamLimitReached ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
               >
                 <img
                   src={logoPreview ?? 'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix'}
@@ -163,10 +181,15 @@ export function OrganiseCreateSheet({
                   className="w-full h-full object-cover"
                 />
               </div>
-              <button onClick={() => fileInputRef.current?.click()} className="text-[#FF4D00] text-xs font-bold uppercase tracking-wider mt-2">
+              <button 
+                onClick={() => !isTeamLimitReached && fileInputRef.current?.click()} 
+                disabled={isTeamLimitReached}
+                className="text-[#FF4D00] text-xs font-bold uppercase tracking-wider mt-2 disabled:opacity-50"
+              >
                 Choose Photo
               </button>
               {logoError && <p className="text-red-400 text-xs mt-1 text-center">{logoError}</p>}
+              {isTeamLimitReached && <p className="text-red-400 text-[10px] font-bold mt-2 uppercase">Limit reached for this tournament</p>}
             </div>
           )}
 
