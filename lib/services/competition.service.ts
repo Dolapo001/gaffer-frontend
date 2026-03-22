@@ -154,3 +154,15 @@ export async function removeCompetitionTeam(
 ): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/competitions/${competitionId}/teams/${teamId}`)
 }
+
+// POST /competitions/join
+export async function joinCompetition(code: string): Promise<Competition> {
+  const data = await api.post<{ competition: Competition }>('/competitions/join', { code })
+  return data.competition
+}
+
+// GET /competitions/joined
+export async function listJoinedCompetitions(): Promise<Competition[]> {
+  const data = await api.get<{ competitions: Competition[] }>('/competitions/joined')
+  return data.competitions
+}

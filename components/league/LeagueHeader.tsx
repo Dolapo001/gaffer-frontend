@@ -1,40 +1,43 @@
 'use client';
-
+ 
 import Image from 'next/image';
+ 
+interface LeagueHeaderProps {
+  name?: string;
+  bannerUrl?: string;
+}
 
-export function LeagueHeader() {
+export function LeagueHeader({ name, bannerUrl }: LeagueHeaderProps) {
   return (
-    <div className="flex flex-col items-center pt-2 pb-4">
-      {/* Premier League Logo */}
-      <div className="mb-2" style={{ width: '41px', height: '57.95px' }}>
+    <div className="flex flex-col items-center pt-2 pb-6 w-full">
+      {/* Small Iconic Logo (Lion or Competition Logo) */}
+      <div 
+        className="mb-4 flex items-center justify-center" 
+        style={{ width: '48px', height: '48px' }}
+      >
         <Image
-          src="https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg"
-          alt="Premier League"
-          width={41}
-          height={58}
+          src={bannerUrl || "https://upload.wikimedia.org/wikipedia/en/f/f2/Premier_League_Logo.svg"}
+          alt="League Logo"
+          width={48}
+          height={48}
           priority
           unoptimized
-          className="drop-shadow-sm w-full h-full object-contain"
+          className="w-full h-full object-contain filter brightness-110 drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]"
         />
       </div>
       
-      {/* Title Area */}
-      <div 
-        className="flex items-center justify-center pt-2"
-        style={{ width: '100%', minHeight: '30px' }}
-      >
+      {/* Competition Name */}
+      <div className="px-4 text-center">
         <h1 
-          className="text-white font-medium text-center uppercase"
+          className="text-white font-black tracking-tight leading-none"
           style={{ 
-            fontFamily: "'Poppins', sans-serif",
-            fontSize: '21.38px',
-            lineHeight: '16.75px',
-            fontWeight: 500,
-            letterSpacing: '0px',
-            verticalAlign: 'middle'
+            fontFamily: "'Chakra Petch', sans-serif",
+            fontSize: '24px',
+            textTransform: 'uppercase',
+            letterSpacing: '0.02em'
           }}
         >
-          BOWEN FANS LEAGUES
+          {name || "BOWEN FANS LEAGUES"}
         </h1>
       </div>
     </div>

@@ -4,32 +4,14 @@ import { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Target, Award } from 'lucide-react'
-import { getTopScorers, getTopAssists, type PlayerStatEntry } from '@/lib/services/stats.service'
-import { getCompetition } from '@/lib/services/competition.service'
+import { ChevronLeft } from 'lucide-react'
+import { getTopScorers, getTopAssists } from '@/lib/services/stats.service'
 
-function playerName(p: PlayerStatEntry) {
-  const pid = p.playerId
-  if (typeof pid === 'string') return 'Player'
-  return `${pid.firstName} ${pid.lastName}`
-}
-
-function teamName(p: PlayerStatEntry) {
-  const tid = p.teamId
-  if (typeof tid === 'string') return ''
-  return tid.name
-}
-
-export default function GoalScorersPage() {
+export default function PlayerStatsPage() {
   const router = useRouter()
   const params = useParams()
   const leagueId = params.leagueId as string
   const [tab, setTab] = useState<'goals' | 'assists'>('goals')
-
-  const { data: competition } = useQuery({
-    queryKey: ['competition', leagueId],
-    queryFn: () => getCompetition(leagueId),
-  })
 
   const { data: scorers, isLoading: loadingScorers } = useQuery({
     queryKey: ['top-scorers', leagueId],
@@ -41,101 +23,156 @@ export default function GoalScorersPage() {
     queryFn: () => getTopAssists(leagueId),
   })
 
-  const isLoading = tab === 'goals' ? loadingScorers : loadingAssists
-  const players = tab === 'goals'
-    ? (scorers ?? []).filter((p) => (p.goals ?? 0) > 0)
-    : (assists ?? []).filter((p) => (p.assists ?? 0) > 0)
+  const isLoading = tab === 'goals' ? loadingScorers : loadingAssists;
+  const rawData = tab === 'goals' ? scorers : assists;
+  
+  const hasData = rawData && rawData.length > 0;
+  const players = hasData ? rawData.map((p, i) => ({
+    name: typeof p.playerId === 'string' ? 'Player' : `${p.playerId.firstName} ${p.playerId.lastName}`,
+    team: typeof p.teamId === 'string' ? '' : p.teamId.name,
+    crest: typeof p.teamId === 'string' ? '' : p.teamId.logoUrl,
+    value: tab === 'goals' ? (p.goals || 0) : (p.assists || 0),
+    trend: i % 3 === 0 ? 'up' : i % 3 === 1 ? 'down' : 'steady',
+    image: typeof p.playerId !== 'string' ? p.playerId.photoUrl : ''
+  })) : [];
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#10111d] flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-white/5 border-t-gaffer-orange rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (players.length === 0) {
+    return (
+      <div className="min-h-screen bg-[#10111d] flex flex-col items-center justify-center p-10 text-center">
+        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+           <Target size={40} className="text-white/20" />
+        </div>
+        <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-tight">No Stats Available</h2>
+        <p className="text-white/40 text-sm max-w-xs font-medium">There are currently no {tab} recorded for this league.</p>
+        <button onClick={() => router.back()} className="mt-8 text-gaffer-orange font-black uppercase tracking-[0.2em] text-xs">Go Back</button>
+      </div>
+    );
+  }
+
+  const topPlayer = players[0];
+  const otherPlayers = players.slice(1);
 
   return (
-    <div className="min-h-screen bg-gaffer-bg pb-28">
-      {/* Header */}
-      <div className="sticky top-0 z-30 bg-gaffer-bg/95 backdrop-blur-xl border-b border-gaffer-border">
-        <div className="flex items-center gap-3 px-4 pt-12 pb-3">
-          <button
-            onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
-          >
-            <ChevronLeft size={18} />
-          </button>
-          <div>
-            <h1 className="font-display font-black text-white text-sm tracking-widest uppercase">
-              Player Stats
-            </h1>
-            <p className="text-gaffer-muted text-[10px] font-body">{competition?.name ?? '...'}</p>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex">
-          {(['goals', 'assists'] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={`flex-1 py-2.5 text-xs font-display font-bold capitalize transition-all border-b-2 ${
-                tab === t ? 'text-gaffer-orange border-gaffer-orange' : 'text-gaffer-muted border-transparent'
-              }`}
-            >
-              {t === 'goals' ? 'Top Scorers' : 'Top Assists'}
-            </button>
-          ))}
-        </div>
+    <div className="min-h-screen bg-[#10111d] relative overflow-hidden pb-10">
+      {/* Background Texture */}
+      <div className="absolute inset-0 opacity-20 pointer-events-none">
+        <img 
+          src="https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=2000&auto=format&fit=crop" 
+          className="w-full h-full object-cover grayscale"
+          alt=""
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#10111d]/50 via-[#10111d]/80 to-[#10111d]" />
       </div>
 
-      <div className="px-4 pt-4">
-        <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
-          {/* Header row */}
-          <div className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
-            <span className="text-[10px] font-body font-bold text-gaffer-muted w-6">#</span>
-            <span className="text-[10px] font-body font-bold text-gaffer-muted">Player</span>
-            <span className="text-[10px] font-body font-bold text-gaffer-muted w-14 text-center">
-              {tab === 'goals' ? 'Goals' : 'Assists'}
-            </span>
-          </div>
+      {/* Header */}
+      <div className="relative pt-12 pb-4 px-6 flex items-center justify-between z-10">
+        <button onClick={() => router.back()} className="text-white p-1 hover:text-gaffer-orange transition-colors">
+          <ChevronLeft size={28} />
+        </button>
+        <h1 className="text-white text-[22px] font-black uppercase tracking-tight">Tables</h1>
+        <div className="w-8" />
+      </div>
 
-          {isLoading
-            ? [...Array(8)].map((_, i) => (
-                <div key={i} className="h-14 bg-gaffer-card/50 animate-pulse border-b border-gaffer-border/30" />
-              ))
-            : players.length === 0
-            ? (
-              <div className="py-12 text-center">
-                <Target size={28} className="text-gaffer-subtle mx-auto mb-3" />
-                <p className="text-gaffer-muted text-sm font-body">No stats yet</p>
+      <div className="relative z-10 px-5 max-w-md mx-auto">
+        {/* Top Player Highlight Card */}
+        <div className="mt-6 bg-[#1a2138]/40 border border-white/5 rounded-[28px] p-6 pt-8 pb-4 relative overflow-hidden backdrop-blur-xl shadow-2xl">
+           <div className="flex flex-col relative z-20">
+              <div className="flex items-center gap-3 mb-6">
+                 {topPlayer.crest && (
+                   <img src={topPlayer.crest} className="w-7 h-7 object-contain" alt="" />
+                 )}
+                 <span className="text-white/80 text-[14px] font-black uppercase tracking-widest leading-none">
+                    {topPlayer.team || 'TBD'}
+                 </span>
               </div>
-            )
-            : players.map((player, i) => (
-                <motion.div
-                  key={typeof player.playerId === 'string' ? player.playerId : player.playerId._id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.04 }}
-                  className="grid grid-cols-[auto_1fr_auto] gap-3 items-center px-4 py-3 border-b border-gaffer-border/30 last:border-0"
-                >
-                  <span className={`text-[11px] font-display font-bold w-6 text-center ${
-                    i === 0 ? 'text-yellow-400' : i === 1 ? 'text-gray-300' : i === 2 ? 'text-amber-600' : 'text-gaffer-subtle'
-                  }`}>{i + 1}</span>
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-orange-gradient-btn flex items-center justify-center text-xs text-white font-display font-bold flex-shrink-0">
-                      {playerName(player)[0]}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-white text-xs font-body font-semibold truncate">{playerName(player)}</p>
-                      <p className="text-gaffer-muted text-[10px] font-body">{teamName(player)}</p>
-                    </div>
-                  </div>
-                  <div className="w-14 flex items-center justify-center gap-1">
-                    {tab === 'goals'
-                      ? <Target size={12} className="text-gaffer-orange flex-shrink-0" />
-                      : <Award size={12} className="text-blue-400 flex-shrink-0" />
-                    }
-                    <span className={`font-display font-bold text-sm ${tab === 'goals' ? 'text-gaffer-orange' : 'text-blue-400'}`}>
-                      {tab === 'goals' ? (player.goals ?? 0) : (player.assists ?? 0)}
-                    </span>
-                  </div>
-                </motion.div>
-              ))}
+
+              <h2 className="text-white text-[26px] font-black tracking-tight mb-2 uppercase">
+                 {topPlayer.name}
+              </h2>
+              <span className="text-white/50 text-[12px] font-bold uppercase tracking-[0.2em] mb-4">
+                 {tab === 'goals' ? 'Goals Score' : 'Assists Score'}
+              </span>
+
+              <span className="text-[#FFAC33] text-[58px] font-black leading-none tracking-tighter italic">
+                 {topPlayer.value}
+              </span>
+           </div>
+
+           {/* Large Player Image (Right aligned) */}
+           <div className="absolute top-0 right-[-20px] bottom-0 w-[240px] pointer-events-none z-10 overflow-hidden">
+              <img 
+                src={topPlayer.image || "https://www.fcbarcelona.com/fcbarcelona/photo/2022/08/02/ae0e1577-080c-43f1-8b06-444a539f379a/21-FRENKIE-DE-JONG.png"} 
+                className="h-full w-full object-contain object-right-bottom scale-110 translate-y-2 opacity-90 drop-shadow-[0_20px_30px_rgba(0,0,0,0.8)]"
+                alt=""
+              />
+           </div>
+        </div>
+
+        {/* List of Stats */}
+        <div className="mt-8 flex flex-col gap-6">
+           {otherPlayers.map((player: any, i: number) => (
+             <motion.div 
+               key={i}
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               transition={{ delay: i * 0.05 }}
+               className="flex items-center justify-between group cursor-pointer"
+             >
+                <div className="flex items-center gap-4 min-w-0">
+                   {/* Trend Indicator */}
+                   <div className="w-6 flex justify-center">
+                      {player.trend === 'up' ? (
+                        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-b-[9px] border-b-[#00D1FF]" />
+                      ) : player.trend === 'down' ? (
+                        <div className="w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[9px] border-t-[#EE4B2B]" />
+                      ) : (
+                        <div className="w-4 h-1 bg-white/30 rounded-full" />
+                      )}
+                   </div>
+
+                   {/* Player Avatar / Crest Area */}
+                   <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 flex items-center justify-center p-0.5 border border-white/5">
+                      {player.crest ? (
+                        <img src={player.crest} className="w-full h-full object-cover" alt="" />
+                      ) : (
+                        <div className="w-full h-full bg-[#1a2138] flex items-center justify-center text-white/20 select-none">
+                           <Target size={20} className="" />
+                        </div>
+                      )}
+                   </div>
+
+                   {/* Name */}
+                   <span className="text-white text-[17px] font-black uppercase tracking-tight truncate group-hover:text-gaffer-orange transition-colors decoration-gaffer-orange">
+                      {player.name}
+                   </span>
+                </div>
+
+                {/* Score */}
+                <span className="text-white text-[22px] font-black italic tracking-wider">
+                   {player.value}
+                </span>
+             </motion.div>
+           ))}
         </div>
       </div>
     </div>
+  )
+}
+
+function Target({ size, className }: { size: number, className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="6" />
+      <circle cx="12" cy="12" r="2" />
+    </svg>
   )
 }

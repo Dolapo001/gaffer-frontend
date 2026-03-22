@@ -110,8 +110,8 @@ export default function TournamentDetailPage() {
   const { data: orgTeams } = useQuery({
     queryKey: ['org-teams', competition?.orgId],
     queryFn: () => {
-      const orgId = typeof competition?.orgId === 'object' 
-        ? (competition.orgId as any)._id 
+      const orgId = typeof competition?.orgId === 'object'
+        ? (competition.orgId as any)._id
         : competition?.orgId;
       return listTeams(orgId!);
     },
@@ -119,7 +119,7 @@ export default function TournamentDetailPage() {
   })
 
   // Filter out teams already in the competition
-  const availableTeams = orgTeams?.filter(ot => 
+  const availableTeams = orgTeams?.filter(ot =>
     !compTeams?.some(ct => ct.teamId === ot._id)
   ) || []
 
@@ -146,8 +146,8 @@ export default function TournamentDetailPage() {
 
   const publishMutation = useMutation({
     mutationFn: () => publishCompetition(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['competition', id] })
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ['competition', id] })
       toast.addToast('Tournament published successfully!', 'success')
       router.push(`/admin/tournaments/${id}/success`)
     },
@@ -232,9 +232,8 @@ export default function TournamentDetailPage() {
           <div className="flex gap-8 px-6 pb-0 overflow-x-auto no-scrollbar">
             {(['overview', 'schedule', 'standings', 'fantasy'] as Tab[]).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`relative py-3 text-[11px] font-display font-bold uppercase tracking-[0.1em] transition-all duration-300 ${
-                  activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle hover:text-white/80'
-                }`}>
+                className={`relative py-3 text-[11px] font-display font-bold uppercase tracking-[0.1em] transition-all duration-300 ${activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle hover:text-white/80'
+                  }`}>
                 {tab}
                 {activeTab === tab && (
                   <motion.div layoutId="tourney-tab-line"
@@ -264,10 +263,9 @@ export default function TournamentDetailPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-display font-black uppercase tracking-widest border ${
-                            competition.status === 'draft' ? 'bg-white/5 border-white/10 text-gaffer-subtle' :
-                            'bg-gaffer-orange/10 border-gaffer-orange/20 text-gaffer-orange'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-display font-black uppercase tracking-widest border ${competition.status === 'draft' ? 'bg-white/5 border-white/10 text-gaffer-subtle' :
+                              'bg-gaffer-orange/10 border-gaffer-orange/20 text-gaffer-orange'
+                            }`}>
                             {competition.status}
                           </span>
                         </div>
@@ -276,11 +274,11 @@ export default function TournamentDetailPage() {
                         </h1>
                       </div>
                     </div>
-                    
+
                     {/* Buttons Row */}
                     <div className="relative z-10 grid grid-cols-2 gap-3 mt-5">
                       {competition.status === 'draft' && (
-                        <button 
+                        <button
                           onClick={() => {
                             if (confirm('Are you ready to publish this tournament? This will make it publicly visible.')) {
                               publishMutation.mutate()
@@ -299,15 +297,15 @@ export default function TournamentDetailPage() {
                           )}
                         </button>
                       )}
-                      
-                      <button 
+
+                      <button
                         onClick={() => setShowEdit(true)}
                         className="flex items-center justify-center gap-1.5 px-3 py-3 bg-gaffer-orange text-white rounded-xl text-[9px] font-chakra font-black uppercase tracking-widest hover:scale-[1.02] transition-all shadow-[0_0_20px_rgba(255,107,0,0.2)]"
                       >
                         <Pencil size={12} className="shrink-0" />
                         <span className="truncate">Edit Tourney</span>
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           if (confirm('Recalculate all stats and standings? This may take a moment.')) {
                             api.post(`/tournaments/${id}/rebuild`, {}).then(() => {
@@ -352,77 +350,81 @@ export default function TournamentDetailPage() {
                   </div>
                 </div>
 
-                  {/* ── SHARE INFO (If Published) ── */}
-                  {competition.status !== 'draft' && (
-                    <motion.div 
-                      key="share-section"
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="bg-gaffer-card border border-gaffer-border rounded-[24px] p-6 space-y-4 shadow-xl"
-                    >
-                      <div className="flex items-center gap-2 mb-2">
-                        <Share2 size={14} className="text-gaffer-orange" />
-                        <h3 className="font-display font-black text-[10px] text-white uppercase tracking-[0.2em] opacity-80">Share & Invite</h3>
+                {/* ── SHARE INFO (If Published) ── */}
+                {competition.status !== 'draft' && (
+                  <motion.div
+                    key="share-section"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="bg-gaffer-card border border-gaffer-border rounded-[24px] p-6 space-y-4 shadow-xl"
+                  >
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-6 h-6 rounded-lg bg-gaffer-orange/10 flex items-center justify-center">
+                        <Share2 size={12} className="text-gaffer-orange" />
+                      </div>
+                      <h3 className="font-display font-black text-[10px] text-white uppercase tracking-[0.2em] opacity-80">Share & Invite</h3>
+                    </div>
+
+                    <div className="space-y-4">
+                      {/* Public Link Section */}
+                      <div className="group relative">
+                        <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-[0.25em] mb-2 ml-1 opacity-50">Tournament Join Link</label>
+                        <div className="flex items-center gap-3 bg-gaffer-surface border border-gaffer-border rounded-xl pl-4 pr-3 py-3 hover:border-gaffer-orange/30 transition-all shadow-inner">
+                          <p className="text-[11px] text-white/60 font-medium truncate flex-1 font-body">
+                            {typeof window !== 'undefined' ? `${window.location.origin}/app/${slugify(competition.name)}/${competition.joinCode}` : `/app/${slugify(competition.name)}/${competition.joinCode}`}
+                          </p>
+                          <button 
+                            onClick={() => {
+                              const url = typeof window !== 'undefined' ? `${window.location.origin}/app/${slugify(competition.name)}/${competition.joinCode}` : `/app/${slugify(competition.name)}/${competition.joinCode}`
+                              navigator.clipboard.writeText(url)
+                              toast.addToast('Link copied!', 'success')
+                            }}
+                            className="w-10 h-10 rounded-lg bg-white/5 hover:bg-gaffer-orange/10 flex items-center justify-center text-white/40 hover:text-gaffer-orange border border-white/5 hover:border-gaffer-orange/20 transition-all active:scale-90"
+                          >
+                            <Copy size={14} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="grid gap-3">
-                        {/* Public Link */}
-                        <div className="group relative">
-                          <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mb-1.5 ml-1 opacity-50">Tournament Page Link</label>
-                          <div className="flex items-center gap-2 bg-gaffer-surface border border-gaffer-border rounded-xl px-4 py-3 group-hover:border-gaffer-orange/30 transition-all">
-                            <p className="text-[11px] text-white/70 font-medium truncate flex-1 font-body">
-                              {typeof window !== 'undefined' ? `${window.location.origin}/${slugify(competition.name)}` : `/${slugify(competition.name)}`}
-                            </p>
-                            <button 
-                              onClick={() => {
-                                const url = typeof window !== 'undefined' ? `${window.location.origin}/${slugify(competition.name)}` : `/${slugify(competition.name)}`
-                                navigator.clipboard.writeText(url)
-                                toast.addToast('Link copied!', 'success')
-                              }}
-                              className="w-8 h-8 rounded-lg bg-gaffer-orange/10 hover:bg-gaffer-orange/20 flex items-center justify-center text-gaffer-orange border border-gaffer-orange/20 transition-all active:scale-95"
-                            >
-                              <Copy size={12} />
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* Join Code */}
-                        <div className="group relative">
-                          <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mb-1.5 ml-1 opacity-50">Invitation Code</label>
-                          <div className="flex items-center gap-2 bg-gaffer-surface border border-gaffer-border rounded-xl px-4 py-3 group-hover:border-gaffer-orange/30 transition-all">
-                            <p className={`text-lg font-chakra font-black tracking-[0.25em] flex-1 ${competition.joinCode ? 'text-white' : 'text-white/20'}`}>
+                      {/* Join Code Section */}
+                      <div className="group relative">
+                        <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-[0.25em] mb-2 ml-1 opacity-50">Invitation Code</label>
+                        <div className="flex items-center gap-3 bg-gaffer-surface border border-gaffer-border rounded-xl pl-4 pr-3 py-3 hover:border-gaffer-orange/30 transition-all shadow-inner">
+                          <div className="flex-1">
+                            <p className={`text-xl font-chakra font-black tracking-[0.25em] ${competition.joinCode ? 'text-white' : 'text-white/10'}`}>
                               {competition.joinCode || 'PENDING'}
                             </p>
-                            <button 
-                              onClick={() => {
-                                if (competition.joinCode) {
-                                  navigator.clipboard.writeText(competition.joinCode)
-                                  toast.addToast('Code copied!', 'success')
-                                } else {
-                                  toast.addToast('No code available until tournament is public.', 'info')
-                                }
-                              }}
-                              className="w-8 h-8 rounded-lg bg-gaffer-orange/10 hover:bg-gaffer-orange/20 flex items-center justify-center text-gaffer-orange border border-gaffer-orange/20 transition-all active:scale-95"
-                            >
-                              <Copy size={12} />
-                            </button>
                           </div>
-                          {!competition.joinCode && competition.status === 'published' && (
-                            <p className="text-[9px] text-gaffer-orange/60 font-medium mt-1 ml-1 italic">Publish action failed to generate code. Contact support.</p>
-                          )}
+                          <button 
+                            onClick={() => {
+                              if (competition.joinCode) {
+                                navigator.clipboard.writeText(competition.joinCode)
+                                toast.addToast('Code copied!', 'success')
+                              } else {
+                                toast.addToast('Wait for code to generate...', 'info')
+                              }
+                            }}
+                            className="w-10 h-10 rounded-lg bg-white/5 hover:bg-gaffer-orange/10 flex items-center justify-center text-white/40 hover:text-gaffer-orange border border-white/5 hover:border-gaffer-orange/20 transition-all active:scale-90"
+                          >
+                            <Copy size={14} />
+                          </button>
                         </div>
+                        {!competition.joinCode && competition.status === 'published' && (
+                          <p className="text-[9px] text-gaffer-orange/60 font-medium mt-2 ml-1 italic opacity-80">Generation failed. Contact support.</p>
+                        )}
                       </div>
-                    </motion.div>
-                  )}
+                    </div>
+                  </motion.div>
+                )}
 
-                  {/* ── ROSTER LIST ── */}
+                {/* ── ROSTER LIST ── */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-2 mb-4">
                     <h3 className="font-display font-black text-[11px] text-gaffer-subtle uppercase tracking-widest">
                       Tournament Roster
                     </h3>
                     <div className="flex items-center gap-2">
-                      <button 
+                      <button
                         onClick={() => setShowEnrollModal(true)}
                         className="text-[9px] font-display font-black text-gaffer-orange bg-gaffer-orange/10 px-3 py-1.5 rounded-full border border-gaffer-orange/20 uppercase hover:bg-gaffer-orange/20 transition-all active:scale-95"
                       >
@@ -442,7 +444,7 @@ export default function TournamentDetailPage() {
                           <div className="w-12 h-12 rounded-xl bg-gaffer-surface border border-gaffer-border p-2.5 shrink-0">
                             <img src={tm.logoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.name}`} alt="" className="w-full h-full object-contain" />
                           </div>
-                          
+
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2">
                               <p className="font-body font-bold text-sm text-white truncate uppercase">{tm.name}</p>
@@ -459,7 +461,7 @@ export default function TournamentDetailPage() {
                               </p>
                               <p className="text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mt-1 opacity-60">Players</p>
                             </div>
-                             <button
+                            <button
                               onClick={(e) => {
                                 e.stopPropagation()
                                 const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
@@ -615,9 +617,9 @@ export default function TournamentDetailPage() {
 
       <AnimatePresence>
         {showEdit && (
-          <EditTournamentModal 
-            competition={competition} 
-            onClose={() => setShowEdit(false)} 
+          <EditTournamentModal
+            competition={competition}
+            onClose={() => setShowEdit(false)}
           />
         )}
       </AnimatePresence>
@@ -626,7 +628,7 @@ export default function TournamentDetailPage() {
         {showEnrollModal && (
           <div className="fixed inset-0 z-[200] flex items-end justify-center px-4 pb-12 sm:pb-24">
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={() => setShowEnrollModal(false)} />
-            <motion.div 
+            <motion.div
               initial={{ y: '100%', opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: '100%', opacity: 0 }}
@@ -636,11 +638,11 @@ export default function TournamentDetailPage() {
                 <h3 className="text-xl font-display font-black text-white uppercase tracking-tight">Enroll Team</h3>
                 <button onClick={() => setShowEnrollModal(false)} className="text-gaffer-subtle hover:text-white"><Plus className="rotate-45" size={24} /></button>
               </div>
-              
+
               <div className="space-y-6">
                 <div>
                   <label className="text-[10px] font-display font-black text-gaffer-subtle uppercase tracking-widest mb-2 block">Available Teams</label>
-                  <select 
+                  <select
                     value={selectedEnrollTeam}
                     onChange={(e) => setSelectedEnrollTeam(e.target.value)}
                     className="w-full h-14 bg-[#181928] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
@@ -653,7 +655,7 @@ export default function TournamentDetailPage() {
                   </select>
                 </div>
 
-                <button 
+                <button
                   disabled={!selectedEnrollTeam || enrollMutation.isPending}
                   onClick={() => enrollMutation.mutate(selectedEnrollTeam)}
                   className="w-full py-4 bg-orange-gradient-btn text-white font-display font-black text-base uppercase tracking-wider rounded-2xl shadow-xl active:scale-95 transition-all disabled:opacity-50"
@@ -667,9 +669,9 @@ export default function TournamentDetailPage() {
       </AnimatePresence>
       <AnimatePresence>
         {activeFixtureForEvent && (
-          <RecordEventModal 
+          <RecordEventModal
             fixtureId={activeFixtureForEvent._id}
-            homeTeam={{ 
+            homeTeam={{
               id: typeof activeFixtureForEvent.homeTeamId === 'string' ? activeFixtureForEvent.homeTeamId : activeFixtureForEvent.homeTeamId._id,
               name: teamLabel(activeFixtureForEvent.homeTeamId),
             }}
