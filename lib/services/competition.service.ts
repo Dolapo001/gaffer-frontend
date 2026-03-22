@@ -92,7 +92,7 @@ export async function updateCompetition(
 }
 
 // DELETE /competitions/:competitionId
-export async function archiveCompetition(competitionId: string): Promise<{ message: string }> {
+export async function deleteCompetition(competitionId: string): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/competitions/${competitionId}`)
 }
 

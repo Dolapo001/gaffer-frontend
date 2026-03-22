@@ -15,6 +15,7 @@ export interface Team {
   maxPlayers?: number
   createdAt: string
   updatedAt: string
+  competitionId?: string
 }
 
 export interface Player {
@@ -80,7 +81,7 @@ export async function updateTeam(teamId: string, payload: Partial<CreateTeamPayl
 }
 
 // DELETE /teams/:teamId
-export async function archiveTeam(teamId: string): Promise<{ message: string }> {
+export async function deleteTeam(teamId: string): Promise<{ message: string }> {
   return api.delete<{ message: string }>(`/teams/${teamId}`)
 }
 
@@ -103,8 +104,9 @@ export async function addPlayer(teamId: string, payload: AddPlayerPayload): Prom
 }
 
 // GET /teams/:teamId/players
-export async function listPlayers(teamId: string): Promise<Player[]> {
-  const data = await api.get<{ players: Player[] }>(`/teams/${teamId}/players`)
+export async function listPlayers(teamId: string, competitionId?: string): Promise<Player[]> {
+  const url = competitionId ? `/teams/${teamId}/players?competitionId=${competitionId}` : `/teams/${teamId}/players`
+  const data = await api.get<{ players: Player[] }>(url)
   return data.players
 }
 

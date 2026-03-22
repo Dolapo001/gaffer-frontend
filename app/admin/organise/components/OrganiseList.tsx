@@ -10,10 +10,13 @@ interface Props {
   teams: Team[]
   groups: Group[]
   hasOrg: boolean
+  selectedCompetitionId?: string
   onTabChange: (tab: 'Teams' | 'Groups') => void
   onTeamClick: (team: Team) => void
   onGroupClick: (group: Group) => void
   onAddTeamsToGroup: (group: Group) => void
+  onAddTeamToTournament: (teamId: string) => void
+  onRemoveTeamFromTournament: (teamId: string) => void
 }
 
 export function OrganiseList({
@@ -21,10 +24,13 @@ export function OrganiseList({
   teams,
   groups,
   hasOrg,
+  selectedCompetitionId,
   onTabChange,
   onTeamClick,
   onGroupClick,
   onAddTeamsToGroup,
+  onAddTeamToTournament,
+  onRemoveTeamFromTournament,
 }: Props) {
   return (
     <motion.div
@@ -99,6 +105,33 @@ export function OrganiseList({
                         </h4>
                         <p className="text-[12px] text-[#A1A1AA]">{team.playerCount} players</p>
                       </div>
+
+                      {selectedCompetitionId && (
+                        <div className="flex items-center gap-2 pr-2">
+                          {team.competitionId === selectedCompetitionId ? (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onRemoveTeamFromTournament(team.id)
+                              }}
+                              className="px-4 py-2 rounded-full border border-red-500/50 text-red-400 text-xs font-bold hover:bg-red-500/10 transition-all uppercase"
+                            >
+                              Remove
+                            </button>
+                          ) : (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onAddTeamToTournament(team.id)
+                              }}
+                              className="px-4 py-2 rounded-full border border-orange-500/50 text-orange-400 text-xs font-bold hover:bg-orange-500/10 transition-all uppercase whitespace-nowrap"
+                            >
+                              Add to Tournament
+                            </button>
+                          )}
+                        </div>
+                      )}
+
                       <div className="w-5 h-5 rounded-full border border-white flex items-center justify-center shrink-0">
                         <ChevronRight size={12} strokeWidth={2.5} className="text-white" />
                       </div>
