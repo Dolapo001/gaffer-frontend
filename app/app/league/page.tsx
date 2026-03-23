@@ -1,57 +1,30 @@
 'use client'
 
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { listOrgs } from '@/lib/services/org.service'
 import { listCompetitions } from '@/lib/services/competition.service'
-import { GafferLogo } from '@/components/GafferLogo'
-import { Trophy, ChevronRight } from 'lucide-react'
+import { LeagueItem } from '@/components/home/LeagueItem'
+import { Search, Trophy } from 'lucide-react'
 import type { Competition } from '@/lib/services/competition.service'
 
-function CompetitionCard({
-  competition,
-  onClick,
-}: {
-  competition: Competition
-  onClick: () => void
-}) {
-  const statusColor =
-    competition.status === 'published'
-      ? 'text-green-400 bg-green-400/10 border-green-400/30'
-      : competition.status === 'draft'
-      ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/30'
-      : 'text-gaffer-subtle bg-gaffer-border/20 border-gaffer-border'
-
-  return (
-    <motion.button
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="w-full flex items-center gap-3 bg-gaffer-card border border-gaffer-border rounded-2xl p-4 text-left"
-    >
-      <div className="w-12 h-12 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 flex items-center justify-center flex-shrink-0">
-        <Trophy size={20} className="text-gaffer-orange" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-white font-display font-bold text-sm truncate">{competition.name}</p>
-        <p className="text-gaffer-muted text-xs font-body capitalize mt-0.5">
-          {competition.sport} · {competition.gender}
-        </p>
-      </div>
-      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-        <span className={`text-[10px] font-display font-bold px-2 py-0.5 rounded-full border uppercase tracking-wide ${statusColor}`}>
-          {competition.status}
-        </span>
-        <ChevronRight size={14} className="text-gaffer-subtle" />
-      </div>
-    </motion.button>
-  )
+function formatDateRange(startDate: string, endDate: string): string {
+  const fmt = (d: string) => {
+    const date = new Date(d)
+    const day = date.getDate()
+    const month = date.toLocaleString('en', { month: 'short' }).toUpperCase()
+    return `${day} ${month}`
+  }
+  return `${fmt(startDate)} - ${fmt(endDate)}`
 }
 
 export default function LeaguePage() {
   const router = useRouter()
   const { isAuthenticated } = useAuthStore()
+  const [search, setSearch] = useState('')
 
   const { data: orgs, isLoading: orgsLoading } = useQuery({
     queryKey: ['orgs'],
@@ -68,37 +41,73 @@ export default function LeaguePage() {
 
   const isLoading = orgsLoading || compsLoading
 
+  const filtered = (competitions ?? []).filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()),
+  )
+
   return (
     <div className="min-h-screen bg-[#181928] pb-28">
-      <div className="flex items-center justify-between px-4 pt-12 pb-4">
-        <GafferLogo size="sm" />
+      {/* Search bar */}
+      <div className="px-4 pt-12 pb-3">
+        <div className="flex items-center gap-3 bg-[#1e1f30] rounded-2xl px-4 h-12">
+          <Search size={18} className="text-gaffer-subtle flex-shrink-0" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search leagues..."
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-gaffer-subtle outline-none font-body"
+          />
+        </div>
       </div>
 
       <div className="px-4">
-        <h1 className="font-display font-bold text-2xl text-white mb-1">Competitions</h1>
-        <p className="text-gaffer-muted text-sm font-body mb-6">Browse active leagues</p>
+        {/* Section header */}
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="font-display font-bold text-xl text-white">Favourite</h1>
+          <button className="text-gaffer-orange font-display font-bold text-sm tracking-wide">
+            JOIN LEAGUE
+          </button>
+        </div>
 
+        {/* List */}
         {isLoading ? (
-          <div className="space-y-3">
+          <div className="space-y-1">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-20 bg-gaffer-card border border-gaffer-border rounded-2xl animate-pulse" />
+              <div key={i} className="h-16 bg-gaffer-card/50 rounded-2xl animate-pulse" />
             ))}
           </div>
-        ) : competitions && competitions.length > 0 ? (
-          <div className="space-y-3">
-            {competitions.map((comp, i) => (
-              <motion.div key={comp._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                <CompetitionCard competition={comp} onClick={() => router.push(`/app/league/${comp._id}`)} />
+        ) : filtered.length > 0 ? (
+          <div className="divide-y divide-gaffer-border/20">
+            {filtered.map((comp: Competition, i: number) => (
+              <motion.div
+                key={comp._id}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+              >
+                <LeagueItem
+                  id={comp._id}
+                  name={comp.name}
+                  dateRange={formatDateRange(comp.startDate, comp.endDate)}
+                  avatar={comp.bannerUrl}
+                  verified={comp.status === 'published' || comp.status === 'live'}
+                  onClick={() => router.push(`/app/league/${comp._id}`)}
+                />
               </motion.div>
             ))}
           </div>
         ) : (
-          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-10 text-center">
-            <Trophy size={36} className="text-gaffer-subtle mx-auto mb-4" />
-            <p className="text-white font-body font-medium mb-1">No competitions yet</p>
-            <p className="text-gaffer-muted text-sm font-body">
-              {isAuthenticated ? 'Join or create an organization to see competitions.' : 'Log in to continue.'}
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="w-20 h-20 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center mb-6">
+              <Trophy size={32} className="text-gaffer-subtle" />
+            </div>
+            <p className="text-white font-display font-bold text-lg mb-2">No leagues yet</p>
+            <p className="text-gaffer-muted text-sm font-body max-w-[220px] mb-8 leading-relaxed">
+              Enter a league code to join a competition and see it here in your favourites.
             </p>
+            <button className="bg-gaffer-orange text-white font-display font-bold text-sm px-8 py-3.5 rounded-full shadow-orange-glow">
+              Enter League Code
+            </button>
           </div>
         )}
       </div>
