@@ -50,61 +50,63 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
 
   return (
     <button 
-      className={`flex flex-col w-[62px] sm:w-[76px] rounded-xl overflow-hidden shadow-lg transition-all border relative group backdrop-blur-md bg-white/10 ${containerRing} ${className}`}
+      style={{
+        width: '64px',
+        height: '102px',
+        borderRadius: '5px',
+        border: selected ? '2px solid #ff6b00' : '0.5px solid rgba(255, 255, 255, 0.4)',
+        background: 'rgba(55, 0, 60, 0.35)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+      }}
+      className={`flex flex-col overflow-hidden transition-all relative group ${selected ? 'scale-105 z-10' : ''} ${className}`}
       onClick={onClick}
     >
-      {/* Points Badge */}
-      {points !== undefined && (
-        <div className="absolute top-1 right-1 z-20 bg-[#ff6b00] text-white text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded-md shadow-md">
-          {points}
-        </div>
-      )}
-
-      {/* Injury/Warning Status Badge */}
-      {status !== 'fit' && (
-        <div className="absolute top-1 right-1 z-20 flex shadow-sm">
-           {status === 'injured' && (
-             <div className="w-4 h-4 bg-red-600 rounded-sm flex items-center justify-center border border-white/20">
-                <span className="text-white text-[8px] font-black">!</span>
-             </div>
-           )}
-           {status === 'warning' && (
-             <div className="w-4 h-4 bg-yellow-400 rounded-sm flex items-center justify-center border border-white/20">
-                <span className="text-black text-[8px] font-black">!</span>
-             </div>
-           )}
-        </div>
-      )}
-
-      {/* Captaincy Badge */}
-      {captaincy && (
-        <div className={`absolute top-1 left-1 z-20 w-4 h-4 rounded-full flex items-center justify-center border border-white/20 shadow-sm ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-purple-600'}`}>
-           <span className="text-white text-[8px] font-black">{captaincy}</span>
-        </div>
-      )}
-
-      {/* 1. Top Section (Player Image Area) */}
-      <div className={`bg-transparent p-0 flex items-center justify-center h-[60px] sm:h-[74px] overflow-hidden`}>
+      {/* 1. Jersey Section (Glass) */}
+      <div className="flex-1 flex items-center justify-center pt-2 pb-1 px-1 relative">
         <img 
           src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"} 
-          alt={`${playerName}`} 
-          className={`${kitImageUrl.includes('images') ? 'w-full h-full object-cover object-top' : 'w-[85%] h-[85%] object-contain mt-1'} drop-shadow-lg relative z-10 mx-auto`}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"
-          }}
+          alt={playerName} 
+          className="w-[80%] h-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform"
         />
+        
+        {/* Status indicator top right */}
+        {status !== 'fit' && (
+          <div className="absolute top-1 right-0.5">
+            {status === 'warning' && (
+              <div className="w-4 h-4 bg-yellow-400 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
+                 <span className="text-[10px] font-black text-black leading-none -mt-0.5">!</span>
+              </div>
+            )}
+            {status === 'injured' && (
+              <div className="w-4 h-4 bg-red-600 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
+                 <span className="text-[10px] font-black text-white leading-none -mt-0.5">!</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Captaincy Badge - AMETHYST/PURPLE for Vice-Captain in spec */}
+        {captaincy && (
+          <div className={`absolute top-0.5 left-0.5 w-4 h-4 ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-[#6B46C1]'} rounded-full flex items-center justify-center border border-white/40 shadow-sm`}>
+            <span className="text-white text-[9px] font-black leading-none">{captaincy}</span>
+          </div>
+        )}
       </div>
 
-      {/* 2. Bottom Section (Player Info Area) */}
-      <div className="flex flex-col w-full text-center leading-none">
-        {/* Row 1: Player Name */}
-        <div className={`${topTextBg} font-semibold text-[10px] sm:text-[11px] py-1.5 px-1 truncate border-b ${topTextBorder}`}>
-          {playerName}
+      {/* 2. Info Boxes (Solid) */}
+      <div className={`w-full flex flex-col font-sans ${status === 'warning' ? 'bg-[#FFEB3B]' : status === 'injured' ? 'bg-[#EF4444]' : 'bg-white'} py-1`}>
+        {/* Name Row */}
+        <div className="px-0.5 text-center flex items-center justify-center min-h-[14px]">
+          <p className={`text-[10px] font-black truncate uppercase tracking-tighter leading-none ${status === 'fit' ? 'text-[#37003c]' : status === 'warning' ? 'text-black' : 'text-white'}`}>
+            {playerName || 'Player'}
+          </p>
         </div>
-        
-        {/* Row 2: Fixture/Opponent */}
-        <div className={`${bottomBg} text-[9px] sm:text-[10px] py-1.5 px-1 truncate`}>
-          {fixture}
+        {/* Fixture Row */}
+        <div className="px-0.5 text-center flex items-center justify-center min-h-[12px] mt-0.5">
+          <p className={`text-[9px] font-bold truncate uppercase tracking-[0.01em] leading-none opacity-80 ${status === 'fit' || status === 'warning' ? 'text-[#37003c]' : 'text-white'}`}>
+            {fixture || 'TBC'}
+          </p>
         </div>
       </div>
     </button>

@@ -16,6 +16,8 @@ export type Team = {
   handle?: string
   playerCount: string
   logo: string
+  competitionId?: string
+  maxTeams?: number
 }
 
 export type Group = {

@@ -13,6 +13,14 @@ export interface MatchState {
     venue?: string
     startedAt?: string
     completedAt?: string
+    formation?: string
+    awayFormation?: string
+    lineup?: Array<{
+      playerId: { _id: string; firstName: string; lastName: string; photoUrl?: string }
+      role: 'gk' | 'def' | 'mid' | 'att'
+      positionCenter?: number
+      positionVertical?: number
+    }>
   }
   recentEvents: MatchEvent[]
 }

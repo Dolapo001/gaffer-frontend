@@ -82,20 +82,20 @@ const FantasyDashboard: React.FC = () => {
 
           <div className="flex justify-around w-full px-4 relative z-10">
             <div className="flex flex-col items-center">
-              <span className="text-white text-[36px] font-bold leading-none mb-1">—</span>
-              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Average</span>
+              <span className="text-white text-[24px] font-bold leading-none mb-1">42.0</span>
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest text-center mt-2">Average SC</span>
             </div>
-
+ 
             <div className="flex flex-col items-center scale-110">
               <span className="text-[#FF4D00] text-[52px] font-bold leading-none mb-0.5 drop-shadow-[0_0_15px_rgba(255,77,0,0.3)]">
                 {displayPoints}
               </span>
-              <span className="text-white text-[11px] font-bold uppercase tracking-widest">Your Score</span>
+              <span className="text-white text-[11px] font-bold uppercase tracking-widest text-center mt-1">Your SC</span>
             </div>
-
+ 
             <div className="flex flex-col items-center">
-              <span className="text-white text-[36px] font-bold leading-none mb-1">—</span>
-              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest">Highest</span>
+              <span className="text-white text-[24px] font-bold leading-none mb-1">242</span>
+              <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest text-center mt-2">Highest SC</span>
             </div>
           </div>
         </div>
@@ -107,6 +107,7 @@ const FantasyDashboard: React.FC = () => {
             { label: 'Pick Team', path: '/app/fantasy/team', top: 312 },
             { label: 'Transfers', path: '/app/fantasy/transfers', top: 384 },
             { label: 'Chips Store', path: '/app/fantasy/chips', top: 456 },
+            { label: 'Switch League', action: 'SWITCH', top: 528 },
           ].map((item) => (
             <button
               key={item.label}
@@ -120,7 +121,15 @@ const FantasyDashboard: React.FC = () => {
                 borderRadius: '12px',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
               }}
-              onClick={() => handleNav(item.label, item.path)}
+              onClick={() => {
+                if (item.action === 'SWITCH') {
+                  useFantasyStore.getState().setCompetitionId(null)
+                  useFantasyStore.getState().resetTeam()
+                  router.push('/app/fantasy')
+                } else if (item.path) {
+                  handleNav(item.label, item.path)
+                }
+              }}
             >
               <span className="text-white font-bold text-[16px] ml-[20px] uppercase tracking-wide">
                 {item.label}

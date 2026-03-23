@@ -123,26 +123,38 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
   const addSelectedFormat = () => {
     const format = FORMAT_OPTIONS.find(f => f.id === selectedFormat)
     if (format) {
-      const newId = crypto.randomUUID()
-      const newType = format.id === 'custom' ? 'Custom' :
-                      format.label.includes('Groups') || format.id === 'groups' ? 'Groups' : 
-                      format.id === 'knockout' ? 'Knockout' : 'League'
-                      
-      const newFormat = {
-        id: newId,
-        type: newType,
-        name: format.label === 'Knockout' ? 'Knockout' : `${format.label} ${addedFormats.length + 1}`,
-        formatId: format.id,
-        info: format.id === 'knockout' ? 'Starts at Round of 16' : 
-              format.id === 'custom' ? 'Custom rules' : '4 Teams',
-        startingRound: 'Round of 16',
-        teamCount: '4 Teams',
-        customRules: {
-          pointsPerGoal: 0,
-          pointsPerCleanSheet: 0
+      const createFormat = (id: string, label: string) => {
+        const newId = crypto.randomUUID()
+        const newType = id === 'knockout' ? 'Knockout' : 
+                        id === 'groups' ? 'Groups' : 'League';
+                        
+        return {
+          id: newId,
+          type: newType,
+          name: label,
+          formatId: id,
+          info: id === 'knockout' ? 'Starts at Round of 16' : '4 Teams',
+          startingRound: 'Round of 16',
+          teamCount: '4 Teams',
+          customRules: { pointsPerGoal: 0, pointsPerCleanSheet: 0 }
         }
       }
-      setAddedFormats([...addedFormats, newFormat])
+
+      if (selectedFormat === 'group_knockout') {
+        setAddedFormats([
+          createFormat('groups', 'Group Stage'),
+          createFormat('knockout', 'Knockout Stage')
+        ])
+      } else if (selectedFormat === 'league_knockout') {
+        setAddedFormats([
+          createFormat('league', 'League Stage'),
+          createFormat('knockout', 'Knockout Stage')
+        ])
+      } else {
+        const newType = selectedFormat === 'groups' ? 'groups' : 
+                        selectedFormat === 'knockout' ? 'knockout' : 'league';
+        setAddedFormats([createFormat(newType, format.label)])
+      }
     }
   }
 
@@ -169,15 +181,46 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     // Format must be one of: round_robin, groups, knockout, groups_knockout, league_playoff, custom
     // We'll map the selected format to the backend enum or use "custom" if preferred.
     
-    console.log('Sending tournament creation payload:', {
-      name: details.name,
-      sport: details.sport,
-      gender: details.gender,
-      startDate: details.startDate,
-      endDate: details.endDate,
-      format: selectedFormat,
-      rules: rules
-    });
+    // Map UI formats to backend stages
+    const stages = addedFormats.map(f => {
+      let startingRound = undefined;
+      let maxTeams = undefined;
+      let teamsPerGroup = undefined;
+      let maxGroups = undefined;
+
+      if (f.type === 'Knockout') {
+        const round = f.startingRound.toLowerCase();
+        if (round.includes('32')) { startingRound = 'round_of_32'; maxTeams = 32; }
+        else if (round.includes('16')) { startingRound = 'round_of_16'; maxTeams = 16; }
+        else if (round.includes('quarter')) { startingRound = 'quarterfinal'; maxTeams = 8; }
+        else if (round.includes('semi')) { startingRound = 'semifinal'; maxTeams = 4; }
+        else if (round.includes('final')) { startingRound = 'final'; maxTeams = 2; }
+      } else if (f.type === 'Groups') {
+        // e.g. "4 Teams" -> 4
+        teamsPerGroup = parseInt(f.teamCount) || 4;
+        // In this UI, "Groups" stage added via wizard usually defaults to a certain number of groups if we don't have a count.
+        // But the wizard UI for Groups stage (line 246) doesn't have a group count selector? 
+        // Oh, wait. CreateTournamentModal doesn't seem to have a "Number of Groups" for the 'Groups' stage setup yet?
+        // Let's assume 2 for now or check if it's in the state.
+        maxGroups = 2; // Default
+        maxTeams = maxGroups * teamsPerGroup;
+      } else if (f.type === 'League') {
+         maxTeams = parseInt(f.teamCount) || 20;
+      }
+
+      return {
+        type: f.type.toLowerCase() === 'groups' ? 'groups' : 
+              f.type.toLowerCase() === 'knockout' ? 'knockout' : 'league',
+        groups: f.type === 'Groups' ? Array.from({ length: maxGroups || 2 }, (_, i) => ({ name: `Group ${String.fromCharCode(65 + i)}` })) : [], 
+        startingRound,
+        maxTeams,
+        teamsPerGroup,
+        maxGroups
+      }
+    })
+
+    // Global maxTeams for the competition
+    const totalMaxTeams = stages.reduce((acc, s) => Math.max(acc, s.maxTeams || 0), 0) || undefined;
 
     createMutation.mutate({
       name: details.name,
@@ -187,6 +230,8 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       endDate: new Date(details.endDate).toISOString(),
       format: selectedFormat,
       bannerUrl: details.photo.startsWith('blob:') ? undefined : details.photo,
+      stages, // Essential for publishing
+      maxTeams: totalMaxTeams,
       rules: {
          winPoints: rules.winPoints,
          drawPoints: rules.drawPoints,

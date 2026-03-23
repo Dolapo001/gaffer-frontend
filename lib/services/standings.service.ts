@@ -6,6 +6,7 @@ export interface Standing {
     name: string
     handle: string
     logoUrl?: string
+    shortName?: string
   }
   played: number
   won: number

@@ -6,7 +6,8 @@ import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, C
 import type { Team, Group, Player } from '../types'
 import { useToastStore } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
-import { Competition } from '@/lib/services/competition.service'
+import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -25,6 +26,8 @@ interface Props {
   onAddToTournament?: (teamId: string, competitionId: string) => void
   onAddPlayerManual?: (data: any) => void
   onUploadPlayerPhoto?: (playerId: string, file: File) => Promise<void>
+  onDeleteTeam?: () => void
+  onDeleteGroup?: () => void
   onUpdatePlayer?: (playerId: string, payload: any) => void
   orgName?: string
   orgLogoUrl?: string
@@ -69,12 +72,16 @@ export function OrganiseDetails({
   onAddToTournament,
   onAddPlayerManual,
   onUploadPlayerPhoto,
+  onDeleteTeam,
+  onDeleteGroup,
   onUpdatePlayer,
   orgName,
   orgLogoUrl,
 }: Props) {
   const toast = useToastStore()
 
+  const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false)
+  const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [tempPrice, setTempPrice] = useState('')
@@ -96,7 +103,23 @@ export function OrganiseDetails({
       toast.addToast('Name is required', 'error')
       return
     }
-    onAddPlayerManual?.({ ...newPlayer, _photoFile: newPlayerPhoto ?? undefined })
+
+    // Check max players count
+    const activeCount = players.filter(p => p.status === 'active').length
+    const maxStr = selectedTeam?.playerCount.split('/')[1] || '0'
+    const maxNum = parseInt(maxStr) || 25
+
+    if (activeCount >= maxNum) {
+      toast.addToast(`Team is full! Can't add more than ${maxNum} players.`, 'error')
+      return
+    }
+
+    onAddPlayerManual?.({ 
+      ...newPlayer, 
+      price: parseFloat(newPlayer.price) || 0,
+      jerseyNumber: newPlayer.jerseyNumber ? parseInt(newPlayer.jerseyNumber.toString()) : undefined,
+      _photoFile: newPlayerPhoto ?? undefined 
+    })
     setIsAddingPlayer(false)
     setNewPlayer({ firstName: '', lastName: '', position: 'Forward', role: 'player', price: '7.5', jerseyNumber: '' })
     setNewPlayerPhoto(null)
@@ -373,14 +396,58 @@ export function OrganiseDetails({
       </div>
 
       {/* ── Action Bar ── */}
-      <div className="px-6 pt-6 pb-[140px] shrink-0 border-t border-white/[0.05] bg-[#11121C]">
+      <div className="px-6 pt-6 pb-[140px] shrink-0 border-t border-white/[0.05] bg-[#11121C] space-y-3">
         <button
           onClick={onBack}
           className="w-full h-15 bg-gradient-to-r from-[#FF8A00] to-[#FF2D20] text-white font-black text-[15px] py-4 rounded-[14px] shadow-[0_8px_30px_rgb(255,45,32,0.3)] active:scale-[0.98] transition-all uppercase tracking-[0.15em]"
         >
           Save
         </button>
+
+        {selectedTeam && (
+          <button
+            onClick={() => setShowDeleteTeamConfirm(true)}
+            className="w-full py-3 rounded-xl border border-red-500/20 text-red-500/60 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/5 transition-all"
+          >
+            Delete Team
+          </button>
+        )}
+
+        {selectedGroup && !selectedTeam && (
+          <button
+            onClick={() => setShowDeleteGroupConfirm(true)}
+            className="w-full py-3 rounded-xl border border-red-500/20 text-red-500/60 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/5 transition-all"
+          >
+            Delete Group
+          </button>
+        )}
       </div>
+
+      <ConfirmDialog
+        open={showDeleteTeamConfirm}
+        title="Delete Team?"
+        message={`This will permanently delete "${selectedTeam?.name}" and all its squad members, invites, and tournament registrations.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setShowDeleteTeamConfirm(false)
+          onDeleteTeam?.()
+        }}
+        onCancel={() => setShowDeleteTeamConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={showDeleteGroupConfirm}
+        title="Delete Group?"
+        message={`This will permanently delete the group "${selectedGroup?.name}". The teams themselves will not be deleted, but they will be unassigned.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setShowDeleteGroupConfirm(false)
+          onDeleteGroup?.()
+        }}
+        onCancel={() => setShowDeleteGroupConfirm(false)}
+      />
 
       {/* ── Edit Player Modal ── */}
       <AnimatePresence>

@@ -40,6 +40,8 @@ export interface FantasySquadPlayer {
   gwHistory: GWResult[]
   nextFixtures: NextFixture[]
   avatarUrl?: string
+  teamLogoUrl?: string
+  status?: 'fit' | 'injured' | 'warning'
 }
 
 export interface BoostOption {
@@ -91,12 +93,21 @@ const TEAMS = [
 export const getJerseyUrl = (teamCode: string, position: string) => {
   let teamId = 1; // Arsenal
   switch (teamCode) {
-    case 'ENG': teamId = 1; break; // Arsenal
-    case 'LAW': teamId = 2; break; // Aston Villa
-    case 'MED': teamId = 3; break; // Bournemouth
-    case 'SCI': teamId = 4; break; // Brentford
-    case 'BUS': teamId = 8; break; // Chelsea
-    default: teamId = 1;
+    case 'ironclad-athletic': teamId = 1; break; // Arsenal
+    case 'crimson-rovers':     teamId = 2; break; // Aston Villa
+    case 'emerald-city-fc':    teamId = 3; break; // Bournemouth
+    case 'golden-strikers':    teamId = 4; break; // Brentford
+    case 'northgate-united':   teamId = 6; break; // Brighton
+    case 'harbour-wolves':     teamId = 8; break; // Chelsea
+    case 'delta-phoenix':      teamId = 9; break; // Palace
+    case 'coastal-titans':     teamId = 10; break; // Everton
+    // Mock legacy codes
+    case 'ENG': teamId = 11; break; // Fulham
+    case 'LAW': teamId = 12; break; // Liverpool
+    case 'MED': teamId = 13; break; // Man City
+    case 'SCI': teamId = 14; break; // Man Utd
+    case 'BUS': teamId = 15; break; // Newcastle
+    default: teamId = (Math.abs(teamCode.length * 7) % 20) + 1;
   }
   const isGk = position === 'GK' || position === 'GKP';
   return `https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_${teamId}${isGk ? '_1' : ''}-66.webp`;

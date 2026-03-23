@@ -9,18 +9,19 @@ interface TeamNamingScreenProps {
 }
 
 export const TeamNamingScreen: React.FC<TeamNamingScreenProps> = ({ onComplete }) => {
-  const [name, setName] = useState('MY TEAM')
-  const { createTeamOnApi, isSaving, saveError } = useFantasyStore()
+  const [name, setName] = useState('')
+  const { createTeamOnApi, saveTeamToApi, isSaving, saveError } = useFantasyStore()
 
   const handleConfirm = async () => {
-    if (!name.trim()) return
+    if (!name.trim()) return;
     try {
-      await createTeamOnApi(name.trim())
-      onComplete(name.trim())
-    } catch {
-      // saveError is set in store
+      // Create the team record on backend
+      await createTeamOnApi(name.trim());
+      onComplete(name.trim());
+    } catch (err: any) {
+      console.error('Final team naming failed:', err);
     }
-  }
+  };
 
   return (
     <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#1b1c28] flex flex-col font-sans overflow-hidden z-20">
