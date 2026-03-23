@@ -63,47 +63,47 @@ export default function TournamentSuccessPage() {
         className="relative z-10 w-full max-w-md space-y-10 text-center"
       >
         {/* Premium Trophy Logo */}
-        <div className="relative mx-auto w-40 h-40 flex items-center justify-center">
+        <div className="relative mx-auto w-44 h-44 flex items-center justify-center">
           <motion.div 
             animate={{ 
-              scale: [1, 1.1, 1],
-              opacity: [0.4, 0.6, 0.4]
+              scale: [1, 1.15, 1],
+              opacity: [0.3, 0.5, 0.3]
             }}
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-            className="absolute inset-0 bg-gradient-to-br from-[#FF8904] to-[#E7000B] rounded-full blur-3xl opacity-30"
+            className="absolute inset-0 bg-gradient-to-br from-[#FF8904] to-[#E7000B] rounded-full blur-[40px] opacity-30"
           />
           <motion.div
-            animate={{ y: [0, -10, 0] }}
+            animate={{ y: [0, -12, 0] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="relative z-10"
           >
-            <div className="w-28 h-28 bg-gradient-to-b from-[#1C1D2B] to-[#0F101A] rounded-[40px] flex items-center justify-center shadow-[0_25px_60px_-15px_rgba(0,0,0,0.5)] border border-white/10 group overflow-hidden">
+            <div className="w-32 h-32 bg-gradient-to-b from-[#1C1D2B] to-[#0F101A] rounded-[48px] flex items-center justify-center shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] border border-white/10 group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#FF8904]/20 to-[#E7000B]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <div className="relative z-10 w-20 h-20 bg-gradient-to-br from-[#FF8904] to-[#E7000B] rounded-[30px] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
-                <Trophy size={40} className="text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.3)]" />
+              <div className="relative z-10 w-22 h-22 bg-gradient-to-br from-[#FF8904] to-[#E7000B] rounded-[34px] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
+                <Trophy size={48} className="text-white drop-shadow-[0_2px_15px_rgba(0,0,0,0.4)]" />
               </div>
             </div>
             
             <motion.div 
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ delay: 0.8, type: 'spring', damping: 10 }}
-              className="absolute -bottom-2 -right-2 bg-[#22C55E] rounded-full p-3 border-4 border-[#0B0C14] shadow-2xl flex items-center justify-center"
+              transition={{ delay: 0.8, type: 'spring', damping: 12 }}
+              className="absolute -bottom-1 -right-1 bg-[#22C55E] rounded-full p-3.5 border-4 border-[#0B0C14] shadow-2xl flex items-center justify-center"
             >
-              <CheckCircle2 size={20} className="text-white" />
+              <CheckCircle2 size={22} className="text-white" />
             </motion.div>
           </motion.div>
         </div>
 
         {/* Headline Section */}
-        <div className="space-y-4">
-          <h1 className="text-5xl font-chakra font-black text-white uppercase tracking-tighter italic leading-none truncate px-4">
-            TOURNAMENT LIVE!
+        <div className="space-y-6 px-2">
+          <h1 className="text-4xl md:text-6xl font-chakra font-black uppercase italic leading-[0.85] tracking-tighter bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent drop-shadow-[0_15px_30px_rgba(255,137,4,0.3)]">
+            Tournament<br/>Published!
           </h1>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/5 rounded-full border border-white/10">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_#22C55E]" />
-            <span className="text-white/40 font-chakra font-black text-[10px] uppercase tracking-[0.25em]">
-              &quot;{competition.name}&quot;
+          <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-[#FF8904]/10 rounded-full border border-[#FF8904]/20 backdrop-blur-md">
+            <div className="w-2.5 h-2.5 rounded-full bg-green-500 animate-pulse shadow-[0_0_15px_#22C55E]" />
+            <span className="text-[#FF8904] font-chakra font-black text-[11px] uppercase tracking-[0.35em]">
+              {competition.name}
             </span>
           </div>
         </div>

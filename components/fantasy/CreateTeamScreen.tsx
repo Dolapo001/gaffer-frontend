@@ -8,36 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useFantasyStore } from '@/store/fantasyStore';
 import { PitchLayout } from './PitchLayout';
 import { getJerseyUrl, type FantasySquadPlayer, type Position, GAMEWEEK_INFO } from '@/lib/fantasyMockData';
-import { CreateTeamPlayerDrawer } from './CreateTeamPlayerDrawer';
+import CreateTeamPlayerDrawer from './CreateTeamPlayerDrawer';
 import { SaveTeamConfirmationModal } from './SaveTeamConfirmationModal';
 import { listFantasyPlayers, type FantasyPlayer } from '@/lib/services/fantasy.service';
+import { listFixtures } from '@/lib/services/fixture.service';
 
-/**
- * Maps API FantasyPlayer to internal FantasySquadPlayer
- */
-function mapApiPlayer(p: FantasyPlayer): FantasySquadPlayer {
-  const posMap: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 };
-  return {
-    id: p._id,
-    name: `${p.playerId.firstName} ${p.playerId.lastName}`,
-    shortName: p.playerId.lastName,
-    teamName: p.teamId.name,
-    teamCode: p.teamId.handle,
-    teamColor: '#ff6b00', // Default
-    position: p.position as Position,
-    points: p.totalPoints || 0,
-    price: p.price,
-    pitchRow: posMap[p.position] ?? 1,
-    isOnPitch: false,
-    isCaptain: false,
-    isViceCaptain: false,
-    goals: 0,
-    assists: 0,
-    form: 0,
-    gwHistory: [],
-    nextFixtures: []
-  };
-}
+import { mapApiPlayer } from '@/lib/converters';
 
 interface CreateTeamScreenProps {
   onComplete: () => void;
@@ -45,21 +21,21 @@ interface CreateTeamScreenProps {
 
 export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }) => {
   const router = useRouter();
-  const { resetTeam, players, budget, saveTeam } = useFantasyStore();
+  const { competitionId, resetTeam, setPlayers, budget, saveTeam } = useFantasyStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<{ position: Position; index: number } | null>(null);
-  
+
   // Players in the draft
   const [draftPlayers, setDraftPlayers] = useState<FantasySquadPlayer[]>([]);
-  
+
   // Drawer & Modal State
   const [selectedPlayerForDrawer, setSelectedPlayerForDrawer] = useState<FantasySquadPlayer | null>(null);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   // Initialize: Reset team if it's the first time
   useEffect(() => {
-    // For the demo, we start empty
-    // resetTeam();
+     resetTeam();
+     setDraftPlayers([]);
   }, []);
 
   const handleSelectSlot = (id: string) => {
@@ -87,8 +63,8 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
     setActiveSlot(null);
   };
 
-  const handleRemovePlayer = (id: string) => {
-    setDraftPlayers(draftPlayers.filter(p => p.id !== id));
+  const handleRemovePlayer = (player: FantasySquadPlayer) => {
+    setDraftPlayers(draftPlayers.filter(p => p.id !== player.id));
     setSelectedPlayerForDrawer(null);
   };
 
@@ -97,6 +73,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   const handleConfirmSave = () => {
+    setPlayers(draftPlayers);
     setIsConfirmModalOpen(false);
     onComplete();
   };
@@ -104,20 +81,20 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   return (
     <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-20">
       {/* Background Image Overlay */}
-      <div 
+      <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
+        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }}
       />
-      
+
       <header className="px-6 pt-12 pb-4 relative z-10">
         <div className="flex items-center justify-center mb-6">
           <h1 className="text-white text-[24px] font-bold tracking-tight">Create Team</h1>
         </div>
-        
+
         <p className="text-white/60 text-[12px] text-center mb-8 px-4">
           Pick Players one by one, you only get to select 3 players per club
         </p>
-        
+
         <div className="flex justify-between items-center px-2">
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Players :</span>
@@ -125,11 +102,11 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Bank :</span>
-            <span className="text-[#00ffff] text-[14px] font-mono font-bold">₦{budget.toFixed(1)}M</span>
+            <span className="text-[#00ffff] text-[14px] font-mono font-bold font-display">Ǥ{budget.toFixed(1)}M</span>
           </div>
         </div>
       </header>
-      
+
       {/* Deadline Bar */}
       <div className="w-full bg-[#1b1c28] py-2 relative z-10 flex justify-center items-center">
         <span className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em]">
@@ -137,9 +114,9 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto relative z-10 touch-pan-y scrollbar-hide pb-32">
+      <div className="flex-1 overflow-y-auto relative z-10 touch-pan-y pb-32 min-h-0">
         <div className="px-2 mt-4">
-          <PitchLayout 
+          <PitchLayout
             pitchPlayers={draftPlayers}
             selectedId={selectedPlayerForDrawer?.id || null}
             budget={budget}
@@ -147,11 +124,11 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
             selectionMode={true}
           />
         </div>
-        
+
         <div className="flex justify-center mt-12 pb-10">
           <button
             onClick={handleSaveDraft}
-            className={`text-[#ff6b00] font-bold text-[20px] underline decoration-2 underline-offset-8 transition-opacity ${draftPlayers.length > 0 ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}
+            className={`text-[#ff6b00] font-black text-[28px] uppercase tracking-wider underline decoration-4 underline-offset-[12px] transition-all hover:scale-105 active:scale-95 ${draftPlayers.length > 0 ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}
           >
             Save Team
           </button>
@@ -161,9 +138,10 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
       {/* Player Selection Overlay */}
       <AnimatePresence>
         {isSearchOpen && (
-          <PlayerSearchOverlay 
+          <PlayerSearchOverlay
             position={activeSlot?.position || 'GK'}
-            competitionId={useFantasyStore.getState().competitionId || ''}
+            competitionId={competitionId || ''}
+            draftPlayers={draftPlayers}
             onClose={() => setIsSearchOpen(false)}
             onSelect={handleAddPlayer}
           />
@@ -171,14 +149,14 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
       </AnimatePresence>
 
       {/* Player Details Drawer */}
-      <CreateTeamPlayerDrawer 
+      <CreateTeamPlayerDrawer
         player={selectedPlayerForDrawer}
         onClose={() => setSelectedPlayerForDrawer(null)}
         onRemove={handleRemovePlayer}
       />
 
       {/* Confirmation Modal */}
-      <SaveTeamConfirmationModal 
+      <SaveTeamConfirmationModal
         isOpen={isConfirmModalOpen}
         onClose={() => setIsConfirmModalOpen(false)}
         onConfirm={handleConfirmSave}
@@ -191,144 +169,220 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
 
 interface PlayerOverlayProps {
   position: Position;
+  draftPlayers: FantasySquadPlayer[];
   onClose: () => void;
   onSelect: (p: FantasySquadPlayer) => void;
 }
 
-const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string }> = ({ position, competitionId, onClose, onSelect }) => {
-    const [searchQuery, setSearchQuery] = useState('');
-    
-    const { data: playerResponse, isLoading } = useQuery({
-      queryKey: ['fantasy-market-players', competitionId, position],
-      queryFn: () => listFantasyPlayers(competitionId, { position }),
-      enabled: !!competitionId
-    });
+const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string }> = ({ position, competitionId, draftPlayers, onClose, onSelect }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTeam, setSelectedTeam] = useState<string>('all');
+  const [maxPrice, setMaxPrice] = useState<number>(20);
+  const { budget } = useFantasyStore();
 
-    const apiPlayers = playerResponse?.data || [];
-    const mappedPlayers = apiPlayers.map(mapApiPlayer);
+  // Count players per team
+  const teamCounts: Record<string, number> = {};
+  draftPlayers.forEach(p => {
+    teamCounts[p.teamName] = (teamCounts[p.teamName] || 0) + 1;
+  });
 
-    const filteredPlayers = mappedPlayers.filter(p => {
-        const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesSearch;
-    });
+  const { data: playerResponse, isLoading } = useQuery({
+    queryKey: ['fantasy-market-players', competitionId, position],
+    queryFn: () => listFantasyPlayers(competitionId, { position }),
+    enabled: !!competitionId
+  });
 
-    return (
-        <motion.div 
-            initial={{ opacity: 0, y: 100 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 100 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-0 z-50 bg-[#181928] flex flex-col"
-        >
-            <div className="absolute inset-0 z-0 opacity-20 bg-cover bg-center pointer-events-none" style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} />
-            
-            <Header onClose={onClose} />
-            
-            <div className="flex-1 px-6 mt-4 relative z-10 flex flex-col overflow-hidden">
-                {/* Search Bar */}
-                <div className="relative flex items-center mb-6">
-                    <Search className="absolute left-4 text-white/40" size={20} />
-                    <input 
-                        type="text" 
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Search Players"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder:text-white/20 focus:outline-none focus:border-[#ff6b00]/50 transition-colors"
-                    />
+  // Get unique teams for filter
+  const allTeams = Array.from(new Set((playerResponse?.data || []).map(p => p.teamId?.name))).filter(Boolean);
+
+  const { data: fixtures } = useQuery({
+    queryKey: ['fantasy-fixtures', competitionId],
+    queryFn: () => listFixtures(competitionId),
+    enabled: !!competitionId
+  });
+
+  const excludeIds = draftPlayers.map(p => p.id);
+  const apiPlayers = (playerResponse?.data || []).filter(p => {
+    // Exclude if already in squad
+    if (excludeIds.includes(p._id)) return false;
+
+    // Exclude if team limit (3) reached
+    const teamName = p.teamId?.name || '';
+    if (teamCounts[teamName] >= 3) return false;
+
+    // Team filter
+    if (selectedTeam !== 'all' && teamName !== selectedTeam) return false;
+
+    // Price filter
+    if (p.price > maxPrice) return false;
+
+    return true;
+  });
+
+  const mappedPlayers = apiPlayers.map(p => mapApiPlayer(p, [], [], null, null, fixtures || []));
+
+  const filteredPlayers = mappedPlayers.filter(p => {
+    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesSearch;
+  });
+
+  const handleReset = () => {
+    setSearchQuery('');
+    setSelectedTeam('all');
+    setMaxPrice(20);
+  };
+
+  console.log('Market Players Debug:', {
+    competitionId,
+    position,
+    rawCount: apiPlayers.length,
+    mappedCount: mappedPlayers.length,
+    firstPlayer: mappedPlayers[0]
+  });
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-[#1a1b2e] flex flex-col"
+    >
+            {/* Design Background Overlay */}
+            <div className="absolute inset-0 z-0 opacity-60">
+                <div className="absolute inset-0 bg-gradient-to-b from-[#1a1b2e]/60 via-transparent to-[#1a1b2e]" />
+                <div 
+                    className="absolute inset-0 bg-cover bg-center opacity-70 pointer-events-none"
+                    style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
+                />
+            </div>
+
+      <Header onClose={onClose} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+      <div className="flex-1 px-6 mt-4 relative z-10 flex flex-col min-h-0 overflow-hidden">
+        {/* Filters Row */}
+        <div className="flex gap-2 mb-6">
+          <div className="flex-1 relative">
+            <select
+              value={selectedTeam}
+              onChange={(e) => setSelectedTeam(e.target.value)}
+              className="w-full bg-[#2a2b3d]/80 border border-white/10 rounded-lg px-4 py-2 text-white text-[12px] appearance-none focus:outline-none focus:border-gaffer-orange/50"
+            >
+              <option value="all">All Teams</option>
+              {allTeams.map(name => (
+                <option key={name} value={name}>{name}</option>
+              ))}
+            </select>
+            <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 -rotate-90 pointer-events-none" size={14} />
+          </div>
+
+          <div className="flex-1 relative">
+            <select
+              value={maxPrice}
+              onChange={(e) => setMaxPrice(Number(e.target.value))}
+              className="w-full bg-[#2a2b3d]/80 border border-white/10 rounded-lg px-4 py-2 text-white text-[12px] appearance-none focus:outline-none focus:border-gaffer-orange/50"
+            >
+              <option value={20}>Max Price</option>
+              {[15, 12, 10, 8, 6, 4].map(price => (
+                <option key={price} value={price}>Ǥ{price}.0M</option>
+              ))}
+            </select>
+            <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 -rotate-90 pointer-events-none" size={14} />
+          </div>
+
+          <button
+            onClick={handleReset}
+            className="w-10 h-10 bg-[#2a2b3d]/80 border border-white/10 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors"
+          >
+            <Trash2 className="text-white/40" size={18} />
+          </button>
+        </div>
+
+        {/* Table Header */}
+        <div className="flex items-center text-white/40 text-[10px] uppercase font-bold tracking-widest px-2 mb-4">
+          <div className="flex-1">Player in</div>
+          <div className="w-16 text-right">Price</div>
+          <div className="w-1 bg-white/10 h-3 mx-3" />
+          <div className="w-16 text-right">Points</div>
+        </div>
+
+        {/* Player List */}
+        <div className="flex-1 overflow-y-auto space-y-1 pb-24">
+          {isLoading ? (
+            <div className="flex justify-center py-20">
+              <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+            </div>
+          ) : filteredPlayers.length > 0 ? (
+            filteredPlayers.map(p => (
+              <PlayerRow key={p.id} player={p} onClick={() => onSelect(p)} />
+            ))
+          ) : (
+            <div className="text-center py-20 text-white/20 font-bold uppercase tracking-widest">
+              No Players Found
+            </div>
+          )}
+        </div>
+      </div>
+
+            {/* Solid Footer Info Bar - Floating above the Navbar with higher z-index */}
+            <div className="absolute bottom-[120px] left-0 right-0 bg-[#3d3f56]/95 backdrop-blur-md px-8 py-3 flex justify-between items-center z-[130] border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+                <div className="text-white text-[12px] font-medium tracking-tight">
+                    Free Transfer : <span className="text-white opacity-60 ml-2">2</span>
                 </div>
-                
-                {/* Filters */}
-                <div className="flex gap-3 mb-8">
-                    <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
-                        <span className="text-white/60 text-[12px]">All Teams</span>
-                        <ChevronLeft className="text-white/40 -rotate-90" size={16} />
-                    </div>
-                    <div className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 flex items-center justify-between">
-                        <span className="text-white/60 text-[12px]">Max Price</span>
-                        <ChevronLeft className="text-white/40 -rotate-90" size={16} />
-                    </div>
-                    <button className="w-10 h-10 bg-white/5 border border-white/10 rounded-lg flex items-center justify-center">
-                        <Trash2 className="text-white/40" size={18} />
-                    </button>
-                </div>
-                
-                {/* Table Header */}
-                <div className="flex text-white/40 text-[10px] uppercase font-bold tracking-widest px-2 mb-4">
-                    <div className="flex-1">Player in</div>
-                    <div className="w-16 text-right">Price</div>
-                    <div className="w-1 bg-white/10 mx-2" />
-                    <div className="w-16 text-right">Points</div>
-                </div>
-                
-                {/* Player List */}
-                <div className="flex-1 overflow-y-auto space-y-1 pb-24 scrollbar-hide">
-                   {isLoading ? (
-                     <div className="flex justify-center py-20">
-                       <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
-                     </div>
-                   ) : filteredPlayers.length > 0 ? (
-                       filteredPlayers.map(p => (
-                           <PlayerRow key={p.id} player={p} onClick={() => onSelect(p)} />
-                       ))
-                   ) : (
-                       <div className="text-center py-20 text-white/20 font-bold uppercase tracking-widest">
-                           No Players Found
-                       </div>
-                   )}
+                <div className="text-white text-[12px] font-medium tracking-tight">
+                    Bank : <span className="text-white opacity-60 ml-3">Ǥ{budget.toFixed(1)}M</span>
                 </div>
             </div>
-            
-            {/* Footer */}
-            <div className="mt-auto px-6 py-4 bg-[#1b1c28]/95 backdrop-blur-md border-t border-white/10 flex justify-between items-center z-20">
-                <div className="flex items-center gap-2">
-                    <span className="text-white/40 text-[11px] font-bold">Free Transfer :</span>
-                    <span className="text-white text-[11px] font-bold tracking-widest">2</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-white/40 text-[11px] font-bold">Bank :</span>
-                    <span className="text-[#00ffff] text-[11px] font-bold font-mono">₦1.9M</span>
-                </div>
-            </div>
-        </motion.div>
-    );
-}
+    </motion.div>
+  );
+};
 
-const Header = ({ onClose }: { onClose: () => void }) => (
-    <div className="px-6 pt-10 pb-4 flex items-center relative z-10">
-        <button onClick={onClose} className="p-2 -ml-2 text-white">
-            <X size={28} />
-        </button>
-        <div className="flex-1" />
+const Header = ({ onClose, searchQuery, onSearchChange }: { onClose: () => void, searchQuery: string, onSearchChange: (v: string) => void }) => (
+  <div className="px-6 pt-10 pb-4 flex items-center gap-4 relative z-10">
+    <button onClick={onClose} className="p-2 -ml-2 text-white/60 hover:text-white transition-colors">
+      <X size={28} />
+    </button>
+
+    <div className="flex-1 relative flex items-center">
+      <Search className="absolute left-4 text-white/20" size={18} />
+      <input
+        type="text"
+        value={searchQuery}
+        onChange={(e) => onSearchChange(e.target.value)}
+        placeholder="Search Players"
+        className="w-full bg-[#2a2b3d]/60 border border-white/10 rounded-full py-2.5 pl-11 pr-4 text-white text-[14px] placeholder:text-white/20 focus:outline-none focus:border-gaffer-orange/50 transition-all"
+      />
     </div>
+  </div>
 );
 
 const PlayerRow = ({ player, onClick }: { player: FantasySquadPlayer, onClick: () => void }) => (
-    <button 
-        onClick={onClick}
-        className="w-full flex items-center py-3 px-2 hover:bg-white/5 transition-colors border-b border-white/5 group"
-    >
-        <div className="w-12 h-12 rounded-full overflow-hidden bg-white/10 relative mr-3 border border-white/20">
-            <img 
-              src={getJerseyUrl(player.teamCode, player.position)} 
-              alt={player.name} 
-              className="w-full h-full object-contain p-1"
-            />
-            {/* Small Club Logo Overlay */}
-            <div className="absolute bottom-0 left-0 w-5 h-5 bg-[#004170] rounded-sm flex items-center justify-center border border-white/20 p-0.5">
-                {/* Placeholder for club logo */}
-                <div className="w-full h-full bg-red-600 rounded-sm" />
-            </div>
-        </div>
-        
-        <div className="flex flex-col items-start flex-1">
-            <span className="text-white text-[14px] font-bold truncate group-hover:text-[#ff6b00] transition-colors">
-                {player.name}
-            </span>
-            <span className="text-[#ff4d00] text-[10px] font-bold uppercase">{player.position}</span>
-        </div>
-        
-        <div className="w-16 text-right text-white text-[13px] font-medium">{player.price}M</div>
-        <div className="w-1 bg-white/10 h-4 mx-2" />
-        <div className="w-16 text-right text-white text-[13px] font-medium">{player.points}</div>
-    </button>
+  <button
+    onClick={onClick}
+    className="w-full flex items-center py-3 px-2 hover:bg-white/5 transition-colors border-b border-white/5 group"
+  >
+    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#2a2b3d] relative mr-4 border border-white/10 shadow-lg">
+      <img
+        src={player.avatarUrl || `https://i.pravatar.cc/100?u=${player.id}`}
+        alt={player.name}
+        className="w-full h-full object-cover"
+      />
+      {/* Small Club Logo Overlay - More prominent version */}
+      <div className="absolute bottom-0 left-0 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-[#2a2b3d] p-0.5 shadow-md">
+        <div className="w-full h-full bg-[#004170] rounded-full" /> {/* High-contrast Club Logo */}
+      </div>
+    </div>
+
+    <div className="flex flex-col items-start flex-1 min-w-0">
+      <span className="text-white text-[15px] font-bold truncate group-hover:text-[#ff6b00] transition-colors leading-tight">
+        {player.name}
+      </span>
+      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5">{player.position}</span>
+    </div>
+
+    <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
+        <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{player.price.toFixed(1)}M</div>
+        <div className="w-[1px] bg-white/10 h-3 mx-1" />
+        <div className="text-right text-white text-[14px] font-black w-14">{player.points}</div>
+    </div>
+  </button>
 );

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users } from 'lucide-react'
+import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   getFantasySeason, 
@@ -115,40 +115,47 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           </p>
         </div>
 
-        {!season.pricingFinalized && (
-          <button 
-            disabled={!allFinalized || finalizeAllMutation.isPending || teams.length === 0}
-            onClick={() => finalizeAllMutation.mutate()}
-            className={`px-6 py-3 rounded-xl font-display font-bold text-[10px] uppercase tracking-widest transition-all ${
-              allFinalized && teams.length > 0
-                ? 'bg-orange-gradient-btn text-white shadow-lg active:scale-95' 
-                : 'bg-gaffer-surface text-gaffer-subtle border border-gaffer-border cursor-not-allowed'
-            }`}
-          >
-            {finalizeAllMutation.isPending ? 'Processing...' : 'Finalize All Pricing'}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {!season.pricingFinalized && (
+            <button 
+              onClick={() => {
+                setIsSyncing(true)
+                syncMutation.mutate()
+              }}
+              disabled={isSyncing}
+              className="px-4 py-3 rounded-xl bg-gaffer-surface border border-white/5 hover:border-white/20 text-white/60 hover:text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+              title="Sync players from tournament roster"
+            >
+              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Sync</span>
+            </button>
+          )}
+
+          {!season.pricingFinalized && (
+            <button 
+              disabled={!allFinalized || finalizeAllMutation.isPending || teams.length === 0}
+              onClick={() => finalizeAllMutation.mutate()}
+              className={`px-6 py-3 rounded-xl font-display font-bold text-[10px] uppercase tracking-widest transition-all ${
+                allFinalized && teams.length > 0
+                  ? 'bg-orange-gradient-btn text-white shadow-lg active:scale-95' 
+                  : 'bg-gaffer-surface text-gaffer-subtle border border-gaffer-border cursor-not-allowed'
+              }`}
+            >
+              {finalizeAllMutation.isPending ? 'Processing...' : 'Finalize All Pricing'}
+            </button>
+          )}
+        </div>
       </div>
 
       {teams.length === 0 ? (
-        <div className="bg-gaffer-card border border-gaffer-border border-dashed rounded-3xl p-10 text-center space-y-6">
-           <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-gaffer-muted">
+        <div className="bg-gaffer-card border border-gaffer-border border-dashed rounded-3xl p-10 text-center space-y-4">
+           <div className="w-16 h-16 bg-white/5 rounded-2xl flex items-center justify-center mx-auto text-gaffer-muted/30">
               <Users size={32} />
            </div>
            <div>
-              <h4 className="text-white font-display font-bold uppercase tracking-tight">No Teams Enrolled</h4>
-              <p className="text-gaffer-muted text-xs mt-1">First, you need to import your tournament teams and their players.</p>
+              <h4 className="text-white/60 font-display font-bold uppercase tracking-tight">Waiting for Sync</h4>
+              <p className="text-gaffer-muted/40 text-[10px] mt-1 max-w-[200px] mx-auto uppercase tracking-widest leading-relaxed">Sync teams from the tournament roster to start pricing.</p>
            </div>
-           <button 
-             onClick={() => {
-                 setIsSyncing(true)
-                 syncMutation.mutate()
-             }}
-             disabled={isSyncing}
-             className="px-6 py-3 rounded-xl bg-gaffer-surface border border-gaffer-border hover:border-gaffer-orange/50 text-white font-display font-bold text-[10px] uppercase tracking-widest transition-all active:scale-95 disabled:opacity-50"
-           >
-             {isSyncing ? 'Syncing...' : 'Sync Tournament Teams'}
-           </button>
         </div>
       ) : (
         <div className="space-y-3">

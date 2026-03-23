@@ -91,7 +91,7 @@ export function Pricing() {
                   <Zap size={24} className="text-orange-gaffer fill-orange-gaffer" />
                </h3>
                <div className="flex items-baseline gap-2">
-                 <span className="font-display font-900 text-6xl text-white uppercase italic">₦2,500</span>
+                 <span className="font-display font-900 text-6xl text-white uppercase italic">Ǥ2,500</span>
                  <span className="text-text-muted font-body text-xl">/mo</span>
                </div>
                <div className="text-text-subtle font-chakra text-sm uppercase tracking-widest">or $5 / month</div>

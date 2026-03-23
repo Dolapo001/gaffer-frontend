@@ -86,7 +86,7 @@ export function FantasyTeamScreen() {
           <div className="flex justify-end pr-4 mb-2 relative z-20">
             <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-lg">
               <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
-              <span className="text-[#00ffff] text-[10px] font-bold font-mono">₦{budget.toFixed(1)}m</span>
+              <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}m</span>
             </div>
           </div>
 

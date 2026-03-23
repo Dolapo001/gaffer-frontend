@@ -21,8 +21,19 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
     selectPlayer, 
     selectedBoost, 
     setBoost,
-    players 
+    players,
+    saveTeamToApi,
+    isSaving
   } = useFantasyStore();
+
+  const handleSave = async () => {
+    try {
+      await saveTeamToApi();
+      onComplete();
+    } catch (err) {
+      console.error('Squad save failed:', err);
+    }
+  };
 
   const pitchPlayers = players.filter(p => p.isOnPitch);
   const benchPlayers = players.filter(p => !p.isOnPitch);
@@ -63,7 +74,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
           <div className="flex justify-end pr-4 mb-2">
             <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-lg">
               <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
-              <span className="text-[#00ffff] text-[10px] font-bold font-mono">₦{budget.toFixed(1)}m</span>
+              <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}M</span>
             </div>
           </div>
           
@@ -87,10 +98,11 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         {/* Save Team Button */}
         <div className="flex justify-center mt-4 mb-10">
           <button
-            onClick={onComplete}
-            className="text-[#ff6b00] font-black text-[24px] underline decoration-2 underline-offset-8 transition-opacity"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="text-[#ff6b00] font-black text-[28px] uppercase tracking-wider underline decoration-4 underline-offset-[12px] transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
           >
-            Save Team
+            {isSaving ? 'Saving...' : 'Save Team'}
           </button>
         </div>
       </div>

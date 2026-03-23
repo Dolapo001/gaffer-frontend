@@ -19,7 +19,7 @@ function PitchMarkings() {
       aria-hidden="true"
     >
       {/* Background with opacity to show underlying image */}
-      <rect width="329" height="402" fill="#4F7429" fillOpacity="0.75" />
+      <rect width="329" height="402" fill="#4F7429" fillOpacity="1" />
 
       <g clipPath="url(#clip0_pitch_layout)">
         {/* Grass stripe bands */}
@@ -150,7 +150,7 @@ export function PitchLayout({
       <PitchMarkings />
 
       {/* Player rows */}
-      <div className="absolute inset-0 flex flex-col justify-center gap-[10px] pt-8 pb-12 px-2">
+      <div className="absolute inset-0 flex flex-col justify-center gap-[14px] pt-8 pb-12 px-2">
         {rows.map((rowData, ri) => (
           <div key={ri} className="flex flex-row justify-center gap-2 sm:gap-4 w-full">
             {selectionMode ? (
@@ -162,14 +162,14 @@ export function PitchLayout({
                     <PitchPlayerCard
                       key={player.id}
                       playerName={player.shortName}
-                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
+                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                       kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
                       points={player.points}
                       selected={selectedId === player.id}
                       highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                       onClick={() => onSelectPlayer(player.id)}
-                      status={player.id === 'p6' ? 'warning' : player.id === 'p1' ? 'injured' : 'fit'}
-                      captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : (player.id === 'p1' ? 'V' : null)}
+                      status={player.status || 'fit'}
+                      captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
                     />
                   )
                 }
@@ -191,13 +191,13 @@ export function PitchLayout({
                 <PitchPlayerCard
                   key={player.id}
                   playerName={player.shortName}
-                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
+                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                   kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
                   points={player.points}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                   onClick={() => onSelectPlayer(player.id)}
-                  status={player.isCaptain ? 'fit' : 'fit'} 
+                  status={player.status || 'fit'} 
                   captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
                 />
               ))

@@ -254,6 +254,30 @@ export function OrganiseCreateSheet({
             )}
 
             {activeTab === 'Groups' && (
+              <div className="space-y-1 text-left px-1">
+                <label className="block text-gray-300 text-sm font-medium ml-1">Select Tournament</label>
+                <div className="relative">
+                  <select
+                    value={selectedCompetitionId}
+                    onChange={(e) => onCompetitionChange?.(e.target.value)}
+                    className="w-full bg-[#181928] text-white px-5 py-4 rounded-xl border border-white/10 focus:outline-none appearance-none text-sm placeholder-gray-600"
+                  >
+                    <option value="" className="bg-[#181928]">Select Tournament (Optional)</option>
+                    {competitions.map((comp) => (
+                      <option key={comp._id} value={comp._id} className="bg-[#181928]">
+                        {comp.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute inset-y-0 right-0 flex items-center px-5 pointer-events-none">
+                    <ChevronDown size={18} className="text-white/60" />
+                  </div>
+                </div>
+                <p className="text-[10px] text-gray-500 ml-1">Auto-assign teams to this group in the tournament.</p>
+              </div>
+            )}
+
+            {activeTab === 'Groups' && (
               <div className="space-y-1 text-left px-1 flex flex-col min-h-[200px]">
                 <label className="block text-gray-300 text-sm font-medium ml-1">Add Teams</label>
                 <div className="flex-1 bg-[#181928] rounded-xl border border-white/10">
