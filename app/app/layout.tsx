@@ -1,11 +1,13 @@
 'use client'
 
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Users } from 'lucide-react'
 import Link from 'next/link'
+import { useUIStore } from '@/store/uiStore'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
 
@@ -17,24 +19,28 @@ const DEFAULT_NAV = [
   { href: '/app/news',      icon: Newspaper, label: 'News'    },
 ]
 
-function useNavItems(pathname: string) {
-  // Match /app/league/<leagueId> — any path inside a specific competition
-  const match = pathname.match(/^\/app\/league\/([^/]+)/)
-  if (!match) return DEFAULT_NAV
-
-  const leagueId = match[1]
-  return [
-    { href: '/app/dashboard',                                    icon: Home,      label: 'Home'    },
-    { href: `/app/fantasy?competitionId=${leagueId}`,            icon: Users,     label: 'Fantasy' },
-    { href: `/app/league/${leagueId}`,                           icon: Trophy,    label: 'League'  },
-    { href: '/app/news',                                         icon: Newspaper, label: 'News'    },
-  ]
-}
+// Paths that mean the user has intentionally left the competition context
+const EXIT_PATHS = ['/app/dashboard', '/app/league']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
-  const navItems = useNavItems(pathname)
   const { isReady } = useAuthGuard('personal')
+  const { activeCompetitionId, clearActiveCompetition } = useUIStore()
+
+  // Clear competition context when the user explicitly navigates away
+  useEffect(() => {
+    const isExiting = EXIT_PATHS.some((p) => pathname === p)
+    if (isExiting) clearActiveCompetition()
+  }, [pathname])
+
+  const navItems = activeCompetitionId
+    ? [
+        { href: '/app/dashboard',                                          icon: Home,      label: 'Home'    },
+        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,       icon: Users,     label: 'Fantasy' },
+        { href: `/app/league/${activeCompetitionId}`,                      icon: Trophy,    label: 'League'  },
+        { href: '/app/news',                                               icon: Newspaper, label: 'News'    },
+      ]
+    : DEFAULT_NAV
 
   if (!isReady) {
     return (
