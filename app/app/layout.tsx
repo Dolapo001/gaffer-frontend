@@ -11,15 +11,29 @@ import Link from 'next/link'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
 
-const NAV_ITEMS = [
-  { href: '/app/dashboard', icon: Home, label: 'Home' },
-  { href: '/app/fantasy', icon: Users, label: 'Fantasy' },
-  { href: '/app/league', icon: Trophy, label: 'League' },
-  { href: '/app/news', icon: Newspaper, label: 'News' },
+const DEFAULT_NAV = [
+  { href: '/app/dashboard', icon: Home,      label: 'Home'    },
+  { href: '/app/league',    icon: Trophy,    label: 'League'  },
+  { href: '/app/news',      icon: Newspaper, label: 'News'    },
 ]
+
+function useNavItems(pathname: string) {
+  // Match /app/league/<leagueId> — any path inside a specific competition
+  const match = pathname.match(/^\/app\/league\/([^/]+)/)
+  if (!match) return DEFAULT_NAV
+
+  const leagueId = match[1]
+  return [
+    { href: '/app/dashboard',           icon: Home,      label: 'Home'    },
+    { href: '/app/fantasy',             icon: Users,     label: 'Fantasy' },
+    { href: `/app/league/${leagueId}`,  icon: Trophy,    label: 'League'  },
+    { href: '/app/news',                icon: Newspaper, label: 'News'    },
+  ]
+}
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const navItems = useNavItems(pathname)
   const { isReady } = useAuthGuard('personal')
 
   if (!isReady) {
@@ -47,7 +61,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </motion.main>
         </ErrorBoundary>
 
-        <BottomNavbar items={NAV_ITEMS} id="global-nav-bar" />
+        <BottomNavbar items={navItems} id="global-nav-bar" />
       </div>
   )
 }
