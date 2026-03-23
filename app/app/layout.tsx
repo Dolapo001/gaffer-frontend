@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, Trophy, Newspaper } from 'lucide-react'
+import { Home, Trophy, Newspaper, Users } from 'lucide-react'
 import Link from 'next/link'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
@@ -13,6 +13,7 @@ import { BottomNavbar } from '@/components/BottomNavbar'
 
 const NAV_ITEMS = [
   { href: '/app/dashboard', icon: Home, label: 'Home' },
+  { href: '/app/fantasy', icon: Users, label: 'Fantasy' },
   { href: '/app/league', icon: Trophy, label: 'League' },
   { href: '/app/news', icon: Newspaper, label: 'News' },
 ]
