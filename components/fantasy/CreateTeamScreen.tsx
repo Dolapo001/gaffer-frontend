@@ -380,9 +380,9 @@ const PlayerRow = ({ player, onClick }: { player: FantasySquadPlayer, onClick: (
     </div>
 
     <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
-        <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{player.price.toFixed(1)}M</div>
+        <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{(player.price ?? 0).toFixed(1)}M</div>
         <div className="w-[1px] bg-white/10 h-3 mx-1" />
-        <div className="text-right text-white text-[14px] font-black w-14">{player.points}</div>
+        <div className="text-right text-white text-[14px] font-black w-14">{player.points ?? 0}</div>
     </div>
   </button>
 );
