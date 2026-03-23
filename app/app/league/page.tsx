@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import { listJoinedCompetitions, joinCompetition, searchCompetitions } from '@/lib/services/competition.service'
+import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions } from '@/lib/services/competition.service'
 import { LeagueItem } from '@/components/home/LeagueItem'
 import { Trophy, Search, X, Plus } from 'lucide-react'
 import type { Competition } from '@/lib/services/competition.service'
@@ -87,6 +87,7 @@ export default function LeaguePage() {
     enabled: isAuthenticated,
   })
 
+  // Code-based join — used by the "Join League" modal
   const joinMutation = useMutation({
     mutationFn: (code: string) => joinCompetition(code),
     onSuccess: (data: Competition) => {
@@ -94,11 +95,23 @@ export default function LeaguePage() {
       setJoinCode('')
       setJoinError('')
       queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
-      // Navigate to the newly joined league dashboard
       router.push(`/app/league/${data._id}`)
     },
     onError: (error: any) => {
       setJoinError(error?.response?.data?.message || 'Failed to join league. Please check your code.')
+    }
+  })
+
+  // Id-based join — used when tapping a search result card
+  const joinByIdMutation = useMutation({
+    mutationFn: (competitionId: string) => joinCompetitionById(competitionId),
+    onSuccess: (data: Competition) => {
+      queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
+      router.push(`/app/league/${data._id}`)
+    },
+    onError: (error: any) => {
+      // Surface the error inline on the card; keep the modal closed
+      console.error('Failed to join competition:', error?.response?.data?.message || error)
     }
   })
 
@@ -120,14 +133,8 @@ export default function LeaguePage() {
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleGlobalJoin = (code: string | undefined, competition: Competition) => {
-    if (code) {
-      joinMutation.mutate(code)
-    } else {
-      if (competition.joinCode) {
-        joinMutation.mutate(competition.joinCode)
-      }
-    }
+  const handleDiscoveryJoin = (competitionId: string) => {
+    joinByIdMutation.mutate(competitionId)
   }
 
   // Hide search results that are already joined
@@ -230,8 +237,8 @@ export default function LeaguePage() {
                       <DiscoveryCompetitionCard
                         key={res._id}
                         competition={res}
-                        isJoining={joinMutation.isPending}
-                        onJoin={() => handleGlobalJoin(res.joinCode, res)}
+                        isJoining={joinByIdMutation.isPending}
+                        onJoin={() => handleDiscoveryJoin(res._id)}
                       />
                     ))}
                   </div>
