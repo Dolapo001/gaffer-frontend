@@ -19,7 +19,7 @@ function PitchMarkings() {
       aria-hidden="true"
     >
       {/* Background with opacity to show underlying image */}
-      <rect width="329" height="402" fill="#4F7429" fillOpacity="0.75" />
+      <rect width="329" height="402" fill="#4F7429" fillOpacity="1" />
 
       <g clipPath="url(#clip0_pitch_layout)">
         {/* Grass stripe bands */}

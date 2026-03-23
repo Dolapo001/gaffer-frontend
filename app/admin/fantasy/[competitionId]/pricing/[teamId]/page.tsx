@@ -21,6 +21,13 @@ const POSITION_COLORS: Record<string, string> = {
   FWD: '#22C55E',
 }
 
+const TIER_COLORS: Record<string, { bg: string, text: string, border: string }> = {
+  marquee:  { bg: 'bg-orange-500/10', text: 'text-orange-500',  border: 'border-orange-500/20' },
+  elite:    { bg: 'bg-purple-500/10', text: 'text-purple-500',  border: 'border-purple-500/20' },
+  standard: { bg: 'bg-blue-400/10',   text: 'text-blue-400',    border: 'border-blue-400/20' },
+  budget:   { bg: 'bg-green-500/10',   text: 'text-green-500',   border: 'border-green-500/20' },
+}
+
 const PRICE_STEP = 0.5
 
 export default function TeamPricingPage() {
@@ -36,7 +43,7 @@ export default function TeamPricingPage() {
 
   const { data: pricing, isLoading } = useQuery({
     queryKey: ['player-pricing', competitionId, teamId],
-    queryFn: () => getPlayerPricing(competitionId, teamId) as Promise<{ team: any; players: FantasyPlayer[] }>,
+    queryFn: () => getPlayerPricing(competitionId, teamId) as Promise<{ team: any; players: (FantasyPlayer & { squadStatus?: string })[] }>,
   })
 
   const updatePriceMutation = useMutation({
@@ -61,8 +68,8 @@ export default function TeamPricingPage() {
     onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
-  const players: any[] = (pricing as any)?.players || []
-  const team: any = (pricing as any)?.team || {}
+  const players: any[] = (pricing as any)?.data?.players || (pricing as any)?.players || []
+  const team: any = (pricing as any)?.data?.team || (pricing as any)?.team || {}
 
   const getPrice = (p: any) => {
     if (pendingPrices[p._id] !== undefined) return pendingPrices[p._id]
@@ -148,28 +155,6 @@ export default function TeamPricingPage() {
       {/* ── Player List ── */}
       <div className="flex-1 overflow-y-auto px-4 space-y-3 pb-44 no-scrollbar">
         {/* Owner / Gaffer row */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#1E2235] rounded-2xl p-4 flex items-center gap-3 border border-white/5"
-        >
-          <div className="w-12 h-12 rounded-full bg-[#5BB5D5] flex items-center justify-center shrink-0 overflow-hidden shadow-inner">
-            {team.ownerAvatarUrl ? (
-              <img src={team.ownerAvatarUrl} className="w-full h-full object-cover" alt="" />
-            ) : (
-              <div className="w-full h-full bg-gradient-to-br from-blue-400 to-blue-600 rounded-full" />
-            )}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-white font-bold text-[15px] truncate">
-              {team.ownerName || team.name || 'Unknown'}
-            </p>
-            <p className="text-[10px] text-white/40 font-black tracking-[2px] uppercase">PROJECT MANAGER</p>
-          </div>
-          <div className="px-3 py-1.5 bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-xl">
-             <span className="text-gaffer-orange text-[11px] font-black uppercase">Staff</span>
-          </div>
-        </motion.div>
 
         {/* Player rows */}
         {players.map((p: any, i: number) => {
@@ -187,8 +172,8 @@ export default function TeamPricingPage() {
             >
               {/* Avatar */}
               <div className="w-12 h-12 rounded-full bg-[#2A2D45] border border-white/10 flex items-center justify-center shrink-0 overflow-hidden relative">
-                {p.playerId?.avatarUrl ? (
-                  <img src={p.playerId.avatarUrl} className="w-full h-full object-cover" alt="" />
+                {p.playerId?.photoUrl ? (
+                  <img src={p.playerId.photoUrl} className="w-full h-full object-cover" alt="" />
                 ) : (
                   <User size={20} className="text-white/30" />
                 )}
@@ -200,14 +185,31 @@ export default function TeamPricingPage() {
 
               {/* Name + Position */}
               <div className="flex-1 min-w-0">
-                <p className="text-white font-bold text-[14px] truncate leading-tight">
-                  {p.playerId?.lastName} {p.playerId?.firstName}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                   <div className="px-2 py-0.5 rounded bg-white/5 border border-white/10">
-                      <span className="text-[9px] text-white/40 font-black uppercase">Standard</span>
-                   </div>
+                <div className="flex items-baseline gap-2">
+                   <p className="text-white font-bold text-[14px] truncate leading-tight">
+                     {p.playerId?.lastName} {p.playerId?.firstName}
+                   </p>
+                   {p.playerId?.jerseyNumber && (
+                      <span className="text-gaffer-orange text-[10px] font-black italic">#{p.playerId.jerseyNumber}</span>
+                   )}
                 </div>
+                 <div className="flex items-center gap-2 mt-1">
+                    <div className={`px-2 py-0.5 rounded border ${
+                      p.squadStatus === 'active' 
+                        ? 'bg-green-500/10 border-green-400/20 text-green-400' 
+                        : p.squadStatus === 'injured' 
+                          ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-500' 
+                          : 'bg-red-500/10 border-red-500/20 text-red-500'
+                    }`}>
+                       <span className="text-[9px] font-black uppercase tracking-widest">{p.squadStatus || 'Active'}</span>
+                    </div>
+
+                    {p.tier && (
+                      <div className={`px-2 py-0.5 rounded border ${TIER_COLORS[p.tier]?.bg} ${TIER_COLORS[p.tier]?.border} ${TIER_COLORS[p.tier]?.text}`}>
+                         <span className="text-[9px] font-black uppercase tracking-widest italic">{p.tier}</span>
+                      </div>
+                    )}
+                 </div>
               </div>
 
               {/* Price Display / Stepper */}
@@ -302,7 +304,7 @@ export default function TeamPricingPage() {
                      onChange={(e) => setPriceInputValue(e.target.value)}
                      onKeyDown={(e) => e.key === 'Enter' && saveModalPrice()}
                    />
-                   <span className="text-gaffer-orange font-black uppercase text-xs">Coins</span>
+                   <span className="text-gaffer-orange font-black uppercase text-lg">Ǥ</span>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

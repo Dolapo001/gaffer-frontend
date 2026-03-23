@@ -27,6 +27,7 @@ interface Props {
   onAddPlayerManual?: (data: any) => void
   onUploadPlayerPhoto?: (playerId: string, file: File) => Promise<void>
   onDeleteTeam?: () => void
+  onDeleteGroup?: () => void
   onUpdatePlayer?: (playerId: string, payload: any) => void
   orgName?: string
   orgLogoUrl?: string
@@ -72,6 +73,7 @@ export function OrganiseDetails({
   onAddPlayerManual,
   onUploadPlayerPhoto,
   onDeleteTeam,
+  onDeleteGroup,
   onUpdatePlayer,
   orgName,
   orgLogoUrl,
@@ -79,6 +81,7 @@ export function OrganiseDetails({
   const toast = useToastStore()
 
   const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false)
+  const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [tempPrice, setTempPrice] = useState('')
@@ -409,6 +412,15 @@ export function OrganiseDetails({
             Delete Team
           </button>
         )}
+
+        {selectedGroup && !selectedTeam && (
+          <button
+            onClick={() => setShowDeleteGroupConfirm(true)}
+            className="w-full py-3 rounded-xl border border-red-500/20 text-red-500/60 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/5 transition-all"
+          >
+            Delete Group
+          </button>
+        )}
       </div>
 
       <ConfirmDialog
@@ -422,6 +434,19 @@ export function OrganiseDetails({
           onDeleteTeam?.()
         }}
         onCancel={() => setShowDeleteTeamConfirm(false)}
+      />
+
+      <ConfirmDialog
+        open={showDeleteGroupConfirm}
+        title="Delete Group?"
+        message={`This will permanently delete the group "${selectedGroup?.name}". The teams themselves will not be deleted, but they will be unassigned.`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          setShowDeleteGroupConfirm(false)
+          onDeleteGroup?.()
+        }}
+        onCancel={() => setShowDeleteGroupConfirm(false)}
       />
 
       {/* ── Edit Player Modal ── */}

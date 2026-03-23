@@ -14,8 +14,8 @@ import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listTeams, createTeam, deleteTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
-import { listGroups, createGroup, updateGroup, Group as BackendGroup } from '@/lib/services/group.service'
-import { listCompetitions, registerTeams, removeCompetitionTeam, Competition } from '@/lib/services/competition.service'
+import { listGroups, createGroup, updateGroup, deleteGroup, Group as BackendGroup } from '@/lib/services/group.service'
+import { listCompetitions, registerTeams, removeCompetitionTeam, removeCompetitionGroup, assignTeamGroups, Competition } from '@/lib/services/competition.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -136,6 +136,16 @@ export default function OrganizePage() {
     onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
+  const deleteGroupMutation = useMutation({
+    mutationFn: (id: string) => deleteGroup(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['groups', orgId] })
+      addToast('Group deleted successfully', 'success')
+      setView('list')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
   // ── Mappings ─────────────────────────────────────────────────────────────
 
   // Map backend teams to UI teams
@@ -222,11 +232,20 @@ export default function OrganizePage() {
 
         addToast('Team created successfully!', 'success')
       } else {
-        await createGroupMutation.mutateAsync({
+        const group = await createGroupMutation.mutateAsync({
           name: teamName,
           color: selectedColor,
           teams: selectedTeamsForGroup
         })
+
+        if (selectedCompetitionId && group?._id) {
+          await assignTeamGroups(selectedCompetitionId, selectedTeamsForGroup.map(teamId => ({
+            teamId,
+            groupName: teamName
+          })))
+          queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
+        }
+        
         addToast('Group created successfully!', 'success')
       }
 
@@ -518,6 +537,9 @@ export default function OrganizePage() {
                 }}
                 onDeleteTeam={() => {
                   if (selectedTeam) deleteTeamMutation.mutate(selectedTeam.id)
+                }}
+                onDeleteGroup={() => {
+                  if (selectedGroup) deleteGroupMutation.mutate(selectedGroup.id)
                 }}
                 orgName={orgs?.[0]?.name}
                 orgLogoUrl={orgs?.[0]?.logoUrl}

@@ -50,61 +50,63 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
 
   return (
     <button 
-      className={`flex flex-col w-[62px] sm:w-[76px] rounded-xl overflow-hidden shadow-lg transition-all border relative group backdrop-blur-md bg-white/10 ${containerRing} ${className}`}
+      style={{
+        width: '65px',
+        height: '92px',
+        borderRadius: '5.45px',
+        border: selected ? '2px solid #ff6b00' : '0.4px solid rgba(255, 255, 255, 0.45)',
+        background: 'rgba(55, 0, 60, 0.25)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0px 1.02px 1.7px 0px rgba(0, 0, 0, 0.1)',
+      }}
+      className={`flex flex-col overflow-hidden transition-all relative group ${selected ? 'scale-105 z-10' : ''} ${className}`}
       onClick={onClick}
     >
-      {/* Points Badge */}
-      {points !== undefined && (
-        <div className="absolute top-1 right-1 z-20 bg-[#ff6b00] text-white text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded-md shadow-md">
-          {points}
-        </div>
-      )}
-
-      {/* Injury/Warning Status Badge */}
-      {status !== 'fit' && (
-        <div className="absolute top-1 right-1 z-20 flex shadow-sm">
-           {status === 'injured' && (
-             <div className="w-4 h-4 bg-red-600 rounded-sm flex items-center justify-center border border-white/20">
-                <span className="text-white text-[8px] font-black">!</span>
-             </div>
-           )}
-           {status === 'warning' && (
-             <div className="w-4 h-4 bg-yellow-400 rounded-sm flex items-center justify-center border border-white/20">
-                <span className="text-black text-[8px] font-black">!</span>
-             </div>
-           )}
-        </div>
-      )}
-
-      {/* Captaincy Badge */}
-      {captaincy && (
-        <div className={`absolute top-1 left-1 z-20 w-4 h-4 rounded-full flex items-center justify-center border border-white/20 shadow-sm ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-purple-600'}`}>
-           <span className="text-white text-[8px] font-black">{captaincy}</span>
-        </div>
-      )}
-
-      {/* 1. Top Section (Player Image Area) */}
-      <div className={`bg-transparent p-0 flex items-center justify-center h-[60px] sm:h-[74px] overflow-hidden`}>
+      {/* 1. Jersey Section (Glass) */}
+      <div className="flex-1 flex items-center justify-center pt-1.5 pb-1">
         <img 
           src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"} 
-          alt={`${playerName}`} 
-          className={`${kitImageUrl.includes('images') ? 'w-full h-full object-cover object-top' : 'w-[85%] h-[85%] object-contain mt-1'} drop-shadow-lg relative z-10 mx-auto`}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"
-          }}
+          alt={playerName} 
+          className="w-[85%] h-auto object-contain drop-shadow-xl"
         />
+        
+        {/* Status indicator in top right if any - design triangles */}
+        {status !== 'fit' && (
+          <div className="absolute top-1 right-1 flex flex-col items-center">
+            {status === 'warning' && (
+              <div className="w-3.5 h-3.5 bg-yellow-400 rounded-[2px] shadow-sm flex items-center justify-center transform rotate-45 mb-1 border-[0.5px] border-black/5">
+                <span className="text-[8px] font-black text-black transform rotate-[-45deg] leading-none">!</span>
+              </div>
+            )}
+            {status === 'injured' && (
+              <div className="w-3.5 h-3.5 bg-red-600 rounded-[2px] shadow-sm flex items-center justify-center transform rotate-45 mb-1 border-[0.5px] border-black/5">
+                <span className="text-[8px] font-black text-white transform rotate-[-45deg] leading-none">!</span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Vice Captaincy Badge - Circular design like in spec */}
+        {captaincy && (
+          <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#37003c] rounded-full flex items-center justify-center border border-white/40 shadow-sm">
+            <span className="text-white text-[8px] font-black">{captaincy}</span>
+          </div>
+        )}
       </div>
 
-      {/* 2. Bottom Section (Player Info Area) */}
-      <div className="flex flex-col w-full text-center leading-none">
-        {/* Row 1: Player Name */}
-        <div className={`${topTextBg} font-semibold text-[10px] sm:text-[11px] py-1.5 px-1 truncate border-b ${topTextBorder}`}>
-          {playerName}
+      {/* 2. Info Boxes (Solid) */}
+      <div className={`w-full flex flex-col font-sans ${status === 'warning' ? 'bg-[#FFEB3B]' : status === 'injured' ? 'bg-[#EF4444]' : 'bg-white'} border-t border-black/5 py-1`}>
+        {/* Name Row */}
+        <div className="px-1 text-center leading-tight">
+          <span className={`text-[11px] font-bold block truncate ${status === 'fit' || status === 'warning' ? 'text-[#37003c]' : 'text-white'}`}>
+            {playerName || 'Player'}
+          </span>
         </div>
-        
-        {/* Row 2: Fixture/Opponent */}
-        <div className={`${bottomBg} text-[9px] sm:text-[10px] py-1.5 px-1 truncate`}>
-          {fixture}
+        {/* Fixture Row */}
+        <div className="px-1 text-center leading-tight">
+          <span className={`text-[10px] font-medium block truncate ${status === 'fit' || status === 'warning' ? 'text-[#37003c]/70' : 'text-white/80'}`}>
+            {fixture || 'TBC'}
+          </span>
         </div>
       </div>
     </button>

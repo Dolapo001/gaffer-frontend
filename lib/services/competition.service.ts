@@ -134,9 +134,9 @@ export async function registerTeams(
 // PATCH /competitions/:competitionId/teams
 export async function assignTeamGroups(
   competitionId: string,
-  assignments: { teamId: string; groupName: string; seed?: number }[],
+  teams: { teamId: string; groupName: string; seed?: number }[],
 ): Promise<{ message: string }> {
-  return api.patch<{ message: string }>(`/competitions/${competitionId}/teams`, { assignments })
+  return api.patch<{ message: string }>(`/competitions/${competitionId}/teams`, { teams })
 }
 
 // ── Public Routes ──────────────────────────────────────────────────────────
@@ -155,6 +155,14 @@ export async function removeCompetitionTeam(
   return api.delete<{ message: string }>(`/competitions/${competitionId}/teams/${teamId}`)
 }
 
+// DELETE /competitions/:competitionId/groups/:groupName
+export async function removeCompetitionGroup(
+  competitionId: string,
+  groupName: string,
+): Promise<{ message: string }> {
+  return api.delete<{ message: string }>(`/competitions/${competitionId}/groups/${groupName}`)
+}
+
 // POST /competitions/join
 export async function joinCompetition(code: string): Promise<Competition> {
   const data = await api.post<{ competition: Competition }>('/competitions/join', { code })
@@ -164,5 +172,11 @@ export async function joinCompetition(code: string): Promise<Competition> {
 // GET /competitions/joined
 export async function listJoinedCompetitions(): Promise<Competition[]> {
   const data = await api.get<{ competitions: Competition[] }>('/competitions/joined')
+  return data.competitions
+}
+
+// GET /competitions/search
+export async function searchCompetitions(query: string): Promise<Competition[]> {
+  const data = await api.get<{ competitions: Competition[] }>(`/competitions/search?q=${encodeURIComponent(query)}`)
   return data.competitions
 }
