@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
@@ -10,7 +11,10 @@ import { useFantasyStore } from '@/store/fantasyStore'
 import { Trophy, Gamepad2, ChevronRight, Search } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
+import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
+import { listFixtures } from '@/lib/services/fixture.service'
 import { GafferLogo } from '@/components/GafferLogo'
+import { mapApiTeamToSquad } from '@/lib/converters'
 
 export default function FantasyPage() {
   const router = useRouter()
@@ -25,20 +29,49 @@ export default function FantasyPage() {
     setHasCreatedTeam,
     setHasOrganizedBench,
     setHasNamedTeam,
-    setTeamName
-  } = useFantasyStore()
+    setTeamName,
+    setPlayers
+  } = (useFantasyStore as any)()
 
   const { data: joinedLeagues, isLoading } = useQuery({
     queryKey: ['joined-competitions'],
     queryFn: listJoinedCompetitions
   })
 
+  const { data: myTeam, isLoading: isLoadingTeam } = useQuery({
+    queryKey: ['fantasy-team-me', competitionId],
+    queryFn: () => getMyFantasyTeam(competitionId!),
+    enabled: !!competitionId,
+    retry: false
+  })
+
+  const { data: fixtures } = useQuery({
+    queryKey: ['fantasy-fixtures', competitionId],
+    queryFn: () => listFixtures(competitionId!),
+    enabled: !!competitionId
+  })
+
+  useEffect(() => {
+    if (myTeam) {
+      if (!hasCreatedTeam) setHasCreatedTeam(true)
+      if (!hasOrganizedBench) setHasOrganizedBench(true)
+      if (!hasNamedTeam) setHasNamedTeam(true)
+      
+      const mappedSquad = mapApiTeamToSquad(myTeam, fixtures || [])
+      setPlayers(mappedSquad)
+
+      if (myTeam.teamName !== useFantasyStore.getState().teamName) {
+        setTeamName(myTeam.teamName)
+      }
+    }
+  }, [myTeam, fixtures, hasCreatedTeam, hasOrganizedBench, hasNamedTeam, setHasCreatedTeam, setHasOrganizedBench, setHasNamedTeam, setTeamName, setPlayers])
+
   // 1. Show Welcome first for every first-time user
   if (!hasSeenWelcome) {
     return <FantasyWelcome onGetStarted={() => setHasSeenWelcome(true)} />
   }
 
-  if (isLoading) {
+  if (isLoading || (!!competitionId && isLoadingTeam)) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center p-6">
         <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
@@ -69,13 +102,7 @@ export default function FantasyPage() {
 
   // 2. If no competitionId selected, handle selection
   if (!competitionId) {
-    // If only one, auto-select
-    if (joinedLeagues.length === 1) {
-      setCompetitionId(joinedLeagues[0]._id)
-      return null
-    }
-
-    // Show selection screen
+    // Select from list (even if only 1, so they can see 'Join New' button)
     return (
       <div className="min-h-screen bg-[#181928] p-6 pb-32">
         <div className="flex items-center gap-3 mb-8 mt-12">
@@ -115,6 +142,14 @@ export default function FantasyPage() {
               </div>
             </button>
           ))}
+          
+          <button
+            onClick={() => router.push('/app/league')}
+            className="w-full bg-transparent border-2 border-dashed border-gaffer-border p-4 rounded-2xl flex items-center justify-center gap-3 group hover:border-gaffer-orange/50 hover:bg-gaffer-orange/5 transition-all text-gaffer-muted hover:text-white"
+          >
+            <Search size={18} />
+            <span className="font-display font-bold text-[14px] uppercase tracking-wider">Join New League</span>
+          </button>
         </div>
       </div>
     )
@@ -124,15 +159,6 @@ export default function FantasyPage() {
     return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
   }
 
-  if (!hasOrganizedBench) {
-    return (
-      <PickTeamOnboarding 
-        onBack={() => setHasCreatedTeam(false)}
-        onComplete={() => setHasOrganizedBench(true)}
-      />
-    )
-  }
-
   if (!hasNamedTeam) {
     return (
       <TeamNamingScreen 
@@ -140,6 +166,15 @@ export default function FantasyPage() {
           setTeamName(name)
           setHasNamedTeam(true)
         }} 
+      />
+    )
+  }
+
+  if (!hasOrganizedBench) {
+    return (
+      <PickTeamOnboarding 
+        onBack={() => setHasNamedTeam(false)}
+        onComplete={() => setHasOrganizedBench(true)} 
       />
     )
   }

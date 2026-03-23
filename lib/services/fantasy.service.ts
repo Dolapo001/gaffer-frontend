@@ -26,6 +26,7 @@ export interface FantasyPlayer {
     firstName: string
     lastName: string
     position?: string
+    picture?: string
   }
   teamId: {
     _id: string
@@ -179,8 +180,15 @@ export async function createFantasyTeam(
 }
 
 // GET /fantasy/:competitionId/team/me
-export async function getMyFantasyTeam(competitionId: string): Promise<FantasyTeam> {
-  return api.get<FantasyTeam>(`/fantasy/${competitionId}/team/me`)
+export async function getMyFantasyTeam(competitionId: string): Promise<FantasyTeam | null> {
+  try {
+    return await api.get<FantasyTeam>(`/fantasy/${competitionId}/team/me`)
+  } catch (error: any) {
+    if (error.code === 'TEAM_NOT_FOUND') {
+      return null
+    }
+    throw error
+  }
 }
 
 // PUT /fantasy/:competitionId/team/squad
@@ -231,6 +239,34 @@ export async function getGameweekLeaderboard(
   return api.get<LeaderboardResponse>(
     `/fantasy/${competitionId}/leaderboard/gameweek/${gameweekId}?page=${page}`,
   )
+}
+
+export interface PlayerHistoryEntry {
+  _id: string
+  gameweekId: { 
+    _id: string; 
+    name: string; 
+    gameweekNumber: number; 
+    deadline: string 
+  }
+  totalPoints: number
+  goalsScored: number
+  assists: number
+  yellowCards: number
+  redCards: number
+  ownGoals: number
+  appeared: boolean
+}
+
+// GET /fantasy/:competitionId/players/:fantasyPlayerId/history
+export async function getPlayerHistory(
+  competitionId: string,
+  fantasyPlayerId: string,
+): Promise<PlayerHistoryEntry[]> {
+  const result = await api.get<{ data: PlayerHistoryEntry[] }>(
+    `/fantasy/${competitionId}/players/${fantasyPlayerId}/history`,
+  )
+  return result.data
 }
 
 // Fantasy squad validation rules (mirrors backend)

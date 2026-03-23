@@ -14,8 +14,8 @@ export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({ onClick, className
     <button 
       onClick={onClick}
       style={{
-        width: '65px',
-        height: '90px',
+        width: '64px',
+        height: '102px',
         borderRadius: '5.45px',
         border: '0.4px solid rgba(255, 255, 255, 0.45)',
         background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(55, 0, 60, 0.25) 100%)',

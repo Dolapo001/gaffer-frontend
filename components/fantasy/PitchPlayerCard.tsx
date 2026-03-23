@@ -51,62 +51,62 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   return (
     <button 
       style={{
-        width: '65px',
-        height: '92px',
-        borderRadius: '5.45px',
-        border: selected ? '2px solid #ff6b00' : '0.4px solid rgba(255, 255, 255, 0.45)',
-        background: 'rgba(55, 0, 60, 0.25)',
+        width: '64px',
+        height: '102px',
+        borderRadius: '5px',
+        border: selected ? '2px solid #ff6b00' : '0.5px solid rgba(255, 255, 255, 0.4)',
+        background: 'rgba(55, 0, 60, 0.35)',
         backdropFilter: 'blur(12px)',
-        boxShadow: '0px 1.02px 1.7px 0px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}
       className={`flex flex-col overflow-hidden transition-all relative group ${selected ? 'scale-105 z-10' : ''} ${className}`}
       onClick={onClick}
     >
       {/* 1. Jersey Section (Glass) */}
-      <div className="flex-1 flex items-center justify-center pt-1.5 pb-1">
+      <div className="flex-1 flex items-center justify-center pt-2 pb-1 px-1 relative">
         <img 
           src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"} 
           alt={playerName} 
-          className="w-[85%] h-auto object-contain drop-shadow-xl"
+          className="w-[80%] h-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform"
         />
         
-        {/* Status indicator in top right if any - design triangles */}
+        {/* Status indicator top right */}
         {status !== 'fit' && (
-          <div className="absolute top-1 right-1 flex flex-col items-center">
+          <div className="absolute top-1 right-0.5">
             {status === 'warning' && (
-              <div className="w-3.5 h-3.5 bg-yellow-400 rounded-[2px] shadow-sm flex items-center justify-center transform rotate-45 mb-1 border-[0.5px] border-black/5">
-                <span className="text-[8px] font-black text-black transform rotate-[-45deg] leading-none">!</span>
+              <div className="w-4 h-4 bg-yellow-400 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
+                 <span className="text-[10px] font-black text-black leading-none -mt-0.5">!</span>
               </div>
             )}
             {status === 'injured' && (
-              <div className="w-3.5 h-3.5 bg-red-600 rounded-[2px] shadow-sm flex items-center justify-center transform rotate-45 mb-1 border-[0.5px] border-black/5">
-                <span className="text-[8px] font-black text-white transform rotate-[-45deg] leading-none">!</span>
+              <div className="w-4 h-4 bg-red-600 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
+                 <span className="text-[10px] font-black text-white leading-none -mt-0.5">!</span>
               </div>
             )}
           </div>
         )}
 
-        {/* Vice Captaincy Badge - Circular design like in spec */}
+        {/* Captaincy Badge - AMETHYST/PURPLE for Vice-Captain in spec */}
         {captaincy && (
-          <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-[#37003c] rounded-full flex items-center justify-center border border-white/40 shadow-sm">
-            <span className="text-white text-[8px] font-black">{captaincy}</span>
+          <div className={`absolute top-0.5 left-0.5 w-4 h-4 ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-[#6B46C1]'} rounded-full flex items-center justify-center border border-white/40 shadow-sm`}>
+            <span className="text-white text-[9px] font-black leading-none">{captaincy}</span>
           </div>
         )}
       </div>
 
       {/* 2. Info Boxes (Solid) */}
-      <div className={`w-full flex flex-col font-sans ${status === 'warning' ? 'bg-[#FFEB3B]' : status === 'injured' ? 'bg-[#EF4444]' : 'bg-white'} border-t border-black/5 py-1`}>
+      <div className={`w-full flex flex-col font-sans ${status === 'warning' ? 'bg-[#FFEB3B]' : status === 'injured' ? 'bg-[#EF4444]' : 'bg-white'} py-1`}>
         {/* Name Row */}
-        <div className="px-1 text-center leading-tight">
-          <span className={`text-[11px] font-bold block truncate ${status === 'fit' || status === 'warning' ? 'text-[#37003c]' : 'text-white'}`}>
+        <div className="px-0.5 text-center flex items-center justify-center min-h-[14px]">
+          <p className={`text-[10px] font-black truncate uppercase tracking-tighter leading-none ${status === 'fit' ? 'text-[#37003c]' : status === 'warning' ? 'text-black' : 'text-white'}`}>
             {playerName || 'Player'}
-          </span>
+          </p>
         </div>
         {/* Fixture Row */}
-        <div className="px-1 text-center leading-tight">
-          <span className={`text-[10px] font-medium block truncate ${status === 'fit' || status === 'warning' ? 'text-[#37003c]/70' : 'text-white/80'}`}>
+        <div className="px-0.5 text-center flex items-center justify-center min-h-[12px] mt-0.5">
+          <p className={`text-[9px] font-bold truncate uppercase tracking-[0.01em] leading-none opacity-80 ${status === 'fit' || status === 'warning' ? 'text-[#37003c]' : 'text-white'}`}>
             {fixture || 'TBC'}
-          </span>
+          </p>
         </div>
       </div>
     </button>

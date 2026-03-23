@@ -8,63 +8,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useFantasyStore } from '@/store/fantasyStore';
 import { PitchLayout } from './PitchLayout';
 import { getJerseyUrl, type FantasySquadPlayer, type Position, GAMEWEEK_INFO } from '@/lib/fantasyMockData';
-import { CreateTeamPlayerDrawer } from './CreateTeamPlayerDrawer';
+import CreateTeamPlayerDrawer from './CreateTeamPlayerDrawer';
 import { SaveTeamConfirmationModal } from './SaveTeamConfirmationModal';
 import { listFantasyPlayers, type FantasyPlayer } from '@/lib/services/fantasy.service';
+import { listFixtures } from '@/lib/services/fixture.service';
 
-/**
- * Maps API FantasyPlayer to internal FantasySquadPlayer
- */
-function mapApiPlayer(p: FantasyPlayer): FantasySquadPlayer {
-  if (!p || !p.playerId || typeof p.playerId !== 'object') {
-    // Return a dummy if critical data is missing to prevent crashes
-    return {
-      id: p?._id || '',
-      name: 'Unknown Player',
-      shortName: 'Unknown',
-      teamName: p?.teamId?.name || 'Unknown',
-      teamCode: p?.teamId?.handle || 'unk',
-      teamColor: '#ff6b00',
-      position: (p?.position as Position) || 'FWD',
-      points: 0,
-      price: p?.price || 0,
-      pitchRow: 1,
-      isOnPitch: false,
-      isCaptain: false,
-      isViceCaptain: false,
-      goals: 0,
-      assists: 0,
-      form: 0,
-      gwHistory: [],
-      nextFixtures: []
-    }
-  }
-
-  const posMap: Record<string, number> = { GK: 3, DEF: 2, MID: 1, FWD: 0 };
-  const firstName = (p.playerId as any).firstName || ''
-  const lastName = (p.playerId as any).lastName || ''
-
-  return {
-    id: p._id,
-    name: `${firstName} ${lastName}`.trim() || 'Unknown Player',
-    shortName: lastName || 'Unknown',
-    teamName: (p.teamId as any)?.name || 'Unknown',
-    teamCode: (p.teamId as any)?.handle || '',
-    teamColor: '#ff6b00',
-    position: p.position as Position,
-    points: p.totalPoints || 0,
-    price: p.price,
-    pitchRow: posMap[p.position] ?? 1,
-    isOnPitch: false,
-    isCaptain: false,
-    isViceCaptain: false,
-    goals: 0,
-    assists: 0,
-    form: 0,
-    gwHistory: [],
-    nextFixtures: []
-  };
-}
+import { mapApiPlayer } from '@/lib/converters';
 
 interface CreateTeamScreenProps {
   onComplete: () => void;
@@ -72,7 +21,7 @@ interface CreateTeamScreenProps {
 
 export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }) => {
   const router = useRouter();
-  const { competitionId, resetTeam, players, budget, saveTeam } = useFantasyStore();
+  const { competitionId, resetTeam, setPlayers, budget, saveTeam } = useFantasyStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<{ position: Position; index: number } | null>(null);
 
@@ -85,8 +34,8 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
 
   // Initialize: Reset team if it's the first time
   useEffect(() => {
-    // For the demo, we start empty
-    // resetTeam();
+     resetTeam();
+     setDraftPlayers([]);
   }, []);
 
   const handleSelectSlot = (id: string) => {
@@ -114,8 +63,8 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
     setActiveSlot(null);
   };
 
-  const handleRemovePlayer = (id: string) => {
-    setDraftPlayers(draftPlayers.filter(p => p.id !== id));
+  const handleRemovePlayer = (player: FantasySquadPlayer) => {
+    setDraftPlayers(draftPlayers.filter(p => p.id !== player.id));
     setSelectedPlayerForDrawer(null);
   };
 
@@ -124,6 +73,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   const handleConfirmSave = () => {
+    setPlayers(draftPlayers);
     setIsConfirmModalOpen(false);
     onComplete();
   };
@@ -152,7 +102,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Bank :</span>
-            <span className="text-[#00ffff] text-[14px] font-mono font-bold">Ǥ{budget.toFixed(1)}</span>
+            <span className="text-[#00ffff] text-[14px] font-mono font-bold font-display">Ǥ{budget.toFixed(1)}M</span>
           </div>
         </div>
       </header>
@@ -178,7 +128,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         <div className="flex justify-center mt-12 pb-10">
           <button
             onClick={handleSaveDraft}
-            className={`text-[#ff6b00] font-bold text-[20px] underline decoration-2 underline-offset-8 transition-opacity ${draftPlayers.length > 0 ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}
+            className={`text-[#ff6b00] font-black text-[28px] uppercase tracking-wider underline decoration-4 underline-offset-[12px] transition-all hover:scale-105 active:scale-95 ${draftPlayers.length > 0 ? 'opacity-100' : 'opacity-40 pointer-events-none'}`}
           >
             Save Team
           </button>
@@ -245,6 +195,12 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   // Get unique teams for filter
   const allTeams = Array.from(new Set((playerResponse?.data || []).map(p => p.teamId?.name))).filter(Boolean);
 
+  const { data: fixtures } = useQuery({
+    queryKey: ['fantasy-fixtures', competitionId],
+    queryFn: () => listFixtures(competitionId),
+    enabled: !!competitionId
+  });
+
   const excludeIds = draftPlayers.map(p => p.id);
   const apiPlayers = (playerResponse?.data || []).filter(p => {
     // Exclude if already in squad
@@ -263,7 +219,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     return true;
   });
 
-  const mappedPlayers = apiPlayers.map(mapApiPlayer);
+  const mappedPlayers = apiPlayers.map(p => mapApiPlayer(p, [], [], null, null, fixtures || []));
 
   const filteredPlayers = mappedPlayers.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -327,7 +283,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
             >
               <option value={20}>Max Price</option>
               {[15, 12, 10, 8, 6, 4].map(price => (
-                <option key={price} value={price}>Ǥ{price}.0</option>
+                <option key={price} value={price}>Ǥ{price}.0M</option>
               ))}
             </select>
             <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 -rotate-90 pointer-events-none" size={14} />
@@ -373,7 +329,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
                     Free Transfer : <span className="text-white opacity-60 ml-2">2</span>
                 </div>
                 <div className="text-white text-[12px] font-medium tracking-tight">
-                    Bank : <span className="text-white opacity-60 ml-3">Ǥ{budget.toFixed(1)}</span>
+                    Bank : <span className="text-white opacity-60 ml-3">Ǥ{budget.toFixed(1)}M</span>
                 </div>
             </div>
     </motion.div>

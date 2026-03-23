@@ -42,7 +42,7 @@ interface FantasyState {
   totalPoints: number
 
   // Actions
-  setCompetitionId: (id: string) => void
+  setCompetitionId: (id: string | null) => void
   selectPlayer: (id: string | null) => void
   setSubstitutingOutId: (id: string | null) => void
   setBoost: (boost: BoostType) => void
@@ -57,6 +57,7 @@ interface FantasyState {
   setHasOrganizedBench: (val: boolean) => void
   setHasNamedTeam: (val: boolean) => void
   setTeamName: (name: string) => void
+  setPlayers: (players: FantasySquadPlayer[]) => void
   resetTeam: () => void
 }
 
@@ -64,11 +65,11 @@ export const useFantasyStore = create<FantasyState>()(
   persist(
     (set, get) => ({
       competitionId: null,
-      players: SQUAD,
+      players: [],
       selectedPlayerId: null,
       substitutingOutId: null,
       selectedBoost: null,
-      budget: GAMEWEEK_INFO.budget,
+      budget: 100,
       isSaved: false,
       isSaving: false,
       saveError: null,
@@ -196,15 +197,16 @@ export const useFantasyStore = create<FantasyState>()(
       setHasSeenWelcome: (val) => set({ hasSeenWelcome: val }),
       setHasCreatedTeam: (val) => set({ hasCreatedTeam: val }),
       setHasOrganizedBench: (val) => set({ hasOrganizedBench: val }),
-      setHasNamedTeam: (val) => set({ hasNamedTeam: true }),
+      setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
       setTeamName: (name) => set({ teamName: name }),
+      setPlayers: (players) => set({ players }),
 
       resetTeam: () =>
         set({
-          players: SQUAD,
-          budget: GAMEWEEK_INFO.budget,
+          players: [],
+          budget: 100,
           isSaved: false,
-          hasSeenWelcome: false,
+          hasSeenWelcome: true,
           hasCreatedTeam: false,
           hasOrganizedBench: false,
           hasNamedTeam: false,
