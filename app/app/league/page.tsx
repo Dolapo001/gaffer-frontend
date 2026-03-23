@@ -34,9 +34,12 @@ function DiscoveryCompetitionCard({
   const displayLogo = competition.bannerUrl || orgLogoUrl
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
       whileTap={{ scale: 0.98 }}
-      className="w-full flex items-center gap-4 bg-[#202235]/40 border border-white/5 rounded-xl p-4 text-left"
+      onClick={onJoin}
+      disabled={isJoining}
+      className="w-full flex items-center gap-4 bg-[#202235]/40 border border-white/5 rounded-xl p-4 text-left disabled:opacity-60 active:bg-white/5 transition-colors"
     >
       <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
         {displayLogo ? (
@@ -45,7 +48,7 @@ function DiscoveryCompetitionCard({
           <Trophy size={24} className="text-gaffer-muted" />
         )}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <p className="text-white/80 font-display font-bold text-[15px] truncate uppercase tracking-wide mb-0.5">
           {competition.name}
@@ -54,18 +57,15 @@ function DiscoveryCompetitionCard({
           {org && 'name' in org ? (org as any).name : 'Global League'}
         </p>
       </div>
-      
-      <button 
-        onClick={(e) => {
-          e.stopPropagation()
-          onJoin()
-        }}
-        disabled={isJoining}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex-shrink-0 hover:bg-gaffer-orange/20 transition-colors"
-      >
-        <Plus size={18} className="text-gaffer-orange" />
-      </button>
-    </motion.div>
+
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex-shrink-0">
+        {isJoining ? (
+          <div className="w-4 h-4 border-2 border-gaffer-orange/40 border-t-gaffer-orange rounded-full animate-spin" />
+        ) : (
+          <Plus size={18} className="text-gaffer-orange" />
+        )}
+      </div>
+    </motion.button>
   )
 }
 
