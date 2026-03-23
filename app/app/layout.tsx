@@ -24,10 +24,10 @@ function useNavItems(pathname: string) {
 
   const leagueId = match[1]
   return [
-    { href: '/app/dashboard',           icon: Home,      label: 'Home'    },
-    { href: '/app/fantasy',             icon: Users,     label: 'Fantasy' },
-    { href: `/app/league/${leagueId}`,  icon: Trophy,    label: 'League'  },
-    { href: '/app/news',                icon: Newspaper, label: 'News'    },
+    { href: '/app/dashboard',                                    icon: Home,      label: 'Home'    },
+    { href: `/app/fantasy?competitionId=${leagueId}`,            icon: Users,     label: 'Fantasy' },
+    { href: `/app/league/${leagueId}`,                           icon: Trophy,    label: 'League'  },
+    { href: '/app/news',                                         icon: Newspaper, label: 'News'    },
   ]
 }
 
