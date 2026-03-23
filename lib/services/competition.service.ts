@@ -163,9 +163,15 @@ export async function removeCompetitionGroup(
   return api.delete<{ message: string }>(`/competitions/${competitionId}/groups/${groupName}`)
 }
 
-// POST /competitions/join
+// POST /competitions/join  (code-based — used by the "Join League" modal)
 export async function joinCompetition(code: string): Promise<Competition> {
   const data = await api.post<{ competition: Competition }>('/competitions/join', { code })
+  return data.competition
+}
+
+// POST /competitions/:competitionId/join  (id-based — used when clicking a search result)
+export async function joinCompetitionById(competitionId: string): Promise<Competition> {
+  const data = await api.post<{ competition: Competition }>(`/competitions/${competitionId}/join`)
   return data.competition
 }
 

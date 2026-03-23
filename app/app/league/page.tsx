@@ -5,9 +5,9 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
-import { listJoinedCompetitions, joinCompetition, searchCompetitions } from '@/lib/services/competition.service'
-import { GafferLogo } from '@/components/GafferLogo'
-import { Trophy, ChevronRight, Search, CheckCircle2, X, Star, Plus } from 'lucide-react'
+import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions } from '@/lib/services/competition.service'
+import { LeagueItem } from '@/components/home/LeagueItem'
+import { Trophy, Search, X, Plus } from 'lucide-react'
 import type { Competition } from '@/lib/services/competition.service'
 
 function formatDateRange(start: string, end: string) {
@@ -18,50 +18,6 @@ function formatDateRange(start: string, end: string) {
   const formattedStart = startDate.toLocaleDateString('en-GB', formatOptions).toUpperCase()
   const formattedEnd = endDate.toLocaleDateString('en-GB', formatOptions).toUpperCase()
   return `${formattedStart} - ${formattedEnd}`
-}
-
-function JoinedCompetitionCard({
-  competition,
-  onClick,
-}: {
-  competition: Competition
-  onClick: () => void
-}) {
-  const org = typeof competition.orgId === 'object' ? competition.orgId : null
-  const orgLogoUrl = org && 'logoUrl' in org ? (org as any).logoUrl : undefined
-  const displayLogo = competition.bannerUrl || orgLogoUrl
-
-  return (
-    <motion.button
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="w-full flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-xl p-4 text-left"
-    >
-      <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
-        {displayLogo ? (
-          <img src={displayLogo} alt={`${competition.name} Logo`} className="w-full h-full object-cover" />
-        ) : (
-          <Trophy size={24} className="text-gaffer-muted" />
-        )}
-      </div>
-      
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5 mb-1">
-          <p className="text-white font-display font-bold text-[15px] truncate uppercase tracking-wide">
-            {competition.name}
-          </p>
-          <CheckCircle2 size={14} className="text-gaffer-orange flex-shrink-0" fill="currentColor" />
-        </div>
-        <p className="text-gaffer-muted text-xs font-body font-medium uppercase tracking-wider">
-          {formatDateRange(competition.startDate, competition.endDate)}
-        </p>
-      </div>
-      
-      <div className="flex items-center justify-center w-6 h-6 rounded-full border border-white/20 flex-shrink-0">
-        <ChevronRight size={14} className="text-white" />
-      </div>
-    </motion.button>
-  )
 }
 
 function DiscoveryCompetitionCard({
@@ -118,7 +74,7 @@ export default function LeaguePage() {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const { isAuthenticated } = useAuthStore()
-  
+
   const initialCode = searchParams.get('code') || ''
   const [searchQuery, setSearchQuery] = useState('')
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(!!initialCode)
@@ -131,6 +87,7 @@ export default function LeaguePage() {
     enabled: isAuthenticated,
   })
 
+  // Code-based join — used by the "Join League" modal
   const joinMutation = useMutation({
     mutationFn: (code: string) => joinCompetition(code),
     onSuccess: (data: Competition) => {
@@ -138,11 +95,23 @@ export default function LeaguePage() {
       setJoinCode('')
       setJoinError('')
       queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
-      // Navigate to the newly joined league dashboard
       router.push(`/app/league/${data._id}`)
     },
     onError: (error: any) => {
       setJoinError(error?.response?.data?.message || 'Failed to join league. Please check your code.')
+    }
+  })
+
+  // Id-based join — used when tapping a search result card
+  const joinByIdMutation = useMutation({
+    mutationFn: (competitionId: string) => joinCompetitionById(competitionId),
+    onSuccess: (data: Competition) => {
+      queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
+      router.push(`/app/league/${data._id}`)
+    },
+    onError: (error: any) => {
+      // Surface the error inline on the card; keep the modal closed
+      console.error('Failed to join competition:', error?.response?.data?.message || error)
     }
   })
 
@@ -160,87 +129,94 @@ export default function LeaguePage() {
     staleTime: 30000,
   })
 
-  const filteredCompetitions = competitions?.filter(c => 
+  const filteredCompetitions = competitions?.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleGlobalJoin = (code: string | undefined, competition: Competition) => {
-    if (code) {
-      joinMutation.mutate(code)
-    } else {
-      // If no code, we can join by competitionId if we have an endpoint, 
-      // but joinCompetition currently requires a code.
-      // Let's assume for public ones we can use their joinCode or ID.
-      if (competition.joinCode) {
-        joinMutation.mutate(competition.joinCode)
-      }
-    }
+  const handleDiscoveryJoin = (competitionId: string) => {
+    joinByIdMutation.mutate(competitionId)
   }
 
   // Hide search results that are already joined
-  const discoveries = searchResults?.filter(res => 
+  const discoveries = searchResults?.filter(res =>
     !competitions?.some(joined => joined._id === res._id)
   )
 
   return (
     <div className="min-h-screen bg-[#181928] pb-28">
-      {/* Top spacing */}
-      <div className="pt-14 px-4 pb-6">
-        <div className="relative mb-6">
-          <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gaffer-muted" />
+      {/* Search bar */}
+      <div className="px-4 pt-12 pb-3">
+        <div className="flex items-center gap-3 bg-[#1e1f30] rounded-2xl px-4 h-12">
+          <Search size={18} className="text-gaffer-subtle flex-shrink-0" />
           <input
-            type="text"
-            placeholder=""
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-[#202235] text-white rounded-full py-3 pl-12 pr-4 outline-none border border-gaffer-border placeholder:text-gaffer-muted focus:border-gaffer-orange/50 transition-colors"
+            placeholder="Search leagues..."
+            className="flex-1 bg-transparent text-sm text-white placeholder:text-gaffer-subtle outline-none font-body"
           />
         </div>
+      </div>
 
+      <div className="px-4">
+        {/* Section header */}
         <div className="flex items-center justify-between mb-4">
-          <h1 className="font-display font-bold text-[22px] text-white">Favourite</h1>
-          <button 
+          <h1 className="font-display font-bold text-xl text-white">Favourite</h1>
+          <button
             onClick={() => setIsJoinModalOpen(true)}
-            className="text-gaffer-orange text-sm font-bold font-body"
+            className="text-gaffer-orange font-display font-bold text-sm tracking-wide"
           >
             JOIN LEAGUE
           </button>
         </div>
 
-        {(isLoading || isJoinModalOpen) ? (
-          <div className="space-y-3">
+        {isLoading ? (
+          <div className="space-y-1">
             {[0, 1, 2].map((i) => (
-              <div key={i} className="h-[88px] bg-gaffer-card border border-gaffer-border rounded-xl animate-pulse" />
+              <div key={i} className="h-16 bg-gaffer-card/50 rounded-2xl animate-pulse" />
             ))}
           </div>
         ) : (
           <div className="space-y-8">
-            {/* Favourites Section */}
-            {(filteredCompetitions && filteredCompetitions.length > 0) ? (
-              <div className="space-y-3">
+            {/* Favourites list */}
+            {filteredCompetitions && filteredCompetitions.length > 0 ? (
+              <div className="divide-y divide-gaffer-border/20">
                 {filteredCompetitions.map((comp, i) => (
-                  <motion.div key={comp._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}>
-                    <JoinedCompetitionCard competition={comp} onClick={() => router.push(`/app/league/${comp._id}`)} />
+                  <motion.div
+                    key={comp._id}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    <LeagueItem
+                      id={comp._id}
+                      name={comp.name}
+                      dateRange={formatDateRange(comp.startDate, comp.endDate)}
+                      avatar={comp.bannerUrl}
+                      verified={comp.status === 'published' || comp.status === 'live'}
+                      onClick={() => router.push(`/app/league/${comp._id}`)}
+                    />
                   </motion.div>
                 ))}
               </div>
             ) : !searchQuery && (
-              <div className="bg-gaffer-card border border-gaffer-border rounded-xl p-10 text-center">
-                <Trophy size={40} className="text-gaffer-subtle mx-auto mb-4" />
-                <p className="text-white font-body font-medium mb-2 text-lg">No leagues joined</p>
-                <p className="text-gaffer-muted text-sm font-body mb-6">
-                  Join a competition to see it here in your favourites.
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center mb-6">
+                  <Trophy size={32} className="text-gaffer-subtle" />
+                </div>
+                <p className="text-white font-display font-bold text-lg mb-2">No leagues yet</p>
+                <p className="text-gaffer-muted text-sm font-body max-w-[220px] mb-8 leading-relaxed">
+                  Enter a league code to join a competition and see it here in your favourites.
                 </p>
                 <button
                   onClick={() => setIsJoinModalOpen(true)}
-                  className="bg-gaffer-orange text-white px-6 py-2.5 rounded-full font-bold font-display text-sm hover:bg-[#e65c00] transition-colors"
+                  className="bg-gaffer-orange text-white font-display font-bold text-sm px-8 py-3.5 rounded-full shadow-orange-glow"
                 >
                   Enter League Code
                 </button>
               </div>
             )}
 
-            {/* Discover Section */}
+            {/* Discover section */}
             {searchQuery && (
               <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
                 <div className="flex items-center gap-2 mb-4 px-1">
@@ -252,24 +228,24 @@ export default function LeaguePage() {
                 {isSearching ? (
                   <div className="space-y-3">
                     {[0, 1].map((i) => (
-                      <div key={i} className="h-[80px] bg-white/5 rounded-xl animate-pulse" />
+                      <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
                     ))}
                   </div>
-                ) : (discoveries && discoveries.length > 0) ? (
+                ) : discoveries && discoveries.length > 0 ? (
                   <div className="space-y-3">
                     {discoveries.map((res) => (
-                      <DiscoveryCompetitionCard 
-                        key={res._id} 
-                        competition={res} 
-                        isJoining={joinMutation.isPending}
-                        onJoin={() => handleGlobalJoin(res.joinCode, res)}
+                      <DiscoveryCompetitionCard
+                        key={res._id}
+                        competition={res}
+                        isJoining={joinByIdMutation.isPending}
+                        onJoin={() => handleDiscoveryJoin(res._id)}
                       />
                     ))}
                   </div>
                 ) : searchQuery.length >= 2 && (
                   <div className="text-center py-6">
                     <p className="text-gaffer-muted text-xs font-medium italic">No public matches for "{searchQuery}"</p>
-                    <button 
+                    <button
                       onClick={() => setIsJoinModalOpen(true)}
                       className="mt-3 text-gaffer-orange text-[10px] font-black underline uppercase tracking-widest"
                     >

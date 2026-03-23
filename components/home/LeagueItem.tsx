@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { Info, Flame } from 'lucide-react'
+import Image from 'next/image'
 
 interface LeagueItemProps {
   id: string
@@ -15,6 +16,7 @@ interface LeagueItemProps {
 export function LeagueItem({
   name,
   dateRange,
+  avatar,
   verified = true,
   onClick,
 }: LeagueItemProps) {
@@ -25,8 +27,12 @@ export function LeagueItem({
       className="flex items-center gap-3 py-3.5 cursor-pointer group"
     >
       {/* League Avatar */}
-      <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gaffer-orange flex items-center justify-center shadow-orange-glow">
-        <Flame size={18} className="text-white" />
+      <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gaffer-orange flex items-center justify-center shadow-orange-glow overflow-hidden">
+        {avatar ? (
+          <Image src={avatar} alt={name} width={44} height={44} className="w-full h-full object-cover" />
+        ) : (
+          <Flame size={18} className="text-white" />
+        )}
       </div>
 
       {/* Info */}
