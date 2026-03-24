@@ -2,60 +2,8 @@
 
 import { motion } from 'framer-motion'
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
-
-// ─── Jersey SVG Icon ─────────────────────────────────────────────────────────
-
-function JerseyIcon({ color, size = 36 }: { color: string; size?: number }) {
-  return (
-    <svg
-      width={size}
-      height={size}
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Shirt body */}
-      <path
-        d="M9 10 L3 16 L8 19 L8 32 L28 32 L28 19 L33 16 L27 10 C25 14 11 14 9 10Z"
-        fill={color}
-        stroke="rgba(255,255,255,0.25)"
-        strokeWidth="0.8"
-      />
-      {/* Collar */}
-      <path
-        d="M13 10 Q18 15 23 10"
-        stroke="rgba(255,255,255,0.45)"
-        strokeWidth="1.2"
-        fill="none"
-        strokeLinecap="round"
-      />
-      {/* Sleeve highlight */}
-      <path
-        d="M3 16 L8 19"
-        stroke="rgba(255,255,255,0.2)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      <path
-        d="M33 16 L28 19"
-        stroke="rgba(255,255,255,0.2)"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-      {/* Shirt centre line */}
-      <line
-        x1="18"
-        y1="15"
-        x2="18"
-        y2="29"
-        stroke="rgba(255,255,255,0.15)"
-        strokeWidth="0.8"
-        strokeDasharray="2 2"
-      />
-    </svg>
-  )
-}
+import { JerseySvg } from '@/components/jersey/JerseySvg'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
 
 // ─── Captain / Vice-captain badge ────────────────────────────────────────────
 
@@ -111,9 +59,21 @@ export function PlayerCard({
             <div className={`rounded-xl overflow-hidden border ${selected ? 'border-[#ff6b00]' : 'border-white/10'}`} style={{ width: jerseySize, height: jerseySize }}>
               <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover object-top" />
             </div>
-          ) : (
-            <JerseyIcon color={player.teamColor} size={jerseySize} />
-          )}
+          ) : (() => {
+            const jc = normalizeJerseyConfig(
+              player.jersey ?? { primaryColor: player.teamColor, secondaryColor: '#ffffff', jerseyPattern: 'solid' }
+            )
+            return (
+              <JerseySvg
+                primaryColor={jc.primaryColor}
+                secondaryColor={jc.secondaryColor}
+                jerseyPattern={jc.jerseyPattern}
+                teamCode={player.teamCode}
+                width={jerseySize}
+                height={jerseySize}
+              />
+            )
+          })()}
         </motion.div>
 
         {player.isCaptain && <CaptainBadge />}

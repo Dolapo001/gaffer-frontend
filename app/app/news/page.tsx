@@ -9,7 +9,8 @@ import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
-import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { useUIStore } from '@/store/uiStore'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -66,10 +67,12 @@ function toArticleProps(item: FeedItem) {
 export default function NewsPage() {
   const router = useRouter()
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
+  const { activeOrgId } = useUIStore()
 
+  // When inside a competition use the org's feed; otherwise show global news
   const { data, isLoading } = useQuery({
-    queryKey: ['global-feed-news', 1],
-    queryFn: () => getGlobalFeed(1),
+    queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['global-feed-news', 1],
+    queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getGlobalFeed(1),
     staleTime: 60_000,
   })
 
@@ -108,6 +111,11 @@ export default function NewsPage() {
               <Search size={15} />
               <span className="text-sm font-body">Search news, leagues, players...</span>
             </button>
+            {activeOrgId && (
+              <p className="text-[10px] font-black uppercase tracking-[3px] text-gaffer-orange text-center mt-2">
+                Competition News
+              </p>
+            )}
           </div>
 
           <div className="px-4 py-4 space-y-6 pb-28">

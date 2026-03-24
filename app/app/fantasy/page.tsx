@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
 import { CreateTeamScreen } from '@/components/fantasy/CreateTeamScreen'
@@ -19,20 +19,29 @@ import { getImageUrl } from '@/lib/api'
 
 export default function FantasyPage() {
   const router = useRouter()
-  const { 
+  const searchParams = useSearchParams()
+  const {
     competitionId,
     setCompetitionId,
-    hasSeenWelcome, 
-    hasCreatedTeam, 
-    hasOrganizedBench, 
+    hasSeenWelcome,
+    hasCreatedTeam,
+    hasOrganizedBench,
     hasNamedTeam,
-    setHasSeenWelcome, 
+    setHasSeenWelcome,
     setHasCreatedTeam,
     setHasOrganizedBench,
     setHasNamedTeam,
     setTeamName,
     setPlayers
   } = (useFantasyStore as any)()
+
+  // If the user arrived via the in-competition Fantasy tab, auto-select that competition
+  const urlCompetitionId = searchParams.get('competitionId')
+  useEffect(() => {
+    if (urlCompetitionId && urlCompetitionId !== competitionId) {
+      setCompetitionId(urlCompetitionId)
+    }
+  }, [urlCompetitionId])
 
   const { data: joinedLeagues, isLoading } = useQuery({
     queryKey: ['joined-competitions'],

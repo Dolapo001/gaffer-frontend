@@ -18,7 +18,7 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
   const router = useRouter()
   const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false)
   const [upgradeTarget, setUpgradeTarget] = React.useState<'personal' | 'organization'>('personal')
-  const { user, setRole, role: currentRole } = useAuthStore()
+  const { user, setRole, updateUser, role: currentRole } = useAuthStore()
   const { addToast } = useToast()
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
@@ -46,6 +46,15 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
     }
 
     if (role === 'organization' && !user?.isOrgActive) {
+        // If they already have an organization, they don't need to "start" one
+        if (orgs && orgs.length > 0) {
+            updateUser({ isOrgActive: true, lastRole: 'organization' })
+            setRole('organization')
+            onClose()
+            addToast('Switched to organization account', 'success')
+            router.push('/admin')
+            return
+        }
         setUpgradeTarget('organization')
         setUpgradeModalOpen(true)
         return

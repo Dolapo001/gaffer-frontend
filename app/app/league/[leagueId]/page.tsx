@@ -1,10 +1,11 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Heart, Trophy, Users, ChevronRight, Target } from 'lucide-react'
+import { useUIStore } from '@/store/uiStore'
 import { getCompetition } from '@/lib/services/competition.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
@@ -62,10 +63,23 @@ export default function LeagueDashboardPage() {
   const [activeTab, setActiveTab] = useState<'table' | 'fixtures'>('table')
   const [liked, setLiked] = useState(false)
 
+  const { setActiveCompetition } = useUIStore()
+
   const { data: competition, isLoading: loadingComp } = useQuery({
     queryKey: ['competition', leagueId],
     queryFn: () => getCompetition(leagueId),
   })
+
+  // Register this competition as the active context so the nav stays in
+  // 4-tab mode and News shows org-scoped content while we're here
+  useEffect(() => {
+    if (!competition) return
+    const orgId =
+      typeof competition.orgId === 'object'
+        ? (competition.orgId as any)._id
+        : competition.orgId
+    setActiveCompetition(leagueId, orgId)
+  }, [competition, leagueId, setActiveCompetition])
 
   const { data: standingsData } = useQuery({
     queryKey: ['standings', leagueId],

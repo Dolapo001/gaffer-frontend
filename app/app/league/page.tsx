@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions } from '@/lib/services/competition.service'
 import { LeagueItem } from '@/components/home/LeagueItem'
 import { Trophy, Search, X, Plus } from 'lucide-react'
@@ -24,20 +26,26 @@ function formatDateRange(start: string, end: string) {
 function DiscoveryCompetitionCard({
   competition,
   onJoin,
-  isJoining
+  joiningId,
 }: {
   competition: Competition
-  onJoin: () => void
-  isJoining: boolean
+  onJoin: (id: string) => void
+  joiningId: string | null
 }) {
   const org = typeof competition.orgId === 'object' ? competition.orgId : null
   const orgLogoUrl = org && 'logoUrl' in org ? (org as any).logoUrl : undefined
   const displayLogo = competition.bannerUrl || orgLogoUrl
+  const isThisJoining = joiningId === competition._id
+  const isAnyJoining = joiningId !== null
 
   return (
-    <motion.div
-      whileTap={{ scale: 0.98 }}
-      className="w-full flex items-center gap-4 bg-[#202235]/40 border border-white/5 rounded-xl p-4 text-left"
+    <motion.button
+      type="button"
+      whileTap={{ scale: 0.97 }}
+      onClick={() => onJoin(competition._id)}
+      disabled={isAnyJoining}
+      className="w-full flex items-center gap-4 bg-[#202235]/40 border border-white/5 rounded-xl p-4 text-left disabled:cursor-not-allowed transition-colors"
+      style={{ opacity: isAnyJoining && !isThisJoining ? 0.5 : 1 }}
     >
       <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
         {displayLogo ? (
@@ -46,7 +54,7 @@ function DiscoveryCompetitionCard({
           <Trophy size={24} className="text-gaffer-muted" />
         )}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <p className="text-white/80 font-display font-bold text-[15px] truncate uppercase tracking-wide mb-0.5">
           {competition.name}
@@ -55,18 +63,15 @@ function DiscoveryCompetitionCard({
           {org && 'name' in org ? (org as any).name : 'Global League'}
         </p>
       </div>
-      
-      <button 
-        onClick={(e) => {
-          e.stopPropagation()
-          onJoin()
-        }}
-        disabled={isJoining}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex-shrink-0 hover:bg-gaffer-orange/20 transition-colors"
-      >
-        <Plus size={18} className="text-gaffer-orange" />
-      </button>
-    </motion.div>
+
+      <div className="flex items-center justify-center w-10 h-10 rounded-full bg-gaffer-orange/10 border border-gaffer-orange/20 flex-shrink-0">
+        {isThisJoining ? (
+          <div className="w-4 h-4 border-2 border-gaffer-orange/40 border-t-gaffer-orange rounded-full animate-spin" />
+        ) : (
+          <Plus size={18} className="text-gaffer-orange" />
+        )}
+      </div>
+    </motion.button>
   )
 }
 
@@ -75,12 +80,14 @@ export default function LeaguePage() {
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
   const { isAuthenticated } = useAuthStore()
+  const { addToast } = useToastStore()
 
   const initialCode = searchParams.get('code') || ''
   const [searchQuery, setSearchQuery] = useState('')
   const [isJoinModalOpen, setIsJoinModalOpen] = useState(!!initialCode)
   const [joinCode, setJoinCode] = useState(initialCode)
   const [joinError, setJoinError] = useState('')
+  const [joiningId, setJoiningId] = useState<string | null>(null)
 
   const { data: competitions, isLoading } = useQuery({
     queryKey: ['joined-competitions'],
@@ -98,22 +105,23 @@ export default function LeaguePage() {
       queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
       router.push(`/app/league/${data._id}`)
     },
-    onError: (error: any) => {
-      setJoinError(error?.response?.data?.message || 'Failed to join league. Please check your code.')
-    }
+    onError: (error: unknown) => {
+      setJoinError(getErrorMessage(error))
+    },
   })
 
   // Id-based join — used when tapping a search result card
   const joinByIdMutation = useMutation({
     mutationFn: (competitionId: string) => joinCompetitionById(competitionId),
     onSuccess: (data: Competition) => {
+      setJoiningId(null)
       queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
       router.push(`/app/league/${data._id}`)
     },
-    onError: (error: any) => {
-      // Surface the error inline on the card; keep the modal closed
-      console.error('Failed to join competition:', error?.response?.data?.message || error)
-    }
+    onError: (error: unknown) => {
+      setJoiningId(null)
+      addToast({ message: getErrorMessage(error), type: 'error' })
+    },
   })
 
   const handleJoin = (e: React.FormEvent) => {
@@ -123,20 +131,21 @@ export default function LeaguePage() {
     joinMutation.mutate(joinCode.trim())
   }
 
+  const handleDiscoveryJoin = (competitionId: string) => {
+    setJoiningId(competitionId)
+    joinByIdMutation.mutate(competitionId)
+  }
+
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['search-competitions', searchQuery],
     queryFn: () => searchCompetitions(searchQuery),
-    enabled: searchQuery.trim().length >= 2,
+    enabled: isAuthenticated && searchQuery.trim().length >= 2,
     staleTime: 30000,
   })
 
   const filteredCompetitions = competitions?.filter(c =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
-
-  const handleDiscoveryJoin = (competitionId: string) => {
-    joinByIdMutation.mutate(competitionId)
-  }
 
   // Hide search results that are already joined
   const discoveries = searchResults?.filter(res =>
@@ -238,8 +247,8 @@ export default function LeaguePage() {
                       <DiscoveryCompetitionCard
                         key={res._id}
                         competition={res}
-                        isJoining={joinByIdMutation.isPending}
-                        onJoin={() => handleDiscoveryJoin(res._id)}
+                        joiningId={joiningId}
+                        onJoin={handleDiscoveryJoin}
                       />
                     ))}
                   </div>
