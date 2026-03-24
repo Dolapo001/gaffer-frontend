@@ -49,19 +49,13 @@ const V_NECK = 'M37,5 L50,27 L63,5'
 
 // ─── Text scaling ─────────────────────────────────────────────────────────────
 //
-// Strategy: fixed fontSize=18, textLength capped at 58 SVG units (jersey chest
-// width minus margins). lengthAdjust="spacingAndGlyphs" lets SVG compress or
-// expand glyphs natively to always fit within the given textLength bound.
+// Fixed fontSize=18, textLength capped at 58 SVG units. SVG's native
+// lengthAdjust="spacingAndGlyphs" compresses or expands glyphs to always fit.
 //
-// For short text (≤4 chars) we reduce textLength so the text isn't stretched
-// unnaturally wide. For longer text it compresses to fit.
-//
-const MAX_TEXT_WIDTH = 58  // SVG units — jersey chest is ~64 units wide
+const MAX_TEXT_WIDTH = 58
 
 function computeTextLength(text: string): number {
-  // Natural width estimate: ~9 SVG units per character at fontSize=18
-  const natural = text.length * 9
-  return Math.min(natural, MAX_TEXT_WIDTH)
+  return Math.min(text.length * 9, MAX_TEXT_WIDTH)
 }
 
 // ─── JerseySvg ────────────────────────────────────────────────────────────────
@@ -82,7 +76,7 @@ export function JerseySvg({
 
   // Normalise colors at the render boundary
   const pc = normalizeHex(primaryColor)
-  const sc = normalizeHex(secondaryColor ?? primaryColor, pc)  // monochrome if omitted
+  const sc = normalizeHex(secondaryColor ?? primaryColor, pc)
 
   // Chest label: text > brandingText > 'GAFFER'
   const label = text ?? brandingText ?? 'GAFFER'
@@ -90,15 +84,17 @@ export function JerseySvg({
   // Text color: explicit > WCAG contrast auto-pick
   const tc = textColor ?? getContrastColor(pc)
 
-  // Sizing: size prop sets width; height preserves 100:108 aspect ratio
+  // Sizing
   const svgWidth  = width  ?? size
   const svgHeight = height ?? Math.round(size * 1.08)
 
   const textLen = computeTextLength(label)
 
-  // Unique IDs for clip paths (shoulder seam lines need none, but kept for safety)
-  const lSeamId = `${uid}-ls`
-  const rSeamId = `${uid}-rs`
+  // Unique gradient / filter IDs (avoids collisions when multiple jerseys render)
+  const dropId  = `${uid}-drop`
+  const shineId = `${uid}-sh`
+  const sideId  = `${uid}-side`
+  const hemId   = `${uid}-hem`
 
   return (
     <svg
@@ -110,79 +106,88 @@ export function JerseySvg({
       aria-hidden="true"
       className={className}
     >
-      {/* ═══ LAYER 1 — Jersey body ══════════════════════════════════════════ */}
-      <path d={JERSEY_PATH} fill={pc} />
+      <defs>
+        {/* Floating drop shadow — lifts the jersey off the background */}
+        <filter id={dropId} x="-10%" y="-6%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3.5" floodColor="rgba(0,0,0,0.45)" />
+        </filter>
+
+        {/* Radial chest shine — top-centre light source, creates convex illusion */}
+        <radialGradient id={shineId} cx="50%" cy="12%" r="65%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.38)" />
+          <stop offset="50%"  stopColor="rgba(255,255,255,0.08)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)"    />
+        </radialGradient>
+
+        {/* Side vignette — left/right edge darkening simulates fabric wrapping away */}
+        <linearGradient id={sideId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.28)" />
+          <stop offset="18%"  stopColor="rgba(0,0,0,0)"    />
+          <stop offset="82%"  stopColor="rgba(0,0,0,0)"    />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.28)" />
+        </linearGradient>
+
+        {/* Hem shadow — grounds the jersey, adds bottom depth */}
+        <linearGradient id={hemId} x1="0%" y1="55%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0)"    />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.38)" />
+        </linearGradient>
+      </defs>
+
+      {/* ═══ LAYER 1 — Jersey body (drop shadow applied here) ═══════════════ */}
+      <path d={JERSEY_PATH} fill={pc} filter={`url(#${dropId})`} />
 
       {/* ═══ LAYER 2 — Sleeve panels + collar band ══════════════════════════ */}
       <path d={LEFT_PANEL}  fill={sc} />
       <path d={RIGHT_PANEL} fill={sc} />
       <path d={COLLAR_BAND} fill={sc} />
 
-      {/* ═══ LAYER 3 — Outline + seam lines ════════════════════════════════ */}
-      {/* Jersey perimeter */}
+      {/* ═══ LAYER 3 — 3D shading overlays (transparent, color-agnostic) ════
+          Applied over the solid fill — these are what create the illusion of
+          a real shirt with volume. They work on any primaryColor/secondaryColor.
+      */}
+      {/* Radial highlight: chest centre catches the light */}
+      <path d={JERSEY_PATH} fill={`url(#${shineId})`} />
+      {/* Side vignette: edges curve away from viewer */}
+      <path d={JERSEY_PATH} fill={`url(#${sideId})`}  />
+      {/* Hem shadow: bottom of garment falls into shadow */}
+      <path d={JERSEY_PATH} fill={`url(#${hemId})`}   />
+
+      {/* ═══ LAYER 4 — Outline + seam lines ════════════════════════════════ */}
       <path
         d={JERSEY_PATH}
         fill="none"
         stroke="rgba(0,0,0,0.22)"
         strokeWidth="0.6"
       />
-      {/* Shoulder yoke seams */}
-      <line
-        id={lSeamId}
-        x1="28" y1="22" x2="17" y2="43"
-        stroke="rgba(0,0,0,0.15)"
-        strokeWidth="0.5"
-        strokeLinecap="round"
-      />
-      <line
-        id={rSeamId}
-        x1="72" y1="22" x2="83" y2="43"
-        stroke="rgba(0,0,0,0.15)"
-        strokeWidth="0.5"
-        strokeLinecap="round"
-      />
-      {/* Sleeve cuff edges */}
-      <line
-        x1="3"  y1="40" x2="17" y2="43"
-        stroke="rgba(0,0,0,0.18)"
-        strokeWidth="0.55"
-        strokeLinecap="round"
-      />
-      <line
-        x1="97" y1="40" x2="83" y2="43"
-        stroke="rgba(0,0,0,0.18)"
-        strokeWidth="0.55"
-        strokeLinecap="round"
-      />
-      {/* V-neck edge */}
-      <path
-        d={V_NECK}
-        fill="none"
-        stroke="rgba(0,0,0,0.35)"
-        strokeWidth="1"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <line x1="28" y1="22" x2="17" y2="43" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" strokeLinecap="round" />
+      <line x1="72" y1="22" x2="83" y2="43" stroke="rgba(0,0,0,0.15)" strokeWidth="0.5" strokeLinecap="round" />
+      <line x1="3"  y1="40" x2="17" y2="43" stroke="rgba(0,0,0,0.18)" strokeWidth="0.55" strokeLinecap="round" />
+      <line x1="97" y1="40" x2="83" y2="43" stroke="rgba(0,0,0,0.18)" strokeWidth="0.55" strokeLinecap="round" />
+      <path d={V_NECK} fill="none" stroke="rgba(0,0,0,0.35)" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" />
 
-      {/* ═══ LAYER 4 — Chest text ════════════════════════════════════════════
-          textLength + lengthAdjust="spacingAndGlyphs" handles all scaling
-          natively: short labels stay proportional, long labels compress to fit.
+      {/* ═══ LAYER 5 — Chest text ════════════════════════════════════════════
+          Shadow pass first gives the print an embossed/heat-transfer look.
       */}
       <text
-        x="50"
-        y="72"
-        textAnchor="middle"
-        dominantBaseline="middle"
-        fontSize="18"
-        fontWeight="900"
-        textLength={textLen}
-        lengthAdjust="spacingAndGlyphs"
+        x="50.4" y="72.5"
+        textAnchor="middle" dominantBaseline="middle"
+        fontSize="18" fontWeight="900"
+        textLength={textLen} lengthAdjust="spacingAndGlyphs"
+        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
+        fill="rgba(0,0,0,0.30)"
+        aria-hidden="true"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+      >{label}</text>
+      <text
+        x="50" y="72"
+        textAnchor="middle" dominantBaseline="middle"
+        fontSize="18" fontWeight="900"
+        textLength={textLen} lengthAdjust="spacingAndGlyphs"
         fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
         fill={tc}
         style={{ userSelect: 'none' }}
-      >
-        {label}
-      </text>
+      >{label}</text>
     </svg>
   )
 }
