@@ -34,7 +34,8 @@ export function PlayerCard({
   size = 'md',
   onClick,
 }: PlayerCardProps) {
-  const jerseySize = size === 'sm' ? 30 : 36
+  const jerseyW = size === 'sm' ? 30 : 36
+  const jerseyH = size === 'sm' ? 34 : 40   // ~112/100 aspect ratio keeps jersey un-squished
   const nameClass = size === 'sm' ? 'text-[8px] max-w-[44px]' : 'text-[9px] max-w-[52px]'
   const metaClass = size === 'sm' ? 'text-[7px]' : 'text-[8px]'
 
@@ -56,7 +57,7 @@ export function PlayerCard({
           className="relative"
         >
           {player.avatarUrl ? (
-            <div className={`rounded-xl overflow-hidden border ${selected ? 'border-[#ff6b00]' : 'border-white/10'}`} style={{ width: jerseySize, height: jerseySize }}>
+            <div className={`rounded-xl overflow-hidden border ${selected ? 'border-[#ff6b00]' : 'border-white/10'}`} style={{ width: jerseyW, height: jerseyH }}>
               <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover object-top" />
             </div>
           ) : (() => {
@@ -69,8 +70,8 @@ export function PlayerCard({
                 secondaryColor={jc.secondaryColor}
                 jerseyPattern={jc.jerseyPattern}
                 teamCode={player.teamCode}
-                width={jerseySize}
-                height={jerseySize}
+                width={jerseyW}
+                height={jerseyH}
               />
             )
           })()}

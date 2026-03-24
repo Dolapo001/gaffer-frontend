@@ -1,8 +1,17 @@
 'use client'
 
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
-import { PitchPlayerCard } from './PitchPlayerCard'
+import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
 import { EmptySlotCard } from './EmptySlotCard'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+
+/** Always returns a JerseyProps — uses team.jersey if present, falls back to teamColor solid kit */
+function toJersey(player: FantasySquadPlayer): JerseyProps {
+  const jc = normalizeJerseyConfig(
+    player.jersey ?? { primaryColor: player.teamColor, secondaryColor: '#ffffff', jerseyPattern: 'solid' }
+  )
+  return { primaryColor: jc.primaryColor, secondaryColor: jc.secondaryColor, jerseyPattern: jc.jerseyPattern, teamCode: player.teamCode }
+}
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────
 
@@ -150,9 +159,16 @@ export function PitchLayout({
       <PitchMarkings />
 
       {/* Player rows */}
-      <div className="absolute inset-0 flex flex-col justify-center gap-[14px] pt-8 pb-12 px-2">
+      {/*
+        justify-around  — evenly distributes the 4 formation rows across the
+                          full pitch height so GK/DEF/MID/FWD zones feel natural
+        gap-[6px]       — minimal gap; rows self-space via justify-around
+        pt-6 pb-8       — leaves the goal area and centre circle visible
+        gap-2 per row   — 8 px between players; 5×64 + 4×8 = 352px fits 360px screens
+      */}
+      <div className="absolute inset-0 flex flex-col justify-around gap-[6px] pt-6 pb-8 px-2">
         {rows.map((rowData, ri) => (
-          <div key={ri} className="flex flex-row justify-center gap-2 sm:gap-4 w-full">
+          <div key={ri} className="flex flex-row justify-center gap-2 w-full">
             {selectionMode ? (
               // In selection mode, we show all slots
               Array.from({ length: rowData.totalSlots }).map((_, si) => {
@@ -164,6 +180,7 @@ export function PitchLayout({
                       playerName={player.shortName}
                       fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                       kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                      jersey={toJersey(player)}
                       points={player.points}
                       selected={selectedId === player.id}
                       highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
@@ -191,13 +208,14 @@ export function PitchLayout({
                 <PitchPlayerCard
                   key={player.id}
                   playerName={player.shortName}
-                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
+                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                   kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                  jersey={toJersey(player)}
                   points={player.points}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                   onClick={() => onSelectPlayer(player.id)}
-                  status={player.status || 'fit'} 
+                  status={player.status || 'fit'}
                   captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
                 />
               ))

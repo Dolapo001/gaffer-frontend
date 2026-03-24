@@ -1,13 +1,27 @@
 'use client'
 
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
-import { PitchPlayerCard } from './PitchPlayerCard'
+import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
 
-const BENCH_LABELS: Record<string, string> = {
-  GK: 'GKP',
-  DEF: '1.DEF',
-  MID: '2.MID',
-  FWD: '3.FWD',
+function toJersey(player: FantasySquadPlayer): JerseyProps {
+  const jc = normalizeJerseyConfig(
+    player.jersey ?? { primaryColor: player.teamColor, secondaryColor: '#ffffff', jerseyPattern: 'solid' }
+  )
+  return {
+    primaryColor: jc.primaryColor,
+    secondaryColor: jc.secondaryColor,
+    jerseyPattern: jc.jerseyPattern,
+    teamCode: player.teamCode,
+  }
+}
+
+function fixtureLabel(player: FantasySquadPlayer): string {
+  const f = player.nextFixtures[0]
+  if (!f) return 'TBC'
+  const opp = f.awayCode === player.teamCode ? f.homeCode : f.awayCode
+  const venue = f.homeCode === player.teamCode ? 'H' : 'A'
+  return `${opp} (${venue})`
 }
 
 interface SubstituteBenchProps {
@@ -18,6 +32,19 @@ interface SubstituteBenchProps {
   players?: FantasySquadPlayer[]
 }
 
+/**
+ * SubstituteBench — clean bench area below the pitch.
+ *
+ * Design decisions:
+ *   • No heavy glassmorphism card — the section header and a subtle dark
+ *     background strip are enough to visually separate bench from pitch.
+ *   • "SUBSTITUTES" divider sits at the TOP (not hidden at bottom).
+ *   • Player tiles use the same PitchPlayerCard as the pitch — consistent
+ *     jersey-first visual language across the whole builder.
+ *   • Sub-order number (1–4) sits above each tile as a small label.
+ *   • Sub-in targets get the green glow from highlightMode; invalid targets
+ *     fade + greyscale via className opacity/filter utilities.
+ */
 export function SubstituteBench({
   benchPlayers,
   selectedId,
@@ -25,52 +52,73 @@ export function SubstituteBench({
   onSelectPlayer,
   players = [],
 }: SubstituteBenchProps) {
-  const pOut = substitutingOutId ? players.find(p => p.id === substitutingOutId) : null;
+  const pOut = substitutingOutId
+    ? players.find((p) => p.id === substitutingOutId)
+    : null
+
   return (
-    <div className="px-4 mt-8 relative z-10 w-full max-w-4xl mx-auto">
-      {/* Main Container with the metallic gradient - more transparent */}
-      <div className="bg-gradient-to-b from-white/10 to-white/5 backdrop-blur-md rounded-[2rem] p-6 shadow-xl flex flex-col items-center border border-white/10">
-        
-        {/* Player Row Container */}
-        <div className="flex flex-row justify-center gap-[28px] w-full mb-6">
-          {benchPlayers.map((player) => {
-            const isValidTarget = pOut && (pOut.position === 'GK') === (player.position === 'GK');
-            
-            return (
-              <div key={player.id} className="flex flex-col items-center w-24 sm:w-28">
-                
-                {/* Position Label Area */}
-                <div className="flex flex-col items-center mb-1">
-                  <span className="text-[#37003c] font-bold text-sm sm:text-base leading-tight">
-                    {BENCH_LABELS[player.position] ?? player.position}
-                  </span>
-                  {/* Tiny placeholder text under position label */}
-                  <span className="text-[5px] sm:text-[6px] text-[#37003c]/50 tracking-widest uppercase mt-[1px] font-medium">
-                    xxxxxxxxxx
-                  </span>
-                </div>
+    <div className="relative z-10 w-full px-2">
 
-                <PitchPlayerCard
-                  playerName={player.shortName}
-                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
-                  kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
-                  points={player.points}
-                  selected={selectedId === player.id}
-                  highlightMode={substitutingOutId ? (isValidTarget ? 'sub_in_valid' : 'none') : 'none'}
-                  onClick={() => onSelectPlayer(player.id)}
-                  kitAreaClassName="bg-black/20"
-                  className={`w-full shadow-sm transition-opacity duration-300 ${substitutingOutId && !isValidTarget ? 'opacity-30 grayscale' : 'opacity-100'}`}
-                />
-              </div>
-            )
-          })}
-        </div>
+      {/* ── Section divider ──────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-2 mb-4">
+        <div className="h-px flex-1 bg-white/12" />
+        <span
+          className="text-white/45 font-bold uppercase tracking-[0.20em]"
+          style={{ fontSize: 10 }}
+        >
+          Substitutes
+        </span>
+        <div className="h-px flex-1 bg-white/12" />
+      </div>
 
-        <div className="mt-4 text-center">
-          <h2 className="text-white font-bold text-2xl sm:text-3xl tracking-wider drop-shadow-md uppercase">
-            Substitute
-          </h2>
-        </div>
+      {/* ── Bench tile row ───────────────────────────────────────────────── */}
+      {/*
+        Dark semi-transparent background strip gives the bench area its own
+        visual territory without a heavy card border or blur effect.
+      */}
+      <div
+        className="w-full flex justify-center gap-3 rounded-2xl py-4 px-2"
+        style={{ background: 'rgba(0,0,0,0.22)' }}
+      >
+        {benchPlayers.map((player, idx) => {
+          const isValidTarget =
+            pOut &&
+            (pOut.position === 'GK') === (player.position === 'GK')
+
+          return (
+            <div key={player.id} className="flex flex-col items-center gap-1">
+              {/* Sub order number */}
+              <span
+                className="text-white/35 font-bold uppercase"
+                style={{ fontSize: 9, letterSpacing: '0.04em' }}
+              >
+                {idx + 1}
+              </span>
+
+              <PitchPlayerCard
+                playerName={player.shortName}
+                fixture={fixtureLabel(player)}
+                kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                jersey={toJersey(player)}
+                points={player.points}
+                selected={selectedId === player.id}
+                highlightMode={
+                  substitutingOutId
+                    ? isValidTarget
+                      ? 'sub_in_valid'
+                      : 'none'
+                    : 'none'
+                }
+                onClick={() => onSelectPlayer(player.id)}
+                className={`transition-opacity duration-200 ${
+                  substitutingOutId && !isValidTarget
+                    ? 'opacity-30 grayscale'
+                    : 'opacity-100'
+                }`}
+              />
+            </div>
+          )
+        })}
       </div>
     </div>
   )
