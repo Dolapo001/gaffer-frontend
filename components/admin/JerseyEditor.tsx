@@ -1,14 +1,12 @@
 'use client'
 
 import { JerseySvg } from '@/components/jersey/JerseySvg'
-import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface JerseyEditorValue {
   primaryColor: string
   secondaryColor: string
-  jerseyPattern: JerseyPattern
 }
 
 interface JerseyEditorProps {
@@ -22,13 +20,6 @@ const PRESET_COLORS = [
   '#1D4ED8', '#DC2626', '#16A34A', '#9333EA', '#EA580C',
   '#0891B2', '#DB2777', '#65A30D', '#CA8A04', '#475569',
   '#ffffff', '#111827',
-]
-
-const PATTERNS: { value: JerseyPattern; label: string }[] = [
-  { value: 'solid',    label: 'Solid'    },
-  { value: 'stripes',  label: 'Stripes'  },
-  { value: 'split',    label: 'Split'    },
-  { value: 'gradient', label: 'Gradient' },
 ]
 
 // ─── Color Swatch ─────────────────────────────────────────────────────────────
@@ -92,7 +83,7 @@ function HexInput({
 // ─── JerseyEditor ─────────────────────────────────────────────────────────────
 
 /**
- * Client component — admin jersey colour/pattern editor with live preview.
+ * Client component — admin jersey colour editor with live preview.
  * Designed for use inside OrganiseCreateSheet and team edit forms.
  */
 export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
@@ -108,29 +99,9 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
         <JerseySvg
           primaryColor={value.primaryColor}
           secondaryColor={value.secondaryColor}
-          jerseyPattern={value.jerseyPattern}
           width={80}
           height={93}
-          brandingText="GAFFER"
         />
-      </div>
-
-      {/* Pattern selector */}
-      <div className="grid grid-cols-4 gap-2">
-        {PATTERNS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => update({ jerseyPattern: p.value })}
-            className={`py-2 px-1 rounded-lg text-[11px] font-semibold border transition-all ${
-              value.jerseyPattern === p.value
-                ? 'border-[#FF7A00] bg-[#FF7A00]/20 text-white'
-                : 'border-white/10 text-gray-400 hover:border-white/30'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
       </div>
 
       {/* Primary colour */}

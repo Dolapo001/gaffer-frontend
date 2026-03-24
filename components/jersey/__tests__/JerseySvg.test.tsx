@@ -1,97 +1,84 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render } from '@testing-library/react'
 import { JerseySvg } from '../JerseySvg'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function renderJersey(overrides: Partial<React.ComponentProps<typeof JerseySvg>> = {}) {
-  const defaults = {
-    primaryColor: '#1D4ED8',
-    secondaryColor: '#ffffff',
-    jerseyPattern: 'solid' as const,
-  }
-  return render(<JerseySvg {...defaults} {...overrides} />)
+  return render(
+    <JerseySvg primaryColor="#1D4ED8" secondaryColor="#ffffff" {...overrides} />,
+  )
 }
 
-// ─── Solid pattern ────────────────────────────────────────────────────────────
+// ─── Rendering ────────────────────────────────────────────────────────────────
 
-describe('JerseySvg — solid pattern', () => {
+describe('JerseySvg — rendering', () => {
   it('renders an SVG element', () => {
-    const { container } = renderJersey({ jerseyPattern: 'solid' })
+    const { container } = renderJersey()
     expect(container.querySelector('svg')).toBeTruthy()
   })
 
-  it('applies primaryColor as fill', () => {
-    const { container } = renderJersey({ jerseyPattern: 'solid', primaryColor: '#DC2626' })
-    // The solid fill path should have the primary color
+  it('applies primaryColor as fill on the body path', () => {
+    const { container } = renderJersey({ primaryColor: '#DC2626' })
     const paths = container.querySelectorAll('path')
     const filled = Array.from(paths).some((p) => p.getAttribute('fill') === '#DC2626')
     expect(filled).toBe(true)
   })
-})
 
-// ─── Stripes pattern ──────────────────────────────────────────────────────────
-
-describe('JerseySvg — stripes pattern', () => {
-  it('renders a <pattern> defs element for stripes', () => {
-    const { container } = renderJersey({ jerseyPattern: 'stripes' })
-    expect(container.querySelector('pattern')).toBeTruthy()
-  })
-
-  it('fills the jersey path with a url() reference', () => {
-    const { container } = renderJersey({ jerseyPattern: 'stripes' })
-    const paths = container.querySelectorAll('path')
-    const hasUrl = Array.from(paths).some((p) =>
-      p.getAttribute('fill')?.startsWith('url(#'),
-    )
-    expect(hasUrl).toBe(true)
-  })
-})
-
-// ─── Split pattern ────────────────────────────────────────────────────────────
-
-describe('JerseySvg — split pattern', () => {
-  it('renders two clipPath defs for split', () => {
-    const { container } = renderJersey({ jerseyPattern: 'split' })
-    const clips = container.querySelectorAll('clipPath')
-    expect(clips.length).toBe(2)
-  })
-
-  it('applies primaryColor to the left clip and secondaryColor to the right clip', () => {
+  it('applies secondaryColor to sleeve panel paths', () => {
     const { container } = renderJersey({
-      jerseyPattern: 'split',
       primaryColor: '#1D4ED8',
-      secondaryColor: '#DC2626',
+      secondaryColor: '#FF0000',
     })
     const paths = container.querySelectorAll('path')
-    const hasPrimary   = Array.from(paths).some((p) => p.getAttribute('fill') === '#1D4ED8')
-    const hasSecondary = Array.from(paths).some((p) => p.getAttribute('fill') === '#DC2626')
-    expect(hasPrimary).toBe(true)
+    const hasSecondary = Array.from(paths).some((p) => p.getAttribute('fill') === '#FF0000')
     expect(hasSecondary).toBe(true)
   })
-})
 
-// ─── Gradient pattern ─────────────────────────────────────────────────────────
-
-describe('JerseySvg — gradient pattern', () => {
-  it('renders a <linearGradient> defs element', () => {
-    const { container } = renderJersey({ jerseyPattern: 'gradient' })
-    expect(container.querySelector('linearGradient')).toBeTruthy()
-  })
-
-  it('fills the jersey path with a url() gradient reference', () => {
-    const { container } = renderJersey({ jerseyPattern: 'gradient' })
+  it('falls back to primaryColor for sleeves when secondaryColor is omitted', () => {
+    const { container } = renderJersey({ primaryColor: '#16A34A', secondaryColor: undefined })
     const paths = container.querySelectorAll('path')
-    const hasUrl = Array.from(paths).some((p) =>
-      p.getAttribute('fill')?.startsWith('url(#'),
+    // All filled paths should use the primary color (monochrome jersey)
+    const coloredPaths = Array.from(paths).filter(
+      (p) => p.getAttribute('fill') && !p.getAttribute('fill')?.startsWith('rgba'),
     )
-    expect(hasUrl).toBe(true)
+    coloredPaths.forEach((p) => expect(p.getAttribute('fill')).toBe('#16A34A'))
   })
 })
 
-// ─── Branding text ────────────────────────────────────────────────────────────
+// ─── Sizing ───────────────────────────────────────────────────────────────────
 
-describe('JerseySvg — branding', () => {
+describe('JerseySvg — sizing', () => {
+  it('defaults to width=64', () => {
+    const { container } = renderJersey()
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('64')
+  })
+
+  it('scales via the size prop', () => {
+    const { container } = renderJersey({ size: 128 })
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('128')
+    expect(svg.getAttribute('height')).toBe('138') // Math.round(128 × 1.08)
+  })
+
+  it('accepts explicit width/height overrides', () => {
+    const { container } = renderJersey({ width: 80, height: 90 })
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('width')).toBe('80')
+    expect(svg.getAttribute('height')).toBe('90')
+  })
+
+  it('always sets viewBox to "0 0 100 108"', () => {
+    const { container } = renderJersey({ size: 200 })
+    const svg = container.querySelector('svg')!
+    expect(svg.getAttribute('viewBox')).toBe('0 0 100 108')
+  })
+})
+
+// ─── Text / branding ──────────────────────────────────────────────────────────
+
+describe('JerseySvg — text', () => {
   it('displays "GAFFER" by default', () => {
     const { container } = renderJersey()
     const texts = container.querySelectorAll('text')
@@ -99,87 +86,47 @@ describe('JerseySvg — branding', () => {
     expect(hasGaffer).toBe(true)
   })
 
-  it('displays a custom brandingText when provided', () => {
-    const { container } = renderJersey({ brandingText: 'TEST' })
+  it('displays a custom text when provided', () => {
+    const { container } = renderJersey({ text: 'UNITED' })
     const texts = container.querySelectorAll('text')
-    const hasText = Array.from(texts).some((t) => t.textContent === 'TEST')
-    expect(hasText).toBe(true)
+    const has = Array.from(texts).some((t) => t.textContent === 'UNITED')
+    expect(has).toBe(true)
   })
-})
 
-// ─── Team code ────────────────────────────────────────────────────────────────
+  it('falls back to brandingText when text is not provided', () => {
+    const { container } = renderJersey({ brandingText: 'CITY' })
+    const texts = container.querySelectorAll('text')
+    const has = Array.from(texts).some((t) => t.textContent === 'CITY')
+    expect(has).toBe(true)
+  })
 
-describe('JerseySvg — teamCode', () => {
-  it('does not render a team code text element by default', () => {
+  it('prefers text over brandingText when both are provided', () => {
+    const { container } = renderJersey({ text: 'FIRST', brandingText: 'SECOND' })
+    const texts = container.querySelectorAll('text')
+    const hasFirst  = Array.from(texts).some((t) => t.textContent === 'FIRST')
+    const hasSecond = Array.from(texts).some((t) => t.textContent === 'SECOND')
+    expect(hasFirst).toBe(true)
+    expect(hasSecond).toBe(false)
+  })
+
+  it('renders exactly one text element', () => {
     const { container } = renderJersey()
-    const texts = container.querySelectorAll('text')
-    // Only the branding text should be present
-    expect(texts.length).toBe(1)
+    expect(container.querySelectorAll('text').length).toBe(1)
   })
 
-  it('renders team code text when teamCode is provided', () => {
-    const { container } = renderJersey({ teamCode: 'ENG' })
+  it('applies explicit textColor to the text element', () => {
+    const { container } = renderJersey({ primaryColor: '#ffffff', textColor: '#FF0000' })
     const texts = container.querySelectorAll('text')
-    const hasCode = Array.from(texts).some((t) => t.textContent === 'ENG')
-    expect(hasCode).toBe(true)
-    expect(texts.length).toBe(2) // branding + code
+    const hasColor = Array.from(texts).some((t) => t.getAttribute('fill') === '#FF0000')
+    expect(hasColor).toBe(true)
   })
 })
 
-// ─── SVG ID safety (no collisions) ───────────────────────────────────────────
-
-describe('JerseySvg — SVG id safety', () => {
-  it('renders multiple stripes jerseys without duplicate def IDs', () => {
-    const { container } = render(
-      <>
-        <JerseySvg primaryColor="#1D4ED8" secondaryColor="#ffffff" jerseyPattern="stripes" />
-        <JerseySvg primaryColor="#DC2626" secondaryColor="#fbbf24" jerseyPattern="stripes" />
-      </>,
-    )
-    const patterns = container.querySelectorAll('pattern')
-    expect(patterns.length).toBe(2)
-
-    const ids = Array.from(patterns).map((p) => p.getAttribute('id'))
-    expect(ids[0]).not.toBe(ids[1]) // IDs must differ
-  })
-
-  it('renders multiple split jerseys without duplicate clipPath IDs', () => {
-    const { container } = render(
-      <>
-        <JerseySvg primaryColor="#1D4ED8" secondaryColor="#ffffff" jerseyPattern="split" />
-        <JerseySvg primaryColor="#DC2626" secondaryColor="#fbbf24" jerseyPattern="split" />
-      </>,
-    )
-    const clips = container.querySelectorAll('clipPath')
-    expect(clips.length).toBe(4) // 2 per jersey × 2 jerseys
-
-    const ids = Array.from(clips).map((c) => c.getAttribute('id'))
-    const unique = new Set(ids)
-    expect(unique.size).toBe(4) // all IDs unique
-  })
-
-  it('renders multiple gradient jerseys without duplicate linearGradient IDs', () => {
-    const { container } = render(
-      <>
-        <JerseySvg primaryColor="#9333EA" secondaryColor="#c084fc" jerseyPattern="gradient" />
-        <JerseySvg primaryColor="#16A34A" secondaryColor="#86efac" jerseyPattern="gradient" />
-      </>,
-    )
-    const grads = container.querySelectorAll('linearGradient')
-    expect(grads.length).toBe(2)
-
-    const ids = Array.from(grads).map((g) => g.getAttribute('id'))
-    expect(ids[0]).not.toBe(ids[1])
-  })
-})
-
-// ─── Fallback handling ────────────────────────────────────────────────────────
+// ─── Fallback / invalid colors ────────────────────────────────────────────────
 
 describe('JerseySvg — fallback / invalid colors', () => {
   it('renders without crashing when given an invalid primaryColor', () => {
-    expect(() =>
-      renderJersey({ primaryColor: 'not-a-color', jerseyPattern: 'solid' }),
-    ).not.toThrow()
+    expect(() => renderJersey({ primaryColor: 'not-a-color' })).not.toThrow()
   })
 
   it('renders an SVG even with empty string colors', () => {
@@ -188,20 +135,31 @@ describe('JerseySvg — fallback / invalid colors', () => {
   })
 })
 
+// ─── Backward-compat props ────────────────────────────────────────────────────
+
+describe('JerseySvg — backward-compat props', () => {
+  it('accepts jerseyPattern without crashing', () => {
+    expect(() =>
+      renderJersey({ jerseyPattern: 'stripes' } as React.ComponentProps<typeof JerseySvg>),
+    ).not.toThrow()
+  })
+
+  it('accepts teamCode without crashing', () => {
+    expect(() => renderJersey({ teamCode: 'ENG' })).not.toThrow()
+  })
+})
+
 // ─── Fantasy integration contract ─────────────────────────────────────────────
 
 describe('JerseySvg — fantasy integration', () => {
-  it('renders with home kit colors (no resolvedKits logic needed)', () => {
-    // Fantasy always uses team.jersey directly — no clash detection
+  it('renders with home kit colors', () => {
     const { container } = renderJersey({
       primaryColor: '#1D4ED8',
       secondaryColor: '#ffffff',
-      jerseyPattern: 'stripes',
-      teamCode: 'ENG',
     })
-    const texts = Array.from(container.querySelectorAll('text'))
-    expect(texts.some((t) => t.textContent === 'ENG')).toBe(true)
-    expect(texts.some((t) => t.textContent === 'GAFFER')).toBe(true)
+    const paths = container.querySelectorAll('path')
+    const hasPrimary = Array.from(paths).some((p) => p.getAttribute('fill') === '#1D4ED8')
+    expect(hasPrimary).toBe(true)
   })
 })
 
@@ -209,16 +167,22 @@ describe('JerseySvg — fantasy integration', () => {
 
 describe('JerseySvg — fixture integration', () => {
   it('renders homeKit colors correctly', () => {
-    const homeKit = { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' as const }
-    const { container } = renderJersey(homeKit)
+    const { container } = renderJersey({
+      primaryColor: '#1D4ED8',
+      secondaryColor: '#ffffff',
+    })
     const paths = container.querySelectorAll('path')
     const hasPrimary = Array.from(paths).some((p) => p.getAttribute('fill') === '#1D4ED8')
     expect(hasPrimary).toBe(true)
   })
 
   it('renders awayKit colors correctly', () => {
-    const awayKit = { primaryColor: '#DC2626', secondaryColor: '#fbbf24', jerseyPattern: 'gradient' as const }
-    const { container } = renderJersey(awayKit)
-    expect(container.querySelector('linearGradient')).toBeTruthy()
+    const { container } = renderJersey({
+      primaryColor: '#DC2626',
+      secondaryColor: '#fbbf24',
+    })
+    const paths = container.querySelectorAll('path')
+    const hasPrimary = Array.from(paths).some((p) => p.getAttribute('fill') === '#DC2626')
+    expect(hasPrimary).toBe(true)
   })
 })
