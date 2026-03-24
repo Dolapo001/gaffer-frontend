@@ -14,6 +14,7 @@ import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { BoostSelector } from './BoostSelector'
+import { FantasyHeroWave } from './FantasyHeroWave'
 
 export function FantasyTeamScreen() {
   const router = useRouter()
@@ -55,6 +56,23 @@ export function FantasyTeamScreen() {
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#222232]/10 via-[#222232]/40 to-[#222232]/90 pointer-events-none" />
+
+      {/*
+        ── Header crown wave ───────────────────────────────────────────────────
+        Organic arch at the bottom of the header bar. The dark cap frames the
+        "Pick Team" title and the curved edge slides into the pitch section
+        with premium depth. z-index 3 sits above bg (z-0) below content (z-10).
+      */}
+      <div
+        className="absolute inset-x-0 top-0"
+        style={{ height: '110px', zIndex: 3 }}
+      >
+        <FantasyHeroWave
+          position="top"
+          className="w-full h-full"
+          opacity={0.92}
+        />
+      </div>
 
       {/* Header */}
       <header className="px-4 pt-12 pb-2 flex items-center gap-4 relative z-20">
@@ -99,7 +117,8 @@ export function FantasyTeamScreen() {
         </div>
 
         {/* Substitute Section */}
-        <div className="mt-[-40px] px-2 pb-10">
+        {/* mt-6: clean gap below pitch — no longer needs negative pull */}
+        <div className="mt-6 px-2 pb-10">
           <SubstituteBench
             benchPlayers={benchPlayers}
             selectedId={selectedPlayerId}

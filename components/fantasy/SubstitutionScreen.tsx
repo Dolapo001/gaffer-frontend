@@ -9,6 +9,7 @@ import { useFantasyStore } from '@/store/fantasyStore'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
+import { FantasyHeroWave } from './FantasyHeroWave'
 
 export function SubstitutionScreen() {
   const router = useRouter()
@@ -72,6 +73,11 @@ export function SubstitutionScreen() {
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-[#222232]/10 via-[#222232]/40 to-[#222232]/90 pointer-events-none" />
+
+      {/* Header crown wave */}
+      <div className="absolute inset-x-0 top-0" style={{ height: '110px', zIndex: 3 }}>
+        <FantasyHeroWave position="top" className="w-full h-full" opacity={0.92} />
+      </div>
 
       {/* Header */}
       <header className="px-4 pt-12 pb-2 flex items-center gap-4 relative z-20">

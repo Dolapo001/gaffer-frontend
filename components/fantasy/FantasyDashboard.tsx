@@ -9,6 +9,7 @@ import { useFantasyStore } from '@/store/fantasyStore'
 import { getMyFantasyTeam, listGameweeks } from '@/lib/services/fantasy.service'
 import { getWallet } from '@/lib/services/payment.service'
 import { Sparkles } from 'lucide-react'
+import { FantasyHeroWave } from './FantasyHeroWave'
 
 const FantasyDashboard: React.FC = () => {
   const router = useRouter()
@@ -46,6 +47,24 @@ const FantasyDashboard: React.FC = () => {
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }}
       />
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#222232]/30 to-[#222232]/80" />
+
+      {/*
+        ── Wave divider ────────────────────────────────────────────────────────
+        Organic transition between the cinematic hero (background image +
+        points card) and the flat dark nav surface below.
+        Positioned just below where the points card ends (top 59 + height 160
+        = 219px) with a slight overlap so the wave "emerges" from behind it.
+        z-index 2 sits above the bg layers (z-0) and below content (z-10).
+      */}
+      <div
+        className="absolute inset-x-0 bottom-0"
+        style={{ top: '190px', zIndex: 2 }}
+      >
+        <FantasyHeroWave
+          position="bottom"
+          className="w-full h-full"
+        />
+      </div>
 
       {/* Main Content Area */}
       <div className="relative z-10 w-full h-full touch-none">
