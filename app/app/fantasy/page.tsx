@@ -15,6 +15,7 @@ import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
 import { listFixtures } from '@/lib/services/fixture.service'
 import { GafferLogo } from '@/components/GafferLogo'
 import { mapApiTeamToSquad } from '@/lib/converters'
+import { getImageUrl } from '@/lib/api'
 
 export default function FantasyPage() {
   const router = useRouter()
@@ -124,7 +125,7 @@ export default function FantasyPage() {
             >
               <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
                 {league.bannerUrl ? (
-                  <img src={league.bannerUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={getImageUrl(league.bannerUrl)} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <Trophy size={20} className="text-gaffer-muted" />
                 )}

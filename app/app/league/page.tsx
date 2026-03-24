@@ -9,6 +9,7 @@ import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCom
 import { LeagueItem } from '@/components/home/LeagueItem'
 import { Trophy, Search, X, Plus } from 'lucide-react'
 import type { Competition } from '@/lib/services/competition.service'
+import { getImageUrl } from '@/lib/api'
 
 function formatDateRange(start: string, end: string) {
   if (!start || !end) return ''
@@ -40,7 +41,7 @@ function DiscoveryCompetitionCard({
     >
       <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
         {displayLogo ? (
-          <img src={displayLogo} alt={`${competition.name} Logo`} className="w-full h-full object-cover opacity-60" />
+          <img src={getImageUrl(displayLogo)} alt={`${competition.name} Logo`} className="w-full h-full object-cover opacity-60" />
         ) : (
           <Trophy size={24} className="text-gaffer-muted" />
         )}
@@ -191,7 +192,7 @@ export default function LeaguePage() {
                       id={comp._id}
                       name={comp.name}
                       dateRange={formatDateRange(comp.startDate, comp.endDate)}
-                      avatar={comp.bannerUrl}
+                      avatar={getImageUrl(comp.bannerUrl)}
                       verified={comp.status === 'published' || comp.status === 'live'}
                       onClick={() => router.push(`/app/league/${comp._id}`)}
                     />

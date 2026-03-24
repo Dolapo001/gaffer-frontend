@@ -110,3 +110,21 @@ body:has([data-nav-hidden="true"]) #admin-nav-bar {
   pointer-events: none !important;
   display: none !important;
 }
+
+/* Global Image Fixes */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+.img-fit {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
+
+.img-contain {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}

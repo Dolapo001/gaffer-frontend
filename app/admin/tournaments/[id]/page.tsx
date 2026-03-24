@@ -25,7 +25,7 @@ import {
 } from '@/lib/services/fantasy.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
-import { getErrorMessage } from '@/lib/api'
+import { getErrorMessage, getImageUrl } from '@/lib/api'
 import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
 import { EditTournamentModal } from '@/components/tournament/EditTournamentModal'
 import { RecordEventModal } from '@/components/admin/RecordEventModal'
@@ -256,7 +256,7 @@ export default function TournamentDetailPage() {
                     <div className="relative z-10 flex items-start gap-4">
                       <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0 backdrop-blur-sm">
                         {competition.bannerUrl ? (
-                          <img src={competition.bannerUrl} alt="" className="w-full h-full object-cover" />
+                          <img src={getImageUrl(competition.bannerUrl)} alt="" className="w-full h-full object-cover" />
                         ) : (
                           <span className="text-3xl text-gaffer-orange/40">🏆</span>
                         )}
@@ -442,7 +442,7 @@ export default function TournamentDetailPage() {
                       return (
                         <div key={tm._id} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors">
                           <div className="w-12 h-12 rounded-xl bg-gaffer-surface border border-gaffer-border p-2.5 shrink-0">
-                            <img src={tm.logoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.name}`} alt="" className="w-full h-full object-contain" />
+                            <img src={getImageUrl(tm.logoUrl) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.name}`} alt="" className="w-full h-full object-contain" />
                           </div>
 
                           <div className="flex-1 min-w-0">

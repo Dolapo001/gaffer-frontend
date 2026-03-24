@@ -255,3 +255,18 @@ export function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message
   return 'An unexpected error occurred'
 }
+
+/**
+ * Ensures an image URL is absolute, prefixing it with the backend URL if needed.
+ */
+export function getImageUrl(path: string | undefined): string {
+  if (!path) return ''
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path
+  
+  // Remove leading slash if any
+  const cleanPath = path.startsWith('/') ? path.substring(1) : path
+  
+  // Use the API base URL if available, otherwise default to localhost:4000
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/v1$/, '') || 'http://localhost:4000'
+  return `${baseUrl}/${cleanPath}`
+}

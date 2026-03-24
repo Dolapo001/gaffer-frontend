@@ -4,12 +4,12 @@ import React, { useState, useLayoutEffect, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
+import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { AccountUpgradeModal } from '@/components/AccountUpgradeModal'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 import { getWallet } from '@/lib/services/payment.service'
-import { ShoppingBag } from 'lucide-react'
+import { getImageUrl } from '@/lib/api'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -133,7 +133,7 @@ export default function DashboardPage() {
                 <div key={item._id} className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl">
                   <div className="relative h-48 bg-gaffer-dark">
                     {item.media?.[0]?.url && (
-                        <img src={item.media[0].url} className="w-full h-full object-cover" alt="" />
+                        <img src={getImageUrl(item.media[0].url)} className="w-full h-full object-cover" alt="" />
                     )}
                     <div className="absolute bottom-3 left-4 bg-black/40 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white/80 font-chakra">
                        {new Date(item.createdAt).toLocaleDateString()}
