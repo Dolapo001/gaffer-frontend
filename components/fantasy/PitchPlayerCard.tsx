@@ -1,9 +1,21 @@
 import React from 'react';
+import { JerseySvg } from '@/components/jersey/JerseySvg';
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils';
+
+export interface JerseyProps {
+  primaryColor: string;
+  secondaryColor: string;
+  jerseyPattern: JerseyPattern;
+  teamCode?: string;
+}
 
 interface PitchPlayerCardProps {
   playerName: string;
   fixture: string;
+  /** External kit image URL. When `jersey` is also provided, jersey takes precedence. */
   kitImageUrl: string;
+  /** Inline SVG jersey. When present, renders JerseySvg instead of the external image. */
+  jersey?: JerseyProps;
   className?: string;
   onClick?: () => void;
   selected?: boolean;
@@ -22,6 +34,7 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   playerName,
   fixture,
   kitImageUrl,
+  jersey,
   className = "",
   onClick,
   selected = false,
@@ -62,14 +75,36 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
       className={`flex flex-col overflow-hidden transition-all relative group ${selected ? 'scale-105 z-10' : ''} ${className}`}
       onClick={onClick}
     >
+      {/* Points Badge */}
+      {points !== undefined && (
+        <div className="absolute top-1 right-1 z-20 bg-[#ff6b00] text-white text-[10px] sm:text-[11px] font-black px-1.5 py-0.5 rounded-md shadow-md">
+          {points}
+        </div>
+      )}
+
       {/* 1. Jersey Section (Glass) */}
       <div className="flex-1 flex items-center justify-center pt-2 pb-1 px-1 relative">
-        <img 
-          src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"} 
-          alt={playerName} 
-          className="w-[80%] h-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform"
-        />
-        
+        {jersey ? (
+          <JerseySvg
+            primaryColor={jersey.primaryColor}
+            secondaryColor={jersey.secondaryColor}
+            jerseyPattern={jersey.jerseyPattern}
+            teamCode={jersey.teamCode}
+            width={46}
+            height={54}
+            className="drop-shadow-md group-hover:scale-110 transition-transform"
+          />
+        ) : (
+          <img
+            src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"}
+            alt={playerName}
+            className="w-[80%] h-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"
+            }}
+          />
+        )}
+
         {/* Status indicator top right */}
         {status !== 'fit' && (
           <div className="absolute top-1 right-0.5">

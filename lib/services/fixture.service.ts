@@ -1,4 +1,21 @@
 import { api } from '@/lib/api'
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+
+// ─── Resolved Kits ────────────────────────────────────────────────────────────
+// Provided by the backend when clash-detection has been applied to a fixture.
+
+export interface ResolvedKit {
+  primaryColor: string
+  secondaryColor: string
+  pattern: JerseyPattern
+}
+
+export interface ResolvedKits {
+  homeKit: ResolvedKit
+  awayKit: ResolvedKit
+}
+
+// ─── Round ────────────────────────────────────────────────────────────────────
 
 export interface Round {
   _id: string
@@ -29,6 +46,8 @@ export interface Fixture {
   awayFormation?: string
   homeLineup?: Record<string, any>
   awayLineup?: Record<string, any>
+  /** Clash-resolved kit assignments. Present when the backend has processed kit selection. */
+  resolvedKits?: ResolvedKits
 }
 
 export interface FixtureEvent {

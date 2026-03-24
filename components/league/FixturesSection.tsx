@@ -2,10 +2,109 @@
 
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { JerseySvg } from '@/components/jersey/JerseySvg';
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils';
+
+// ─── Kit types (from backend resolvedKits or team.jersey) ──────────────────────
+
+interface FixtureKit {
+  primaryColor: string;
+  secondaryColor: string;
+  pattern: JerseyPattern;
+}
 
 interface FixturesSectionProps {
   fixtures?: any[];
 }
+
+// ─── TeamBadge ────────────────────────────────────────────────────────────────
+// Shows JerseySvg when kit/jersey data is available, falls back to logo/initial.
+
+function TeamBadge({
+  team,
+  kit,
+}: {
+  team: { name?: string; logoUrl?: string; jersey?: { primaryColor: string; secondaryColor: string; jerseyPattern: JerseyPattern } };
+  kit?: FixtureKit;
+}) {
+  const jerseyToShow = kit
+    ? { primaryColor: kit.primaryColor, secondaryColor: kit.secondaryColor, jerseyPattern: kit.pattern }
+    : team.jersey ?? null;
+
+  return (
+    <div className="flex flex-col items-center gap-2.5 w-[85px]">
+      <div className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full shadow-inner p-1 overflow-hidden">
+        {jerseyToShow ? (
+          <JerseySvg
+            primaryColor={jerseyToShow.primaryColor}
+            secondaryColor={jerseyToShow.secondaryColor}
+            jerseyPattern={jerseyToShow.jerseyPattern}
+            width={36}
+            height={42}
+          />
+        ) : team.logoUrl ? (
+          <img src={team.logoUrl} alt="" className="w-full h-full object-contain" />
+        ) : (
+          <div className="text-white/20 font-black text-xs">{team.name?.charAt(0)}</div>
+        )}
+      </div>
+      <span className="text-white text-[12px] font-bold tracking-tight truncate w-full text-center">
+        {team.name}
+      </span>
+    </div>
+  );
+}
+
+// ─── FixtureCard ──────────────────────────────────────────────────────────────
+
+function FixtureCard({
+  fixture,
+  onClick,
+  type,
+  score,
+}: {
+  fixture: any;
+  onClick?: () => void;
+  type: 'upcoming' | 'finished';
+  score?: string;
+}) {
+  const home = typeof fixture.homeTeamId === 'string' ? { name: 'Home', logoUrl: '' } : fixture.homeTeamId;
+  const away = typeof fixture.awayTeamId === 'string' ? { name: 'Away', logoUrl: '' } : fixture.awayTeamId;
+
+  const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date();
+  const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const day = kickoff.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
+
+  const displayScore = score || (fixture.score ? `${fixture.score.home} : ${fixture.score.away}` : '0 : 0');
+
+  return (
+    <motion.div
+      whileTap={{ scale: 0.98 }}
+      onClick={onClick}
+      className="bg-[#1a2138]/60 border border-white/[0.03] rounded-[24px] p-5 flex items-center justify-between backdrop-blur-md shadow-xl hover:bg-white/[0.02] transition-all cursor-pointer"
+    >
+      {/* Home */}
+      <TeamBadge team={home} kit={fixture.resolvedKits?.homeKit} />
+
+      {/* Center Info */}
+      <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
+        <span className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">
+          {day} {time}
+        </span>
+        <div className="bg-[#1a2138] border border-white/5 rounded-[8px] h-[34px] px-4 flex items-center justify-center shadow-lg">
+           <span className="text-white text-[16px] font-black tracking-tight italic">
+              {type === 'upcoming' && fixture.status !== 'live' ? time : displayScore}
+           </span>
+        </div>
+      </div>
+
+      {/* Away */}
+      <TeamBadge team={away} kit={fixture.resolvedKits?.awayKit} />
+    </motion.div>
+  );
+}
+
+// ─── FixturesSection ──────────────────────────────────────────────────────────
 
 export function FixturesSection({ fixtures }: FixturesSectionProps) {
   const router = useRouter();
@@ -13,7 +112,6 @@ export function FixturesSection({ fixtures }: FixturesSectionProps) {
   const finished = fixtures?.filter(f => f.status === 'completed') || [];
   const upcoming = fixtures?.filter(f => f.status === 'scheduled' || f.status === 'live') || [];
 
-  // Group finished fixtures by round if available
   const rounds = finished.reduce((acc: any, fixture: any) => {
     const roundName = fixture.roundId?.name || fixture.stageId?.name || 'Previous Fixtures';
     if (!acc[roundName]) acc[roundName] = [];
@@ -35,11 +133,9 @@ export function FixturesSection({ fixtures }: FixturesSectionProps) {
 
   return (
     <div className="flex flex-col w-full px-5 py-6 gap-10">
-      {/* Match Schedule (Upcoming) */}
       {upcoming.length > 0 && (
         <section className="flex flex-col gap-5 max-w-sm mx-auto w-full">
           <h2 className="text-white text-[16px] font-bold tracking-tight">Match Schedule</h2>
-          
           <div className="flex flex-col gap-4">
             {upcoming.map((fixture) => (
               <FixtureCard
@@ -53,11 +149,9 @@ export function FixturesSection({ fixtures }: FixturesSectionProps) {
         </section>
       )}
 
-      {/* Previous Fixtures (Finished) */}
       {finished.length > 0 && (
         <section className="flex flex-col gap-6 max-w-sm mx-auto w-full">
           <h2 className="text-white text-[16px] font-bold tracking-tight">Previous Fixtures</h2>
-          
           {Object.entries(rounds).map(([roundName, roundFixtures]: [string, any], roundIdx) => (
             <div key={roundIdx} className="flex flex-col gap-4">
               <h3 className="text-[#D2B5FF]/50 text-[13px] font-bold tracking-widest uppercase mb-1">
@@ -84,64 +178,5 @@ export function FixturesSection({ fixtures }: FixturesSectionProps) {
          </div>
       )}
     </div>
-  );
-}
-
-function FixtureCard({ fixture, onClick, type, score }: { fixture: any, onClick?: () => void, type: 'upcoming' | 'finished', score?: string }) {
-  const home = typeof fixture.homeTeamId === 'string' ? { name: 'Home', logoUrl: '' } : fixture.homeTeamId;
-  const away = typeof fixture.awayTeamId === 'string' ? { name: 'Away', logoUrl: '' } : fixture.awayTeamId;
-  
-  const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date();
-  const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-  const day = kickoff.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase();
-  
-  const displayScore = score || (fixture.score ? `${fixture.score.home} : ${fixture.score.away}` : '0 : 0');
-
-  return (
-    <motion.div
-      whileTap={{ scale: 0.98 }}
-      onClick={onClick}
-      className="bg-[#1a2138]/60 border border-white/[0.03] rounded-[24px] p-5 flex items-center justify-between backdrop-blur-md shadow-xl hover:bg-white/[0.02] transition-all cursor-pointer"
-    >
-      {/* Home */}
-      <div className="flex flex-col items-center gap-2.5 w-[85px]">
-        <div className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full shadow-inner p-1 overflow-hidden">
-          {home?.logoUrl ? (
-            <img src={home.logoUrl} alt="" className="w-full h-full object-contain" />
-          ) : (
-            <div className="text-white/20 font-black text-xs">{home?.name?.charAt(0)}</div>
-          )}
-        </div>
-        <span className="text-white text-[12px] font-bold tracking-tight truncate w-full text-center">
-          {home?.name}
-        </span>
-      </div>
-
-      {/* Center Info */}
-      <div className="flex flex-col items-center gap-1.5 min-w-[80px]">
-        <span className="text-white/40 text-[9px] font-black uppercase tracking-[0.2em]">
-          {day} {time}
-        </span>
-        <div className="bg-[#1a2138] border border-white/5 rounded-[8px] h-[34px] px-4 flex items-center justify-center shadow-lg">
-           <span className="text-white text-[16px] font-black tracking-tight italic">
-              {type === 'upcoming' && fixture.status !== 'live' ? time : displayScore}
-           </span>
-        </div>
-      </div>
-
-      {/* Away */}
-      <div className="flex flex-col items-center gap-2.5 w-[85px]">
-        <div className="w-11 h-11 flex items-center justify-center bg-white/5 rounded-full shadow-inner p-1 overflow-hidden">
-          {away?.logoUrl ? (
-            <img src={away.logoUrl} alt="" className="w-full h-full object-contain" />
-          ) : (
-            <div className="text-white/20 font-black text-xs">{away?.name?.charAt(0)}</div>
-          )}
-        </div>
-        <span className="text-white text-[12px] font-bold tracking-tight truncate w-full text-center">
-          {away?.name}
-        </span>
-      </div>
-    </motion.div>
   );
 }

@@ -146,6 +146,16 @@ export default function OrganizePage() {
     onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
+  const [jerseyConfig, setJerseyConfig] = useState<{
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: 'solid' | 'stripes' | 'split' | 'gradient'
+  }>({
+    primaryColor: '#1D4ED8',
+    secondaryColor: '#ffffff',
+    jerseyPattern: 'solid',
+  })
+
   // ── Mappings ─────────────────────────────────────────────────────────────
 
   // Map backend teams to UI teams
@@ -221,7 +231,8 @@ export default function OrganizePage() {
           handle: teamName.toLowerCase().replace(/\s+/g, '-'),
           sport: 'Football',
           logoUrl,
-          maxPlayers: parseInt(maxPlayers) || 11
+          maxPlayers: parseInt(maxPlayers) || 11,
+          jersey: jerseyConfig,
         })
 
         // If a competition is selected, auto-register the team
@@ -255,6 +266,7 @@ export default function OrganizePage() {
       setLogoPreview(null)
       setSelectedCompetitionId('')
       setSelectedTeamsForGroup([])
+      setJerseyConfig({ primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' })
     } catch (err) {
       addToast(getErrorMessage(err), 'error')
     }
@@ -492,6 +504,7 @@ export default function OrganizePage() {
                 logoError={logoError}
                 selectedColor={selectedColor}
                 selectedTeamsForGroup={selectedTeamsForGroup}
+                jersey={jerseyConfig}
                 onClose={() => setView('list')}
                 onTeamNameChange={setTeamName}
                 onMaxPlayersChange={setMaxPlayers}
@@ -506,6 +519,7 @@ export default function OrganizePage() {
                     prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id],
                   )
                 }
+                onJerseyChange={setJerseyConfig}
                 onCreate={handleCreate}
                 getUnassignedTeams={getUnassignedTeams}
                 isSubmitting={createTeamMutation.isPending || createGroupMutation.isPending}

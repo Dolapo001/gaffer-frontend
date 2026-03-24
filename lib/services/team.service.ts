@@ -1,4 +1,15 @@
 import { api } from '@/lib/api'
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+
+// ─── Jersey ───────────────────────────────────────────────────────────────────
+
+export interface JerseyConfig {
+  primaryColor: string
+  secondaryColor: string
+  jerseyPattern: JerseyPattern
+}
+
+// ─── Team ─────────────────────────────────────────────────────────────────────
 
 export interface Team {
   _id: string
@@ -13,6 +24,7 @@ export interface Team {
   status: 'active' | 'archived'
   playerCount?: number
   maxPlayers?: number
+  jersey?: JerseyConfig
   createdAt: string
   updatedAt: string
   competitionId?: string
@@ -54,6 +66,7 @@ export interface CreateTeamPayload {
   logoUrl?: string
   genderCategory?: 'male' | 'female' | 'mixed'
   homeVenue?: string
+  jersey?: JerseyConfig
 }
 
 // POST /orgs/:orgId/teams
