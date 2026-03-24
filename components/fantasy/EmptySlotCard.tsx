@@ -1,93 +1,30 @@
 'use client'
 
-import React from 'react'
-import { Plus } from 'lucide-react'
+import React from 'react';
+import { Plus } from 'lucide-react';
 
 interface EmptySlotCardProps {
-  onClick?: () => void
-  className?: string
-  position?: string
+  onClick?: () => void;
+  className?: string;
+  position?: string;
 }
 
-/**
- * EmptySlotCard — pitch formation placeholder.
- *
- * Matches the visual language of PitchPlayerCard's slot base plate so the
- * formation grid reads as a cohesive system. The slot is intentionally
- * dimmer than filled cards so populated jerseys stand out more.
- */
-export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({
-  onClick,
-  className = '',
-  position,
-}) => {
+export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({ onClick, className = "", position }) => {
   return (
-    <button
+    <button 
       onClick={onClick}
-      aria-label={position ? `Add ${position}` : 'Add player'}
-      className={`relative flex flex-col items-center justify-center group transition-all duration-200 active:scale-95 ${className}`}
       style={{
-        width: 64,
-        height: 98,
-        outline: 'none',
-        background: 'none',
-        border: 'none',
-        padding: 0,
+        width: '64px',
+        height: '102px',
+        borderRadius: '5.45px',
+        border: '0.4px solid rgba(255, 255, 255, 0.45)',
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(55, 0, 60, 0.25) 100%)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0px 1.02px 1.7px 0px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(255,255,255,0.05)',
       }}
+      className={`flex flex-col items-center justify-center transition-all active:scale-95 group overflow-hidden ${className}`}
     >
-      {/* Slot base plate — dimmer version of PitchPlayerCard slot */}
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 pointer-events-none"
-        style={{
-          borderRadius: 14,
-          background:
-            'linear-gradient(175deg, rgba(255,255,255,0.04) 0%, rgba(0,0,0,0.18) 100%)',
-          boxShadow: [
-            'inset 0 1px 0 rgba(255,255,255,0.07)',
-            'inset 0 -8px 16px rgba(0,0,0,0.16)',
-            '0 4px 12px rgba(0,0,0,0.20)',
-          ].join(', '),
-          border: '1px solid rgba(255,255,255,0.08)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
-        }}
-      />
-
-      {/* Dashed inner outline — signals "available slot" */}
-      <div
-        aria-hidden="true"
-        className="absolute pointer-events-none"
-        style={{
-          inset: 8,
-          borderRadius: 9,
-          border: '1px dashed rgba(255,255,255,0.14)',
-        }}
-      />
-
-      {/* Plus icon */}
-      <Plus
-        className="relative z-10 text-white/40 group-hover:text-white/70 transition-colors duration-200"
-        size={18}
-        strokeWidth={2}
-      />
-
-      {/* Position label */}
-      {position && (
-        <span
-          className="relative z-10 mt-1"
-          style={{
-            fontSize: 8,
-            fontWeight: 800,
-            color: 'rgba(255,255,255,0.28)',
-            textTransform: 'uppercase',
-            letterSpacing: '0.06em',
-            lineHeight: 1,
-          }}
-        >
-          {position}
-        </span>
-      )}
+      <Plus className="text-white w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
     </button>
-  )
-}
+  );
+};
