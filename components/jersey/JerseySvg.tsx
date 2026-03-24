@@ -16,37 +16,46 @@ export interface JerseySvgProps {
   className?: string
 }
 
-// ─── SVG Paths (viewBox "0 0 100 112") ────────────────────────────────────────
+// ─── SVG Paths  (viewBox "0 0 100 112") ──────────────────────────────────────
 //
-// T-shaped football jersey with crew-neck collar.
+//  Coordinate guide
+//  ─────────────────────────────────────────────────────────────────────────────
 //
-//      37,10 ── Q50,22 ──  63,10    ← crew neck neckline
-//     /                          \
-//   9,18                        91,18  ← shoulders
-//    |                            |
-//   2,29                        98,29  ← sleeve outer tips
-//   Q0,33                    Q100,33
-//   2,37                        98,37  ← sleeve underarm corners
-//    |                            |
-//  10,37 ──────────────────── 90,37   ← underarm seam
-//    |                            |
-//  10,100 ─────────────────── 90,100  ← hem
-//
+//         36,8 ── Q50,21 ── 64,8          ← crew-neck opening
+//        /                        \
+//    Q21,2                        Q79,2   ← shoulder curves
+//      |                              |
+//    10,16                          90,16  ← shoulder tips
+//      |                              |
+//    2,29                           98,29  ← sleeve outer corners
+//   Q0,34                         Q100,34
+//    2,38                           98,38  ← sleeve underarm corners
+//      |                              |
+//   12,38 ────────────────────── 88,38   ← underarm seam
+//      |                              |
+//   12,108 ────────────────────── 88,108 ← hem
+//  ─────────────────────────────────────────────────────────────────────────────
 
-/** Full jersey silhouette */
+/** Complete jersey silhouette */
 const JERSEY_PATH =
-  'M37,10 Q23,4 9,18 L2,29 Q0,33 2,37 L10,37 L10,100 L90,100 L90,37 L98,37 Q100,33 98,29 L91,18 Q77,4 63,10 Q50,20 37,10Z'
+  'M36,8 Q50,21 64,8 Q79,2 90,16 L98,29 Q100,34 98,38 L88,38 L88,108 L12,108 L12,38 L2,38 Q0,34 2,29 L10,16 Q21,2 36,8Z'
 
-/** Left shoulder + sleeve panel — filled with secondary colour */
+/**
+ * Left shoulder + sleeve panel (secondary colour).
+ * Covers the sleeve from collar point down to underarm seam,
+ * creating the classic diagonal shoulder-stripe look.
+ */
 const LEFT_PANEL =
-  'M37,10 Q23,4 9,18 L2,29 Q0,33 2,37 L10,37 L20,28 L28,14Z'
+  'M36,8 Q21,2 10,16 L2,29 Q0,34 2,38 L12,38 L24,24 L30,10Z'
 
-/** Right shoulder + sleeve panel — filled with secondary colour (mirror of left) */
+/**
+ * Right shoulder + sleeve panel (secondary colour, mirrored).
+ */
 const RIGHT_PANEL =
-  'M63,10 Q77,4 91,18 L98,29 Q100,33 98,37 L90,37 L80,28 L72,14Z'
+  'M64,8 Q79,2 90,16 L98,29 Q100,34 98,38 L88,38 L76,24 L70,10Z'
 
-/** Crew-neck arc — used for collar trim stroke */
-const COLLAR_ARC = 'M37,10 Q50,22 63,10'
+/** Crew-neck arc — used only for the collar edge line */
+const COLLAR_ARC = 'M36,8 Q50,21 64,8'
 
 // ─── Pattern fill helpers ─────────────────────────────────────────────────────
 
@@ -61,8 +70,8 @@ function StripeFill({
     <>
       <defs>
         <pattern id={id} x="0" y="0" width="10" height="112" patternUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="5" height="112" fill={primary} />
-          <rect x="5" y="0" width="5" height="112" fill={secondary} />
+          <rect x="0" y="0" width="5"  height="112" fill={primary}   />
+          <rect x="5" y="0" width="5"  height="112" fill={secondary} />
         </pattern>
       </defs>
       <path d={JERSEY_PATH} fill={`url(#${id})`} />
@@ -76,10 +85,10 @@ function SplitFill({
   return (
     <>
       <defs>
-        <clipPath id={leftId}><rect x="0" y="0" width="50" height="112" /></clipPath>
-        <clipPath id={rightId}><rect x="50" y="0" width="50" height="112" /></clipPath>
+        <clipPath id={leftId} ><rect x="0"  y="0" width="50"  height="112" /></clipPath>
+        <clipPath id={rightId}><rect x="50" y="0" width="50"  height="112" /></clipPath>
       </defs>
-      <path d={JERSEY_PATH} fill={primary}   clipPath={`url(#${leftId})`} />
+      <path d={JERSEY_PATH} fill={primary}   clipPath={`url(#${leftId})`}  />
       <path d={JERSEY_PATH} fill={secondary} clipPath={`url(#${rightId})`} />
     </>
   )
@@ -92,7 +101,7 @@ function GradientFill({
     <>
       <defs>
         <linearGradient id={id} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor={primary} />
+          <stop offset="0%"   stopColor={primary}   />
           <stop offset="100%" stopColor={secondary} />
         </linearGradient>
       </defs>
@@ -104,15 +113,19 @@ function GradientFill({
 // ─── JerseySvg ────────────────────────────────────────────────────────────────
 
 /**
- * Realistic SVG football jersey renderer.
+ * Realistic SVG football jersey — matches the GAFFER card design.
  *
- * - Safe for server and client components (no state, no effects).
- * - Uses React.useId() so multiple instances never share SVG def IDs.
- * - Supports four patterns: solid | stripes | split | gradient.
- * - Secondary colour appears on shoulder/sleeve panels and collar trim.
- * - "GAFFER" chest branding is always rendered in secondary colour.
- * - Always reflects the team's home kit (pass primaryColor / secondaryColor
- *   directly from team.jersey — never from resolvedKits or away-kit data).
+ * Visual anatomy (matches reference image):
+ *  • Primary colour  → jersey body
+ *  • Secondary colour → shoulder / sleeve panels  +  "GAFFER" chest text
+ *  • Four body patterns: solid | stripes | split | gradient
+ *  • Shoulder panels always in secondary regardless of body pattern
+ *  • Subtle radial shine + bottom shadow for 3-D depth
+ *  • Always uses the team's HOME kit — pass primaryColor / secondaryColor
+ *    directly from team.jersey, never from resolvedKits or away-kit data.
+ *
+ * Safe for server and client components (no state, no effects).
+ * useId() prevents SVG def ID collisions when many jerseys render on one page.
  */
 export function JerseySvg({
   primaryColor,
@@ -120,25 +133,26 @@ export function JerseySvg({
   jerseyPattern,
   teamCode,
   width = 50,
-  height = 58,
+  height = 56,
   brandingText = 'GAFFER',
   className,
 }: JerseySvgProps) {
   const uid = useId()
 
-  // Normalise at the render boundary — never mutates fetched data.
+  // Normalise at render boundary — never mutates fetched data.
   const { primaryColor: pc, secondaryColor: sc } = normalizeJerseyConfig({
     primaryColor,
     secondaryColor,
     jerseyPattern,
   })
 
-  // Unique per-instance IDs — prevents SVG def collisions on multi-jersey pages.
-  const stripeId = `${uid}-s`
-  const leftId   = `${uid}-l`
-  const rightId  = `${uid}-r`
-  const gradId   = `${uid}-g`
-  const shineId  = `${uid}-sh`
+  // Unique per-instance IDs — prevents SVG def collisions.
+  const stripeId  = `${uid}-s`
+  const leftId    = `${uid}-l`
+  const rightId   = `${uid}-r`
+  const gradId    = `${uid}-g`
+  const shineId   = `${uid}-sh`
+  const shadowId  = `${uid}-sd`
 
   return (
     <svg
@@ -151,74 +165,89 @@ export function JerseySvg({
       className={className}
     >
       <defs>
-        {/* Radial shine — gives the jersey subtle 3-D depth */}
-        <radialGradient id={shineId} cx="38%" cy="28%" r="55%">
-          <stop offset="0%"   stopColor="rgba(255,255,255,0.20)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+        {/* Radial highlight — top-left light source gives fabric a 3-D feel */}
+        <radialGradient id={shineId} cx="32%" cy="22%" r="52%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.22)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0)"    />
         </radialGradient>
+
+        {/* Linear shadow at hem — anchors the jersey visually */}
+        <linearGradient id={shadowId} x1="0%" y1="65%" x2="0%" y2="100%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0)"    />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.28)" />
+        </linearGradient>
       </defs>
 
-      {/* 1 ── Body fill (chosen pattern) */}
+      {/* ── 1. Body fill (driven by jerseyPattern) ──────────────────────── */}
       {jerseyPattern === 'solid'    && <SolidFill    primary={pc} />}
       {jerseyPattern === 'stripes'  && <StripeFill   primary={pc} secondary={sc} id={stripeId} />}
       {jerseyPattern === 'split'    && <SplitFill    primary={pc} secondary={sc} leftId={leftId} rightId={rightId} />}
       {jerseyPattern === 'gradient' && <GradientFill primary={pc} secondary={sc} id={gradId} />}
 
-      {/* 2 ── Shoulder / sleeve panels in secondary colour */}
+      {/* ── 2. Shoulder / sleeve panels — always secondary colour ───────── */}
       <path d={LEFT_PANEL}  fill={sc} />
       <path d={RIGHT_PANEL} fill={sc} />
 
-      {/* 3 ── Shine overlay for depth */}
+      {/* ── 3. Shine overlay (top-left highlight) ───────────────────────── */}
       <path d={JERSEY_PATH} fill={`url(#${shineId})`} />
 
-      {/* 4 ── Jersey outline */}
-      <path d={JERSEY_PATH} fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="0.8" />
+      {/* ── 4. Bottom shadow ─────────────────────────────────────────────── */}
+      <path d={JERSEY_PATH} fill={`url(#${shadowId})`} />
 
-      {/* 5 ── Collar trim: thick secondary band + white highlight */}
+      {/* ── 5. Jersey outline ────────────────────────────────────────────── */}
       <path
-        d={COLLAR_ARC}
+        d={JERSEY_PATH}
         fill="none"
-        stroke={sc}
-        strokeWidth="4.5"
-        strokeLinecap="round"
-      />
-      <path
-        d={COLLAR_ARC}
-        fill="none"
-        stroke="rgba(255,255,255,0.30)"
+        stroke="rgba(0,0,0,0.30)"
         strokeWidth="0.8"
+      />
+
+      {/* ── 6. Collar edge — subtle dark arc, no secondary colour ───────── */}
+      <path
+        d={COLLAR_ARC}
+        fill="none"
+        stroke="rgba(0,0,0,0.40)"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+      />
+      {/* Inner collar highlight */}
+      <path
+        d={COLLAR_ARC}
+        fill="none"
+        stroke="rgba(255,255,255,0.18)"
+        strokeWidth="0.6"
         strokeLinecap="round"
       />
 
-      {/* 6 ── GAFFER chest branding — secondary colour, italic bold */}
+      {/* ── 7. "GAFFER" chest branding — secondary colour, bold italic ───── */}
       <text
         x="50"
-        y="66"
+        y="70"
         textAnchor="middle"
         dominantBaseline="middle"
         fill={sc}
-        fontSize="11"
+        fontSize="12"
         fontWeight="900"
         fontStyle="italic"
         fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        letterSpacing="0.8"
+        letterSpacing="0.6"
         style={{ userSelect: 'none' }}
       >
         {brandingText}
       </text>
 
-      {/* 7 ── Optional team code below branding */}
+      {/* ── 8. Optional team code (small, below branding) ────────────────── */}
       {teamCode && (
         <text
           x="50"
-          y="80"
+          y="84"
           textAnchor="middle"
           dominantBaseline="middle"
           fill={sc}
           fontSize="8"
           fontWeight="700"
           fontFamily="system-ui, Arial, sans-serif"
-          opacity="0.85"
+          opacity="0.80"
           style={{ userSelect: 'none' }}
         >
           {teamCode}

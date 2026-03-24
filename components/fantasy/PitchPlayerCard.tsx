@@ -91,7 +91,7 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
             jerseyPattern={jersey.jerseyPattern}
             teamCode={jersey.teamCode}
             width={46}
-            height={54}
+            height={52}
             className="drop-shadow-md group-hover:scale-110 transition-transform"
           />
         ) : (
