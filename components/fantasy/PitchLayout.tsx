@@ -1,8 +1,17 @@
 'use client'
 
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
-import { PitchPlayerCard } from './PitchPlayerCard'
+import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
 import { EmptySlotCard } from './EmptySlotCard'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+
+/** Always returns a JerseyProps — uses team.jersey if present, falls back to teamColor solid kit */
+function toJersey(player: FantasySquadPlayer): JerseyProps {
+  const jc = normalizeJerseyConfig(
+    player.jersey ?? { primaryColor: player.teamColor, secondaryColor: '#ffffff', jerseyPattern: 'solid' }
+  )
+  return { primaryColor: jc.primaryColor, secondaryColor: jc.secondaryColor, jerseyPattern: jc.jerseyPattern, teamCode: player.teamCode }
+}
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────
 
@@ -164,6 +173,7 @@ export function PitchLayout({
                       playerName={player.shortName}
                       fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                       kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                      jersey={toJersey(player)}
                       points={player.points}
                       selected={selectedId === player.id}
                       highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
@@ -191,13 +201,14 @@ export function PitchLayout({
                 <PitchPlayerCard
                   key={player.id}
                   playerName={player.shortName}
-                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
+                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
                   kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                  jersey={toJersey(player)}
                   points={player.points}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                   onClick={() => onSelectPlayer(player.id)}
-                  status={player.status || 'fit'} 
+                  status={player.status || 'fit'}
                   captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
                 />
               ))

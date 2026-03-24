@@ -1,7 +1,15 @@
 'use client'
 
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
-import { PitchPlayerCard } from './PitchPlayerCard'
+import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+
+function toJersey(player: FantasySquadPlayer): JerseyProps {
+  const jc = normalizeJerseyConfig(
+    player.jersey ?? { primaryColor: player.teamColor, secondaryColor: '#ffffff', jerseyPattern: 'solid' }
+  )
+  return { primaryColor: jc.primaryColor, secondaryColor: jc.secondaryColor, jerseyPattern: jc.jerseyPattern, teamCode: player.teamCode }
+}
 
 const BENCH_LABELS: Record<string, string> = {
   GK: 'GKP',
@@ -54,6 +62,7 @@ export function SubstituteBench({
                   playerName={player.shortName}
                   fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : 'TBC'}
                   kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
+                  jersey={toJersey(player)}
                   points={player.points}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId ? (isValidTarget ? 'sub_in_valid' : 'none') : 'none'}
