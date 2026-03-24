@@ -160,15 +160,15 @@ export function PitchLayout({
 
       {/* Player rows */}
       {/*
-        justify-around  — rows distribute naturally across the pitch height
-        pt-8 pb-10      — extra vertical breathing room vs previous pt-6 pb-8;
-                          leaves goal area visible and prevents bottom crowding
-        gap-[6px] row   — 1px extra horizontal gap gives players room to breathe
-                          without overflowing the pitch on 5-wide rows
+        justify-around  — evenly distributes the 4 formation rows across the
+                          full pitch height so GK/DEF/MID/FWD zones feel natural
+        gap-[6px]       — minimal gap; rows self-space via justify-around
+        pt-6 pb-8       — leaves the goal area and centre circle visible
+        gap-2 per row   — 8 px between players; 5×64 + 4×8 = 352px fits 360px screens
       */}
-      <div className="absolute inset-0 flex flex-col justify-around pt-8 pb-10 px-2">
+      <div className="absolute inset-0 flex flex-col justify-around gap-[6px] pt-6 pb-8 px-2">
         {rows.map((rowData, ri) => (
-          <div key={ri} className="flex flex-row justify-center gap-[10px] w-full">
+          <div key={ri} className="flex flex-row justify-center gap-2 w-full">
             {selectionMode ? (
               // In selection mode, we show all slots
               Array.from({ length: rowData.totalSlots }).map((_, si) => {
