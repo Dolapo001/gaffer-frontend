@@ -16,87 +16,91 @@ export interface JerseySvgProps {
   className?: string
 }
 
-// ─── SVG Paths  (viewBox "0 0 100 108") ──────────────────────────────────────
+// ─── SVG anatomy  (viewBox "0 0 120 130") ────────────────────────────────────
 //
-//  Anatomy (matches the reference image exactly):
+//  Mockup-style football jersey.
+//  The body tapers very slightly inward at the waist, and the hem curves
+//  gently so the jersey looks like a real garment, not a flat icon.
 //
-//       38,4 ──────── 50,26 ──────── 62,4          ← V-neck
-//      /      \                  /      \
-//  Q16,0     26,20            74,20    Q84,0         ← shoulder curves
-//    |                                    |
-//   6,14                              94,14          ← shoulder tips
-//    |                                    |
-//   0,28                              100,28         ← sleeve outer
-//  Q0,38                             Q100,38
-//   4,42 ──────────────────────── 96,42             ← sleeve cuff
-//    |                                    |
-//  16,44 ─────────────────────── 84,44             ← underarm seam
-//    |                                    |
-//  16,106 ─────────────────────── 84,106           ← hem
+//         44,6 ────── 60,32 ────── 76,6        ← V-neck opening
+//        /   \                  /   \
+//   Q24,2  48,8              72,8  Q96,2        ← collar band edges
+//      |                              |
+//   12,16                          108,16       ← shoulder tips
+//      |                              |
+//    4,30                           116,30      ← sleeve outer
+//  Q2,42                           Q118,42
+//    4,48 ──────────────────── 116,48          ← sleeve cuff
+//      |                              |
+//   20,52 ──────────────────── 100,52          ← underarm seam
+//      |                              |
+//   22,122 ── Q60,128 ── 98,122                ← curved hem  (slight taper)
 //
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Full jersey silhouette — V-neck, short sleeves, straight body */
+/** Full jersey silhouette — V-neck, tapered body, curved hem */
 const JERSEY_PATH =
-  'M38,4 L50,26 L62,4 Q84,0 94,14 L100,28 Q100,38 96,42 L84,44 L84,106 L16,106 L16,44 L4,42 Q0,38 0,28 L6,14 Q16,0 38,4Z'
+  'M44,6 L60,32 L76,6 Q96,2 108,16 L116,30 Q118,42 116,48 L100,52 L98,122 Q60,128 22,122 L20,52 L4,48 Q2,42 4,30 L12,16 Q24,2 44,6Z'
 
-/**
- * Left shoulder + sleeve panel in secondary colour.
- * Diagonal inner edge runs from underarm up to the V-neck notch,
- * giving the classic shoulder-stripe silhouette seen in the reference image.
- */
+/** Left shoulder + sleeve yoke — secondary colour */
 const LEFT_PANEL =
-  'M38,4 Q16,0 6,14 L0,28 Q0,38 4,42 L16,44 L26,20 Z'
+  'M44,6 Q24,2 12,16 L4,30 Q2,42 4,48 L20,52 L34,26 Z'
+
+/** Right shoulder + sleeve yoke — secondary colour, mirrored */
+const RIGHT_PANEL =
+  'M76,6 Q96,2 108,16 L116,30 Q118,42 116,48 L100,52 L86,26 Z'
 
 /**
- * Right shoulder + sleeve panel — mirror of left.
+ * Collar band — thin filled strip along both sides of the V-neck.
+ * Uses the secondary colour so collar matches the shoulder yokes,
+ * exactly as on a real product mockup.
  */
-const RIGHT_PANEL =
-  'M62,4 Q84,0 94,14 L100,28 Q100,38 96,42 L84,44 L74,20 Z'
+const COLLAR_BAND =
+  'M44,6 L60,32 L76,6 L72,9 L60,28 L48,9 Z'
 
-/** V-neck collar outline path */
-const V_NECK = 'M38,4 L50,26 L62,4'
+/** V-neck path — reused for stroke layers only */
+const V_NECK = 'M44,6 L60,32 L76,6'
 
 // ─── Pattern fill helpers ─────────────────────────────────────────────────────
 
-function SolidFill({ primary }: { primary: string }) {
-  return <path d={JERSEY_PATH} fill={primary} />
+function SolidFill({ primary, filter }: { primary: string; filter?: string }) {
+  return <path d={JERSEY_PATH} fill={primary} filter={filter} />
 }
 
 function StripeFill({
-  primary, secondary, id,
-}: { primary: string; secondary: string; id: string }) {
+  primary, secondary, id, filter,
+}: { primary: string; secondary: string; id: string; filter?: string }) {
   return (
     <>
       <defs>
-        <pattern id={id} x="0" y="0" width="10" height="108" patternUnits="userSpaceOnUse">
-          <rect x="0" y="0" width="5" height="108" fill={primary}   />
-          <rect x="5" y="0" width="5" height="108" fill={secondary} />
+        <pattern id={id} x="0" y="0" width="12" height="130" patternUnits="userSpaceOnUse">
+          <rect x="0" y="0" width="6"  height="130" fill={primary}   />
+          <rect x="6" y="0" width="6"  height="130" fill={secondary} />
         </pattern>
       </defs>
-      <path d={JERSEY_PATH} fill={`url(#${id})`} />
+      <path d={JERSEY_PATH} fill={`url(#${id})`} filter={filter} />
     </>
   )
 }
 
 function SplitFill({
-  primary, secondary, leftId, rightId,
-}: { primary: string; secondary: string; leftId: string; rightId: string }) {
+  primary, secondary, leftId, rightId, filter,
+}: { primary: string; secondary: string; leftId: string; rightId: string; filter?: string }) {
   return (
     <>
       <defs>
-        <clipPath id={leftId} ><rect x="0"  y="0" width="50" height="108" /></clipPath>
-        <clipPath id={rightId}><rect x="50" y="0" width="50" height="108" /></clipPath>
+        <clipPath id={leftId} ><rect x="0"  y="0" width="60"  height="130" /></clipPath>
+        <clipPath id={rightId}><rect x="60" y="0" width="60"  height="130" /></clipPath>
       </defs>
-      <path d={JERSEY_PATH} fill={primary}   clipPath={`url(#${leftId})`}  />
+      <path d={JERSEY_PATH} fill={primary}   clipPath={`url(#${leftId})`}  filter={filter} />
       <path d={JERSEY_PATH} fill={secondary} clipPath={`url(#${rightId})`} />
     </>
   )
 }
 
 function GradientFill({
-  primary, secondary, id,
-}: { primary: string; secondary: string; id: string }) {
+  primary, secondary, id, filter,
+}: { primary: string; secondary: string; id: string; filter?: string }) {
   return (
     <>
       <defs>
@@ -105,27 +109,13 @@ function GradientFill({
           <stop offset="100%" stopColor={secondary} />
         </linearGradient>
       </defs>
-      <path d={JERSEY_PATH} fill={`url(#${id})`} />
+      <path d={JERSEY_PATH} fill={`url(#${id})`} filter={filter} />
     </>
   )
 }
 
 // ─── JerseySvg ────────────────────────────────────────────────────────────────
 
-/**
- * Realistic SVG football jersey — matches the GAFFER card reference image.
- *
- * Visual anatomy:
- *  • Primary colour  → jersey body
- *  • Secondary colour → shoulder/sleeve panels + "GAFFER" chest text
- *  • V-neck collar with thin highlight line
- *  • Shoulder panels always in secondary regardless of body pattern
- *  • Subtle radial shine + bottom shadow for fabric depth
- *  • Always renders the team's HOME kit colours
- *
- * Safe for server and client (no state, no effects).
- * useId() prevents SVG def collisions when many jerseys share a page.
- */
 export function JerseySvg({
   primaryColor,
   secondaryColor,
@@ -138,120 +128,192 @@ export function JerseySvg({
 }: JerseySvgProps) {
   const uid = useId()
 
-  // Normalise at render boundary — never mutates fetched data.
   const { primaryColor: pc, secondaryColor: sc } = normalizeJerseyConfig({
     primaryColor,
     secondaryColor,
     jerseyPattern,
   })
 
-  // Unique per-instance IDs — prevents SVG def collisions.
-  const stripeId = `${uid}-s`
-  const leftId   = `${uid}-l`
-  const rightId  = `${uid}-r`
-  const gradId   = `${uid}-g`
-  const shineId  = `${uid}-sh`
-  const shadowId = `${uid}-sd`
+  // Per-instance SVG def IDs
+  const dropId    = `${uid}-drop`
+  const shineId   = `${uid}-sh`
+  const sideId    = `${uid}-side`
+  const shadowId  = `${uid}-sd`
+  const stripeId  = `${uid}-str`
+  const leftId    = `${uid}-l`
+  const rightId   = `${uid}-r`
+  const gradId    = `${uid}-g`
+
+  const dropFilter = `url(#${dropId})`
 
   return (
     <svg
       width={width}
       height={height}
-      viewBox="0 0 100 108"
+      viewBox="0 0 120 130"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       aria-hidden="true"
       className={className}
     >
       <defs>
-        {/* Radial highlight — top-centre light source gives fabric depth */}
-        <radialGradient id={shineId} cx="50%" cy="18%" r="55%">
-          <stop offset="0%"   stopColor="rgba(255,255,255,0.20)" />
+        {/* ── Drop shadow — gives the jersey a "floating" mockup look ── */}
+        <filter id={dropId} x="-8%" y="-5%" width="116%" height="118%">
+          <feDropShadow
+            dx="0"
+            dy="3"
+            stdDeviation="3.5"
+            floodColor="rgba(0,0,0,0.40)"
+          />
+        </filter>
+
+        {/* ── Radial shine — top-centre light source ── */}
+        <radialGradient id={shineId} cx="50%" cy="16%" r="62%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.26)" />
+          <stop offset="60%"  stopColor="rgba(255,255,255,0.06)" />
           <stop offset="100%" stopColor="rgba(255,255,255,0)"    />
         </radialGradient>
 
-        {/* Vertical shadow at hem — grounds the jersey */}
-        <linearGradient id={shadowId} x1="0%" y1="60%" x2="0%" y2="100%">
+        {/* ── Side vignette — subtle left/right darkening adds curvature ── */}
+        <linearGradient id={sideId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.18)" />
+          <stop offset="18%"  stopColor="rgba(0,0,0,0)"    />
+          <stop offset="82%"  stopColor="rgba(0,0,0,0)"    />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.18)" />
+        </linearGradient>
+
+        {/* ── Hem shadow — grounds the jersey at the bottom ── */}
+        <linearGradient id={shadowId} x1="0%" y1="58%" x2="0%" y2="100%">
           <stop offset="0%"   stopColor="rgba(0,0,0,0)"    />
-          <stop offset="100%" stopColor="rgba(0,0,0,0.30)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.32)" />
         </linearGradient>
       </defs>
 
-      {/* ── 1. Body fill (pattern-driven) ───────────────────────────────── */}
-      {jerseyPattern === 'solid'    && <SolidFill    primary={pc} />}
-      {jerseyPattern === 'stripes'  && <StripeFill   primary={pc} secondary={sc} id={stripeId} />}
-      {jerseyPattern === 'split'    && <SplitFill    primary={pc} secondary={sc} leftId={leftId} rightId={rightId} />}
-      {jerseyPattern === 'gradient' && <GradientFill primary={pc} secondary={sc} id={gradId} />}
+      {/* ── 1. Body fill with drop shadow ───────────────────────────────── */}
+      {jerseyPattern === 'solid'    && <SolidFill    primary={pc} filter={dropFilter} />}
+      {jerseyPattern === 'stripes'  && <StripeFill   primary={pc} secondary={sc} id={stripeId} filter={dropFilter} />}
+      {jerseyPattern === 'split'    && <SplitFill    primary={pc} secondary={sc} leftId={leftId} rightId={rightId} filter={dropFilter} />}
+      {jerseyPattern === 'gradient' && <GradientFill primary={pc} secondary={sc} id={gradId} filter={dropFilter} />}
 
-      {/* ── 2. Shoulder / sleeve panels — always secondary ──────────────── */}
+      {/* ── 2. Shoulder / sleeve yokes — always secondary ───────────────── */}
       <path d={LEFT_PANEL}  fill={sc} />
       <path d={RIGHT_PANEL} fill={sc} />
 
-      {/* ── 3. Shine overlay ────────────────────────────────────────────── */}
+      {/* ── 3. Collar band — secondary colour, thin V strip ─────────────── */}
+      <path d={COLLAR_BAND} fill={sc} />
+
+      {/* ── 4. Shine overlay — fabric highlight ─────────────────────────── */}
       <path d={JERSEY_PATH} fill={`url(#${shineId})`} />
 
-      {/* ── 4. Bottom shadow ─────────────────────────────────────────────── */}
+      {/* ── 5. Side vignette — curvature depth ──────────────────────────── */}
+      <path d={JERSEY_PATH} fill={`url(#${sideId})`} />
+
+      {/* ── 6. Hem shadow ─────────────────────────────────────────────────── */}
       <path d={JERSEY_PATH} fill={`url(#${shadowId})`} />
 
-      {/* ── 5. Jersey outline ────────────────────────────────────────────── */}
+      {/* ── 7. Jersey outline stroke ─────────────────────────────────────── */}
       <path
         d={JERSEY_PATH}
         fill="none"
-        stroke="rgba(0,0,0,0.35)"
-        strokeWidth="0.9"
+        stroke="rgba(0,0,0,0.28)"
+        strokeWidth="0.8"
       />
 
-      {/* ── 6. V-neck collar — dark edge + inner highlight ───────────────── */}
+      {/* ── 8. Panel seam lines (shoulder yoke edges) ────────────────────── */}
+      {/* Left diagonal seam */}
+      <line x1="34" y1="26" x2="20" y2="52"
+        stroke="rgba(0,0,0,0.18)" strokeWidth="0.7" strokeLinecap="round" />
+      {/* Right diagonal seam */}
+      <line x1="86" y1="26" x2="100" y2="52"
+        stroke="rgba(0,0,0,0.18)" strokeWidth="0.7" strokeLinecap="round" />
+
+      {/* ── 9. Sleeve cuff edge lines ─────────────────────────────────────── */}
+      <line x1="4"   y1="48" x2="20"  y2="52"
+        stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
+      <line x1="116" y1="48" x2="100" y2="52"
+        stroke="rgba(0,0,0,0.22)" strokeWidth="0.8" strokeLinecap="round" />
+
+      {/* ── 10. V-neck outer edge ─────────────────────────────────────────── */}
       <path
         d={V_NECK}
         fill="none"
-        stroke="rgba(0,0,0,0.45)"
-        strokeWidth="1.6"
+        stroke="rgba(0,0,0,0.40)"
+        strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      {/* Inner collar highlight */}
       <path
         d={V_NECK}
         fill="none"
-        stroke="rgba(255,255,255,0.20)"
-        strokeWidth="0.7"
+        stroke="rgba(255,255,255,0.16)"
+        strokeWidth="0.6"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
 
-      {/* ── 7. Sleeve cuff lines — secondary panel border ────────────────── */}
-      <line x1="16" y1="44" x2="4"  y2="42" stroke="rgba(0,0,0,0.20)" strokeWidth="0.6" />
-      <line x1="84" y1="44" x2="96" y2="42" stroke="rgba(0,0,0,0.20)" strokeWidth="0.6" />
-
-      {/* ── 8. "GAFFER" chest branding — secondary colour, bold italic ────── */}
+      {/* ── 11. GAFFER chest branding ─────────────────────────────────────── */}
       <text
-        x="50"
-        y="68"
+        x="60"
+        y="82"
         textAnchor="middle"
         dominantBaseline="middle"
         fill={sc}
-        fontSize="13"
+        fontSize="14"
         fontWeight="900"
         fontStyle="italic"
         fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        letterSpacing="0.5"
+        letterSpacing="0.8"
         style={{ userSelect: 'none' }}
       >
         {brandingText}
       </text>
+      {/* Subtle text shadow for depth */}
+      <text
+        x="60.5"
+        y="82.5"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill="rgba(0,0,0,0.30)"
+        fontSize="14"
+        fontWeight="900"
+        fontStyle="italic"
+        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
+        letterSpacing="0.8"
+        style={{ userSelect: 'none', pointerEvents: 'none' }}
+        aria-hidden="true"
+      >
+        {brandingText}
+      </text>
+      <text
+        x="60"
+        y="82"
+        textAnchor="middle"
+        dominantBaseline="middle"
+        fill={sc}
+        fontSize="14"
+        fontWeight="900"
+        fontStyle="italic"
+        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
+        letterSpacing="0.8"
+        style={{ userSelect: 'none' }}
+        aria-hidden="true"
+      >
+        {brandingText}
+      </text>
 
-      {/* ── 9. Optional team code — small text below branding ───────────── */}
+      {/* ── 12. Optional team code ────────────────────────────────────────── */}
       {teamCode && (
         <text
-          x="50"
-          y="82"
+          x="60"
+          y="98"
           textAnchor="middle"
           dominantBaseline="middle"
           fill={sc}
-          fontSize="8"
+          fontSize="9"
           fontWeight="700"
           fontFamily="system-ui, Arial, sans-serif"
-          opacity="0.75"
+          opacity="0.70"
           style={{ userSelect: 'none' }}
         >
           {teamCode}
