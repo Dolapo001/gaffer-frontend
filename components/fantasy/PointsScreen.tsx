@@ -10,6 +10,7 @@ import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
 import { useFantasyStore } from '@/store/fantasyStore'
+import { FantasyHeroWave } from './FantasyHeroWave'
 
 export function PointsScreen() {
   const router = useRouter()
@@ -31,6 +32,14 @@ export function PointsScreen() {
       />
       {/* Super-soft gradient */}
       <div className="absolute inset-0 z-0 bg-gradient-to-b from-transparent via-[#222232]/20 to-[#222232]/90 pointer-events-none" />
+
+      {/* Header crown wave — same arch treatment as FantasyTeamScreen */}
+      <div
+        className="absolute inset-x-0 top-0"
+        style={{ height: '110px', zIndex: 3 }}
+      >
+        <FantasyHeroWave position="top" className="w-full h-full" opacity={0.88} />
+      </div>
 
       {/* Header */}
       <header className="px-4 pt-12 pb-2 flex items-center gap-4 relative z-20">
