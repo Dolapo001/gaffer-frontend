@@ -83,22 +83,22 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
       )}
 
       {/* 1. Jersey Section (Glass) */}
-      <div className="flex-1 flex items-center justify-center pt-2 pb-1 px-1 relative">
+      <div className="flex-1 flex items-end justify-center pb-0 px-0 relative overflow-hidden">
         {jersey ? (
           <JerseySvg
             primaryColor={jersey.primaryColor}
             secondaryColor={jersey.secondaryColor}
             jerseyPattern={jersey.jerseyPattern}
             teamCode={jersey.teamCode}
-            width={46}
-            height={52}
-            className="drop-shadow-md group-hover:scale-110 transition-transform"
+            width={64}
+            height={72}
+            className="drop-shadow-md group-hover:scale-105 transition-transform -mb-1"
           />
         ) : (
           <img
             src={kitImageUrl || "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"}
             alt={playerName}
-            className="w-[80%] h-auto object-contain drop-shadow-md group-hover:scale-110 transition-transform"
+            className="w-full h-auto object-contain drop-shadow-md group-hover:scale-105 transition-transform -mb-1"
             onError={(e) => {
               (e.target as HTMLImageElement).src = "https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_0-66.webp"
             }}
