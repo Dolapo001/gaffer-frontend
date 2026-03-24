@@ -11,46 +11,25 @@ export interface JerseySvgProps {
   teamCode?: string
   width?: number
   height?: number
-  /** Chest branding label. Defaults to "GAFFER". */
   brandingText?: string
   className?: string
 }
 
-// ─── SVG anatomy  (viewBox "0 0 100 108") ─────────────────────────────────────
-//
-//  Football jersey mockup styled after the GAFFER reference kit:
-//    • V-neck collar with collar band in secondary colour
-//    • Shoulder panels in secondary colour
-//    • 3 diagonal shoulder stripes per side (like Adidas) clipped to the panel
-//    • "THE" small label above bold "GAFFER" with orange→red gradient
-//    • Full 3-layer shading: radial shine, side vignette, hem shadow
-//    • feDropShadow for floating product-mockup feel
-//
-//      37,5 ──────── 50,27 ──────── 63,5         ← V-neck
-//     /    Q20,2              Q80,2    \
-//   10,13                           90,13         ← shoulder tips
-//     |                                |
-//    3,25  Q2,35           Q98,35  97,25           ← sleeve outer
-//    3,40 ───────────────────────── 97,40          ← sleeve cuff
-//   17,43 ───────────────────────── 83,43          ← underarm
-//     |                                |
-//   18,101 ────── Q50,106 ─────── 82,101           ← hem
-//
-// ──────────────────────────────────────────────────────────────────────────────
+// ─── SVG anatomy (viewBox "0 0 100 116") ─────────────────────────────────────
+// v2: More organic, volumetric curves.
 
 const JERSEY_PATH =
-  'M37,5 L50,27 L63,5 Q80,2 90,13 L97,25 Q98,35 97,40 L83,43 L82,101 Q50,106 18,101 L17,43 L3,40 Q2,35 3,25 L10,13 Q20,2 37,5Z'
+  'M35,10 L50,28 L65,10 Q85,6 94,26 L83,50 L81,106 Q50,114 19,106 L17,50 L6,26 Q15,6 35,10 Z'
 
-const LEFT_PANEL =
-  'M37,5 Q20,2 10,13 L3,25 Q2,35 3,40 L17,43 L28,22Z'
+// Separate sleeve paths for volumetric overlap
+const SLEEVE_L = 'M35,10 Q22,8 6,26 L17,50 L28,30 Z'
+const SLEEVE_R = 'M65,10 Q78,8 94,26 L83,50 L72,30 Z'
 
-const RIGHT_PANEL =
-  'M63,5 Q80,2 90,13 L97,25 Q98,35 97,40 L83,43 L72,22Z'
+const COLLAR_BAND = 'M35,10 L50,28 L65,10 L61,12 L50,25 L39,12 Z'
+const COLLAR_DEPTH = 'M39,12 L50,25 L61,12 Q50,4 39,12 Z'
 
-const COLLAR_BAND =
-  'M37,5 L50,27 L63,5 L60,7.5 L50,23 L40,7.5Z'
-
-const V_NECK = 'M37,5 L50,27 L63,5'
+// Arched path for branding text
+const BRANDING_PATH = 'M25,72 Q50,66 75,72'
 
 // ─── Pattern fill helpers ─────────────────────────────────────────────────────
 
@@ -64,9 +43,9 @@ function StripeFill({ primary, secondary, id, filter }: {
   return (
     <>
       <defs>
-        <pattern id={id} x="0" y="0" width="10" height="108" patternUnits="userSpaceOnUse">
-          <rect x="0" width="5"  height="108" fill={primary}   />
-          <rect x="5" width="5"  height="108" fill={secondary} />
+        <pattern id={id} x="0" y="0" width="12" height="116" patternUnits="userSpaceOnUse">
+          <rect x="0" width="6"  height="116" fill={primary}   />
+          <rect x="6" width="6"  height="116" fill={secondary} />
         </pattern>
       </defs>
       <path d={JERSEY_PATH} fill={`url(#${id})`} filter={filter} />
@@ -80,8 +59,8 @@ function SplitFill({ primary, secondary, leftId, rightId, filter }: {
   return (
     <>
       <defs>
-        <clipPath id={leftId} ><rect x="0"  y="0" width="50"  height="108" /></clipPath>
-        <clipPath id={rightId}><rect x="50" y="0" width="50"  height="108" /></clipPath>
+        <clipPath id={leftId} ><rect x="0"  y="0" width="50"  height="116" /></clipPath>
+        <clipPath id={rightId}><rect x="50" y="0" width="50"  height="116" /></clipPath>
       </defs>
       <path d={JERSEY_PATH} fill={primary}   clipPath={`url(#${leftId})`}  filter={filter} />
       <path d={JERSEY_PATH} fill={secondary} clipPath={`url(#${rightId})`} />
@@ -105,209 +84,127 @@ function GradientFill({ primary, secondary, id, filter }: {
   )
 }
 
-// ─── JerseySvg ────────────────────────────────────────────────────────────────
-
 export function JerseySvg({
   primaryColor,
   secondaryColor,
   jerseyPattern,
   width = 64,
-  height = 72,
+  height = 74,
   brandingText = 'GAFFER',
   className,
 }: JerseySvgProps) {
   const uid = useId()
+  const { primaryColor: pc, secondaryColor: sc } = normalizeJerseyConfig({ primaryColor, secondaryColor, jerseyPattern })
 
-  const { primaryColor: pc, secondaryColor: sc } = normalizeJerseyConfig({
-    primaryColor,
-    secondaryColor,
-    jerseyPattern,
-  })
-
-  // ── Unique def IDs ──────────────────────────────────────────────────────────
-  const dropId      = `${uid}-drop`
-  const shineId     = `${uid}-sh`
-  const sideId      = `${uid}-side`
-  const shadowId    = `${uid}-sd`
-  const stripeId    = `${uid}-str`
-  const leftId      = `${uid}-l`
-  const rightId     = `${uid}-r`
-  const gradId      = `${uid}-g`
-  const gafferGradId = `${uid}-gg`   // orange→red text gradient
-  const lClipId     = `${uid}-lclip` // clip for left shoulder stripes
-  const rClipId     = `${uid}-rclip` // clip for right shoulder stripes
-
-  const dropFilter  = `url(#${dropId})`
+  const dropId = `${uid}-drop`; const meshId = `${uid}-mesh`; const rimId = `${uid}-rim`; const shadowId = `${uid}-sd`
+  const sideId = `${uid}-side`; const logoId = `${uid}-logo`; const brandPId = `${uid}-bp`; const camoId = `${uid}-camo`
 
   return (
-    <svg
-      width={width}
-      height={height}
-      viewBox="0 0 100 108"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      className={className}
-    >
+    <svg width={width} height={height} viewBox="0 0 100 116" fill="none" className={className}>
       <defs>
-        {/* ── Floating drop shadow ── */}
-        <filter id={dropId} x="-10%" y="-6%" width="120%" height="120%">
-          <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="rgba(0,0,0,0.45)" />
+        <filter id={dropId} x="-20%" y="-10%" width="140%" height="140%">
+          <feDropShadow dx="0" dy="5" stdDeviation="4" floodColor="rgba(0,0,0,0.3)" />
+        </filter>
+        <pattern id={meshId} x="0" y="0" width="1.2" height="1.2" patternUnits="userSpaceOnUse">
+          <circle cx="0.3" cy="0.3" r="0.25" fill="rgba(255,255,255,0.04)" />
+        </pattern>
+        
+        {/* Subtle Camo-like Texture */}
+        <filter id={camoId}>
+          <feTurbulence type="fractalNoise" baseFrequency="0.4" numOctaves="2" result="noise" />
+          <feColorMatrix type="saturate" values="0" />
+          <feComponentTransfer>
+            <feFuncA type="discrete" tableValues="0 0.1 0 0.12 0" />
+          </feComponentTransfer>
+          <feComposite operator="in" in2="SourceGraphic" />
         </filter>
 
-        {/* ── Radial chest shine (top-centre light source) ── */}
-        <radialGradient id={shineId} cx="50%" cy="13%" r="66%">
-          <stop offset="0%"   stopColor="rgba(255,255,255,0.38)" />
-          <stop offset="52%"  stopColor="rgba(255,255,255,0.07)" />
-          <stop offset="100%" stopColor="rgba(255,255,255,0)"    />
+        <radialGradient id={rimId} cx="50%" cy="5%" r="70%">
+          <stop offset="0%"   stopColor="rgba(255,255,255,0.2)" />
+          <stop offset="70%" stopColor="rgba(255,255,255,0)"    />
         </radialGradient>
-
-        {/* ── Side vignette (left/right edge darkening for curvature) ── */}
         <linearGradient id={sideId} x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0.30)" />
-          <stop offset="18%"  stopColor="rgba(0,0,0,0)"    />
-          <stop offset="82%"  stopColor="rgba(0,0,0,0)"    />
-          <stop offset="100%" stopColor="rgba(0,0,0,0.30)" />
+          <stop offset="0%"   stopColor="rgba(0,0,0,0.15)" />
+          <stop offset="15%"  stopColor="rgba(0,0,0,0)" />
+          <stop offset="85%"  stopColor="rgba(0,0,0,0)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.15)" />
         </linearGradient>
-
-        {/* ── Hem shadow (grounds the jersey) ── */}
-        <linearGradient id={shadowId} x1="0%" y1="52%" x2="0%" y2="100%">
-          <stop offset="0%"   stopColor="rgba(0,0,0,0)"    />
-          <stop offset="100%" stopColor="rgba(0,0,0,0.42)" />
+        <linearGradient id={shadowId} x1="50%" y1="0%" x2="50%" y2="100%">
+          <stop offset="80%"  stopColor="rgba(0,0,0,0)" />
+          <stop offset="100%" stopColor="rgba(0,0,0,0.12)" />
         </linearGradient>
-
-        {/* ── GAFFER text gradient — orange to red (brand identity) ── */}
-        {/*
-          gradientUnits="userSpaceOnUse" with x1/x2 spanning the text bounds:
-          GAFFER text is centered at x=50, textLength=52 → x: 24 to 76
-        */}
-        <linearGradient id={gafferGradId} gradientUnits="userSpaceOnUse"
-          x1="24" y1="71" x2="76" y2="71">
-          <stop offset="0%"   stopColor="#FF6B00" />
-          <stop offset="100%" stopColor="#CC1A1A" />
+        <linearGradient id={logoId} x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%"   stopColor="#FF9800" />
+          <stop offset="100%" stopColor="#D32F2F" />
         </linearGradient>
-
-        {/* ── Clip paths for shoulder stripes (constrain within panels) ── */}
-        <clipPath id={lClipId}><path d={LEFT_PANEL}  /></clipPath>
-        <clipPath id={rClipId}><path d={RIGHT_PANEL} /></clipPath>
       </defs>
 
-      {/* ═══ LAYER 1 — Body fill ════════════════════════════════════════════ */}
-      {jerseyPattern === 'solid'    && <SolidFill    primary={pc} filter={dropFilter} />}
-      {jerseyPattern === 'stripes'  && <StripeFill   primary={pc} secondary={sc} id={stripeId} filter={dropFilter} />}
-      {jerseyPattern === 'split'    && <SplitFill    primary={pc} secondary={sc} leftId={leftId} rightId={rightId} filter={dropFilter} />}
-      {jerseyPattern === 'gradient' && <GradientFill primary={pc} secondary={sc} id={gradId} filter={dropFilter} />}
-
-      {/* ═══ LAYER 2 — Shoulder panels ══════════════════════════════════════ */}
-      <path d={LEFT_PANEL}  fill={sc} />
-      <path d={RIGHT_PANEL} fill={sc} />
-
-      {/* ═══ LAYER 3 — Shoulder stripes (clipped to panel, reference style) ═
-          3 thin diagonal parallelograms per shoulder.
-          Direction: parallel to the panel inner edge (collar→underarm seam).
-          They sit offset toward the sleeve outer edge.
-          Colour: slightly darkened version of sc so they read clearly.        */}
-
-      {/* Left shoulder — 3 stripes running from upper-right → lower-left */}
-      <g clipPath={`url(#${lClipId})`}>
-        {/* Stripe 1 — innermost (nearest collar) */}
-        <polygon
-          points="32,4 35,4 25,27 22,27"
-          fill="rgba(0,0,0,0.22)"
-        />
-        {/* Stripe 2 */}
-        <polygon
-          points="25,4 28,4 18,27 15,27"
-          fill="rgba(0,0,0,0.22)"
-        />
-        {/* Stripe 3 — outermost */}
-        <polygon
-          points="18,6 21,6 11,29 8,29"
-          fill="rgba(0,0,0,0.22)"
-        />
+      {/* Body & Pattern */}
+      <g filter={`url(#${dropId})`}>
+        {jerseyPattern === 'solid'    && <SolidFill    primary={pc} />}
+        {jerseyPattern === 'stripes'  && <StripeFill   primary={pc} secondary={sc} id={`${uid}-str`} />}
+        {jerseyPattern === 'split'    && <SplitFill    primary={pc} secondary={sc} leftId={`${uid}-l`} rightId={`${uid}-r`} />}
+        {jerseyPattern === 'gradient' && <GradientFill primary={pc} secondary={sc} id={`${uid}-g`} />}
       </g>
 
-      {/* Right shoulder — mirror */}
-      <g clipPath={`url(#${rClipId})`}>
-        {/* Stripe 1 — innermost */}
-        <polygon
-          points="68,4 65,4 75,27 78,27"
-          fill="rgba(0,0,0,0.22)"
-        />
-        {/* Stripe 2 */}
-        <polygon
-          points="75,4 72,4 82,27 85,27"
-          fill="rgba(0,0,0,0.22)"
-        />
-        {/* Stripe 3 — outermost */}
-        <polygon
-          points="82,6 79,6 89,29 92,29"
-          fill="rgba(0,0,0,0.22)"
-        />
-      </g>
-
-      {/* ═══ LAYER 4 — Collar band ════════════════════════════════════════════ */}
-      <path d={COLLAR_BAND} fill={sc} />
-
-      {/* ═══ LAYER 5 — Shading overlays ══════════════════════════════════════ */}
-      {/* Radial chest shine */}
-      <path d={JERSEY_PATH} fill={`url(#${shineId})`} />
-      {/* Side vignette */}
-      <path d={JERSEY_PATH} fill={`url(#${sideId})`}  />
-      {/* Hem shadow */}
+      {/* Texture & Shading Layers */}
+      <path d={JERSEY_PATH} fill="white" filter={`url(#${camoId})`} style={{ mixBlendMode: 'overlay', opacity: 0.2 }} />
+      <path d={SLEEVE_L} fill="rgba(0,0,0,0.08)" />
+      <path d={SLEEVE_R} fill="rgba(0,0,0,0.08)" />
+      <path d={JERSEY_PATH} fill={`url(#${meshId})`} style={{ mixBlendMode: 'overlay' }} />
+      <path d={JERSEY_PATH} fill={`url(#${sideId})`} />
       <path d={JERSEY_PATH} fill={`url(#${shadowId})`} />
+      <path d={JERSEY_PATH} fill={`url(#${rimId})`} />
 
-      {/* ═══ LAYER 6 — Outline & seam lines ══════════════════════════════════ */}
-      {/* Jersey perimeter */}
-      <path d={JERSEY_PATH} fill="none" stroke="rgba(0,0,0,0.28)" strokeWidth="0.65" />
-      {/* Panel seam (shoulder yoke → underarm) */}
-      <line x1="28" y1="22" x2="17" y2="43" stroke="rgba(0,0,0,0.18)" strokeWidth="0.55" strokeLinecap="round" />
-      <line x1="72" y1="22" x2="83" y2="43" stroke="rgba(0,0,0,0.18)" strokeWidth="0.55" strokeLinecap="round" />
-      {/* Sleeve cuff edges */}
-      <line x1="3"  y1="40" x2="17" y2="43" stroke="rgba(0,0,0,0.22)" strokeWidth="0.65" strokeLinecap="round" />
-      <line x1="97" y1="40" x2="83" y2="43" stroke="rgba(0,0,0,0.22)" strokeWidth="0.65" strokeLinecap="round" />
-      {/* V-neck edge + inner highlight */}
-      <path d={V_NECK} fill="none" stroke="rgba(0,0,0,0.42)" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={V_NECK} fill="none" stroke="rgba(255,255,255,0.16)" strokeWidth="0.45" strokeLinecap="round" strokeLinejoin="round" />
+      {/* Crisp Shoulder Stripes */}
+      <g stroke={sc} strokeWidth="1.5" opacity="0.8">
+        <path d="M30,12 L18,22" />
+        <path d="M32,14 L20,24" />
+        <path d="M34,16 L22,26" />
+        
+        <path d="M70,12 L82,22" />
+        <path d="M68,14 L80,24" />
+        <path d="M66,16 L78,26" />
+      </g>
 
-      {/* ═══ LAYER 7 — THE GAFFER chest branding ═════════════════════════════
-          Matches the reference: small "THE" label above bold "GAFFER" gradient.
+      {/* Left Chest Club Badge placeholder */}
+      <circle cx="28" cy="42" r="4" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="0.5" />
+      <circle cx="28" cy="42" r="2.5" fill={sc} fillOpacity="0.3" />
 
-          Scale at width=64 (viewBox 100 wide):
-            scale = 64/100 = 0.64
-            "GAFFER" fontSize=19, textLength=52 → 33.3 px on screen ✓
-            "THE"    fontSize=6.5             →  4.2 px on screen (subtle) ✓
-      */}
+      {/* Right Sleeve Badge placeholder */}
+      <circle cx="88" cy="38" r="3" fill="white" fillOpacity="0.2" stroke="white" strokeWidth="0.4" />
 
-      {/* Shadow pass — depth behind both lines */}
-      <text x="25.4" y="62.4" fontSize="6.5" fontWeight="700"
-        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        fill="rgba(0,0,0,0.35)" style={{ userSelect: 'none', pointerEvents: 'none' }}
-        aria-hidden="true">THE</text>
-      <text x="50.5" y="71.5" textAnchor="middle" dominantBaseline="middle"
-        fontSize="19" fontWeight="900" textLength="52" lengthAdjust="spacing"
-        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        fill="rgba(0,0,0,0.35)" style={{ userSelect: 'none', pointerEvents: 'none' }}
-        aria-hidden="true">{brandingText}</text>
+      {/* Subtle Folds */}
+      <g opacity="0.08" stroke="black" strokeWidth="0.8" fill="none">
+        <path d="M50,28 Q55,48 60,68" />
+        <path d="M18,50 Q30,56 35,72" />
+        <path d="M82,50 Q70,56 65,72" />
+      </g>
 
-      {/* "THE" — small label above the G, secondary colour */}
-      <text x="25" y="62" fontSize="6.5" fontWeight="700"
-        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        fill={sc} style={{ userSelect: 'none' }}>THE</text>
+      {/* Deep V-Collar */}
+      <path d={COLLAR_DEPTH} fill="rgba(0,0,0,0.4)" />
+      <path d={COLLAR_BAND} fill={sc} stroke="rgba(0,0,0,0.1)" strokeWidth="0.8" />
 
-      {/* "GAFFER" — large, orange→red gradient */}
-      <text x="50" y="71" textAnchor="middle" dominantBaseline="middle"
-        fontSize="19" fontWeight="900" textLength="52" lengthAdjust="spacing"
-        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        fill={`url(#${gafferGradId})`}
-        style={{ userSelect: 'none' }}>{brandingText}</text>
-
-      {/* Top-edge highlight for embossed/heat-transfer print look */}
-      <text x="50" y="70.4" textAnchor="middle" dominantBaseline="middle"
-        fontSize="19" fontWeight="900" textLength="52" lengthAdjust="spacing"
-        fontFamily="system-ui, 'Arial Black', Arial, sans-serif"
-        fill="rgba(255,255,255,0.18)" style={{ userSelect: 'none', pointerEvents: 'none' }}
-        aria-hidden="true">{brandingText}</text>
+      {/* Pro Logo Branding */}
+      <g transform="translate(50, 74) scale(0.9)" filter="drop-shadow(0 1px 1px rgba(0,0,0,0.3))">
+        <text x="-25" y="-12" fontSize="5" fontWeight="900" fill="white" fontFamily="Inter, sans-serif" opacity="0.8">THE</text>
+        <g fill={`url(#${logoId})`} fontFamily="Chakra Petch, sans-serif" fontWeight="900" fontStyle="italic">
+           <text x="-25" y="6" fontSize="18">G</text>
+           {/* 'A' Silhouette */}
+           <path d="M-10,6 L-7,-10 L-4,6 L-6,6 L-6.2,2 L-7.8,2 L-8,6 Z" />
+           <circle cx="-7" cy="-5" r="1.5" fill="rgba(0,0,0,0.9)" />
+           <path d="M-8.5,-1 L-5.5,-1 L-4,1 L-10,1 Z" fill="rgba(0,0,0,0.9)" />
+           
+           <text x="-1" y="6" fontSize="18">F</text>
+           <text x="10" y="6" fontSize="18">F</text>
+           <text x="21" y="6" fontSize="18">E</text>
+           <text x="32" y="6" fontSize="18">R</text>
+        </g>
+      </g>
+      
+      {/* Seams */}
+      <path d="M35,10 Q35,32 25,104" stroke="rgba(0,0,0,0.04)" strokeWidth="0.5" fill="none" />
+      <path d="M65,10 Q65,32 75,104" stroke="rgba(0,0,0,0.04)" strokeWidth="0.5" fill="none" />
     </svg>
   )
 }

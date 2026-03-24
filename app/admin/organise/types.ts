@@ -3,9 +3,16 @@ import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 export type { JerseyPattern }
 
 export type JerseyFormConfig = {
-  primaryColor: string
-  secondaryColor: string
-  jerseyPattern: JerseyPattern
+  home: {
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: JerseyPattern
+  }
+  away: {
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: JerseyPattern
+  }
 }
 
 export type Player = {
@@ -27,7 +34,17 @@ export type Team = {
   playerCount: string
   logo: string
   competitionId?: string
-  maxTeams?: number
+  maxPlayers?: number
+  homeJersey?: {
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: JerseyPattern
+  }
+  awayJersey?: {
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: JerseyPattern
+  }
 }
 
 export type Group = {

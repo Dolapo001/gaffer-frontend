@@ -16,7 +16,7 @@ export function mapApiPlayer(
 ): FantasySquadPlayer {
   if (!p || !p.playerId || typeof p.playerId !== 'object') {
     const fallbackTeamObj = typeof p?.teamId === 'object' ? (p.teamId as any) : null
-    const fallbackJersey = fallbackTeamObj?.jersey || undefined
+    const fallbackJersey = fallbackTeamObj?.homeJersey || fallbackTeamObj?.jersey || undefined
     return {
       id: p?._id || '',
       name: 'Unknown Player',
@@ -53,11 +53,11 @@ export function mapApiPlayer(
   const playerTeamHandle = teamObj?.shortName || teamObj?.handle || ''
 
   // Extract jersey config from team — always home kit
-  const teamJersey = teamObj?.jersey
+  const teamJersey = teamObj?.homeJersey || teamObj?.jersey
     ? {
-        primaryColor: teamObj.jersey.primaryColor as string,
-        secondaryColor: teamObj.jersey.secondaryColor as string,
-        jerseyPattern: teamObj.jersey.jerseyPattern as import('@/components/jersey/jerseyUtils').JerseyPattern,
+        primaryColor: (teamObj?.homeJersey?.primaryColor || teamObj?.jersey?.primaryColor) as string,
+        secondaryColor: (teamObj?.homeJersey?.secondaryColor || teamObj?.jersey?.secondaryColor) as string,
+        jerseyPattern: (teamObj?.homeJersey?.jerseyPattern || teamObj?.jersey?.jerseyPattern) as import('@/components/jersey/jerseyUtils').JerseyPattern,
       }
     : undefined
 
