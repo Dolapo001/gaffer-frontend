@@ -89,8 +89,9 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
     <button
       style={{
         width: '64px',
-        height: '102px',
-        borderRadius: '5px',
+        // Slightly taller so the jersey has room to breathe above the info bar
+        height: '106px',
+        borderRadius: '7px',
         border: selected
           ? '2px solid #ff6b00'
           : '0.5px solid rgba(255, 255, 255, 0.4)',
@@ -98,7 +99,7 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
         backdropFilter: 'blur(12px)',
         boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
       }}
-      className={`flex flex-col overflow-hidden transition-all relative group ${
+      className={`flex flex-col overflow-visible transition-all relative group ${
         selected ? 'scale-105 z-10' : ''
       } ${className}`}
       onClick={onClick}
@@ -111,15 +112,21 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
       )}
 
       {/* ── Jersey section ───────────────────────────────────────────────── */}
-      <div className="flex-1 flex items-end justify-center pb-0 px-0 relative overflow-hidden">
+      {/*
+        overflow-visible so the drop-shadow inside the SVG is not clipped.
+        items-end so the jersey hem sits flush against the info bar.
+        Jersey is 68×76 — at the 100×108 viewBox scale that renders GAFFER
+        at ~12 px on screen (legible) and fills ~72% of the card width.
+      */}
+      <div className="flex-1 flex items-end justify-center pb-0 px-0 relative overflow-visible">
         <JerseySvg
           primaryColor={resolvedJersey.primaryColor}
           secondaryColor={resolvedJersey.secondaryColor}
           jerseyPattern={resolvedJersey.jerseyPattern}
           teamCode={jersey?.teamCode}
-          width={64}
-          height={72}
-          className="drop-shadow-md group-hover:scale-105 transition-transform -mb-1"
+          width={68}
+          height={76}
+          className="group-hover:scale-105 transition-transform"
         />
 
         {/* Status badge ── top-right corner */}
