@@ -1,17 +1,17 @@
 'use client'
 
+import { useState } from 'react'
 import { JerseySvg } from '@/components/jersey/JerseySvg'
+import type { JerseyFormConfig } from '@/app/admin/organise/types'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export interface JerseyEditorValue {
-  primaryColor: string
-  secondaryColor: string
-}
+/** Alias kept for any callers still importing JerseyEditorValue. */
+export type JerseyEditorValue = JerseyFormConfig
 
 interface JerseyEditorProps {
-  value: JerseyEditorValue
-  onChange: (next: JerseyEditorValue) => void
+  value: JerseyFormConfig
+  onChange: (next: JerseyFormConfig) => void
 }
 
 // ─── Preset Colors ────────────────────────────────────────────────────────────
@@ -84,23 +84,51 @@ function HexInput({
 
 /**
  * Client component — admin jersey colour editor with live preview.
- * Designed for use inside OrganiseCreateSheet and team edit forms.
+ * Supports home and away kit tabs. Designed for OrganiseCreateSheet and team edit forms.
  */
 export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
-  const update = (patch: Partial<JerseyEditorValue>) =>
-    onChange({ ...value, ...patch })
+  const [activeKit, setActiveKit] = useState<'home' | 'away'>('home')
+
+  const currentJersey = value[activeKit]
+
+  const update = (patch: Partial<typeof currentJersey>) => {
+    onChange({
+      ...value,
+      [activeKit]: { ...currentJersey, ...patch },
+    })
+  }
 
   return (
     <div className="space-y-4">
       <label className="block text-gray-300 text-sm font-medium ml-1">Kit Design</label>
 
+      {/* Kit Tabs */}
+      <div className="flex gap-2 p-1 bg-[#181928] rounded-xl border border-white/5">
+        {(['home', 'away'] as const).map((kit) => (
+          <button
+            key={kit}
+            type="button"
+            onClick={() => setActiveKit(kit)}
+            className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${
+              activeKit === kit
+                ? 'bg-[#FF7A00] text-white shadow-lg shadow-orange-500/20'
+                : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            {kit} Kit
+          </button>
+        ))}
+      </div>
+
       {/* Live Preview */}
-      <div className="flex items-center justify-center py-3">
+      <div className="flex items-center justify-center py-4 bg-black/20 rounded-2xl border border-white/5 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50" />
         <JerseySvg
-          primaryColor={value.primaryColor}
-          secondaryColor={value.secondaryColor}
-          width={80}
-          height={93}
+          primaryColor={currentJersey.primaryColor}
+          secondaryColor={currentJersey.secondaryColor}
+          width={100}
+          height={108}
+          className="relative z-10 transition-transform group-hover:scale-105 duration-500"
         />
       </div>
 
@@ -112,14 +140,14 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
             <ColorSwatch
               key={c}
               color={c}
-              selected={value.primaryColor === c}
+              selected={currentJersey.primaryColor === c}
               onSelect={() => update({ primaryColor: c })}
             />
           ))}
         </div>
         <HexInput
           label="Custom hex"
-          value={value.primaryColor}
+          value={currentJersey.primaryColor}
           onChange={(v) => update({ primaryColor: v })}
         />
       </div>
@@ -132,14 +160,14 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
             <ColorSwatch
               key={c}
               color={c}
-              selected={value.secondaryColor === c}
+              selected={currentJersey.secondaryColor === c}
               onSelect={() => update({ secondaryColor: c })}
             />
           ))}
         </div>
         <HexInput
           label="Custom hex"
-          value={value.secondaryColor}
+          value={currentJersey.secondaryColor}
           onChange={(v) => update({ secondaryColor: v })}
         />
       </div>
