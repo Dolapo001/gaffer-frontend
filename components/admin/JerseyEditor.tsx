@@ -1,10 +1,13 @@
 'use client'
 
-import { JerseySvg } from '@/components/jersey/JerseySvg'
-import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
-
 import { useState } from 'react'
+import { JerseySvg } from '@/components/jersey/JerseySvg'
 import type { JerseyFormConfig } from '@/app/admin/organise/types'
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+/** Alias kept for any callers still importing JerseyEditorValue. */
+export type JerseyEditorValue = JerseyFormConfig
 
 interface JerseyEditorProps {
   value: JerseyFormConfig
@@ -17,13 +20,6 @@ const PRESET_COLORS = [
   '#1D4ED8', '#DC2626', '#16A34A', '#9333EA', '#EA580C',
   '#0891B2', '#DB2777', '#65A30D', '#CA8A04', '#475569',
   '#ffffff', '#111827',
-]
-
-const PATTERNS: { value: JerseyPattern; label: string }[] = [
-  { value: 'solid',    label: 'Solid'    },
-  { value: 'stripes',  label: 'Stripes'  },
-  { value: 'split',    label: 'Split'    },
-  { value: 'gradient', label: 'Gradient' },
 ]
 
 // ─── Color Swatch ─────────────────────────────────────────────────────────────
@@ -87,8 +83,8 @@ function HexInput({
 // ─── JerseyEditor ─────────────────────────────────────────────────────────────
 
 /**
- * Client component — admin jersey colour/pattern editor with live preview.
- * Designed for use inside OrganiseCreateSheet and team edit forms.
+ * Client component — admin jersey colour editor with live preview.
+ * Supports home and away kit tabs. Designed for OrganiseCreateSheet and team edit forms.
  */
 export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
   const [activeKit, setActiveKit] = useState<'home' | 'away'>('home')
@@ -104,6 +100,8 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
 
   return (
     <div className="space-y-4">
+      <label className="block text-gray-300 text-sm font-medium ml-1">Kit Design</label>
+
       {/* Kit Tabs */}
       <div className="flex gap-2 p-1 bg-[#181928] rounded-xl border border-white/5">
         {(['home', 'away'] as const).map((kit) => (
@@ -128,30 +126,10 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
         <JerseySvg
           primaryColor={currentJersey.primaryColor}
           secondaryColor={currentJersey.secondaryColor}
-          jerseyPattern={currentJersey.jerseyPattern}
           width={100}
-          height={116}
-          brandingText="GAFFER"
+          height={108}
           className="relative z-10 transition-transform group-hover:scale-105 duration-500"
         />
-      </div>
-
-      {/* Pattern selector */}
-      <div className="grid grid-cols-4 gap-2">
-        {PATTERNS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            onClick={() => update({ jerseyPattern: p.value })}
-            className={`py-2 px-1 rounded-lg text-[11px] font-semibold border transition-all ${
-              currentJersey.jerseyPattern === p.value
-                ? 'border-[#FF7A00] bg-[#FF7A00]/20 text-white'
-                : 'border-white/10 text-gray-400 hover:border-white/30'
-            }`}
-          >
-            {p.label}
-          </button>
-        ))}
       </div>
 
       {/* Primary colour */}
