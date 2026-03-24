@@ -1,30 +1,70 @@
 'use client'
 
-import React from 'react';
-import { Plus } from 'lucide-react';
+import React from 'react'
+import { Plus } from 'lucide-react'
 
 interface EmptySlotCardProps {
-  onClick?: () => void;
-  className?: string;
-  position?: string;
+  onClick?: () => void
+  className?: string
+  position?: string
 }
 
-export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({ onClick, className = "", position }) => {
+/**
+ * EmptySlotCard — ghost placeholder matching the spatial rhythm of PitchPlayerCard.
+ *
+ * Layout mirrors the filled tile exactly:
+ *   • Ghost jersey area  (64 × 72) — dashed outline, same proportions as the real jersey
+ *   • Ghost nameplate    (27px)    — faint strip below, same height as the real nameplate
+ *
+ * Lower contrast than filled tiles so active players dominate visually.
+ */
+export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({
+  onClick,
+  className = '',
+  position,
+}) => {
   return (
-    <button 
+    <button
       onClick={onClick}
-      style={{
-        width: '64px',
-        height: '102px',
-        borderRadius: '5.45px',
-        border: '0.4px solid rgba(255, 255, 255, 0.45)',
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(55, 0, 60, 0.25) 100%)',
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0px 1.02px 1.7px 0px rgba(0, 0, 0, 0.1), inset 0 0 10px rgba(255,255,255,0.05)',
-      }}
-      className={`flex flex-col items-center justify-center transition-all active:scale-95 group overflow-hidden ${className}`}
+      className={`relative flex flex-col items-center group active:scale-95 transition-all outline-none select-none ${className}`}
+      style={{ width: 64, background: 'none', border: 'none', padding: 0 }}
     >
-      <Plus className="text-white w-5 h-5 opacity-60 group-hover:opacity-100 transition-opacity" />
+      {/* Ghost jersey silhouette */}
+      <div
+        className="w-full flex flex-col items-center justify-center"
+        style={{
+          width: 64,
+          height: 72,
+          borderRadius: 8,
+          border: '1.5px dashed rgba(255,255,255,0.22)',
+          background: 'rgba(255,255,255,0.04)',
+        }}
+      >
+        <Plus
+          className="text-white/35 group-hover:text-white/65 transition-colors"
+          size={17}
+          strokeWidth={2.5}
+        />
+        {position && (
+          <span
+            className="mt-1 uppercase font-bold text-white/25 group-hover:text-white/45 transition-colors"
+            style={{ fontSize: 7, letterSpacing: '0.06em' }}
+          >
+            {position}
+          </span>
+        )}
+      </div>
+
+      {/* Ghost nameplate — matches the filled tile's nameplate height */}
+      <div
+        style={{
+          width: '100%',
+          height: 27,
+          borderRadius: 3,
+          marginTop: 2,
+          background: 'rgba(255,255,255,0.07)',
+        }}
+      />
     </button>
-  );
-};
+  )
+}

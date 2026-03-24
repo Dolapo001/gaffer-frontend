@@ -159,9 +159,16 @@ export function PitchLayout({
       <PitchMarkings />
 
       {/* Player rows */}
-      <div className="absolute inset-0 flex flex-col justify-center gap-[14px] pt-8 pb-12 px-2">
+      {/*
+        justify-around  — evenly distributes the 4 formation rows across the
+                          full pitch height so GK/DEF/MID/FWD zones feel natural
+        gap-[6px]       — minimal gap; rows self-space via justify-around
+        pt-6 pb-8       — leaves the goal area and centre circle visible
+        gap-2 per row   — 8 px between players; 5×64 + 4×8 = 352px fits 360px screens
+      */}
+      <div className="absolute inset-0 flex flex-col justify-around gap-[6px] pt-6 pb-8 px-2">
         {rows.map((rowData, ri) => (
-          <div key={ri} className="flex flex-row justify-center gap-2 sm:gap-4 w-full">
+          <div key={ri} className="flex flex-row justify-center gap-2 w-full">
             {selectionMode ? (
               // In selection mode, we show all slots
               Array.from({ length: rowData.totalSlots }).map((_, si) => {

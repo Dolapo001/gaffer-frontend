@@ -117,7 +117,8 @@ export function FantasyTeamScreen() {
         </div>
 
         {/* Substitute Section */}
-        <div className="mt-[-40px] px-2 pb-10">
+        {/* mt-6: clean gap below pitch — no longer needs negative pull */}
+        <div className="mt-6 px-2 pb-10">
           <SubstituteBench
             benchPlayers={benchPlayers}
             selectedId={selectedPlayerId}

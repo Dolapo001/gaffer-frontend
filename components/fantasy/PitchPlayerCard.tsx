@@ -1,41 +1,46 @@
-import React from 'react';
-import { JerseySvg } from '@/components/jersey/JerseySvg';
-import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils';
-import type { JerseyPattern } from '@/components/jersey/jerseyUtils';
+'use client'
+
+import React from 'react'
+import { JerseySvg } from '@/components/jersey/JerseySvg'
+import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 
 export interface JerseyProps {
-  primaryColor: string;
-  secondaryColor: string;
-  jerseyPattern: JerseyPattern;
-  teamCode?: string;
+  primaryColor: string
+  secondaryColor: string
+  jerseyPattern: JerseyPattern
+  teamCode?: string
 }
 
 interface PitchPlayerCardProps {
-  playerName: string;
-  fixture: string;
-  /** Kept for API compatibility; ignored — JerseySvg is always rendered. */
-  kitImageUrl?: string;
-  /**
-   * Team home-kit config. When omitted the card renders a neutral grey
-   * fallback jersey so no external image request is ever made.
-   */
-  jersey?: JerseyProps;
-  className?: string;
-  onClick?: () => void;
-  selected?: boolean;
-  highlightMode?: 'none' | 'sub_out' | 'sub_in_valid';
-  points?: number;
-  kitAreaClassName?: string;
-  status?: 'fit' | 'injured' | 'warning';
-  captaincy?: 'C' | 'V' | null;
+  playerName: string
+  fixture: string
+  /** Kept for API compatibility — ignored, JerseySvg always renders. */
+  kitImageUrl?: string
+  jersey?: JerseyProps
+  className?: string
+  onClick?: () => void
+  selected?: boolean
+  highlightMode?: 'none' | 'sub_out' | 'sub_in_valid'
+  points?: number
+  /** Kept for API compatibility — ignored in new layout. */
+  kitAreaClassName?: string
+  status?: 'fit' | 'injured' | 'warning'
+  captaincy?: 'C' | 'V' | null
 }
 
 /**
- * PitchPlayerCard — pitch-view player card.
+ * PitchPlayerCard — jersey-first player tile.
  *
- * Always renders the JerseySvg system.  If no `jersey` prop is passed
- * (e.g. stale persisted store data) a neutral grey fallback jersey is shown
- * so the layout never breaks and no external image requests are made.
+ * Design philosophy:
+ *   • The jersey sits DIRECTLY on the pitch — no card container behind it.
+ *   • Only the compact nameplate below the jersey has a background.
+ *   • Badges float above the jersey, not the tile border.
+ *   • Selected / highlight states are expressed via jersey filter glow, not
+ *     a border around a container box.
+ *
+ * This makes each player feel like a kit object placed on the field rather
+ * than a card sitting in a grid — matching the premium fantasy-game aesthetic.
  */
 export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   playerName,
@@ -46,134 +51,120 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   selected = false,
   highlightMode = 'none',
   points,
-  kitAreaClassName = 'bg-black/20',
   status = 'fit',
   captaincy = null,
 }) => {
-  // ── Resolve jersey colours ─────────────────────────────────────────────────
-  // Always produce a valid config — never fall back to an external image.
-  // Priority: jersey prop → teamColor solid → neutral grey fallback.
+  // ── Resolve jersey colours ────────────────────────────────────────────────
   const resolvedJersey = normalizeJerseyConfig(
     jersey ?? { primaryColor: '#4a5568', secondaryColor: '#718096', jerseyPattern: 'solid' }
-  );
+  )
 
-  // ── Container ring / highlight colours ────────────────────────────────────
-  let containerRing = selected
-    ? 'ring-2 ring-[#ff6b00] scale-105 z-10 border-[#ff6b00]'
-    : 'border-white/20';
+  // ── Jersey state glow — replaces the old container ring ──────────────────
+  let jerseyGlow = ''
+  if (selected)                        jerseyGlow = 'drop-shadow(0 0 6px rgba(255,107,0,0.75))'
+  else if (highlightMode === 'sub_out')    jerseyGlow = 'drop-shadow(0 0 6px rgba(220,38,38,0.75))'
+  else if (highlightMode === 'sub_in_valid') jerseyGlow = 'drop-shadow(0 0 6px rgba(34,197,94,0.75))'
 
-  if (highlightMode === 'sub_out') {
-    containerRing = 'ring-2 ring-red-600 scale-105 z-10 border-red-600';
-  } else if (highlightMode === 'sub_in_valid') {
-    containerRing = 'ring-2 ring-green-500 border-green-500';
-  }
+  // ── Nameplate colours (status-aware) ─────────────────────────────────────
+  const plateBg =
+    status === 'warning' ? '#FFEB3B'
+    : status === 'injured' ? '#EF4444'
+    : 'rgba(255,255,255,0.93)'
 
-  const infoBg =
-    status === 'warning'
-      ? 'bg-[#FFEB3B]'
-      : status === 'injured'
-      ? 'bg-[#EF4444]'
-      : 'bg-white';
+  const plateNameColor =
+    status === 'fit' ? '#1a0028'
+    : status === 'warning' ? '#000'
+    : '#fff'
 
-  const nameColor =
-    status === 'fit'
-      ? 'text-[#37003c]'
-      : status === 'warning'
-      ? 'text-black'
-      : 'text-white';
-
-  const fixtureColor =
-    status === 'fit' || status === 'warning' ? 'text-[#37003c]' : 'text-white';
+  const plateFixtColor =
+    status === 'fit' || status === 'warning' ? 'rgba(55,0,60,0.60)' : 'rgba(255,255,255,0.78)'
 
   return (
     <button
-      style={{
-        width: '64px',
-        // Slightly taller so the jersey has room to breathe above the info bar
-        height: '106px',
-        borderRadius: '7px',
-        border: selected
-          ? '2px solid #ff6b00'
-          : '0.5px solid rgba(255, 255, 255, 0.4)',
-        background: 'rgba(55, 0, 60, 0.35)',
-        backdropFilter: 'blur(12px)',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-      }}
-      className={`flex flex-col overflow-visible transition-all relative group ${
-        selected ? 'scale-105 z-10' : ''
-      } ${className}`}
       onClick={onClick}
+      className={`relative flex flex-col items-center group transition-all duration-150 outline-none select-none ${
+        selected ? 'scale-110 z-10' : ''
+      } ${className}`}
+      style={{ width: 64, background: 'none', border: 'none', padding: 0 }}
     >
-      {/* ── Points badge ─────────────────────────────────────────────────── */}
-      {points !== undefined && (
-        <div className="absolute top-1 right-1 z-20 bg-[#ff6b00] text-white text-[10px] font-black px-1.5 py-0.5 rounded-md shadow-md leading-none">
-          {points}
-        </div>
-      )}
+      {/* ── Jersey hero — NO container, sits directly on the pitch ───────── */}
+      <div className="relative w-full flex justify-center">
 
-      {/* ── Jersey section ───────────────────────────────────────────────── */}
-      {/*
-        overflow-visible so the drop-shadow inside the SVG is not clipped.
-        items-end so the jersey hem sits flush against the info bar.
-        Jersey is 68×76 — at the 100×108 viewBox scale that renders GAFFER
-        at ~12 px on screen (legible) and fills ~72% of the card width.
-      */}
-      <div className="flex-1 flex items-end justify-center pb-0 px-0 relative overflow-visible">
-        <JerseySvg
-          primaryColor={resolvedJersey.primaryColor}
-          secondaryColor={resolvedJersey.secondaryColor}
-          jerseyPattern={resolvedJersey.jerseyPattern}
-          teamCode={jersey?.teamCode}
-          width={68}
-          height={76}
-          className="group-hover:scale-105 transition-transform"
-        />
-
-        {/* Status badge ── top-right corner */}
-        {status !== 'fit' && (
-          <div className="absolute top-1 right-0.5">
-            {status === 'warning' && (
-              <div className="w-4 h-4 bg-yellow-400 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
-                <span className="text-[10px] font-black text-black leading-none -mt-0.5">!</span>
-              </div>
-            )}
-            {status === 'injured' && (
-              <div className="w-4 h-4 bg-red-600 rounded-sm shadow-sm flex items-center justify-center border-[0.5px] border-black/10">
-                <span className="text-[10px] font-black text-white leading-none -mt-0.5">!</span>
-              </div>
-            )}
+        {/* Captaincy badge — upper-left, anchored to jersey */}
+        {captaincy && (
+          <div
+            className={`absolute z-20 top-1 left-1.5 w-[15px] h-[15px] rounded-full
+              flex items-center justify-center border border-white/50 shadow-md
+              ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-[#6B46C1]'}`}
+          >
+            <span className="text-white text-[8px] font-black leading-none">{captaincy}</span>
           </div>
         )}
 
-        {/* Captaincy badge ── top-left corner */}
-        {captaincy && (
+        {/* Status badge — upper-right, anchored to jersey */}
+        {status !== 'fit' && (
           <div
-            className={`absolute top-0.5 left-0.5 w-4 h-4 ${
-              captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-[#6B46C1]'
-            } rounded-full flex items-center justify-center border border-white/40 shadow-sm`}
+            className={`absolute z-20 top-1 right-1.5 w-[14px] h-[14px] rounded-[3px]
+              flex items-center justify-center shadow-md
+              ${status === 'warning' ? 'bg-yellow-400' : 'bg-red-500'}`}
           >
-            <span className="text-white text-[9px] font-black leading-none">
-              {captaincy}
+            <span className={`text-[9px] font-black leading-none ${status === 'warning' ? 'text-black' : 'text-white'}`}>
+              !
             </span>
           </div>
         )}
+
+        {/* Points pill — floats at top-right corner */}
+        {points !== undefined && (
+          <div
+            className="absolute z-20 -top-2 -right-0.5 bg-[#ff6b00] text-white
+              text-[9px] font-black leading-none px-[5px] py-[2px] rounded shadow-md"
+            style={{ boxShadow: '0 1px 5px rgba(255,107,0,0.50)' }}
+          >
+            {points}
+          </div>
+        )}
+
+        {/* The jersey — glow filter handles selected / sub states */}
+        <div style={{ filter: jerseyGlow || undefined }}>
+          <JerseySvg
+            primaryColor={resolvedJersey.primaryColor}
+            secondaryColor={resolvedJersey.secondaryColor}
+            jerseyPattern={resolvedJersey.jerseyPattern}
+            teamCode={jersey?.teamCode}
+            width={64}
+            height={72}
+            className="group-hover:scale-105 transition-transform duration-150"
+          />
+        </div>
       </div>
 
-      {/* ── Info bar ─────────────────────────────────────────────────────── */}
-      <div className={`w-full flex flex-col font-sans ${infoBg} py-1`}>
-        <div className="px-0.5 text-center flex items-center justify-center min-h-[14px]">
-          <p className={`text-[10px] font-black truncate uppercase tracking-tighter leading-none ${nameColor}`}>
-            {playerName || 'Player'}
-          </p>
-        </div>
-        <div className="px-0.5 text-center flex items-center justify-center min-h-[12px] mt-0.5">
-          <p className={`text-[9px] font-bold truncate uppercase tracking-[0.01em] leading-none opacity-80 ${fixtureColor}`}>
-            {fixture || 'TBC'}
-          </p>
-        </div>
+      {/* ── Compact nameplate — the only background element ─────────────── */}
+      <div
+        className="w-full flex flex-col items-center rounded-[3px]"
+        style={{
+          background: plateBg,
+          paddingTop: 3,
+          paddingBottom: 4,
+          marginTop: 2,
+          boxShadow: '0 2px 6px rgba(0,0,0,0.30)',
+        }}
+      >
+        <p
+          className="w-full text-center truncate font-black uppercase leading-none"
+          style={{ fontSize: 9.5, color: plateNameColor, letterSpacing: '-0.01em' }}
+        >
+          {playerName || 'Player'}
+        </p>
+        <p
+          className="w-full text-center truncate font-semibold uppercase leading-none"
+          style={{ fontSize: 8, color: plateFixtColor, marginTop: 3, letterSpacing: '0.01em' }}
+        >
+          {fixture || 'TBC'}
+        </p>
       </div>
     </button>
-  );
-};
+  )
+}
 
-export default PitchPlayerCard;
+export default PitchPlayerCard
