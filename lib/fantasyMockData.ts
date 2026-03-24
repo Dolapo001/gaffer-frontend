@@ -1,5 +1,7 @@
 // ─── Fantasy Team Selection Mock Data ────────────────────────────────────────
 
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+
 export type Position = 'GK' | 'DEF' | 'MID' | 'FWD'
 export type BoostType = 'benchBoost' | 'tripleCaptain' | 'wildcard' | 'freePlay' | null
 
@@ -25,7 +27,14 @@ export interface FantasySquadPlayer {
   shortName: string
   teamName: string
   teamCode: string
+  /** Primary team colour – kept for backward compatibility. Use `jersey.primaryColor` when present. */
   teamColor: string
+  /** Full jersey config. When absent, teamColor is used as solid primary. */
+  jersey?: {
+    primaryColor: string
+    secondaryColor: string
+    jerseyPattern: JerseyPattern
+  }
   position: Position
   points: number
   price: number
@@ -82,12 +91,17 @@ export const BOOST_OPTIONS: BoostOption[] = [
 
 // ─── Mock Squad ──────────────────────────────────────────────────────────────
 
-const TEAMS = [
-  { name: 'Engineering', code: 'ENG', color: '#1D4ED8' },
-  { name: 'Law', code: 'LAW', color: '#DC2626' },
-  { name: 'Medicine', code: 'MED', color: '#16A34A' },
-  { name: 'Sciences', code: 'SCI', color: '#9333EA' },
-  { name: 'Business', code: 'BUS', color: '#EA580C' },
+const TEAMS: Array<{
+  name: string
+  code: string
+  color: string
+  jersey: { primaryColor: string; secondaryColor: string; jerseyPattern: JerseyPattern }
+}> = [
+  { name: 'Engineering', code: 'ENG', color: '#1D4ED8', jersey: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'stripes'  } },
+  { name: 'Law',         code: 'LAW', color: '#DC2626', jersey: { primaryColor: '#DC2626', secondaryColor: '#fbbf24', jerseyPattern: 'solid'    } },
+  { name: 'Medicine',    code: 'MED', color: '#16A34A', jersey: { primaryColor: '#16A34A', secondaryColor: '#ffffff', jerseyPattern: 'split'    } },
+  { name: 'Sciences',    code: 'SCI', color: '#9333EA', jersey: { primaryColor: '#9333EA', secondaryColor: '#c084fc', jerseyPattern: 'gradient' } },
+  { name: 'Business',    code: 'BUS', color: '#EA580C', jersey: { primaryColor: '#EA580C', secondaryColor: '#1e293b', jerseyPattern: 'solid'    } },
 ]
 
 export const getJerseyUrl = (teamCode: string, position: string) => {
@@ -470,6 +484,15 @@ export const SQUAD: FantasySquadPlayer[] = [
     avatarUrl: '',
   },
 ]
+
+// Enrich every squad player with the team's full jersey config.
+// Done here so SQUAD entries stay concise and jersey data has a single source.
+const _TEAM_JERSEY_MAP = Object.fromEntries(TEAMS.map((t) => [t.code, t.jersey]))
+;(SQUAD as FantasySquadPlayer[]).forEach((p) => {
+  if (!p.jersey && _TEAM_JERSEY_MAP[p.teamCode]) {
+    p.jersey = _TEAM_JERSEY_MAP[p.teamCode]
+  }
+})
 
 export const GAMEWEEK_INFO = {
   number: 1,

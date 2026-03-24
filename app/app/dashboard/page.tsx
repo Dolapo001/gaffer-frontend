@@ -4,21 +4,26 @@ import React, { useState, useLayoutEffect, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
+import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { AccountUpgradeModal } from '@/components/AccountUpgradeModal'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 import { getWallet } from '@/lib/services/payment.service'
-import { ShoppingBag } from 'lucide-react'
+import { getImageUrl } from '@/lib/api'
+import { useQuery } from '@tanstack/react-query'
+import { listOrgs } from '@/lib/services/org.service'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, profile } = useAuthStore()
+  const { user, profile, updateUser, setRole } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
   const [isLoadingNews, setIsLoadingNews] = useState(true)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
+
+  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
+  const hasOrg = (orgs && orgs.length > 0) || user?.isOrgActive
 
   useLayoutEffect(() => {
     const handleUpgrade = () => setUpgradeModalOpen(true)
@@ -133,7 +138,7 @@ export default function DashboardPage() {
                 <div key={item._id} className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl">
                   <div className="relative h-48 bg-gaffer-dark">
                     {item.media?.[0]?.url && (
-                        <img src={item.media[0].url} className="w-full h-full object-cover" alt="" />
+                        <img src={getImageUrl(item.media[0].url)} className="w-full h-full object-cover" alt="" />
                     )}
                     <div className="absolute bottom-3 left-4 bg-black/40 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white/80 font-chakra">
                        {new Date(item.createdAt).toLocaleDateString()}
@@ -170,14 +175,14 @@ export default function DashboardPage() {
               <div className="w-full h-40 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center">
                  <img src="/images/empty_tournament.png" className="w-full h-full object-cover opacity-60" alt="" />
               </div>
-              {user?.isOrgActive ? (
+              {hasOrg ? (
                 <>
                   <p className="text-white font-chakra font-bold text-lg">Switch to Manager Account</p>
                   <p className="text-white/40 text-xs font-chakra -mt-4">You have an active organization waiting for you in the admin area.</p>
                   <button
                     onClick={() => {
-                      const { setRole: setStoreRole } = useAuthStore.getState()
-                      setStoreRole('organization')
+                      updateUser({ isOrgActive: true, lastRole: 'organization' })
+                      setRole('organization')
                       router.push('/admin')
                     }}
                     className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"

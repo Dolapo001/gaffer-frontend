@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
 import { CreateTeamScreen } from '@/components/fantasy/CreateTeamScreen'
@@ -15,23 +15,33 @@ import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
 import { listFixtures } from '@/lib/services/fixture.service'
 import { GafferLogo } from '@/components/GafferLogo'
 import { mapApiTeamToSquad } from '@/lib/converters'
+import { getImageUrl } from '@/lib/api'
 
 export default function FantasyPage() {
   const router = useRouter()
-  const { 
+  const searchParams = useSearchParams()
+  const {
     competitionId,
     setCompetitionId,
-    hasSeenWelcome, 
-    hasCreatedTeam, 
-    hasOrganizedBench, 
+    hasSeenWelcome,
+    hasCreatedTeam,
+    hasOrganizedBench,
     hasNamedTeam,
-    setHasSeenWelcome, 
+    setHasSeenWelcome,
     setHasCreatedTeam,
     setHasOrganizedBench,
     setHasNamedTeam,
     setTeamName,
     setPlayers
   } = (useFantasyStore as any)()
+
+  // If the user arrived via the in-competition Fantasy tab, auto-select that competition
+  const urlCompetitionId = searchParams.get('competitionId')
+  useEffect(() => {
+    if (urlCompetitionId && urlCompetitionId !== competitionId) {
+      setCompetitionId(urlCompetitionId)
+    }
+  }, [urlCompetitionId])
 
   const { data: joinedLeagues, isLoading } = useQuery({
     queryKey: ['joined-competitions'],
@@ -124,7 +134,7 @@ export default function FantasyPage() {
             >
               <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
                 {league.bannerUrl ? (
-                  <img src={league.bannerUrl} alt="" className="w-full h-full object-cover" />
+                  <img src={getImageUrl(league.bannerUrl)} alt="" className="w-full h-full object-cover" />
                 ) : (
                   <Trophy size={20} className="text-gaffer-muted" />
                 )}

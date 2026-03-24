@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Plus, Check } from 'lucide-react'
 import type { Team, Group } from '../types'
+import { getImageUrl } from '@/lib/api'
 
 interface Props {
   selectedGroup: Group | null
@@ -80,7 +81,7 @@ export function OrganiseSelectTeam({
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full overflow-hidden bg-black/20">
-                      <img src={team.logo} className="w-full h-full object-cover" alt="" />
+                      <img src={getImageUrl(team.logo)} className="w-full h-full object-cover" alt="" />
                     </div>
                     <span className="text-white text-sm font-bold uppercase tracking-widest">
                       {team.name}

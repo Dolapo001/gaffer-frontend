@@ -1,6 +1,7 @@
 import { FantasyPlayer, FantasyTeam } from './services/fantasy.service'
 import { FantasySquadPlayer, Position, NextFixture } from './fantasyMockData'
 import { Fixture } from './services/fixture.service'
+import { getImageUrl } from '@/lib/api'
 
 /**
  * Maps API FantasyPlayer to internal FantasySquadPlayer
@@ -100,8 +101,8 @@ export function mapApiPlayer(
     form: 0,
     gwHistory: [],
     nextFixtures: playerFixtures,
-    avatarUrl: (p.playerId as any)?.picture || '',
-    teamLogoUrl: teamObj?.logoUrl || ''
+    avatarUrl: getImageUrl((p.playerId as any)?.picture || ''),
+    teamLogoUrl: getImageUrl(teamObj?.logoUrl || '')
   };
 }
 

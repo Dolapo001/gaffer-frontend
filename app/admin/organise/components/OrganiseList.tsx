@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, Plus } from 'lucide-react'
 import Link from 'next/link'
 import type { Team, Group } from '../types'
+import { getImageUrl } from '@/lib/api'
 
 interface Props {
   activeTab: 'Teams' | 'Groups'
@@ -97,7 +98,7 @@ export function OrganiseList({
                       className="bg-[#1C2130] border border-white/5 rounded-2xl p-4 flex items-center gap-4 cursor-pointer hover:bg-white/10 transition-all group"
                     >
                       <div className="w-14 h-14 shrink-0 rounded-full overflow-hidden bg-black/20">
-                        <img src={team.logo} className="w-full h-full object-cover" alt="" />
+                        <img src={getImageUrl(team.logo)} className="w-full h-full object-cover" alt="" />
                       </div>
                       <div className="flex-1 justify-center flex flex-col">
                         <h4 className="font-bold text-[17px] text-white tracking-[0.05em] mb-1">
@@ -188,7 +189,7 @@ export function OrganiseList({
                           className="flex items-center gap-4 py-1 border-b border-white/5 last:border-0"
                         >
                           <div className="w-6 h-6 shrink-0 rounded-full overflow-hidden bg-black/20">
-                            <img src={team.logo} className="w-full h-full object-cover" alt="" />
+                            <img src={getImageUrl(team.logo)} className="w-full h-full object-cover" alt="" />
                           </div>
                           <span className="text-white text-[15px] font-bold tracking-[0.05em] uppercase">
                             {team.name}

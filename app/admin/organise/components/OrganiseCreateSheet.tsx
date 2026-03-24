@@ -3,8 +3,9 @@
 import { useRef, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronDown, Check } from 'lucide-react'
-import type { Team } from '../types'
+import type { Team, JerseyFormConfig } from '../types'
 import { useUIStore } from '@/store/uiStore'
+import { JerseyEditor } from '@/components/admin/JerseyEditor'
 
 const GROUP_COLORS = [
   '#A855F7', '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#EC4899',
@@ -23,12 +24,14 @@ interface Props {
   logoError: string | null
   selectedColor: string
   selectedTeamsForGroup: string[]
+  jersey: JerseyFormConfig
   onClose: () => void
   onTeamNameChange: (name: string) => void
   onMaxPlayersChange: (n: string) => void
   onLogoChange: (preview: string | null, error: string | null, file?: File) => void
   onColorChange: (color: string) => void
   onToggleTeamForGroup: (id: string) => void
+  onJerseyChange: (jersey: JerseyFormConfig) => void
   onCreate: () => void
   getUnassignedTeams: () => Team[]
   isSubmitting?: boolean
@@ -46,12 +49,14 @@ export function OrganiseCreateSheet({
   logoError,
   selectedColor,
   selectedTeamsForGroup,
+  jersey,
   onClose,
   onTeamNameChange,
   onMaxPlayersChange,
   onLogoChange,
   onColorChange,
   onToggleTeamForGroup,
+  onJerseyChange,
   onCreate,
   getUnassignedTeams,
   isSubmitting,
@@ -228,6 +233,12 @@ export function OrganiseCreateSheet({
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-500 ml-1">Auto-add to tournament on creation.</p>
+              </div>
+            )}
+
+            {activeTab === 'Teams' && (
+              <div className="px-1">
+                <JerseyEditor value={jersey} onChange={onJerseyChange} />
               </div>
             )}
 

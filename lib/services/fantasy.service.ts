@@ -1,4 +1,5 @@
 import { api, ApiError } from '@/lib/api'
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 
 export interface FantasySeason {
   _id: string
@@ -33,6 +34,11 @@ export interface FantasyPlayer {
     name: string
     handle: string
     logoUrl?: string
+    jersey?: {
+      primaryColor: string
+      secondaryColor: string
+      jerseyPattern: JerseyPattern
+    }
   }
   position: 'GK' | 'DEF' | 'MID' | 'FWD'
   price: number

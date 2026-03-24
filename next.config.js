@@ -82,6 +82,7 @@ const nextConfig = {
     // Removed Firebase-specific domain; allow any https host for avatars/logos
     remotePatterns: [
       { protocol: 'https', hostname: '**' },
+      { protocol: 'http', hostname: 'localhost', port: '4000' },
     ],
   },
 }

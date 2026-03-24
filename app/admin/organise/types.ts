@@ -1,3 +1,13 @@
+import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+
+export type { JerseyPattern }
+
+export type JerseyFormConfig = {
+  primaryColor: string
+  secondaryColor: string
+  jerseyPattern: JerseyPattern
+}
+
 export type Player = {
   id: string
   name: string

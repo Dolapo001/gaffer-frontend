@@ -1,25 +1,46 @@
 'use client'
 
+import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
-import { Home, Trophy, Newspaper } from 'lucide-react'
+import { Home, Trophy, Newspaper, Users } from 'lucide-react'
 import Link from 'next/link'
+import { useUIStore } from '@/store/uiStore'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
 
 import { BottomNavbar } from '@/components/BottomNavbar'
 
-const NAV_ITEMS = [
-  { href: '/app/dashboard', icon: Home, label: 'Home' },
-  { href: '/app/league', icon: Trophy, label: 'League' },
-  { href: '/app/news', icon: Newspaper, label: 'News' },
+const DEFAULT_NAV = [
+  { href: '/app/dashboard', icon: Home,      label: 'Home'    },
+  { href: '/app/league',    icon: Trophy,    label: 'League'  },
+  { href: '/app/news',      icon: Newspaper, label: 'News'    },
 ]
+
+// Paths that mean the user has intentionally left the competition context
+const EXIT_PATHS = ['/app/dashboard', '/app/league']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { isReady } = useAuthGuard('personal')
+  const { activeCompetitionId, clearActiveCompetition } = useUIStore()
+
+  // Clear competition context when the user explicitly navigates away
+  useEffect(() => {
+    const isExiting = EXIT_PATHS.some((p) => pathname === p)
+    if (isExiting) clearActiveCompetition()
+  }, [pathname])
+
+  const navItems = activeCompetitionId
+    ? [
+        { href: '/app/dashboard',                                          icon: Home,      label: 'Home'    },
+        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,       icon: Users,     label: 'Fantasy' },
+        { href: `/app/league/${activeCompetitionId}`,                      icon: Trophy,    label: 'League'  },
+        { href: '/app/news',                                               icon: Newspaper, label: 'News'    },
+      ]
+    : DEFAULT_NAV
 
   if (!isReady) {
     return (
@@ -46,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </motion.main>
         </ErrorBoundary>
 
-        <BottomNavbar items={NAV_ITEMS} id="global-nav-bar" />
+        <BottomNavbar items={navItems} id="global-nav-bar" />
       </div>
   )
 }

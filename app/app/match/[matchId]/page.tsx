@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
 import { ChevronLeft, Info, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
+import { getImageUrl } from '@/lib/api'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -75,7 +76,7 @@ export default function MatchCenterPage() {
             <div className="flex flex-col items-center gap-3 w-[100px]">
                <div className="w-16 h-16 flex items-center justify-center bg-white/5 rounded-full p-2">
                   {homeTeam.logoUrl ? (
-                    <img src={homeTeam.logoUrl} alt="" className="w-full h-full object-contain" />
+                    <img src={getImageUrl(homeTeam.logoUrl)} alt="" className="w-full h-full object-contain" />
                   ) : (
                     <div className="text-white/20 font-black text-xl">{homeTeam.name[0]}</div>
                   )}
@@ -92,7 +93,7 @@ export default function MatchCenterPage() {
             <div className="flex flex-col items-center gap-3 w-[100px]">
                <div className="w-16 h-16 flex items-center justify-center bg-white/5 rounded-full p-2">
                   {awayTeam.logoUrl ? (
-                    <img src={awayTeam.logoUrl} alt="" className="w-full h-full object-contain" />
+                    <img src={getImageUrl(awayTeam.logoUrl)} alt="" className="w-full h-full object-contain" />
                   ) : (
                     <div className="text-white/20 font-black text-xl">{awayTeam.name[0]}</div>
                   )}
@@ -152,7 +153,7 @@ export default function MatchCenterPage() {
                       {/* Top Team Header (Inside content) */}
                       <div className="flex items-center justify-between px-3 mb-6">
                          <div className="flex items-center gap-2">
-                            {homeTeam.logoUrl && <img src={homeTeam.logoUrl} className="w-4 h-4 object-contain" alt="" />}
+                            {homeTeam.logoUrl && <img src={getImageUrl(homeTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />}
                             <span className="text-white text-[14px] font-black uppercase tracking-wider">{homeTeam.shortName || homeTeam.name}</span>
                          </div>
                          <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{fixture.formation || '4-3-3'}</span>
@@ -165,7 +166,7 @@ export default function MatchCenterPage() {
                       {/* Bottom Team Header */}
                       <div className="flex items-center justify-between px-3 mt-6">
                          <div className="flex items-center gap-2">
-                            {awayTeam.logoUrl && <img src={awayTeam.logoUrl} className="w-4 h-4 object-contain" alt="" />}
+                            {awayTeam.logoUrl && <img src={getImageUrl(awayTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />}
                             <span className="text-white text-[14px] font-black uppercase tracking-wider">{awayTeam.shortName || awayTeam.name}</span>
                          </div>
                          <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{fixture.awayFormation || '4-3-3'}</span>
