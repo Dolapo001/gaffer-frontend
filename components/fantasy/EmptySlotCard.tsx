@@ -29,42 +29,37 @@ export const EmptySlotCard: React.FC<EmptySlotCardProps> = ({
       className={`relative flex flex-col items-center group active:scale-95 transition-all outline-none select-none ${className}`}
       style={{ width: 64, background: 'none', border: 'none', padding: 0 }}
     >
-      {/* Ghost jersey silhouette */}
+      {/* Glassmorphic Container */}
       <div
-        className="w-full flex flex-col items-center justify-center"
+        className="w-full h-full flex flex-col items-center justify-center transition-all duration-300 group-hover:bg-[#37003C]/40"
         style={{
           width: 64,
-          height: 72,
+          height: 106, // Total height to wrap jersey + nameplate + padding
           borderRadius: 8,
-          border: '1.5px dashed rgba(255,255,255,0.22)',
-          background: 'rgba(255,255,255,0.04)',
+          border: '0.34px solid rgba(255, 255, 255, 0.35)',
+          background: 'rgba(55, 0, 60, 0.25)', // #37003C at 25%
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+          boxShadow: '0 1.02px 1.7px rgba(0, 0, 0, 0.08)',
+          padding: '4px 0',
         }}
       >
-        <Plus
-          className="text-white/35 group-hover:text-white/65 transition-colors"
-          size={17}
-          strokeWidth={2.5}
-        />
-        {position && (
-          <span
-            className="mt-1 uppercase font-bold text-white/25 group-hover:text-white/45 transition-colors"
-            style={{ fontSize: 7, letterSpacing: '0.06em' }}
-          >
-            {position}
-          </span>
-        )}
+        <div className="flex flex-col items-center gap-2">
+          <Plus
+            className="text-white/60 group-hover:text-white transition-all transform group-hover:scale-110"
+            size={24}
+            strokeWidth={2}
+          />
+          {position && (
+            <span
+              className="uppercase font-black text-white/40 group-hover:text-white transition-colors tracking-[0.1em]"
+              style={{ fontSize: 9 }}
+            >
+              {position}
+            </span>
+          )}
+        </div>
       </div>
-
-      {/* Ghost nameplate — matches the filled tile's nameplate height */}
-      <div
-        style={{
-          width: '100%',
-          height: 27,
-          borderRadius: 3,
-          marginTop: 2,
-          background: 'rgba(255,255,255,0.07)',
-        }}
-      />
     </button>
   )
 }

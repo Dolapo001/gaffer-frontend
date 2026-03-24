@@ -9,7 +9,7 @@ import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
 import { OrganiseDetails } from './components/OrganiseDetails'
 import { OrganiseShare } from './components/OrganiseShare'
 import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
-import type { Team, Group, Player, OrganiseView } from './types'
+import type { Team, Group, Player, OrganiseView, JerseyFormConfig } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listTeams, createTeam, deleteTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
@@ -146,14 +146,9 @@ export default function OrganizePage() {
     onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
-  const [jerseyConfig, setJerseyConfig] = useState<{
-    primaryColor: string
-    secondaryColor: string
-    jerseyPattern: 'solid' | 'stripes' | 'split' | 'gradient'
-  }>({
-    primaryColor: '#1D4ED8',
-    secondaryColor: '#ffffff',
-    jerseyPattern: 'solid',
+  const [jerseyConfig, setJerseyConfig] = useState<JerseyFormConfig>({
+    home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
+    away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
   })
 
   // ── Mappings ─────────────────────────────────────────────────────────────
@@ -232,7 +227,8 @@ export default function OrganizePage() {
           sport: 'Football',
           logoUrl,
           maxPlayers: parseInt(maxPlayers) || 11,
-          jersey: jerseyConfig,
+          homeJersey: jerseyConfig.home,
+          awayJersey: jerseyConfig.away,
         })
 
         // If a competition is selected, auto-register the team
@@ -266,7 +262,10 @@ export default function OrganizePage() {
       setLogoPreview(null)
       setSelectedCompetitionId('')
       setSelectedTeamsForGroup([])
-      setJerseyConfig({ primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' })
+      setJerseyConfig({
+        home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
+        away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
+      })
     } catch (err) {
       addToast(getErrorMessage(err), 'error')
     }

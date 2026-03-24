@@ -34,7 +34,12 @@ export interface FantasyPlayer {
     name: string
     handle: string
     logoUrl?: string
-    jersey?: {
+    homeJersey?: {
+      primaryColor: string
+      secondaryColor: string
+      jerseyPattern: JerseyPattern
+    }
+    awayJersey?: {
       primaryColor: string
       secondaryColor: string
       jerseyPattern: JerseyPattern
