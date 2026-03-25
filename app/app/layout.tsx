@@ -19,7 +19,8 @@ const DEFAULT_NAV = [
   { href: '/app/news',      icon: Newspaper, label: 'News'    },
 ]
 
-// Paths that mean the user has intentionally left the competition context
+// Exact paths that mean the user has intentionally left the competition context.
+// Note: '/app/league/:id' is the league home and must NOT clear the context.
 const EXIT_PATHS = ['/app/dashboard', '/app/league']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -35,10 +36,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = activeCompetitionId
     ? [
-        { href: '/app/dashboard',                                          icon: Home,      label: 'Home'    },
-        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,       icon: Users,     label: 'Fantasy' },
-        { href: `/app/league/${activeCompetitionId}`,                      icon: Trophy,    label: 'League'  },
-        { href: '/app/news',                                               icon: Newspaper, label: 'News'    },
+        // Home → rich league home dashboard
+        { href: `/app/league/${activeCompetitionId}`,                        icon: Home,      label: 'Home'    },
+        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,         icon: Users,     label: 'Fantasy' },
+        // League → table + fixtures page for this competition
+        { href: `/app/league/${activeCompetitionId}/details`,                icon: Trophy,    label: 'League'  },
+        { href: '/app/news',                                                 icon: Newspaper, label: 'News'    },
       ]
     : DEFAULT_NAV
 
