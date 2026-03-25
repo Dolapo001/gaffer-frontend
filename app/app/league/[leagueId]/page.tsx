@@ -394,9 +394,10 @@ export default function LeagueHomePage() {
             />
           </div>
 
-          {/* ── 11. Table Standings ──────────────────────────────────────── */}
+          {/* ── 11. Table Standings — preview (8 rows), full table via See All */}
           <TableStandings
             standings={standings}
+            limit={8}
             onSeeAll={() => router.push(`/app/league/${leagueId}/table`)}
           />
         </>
