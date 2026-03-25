@@ -1,7 +1,7 @@
 'use client'
 
 import React from 'react'
-import { JerseySvg } from '@/components/jersey/JerseySvg'
+import { RealisticJersey } from '@/components/jersey/RealisticJersey'
 import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 
@@ -94,84 +94,92 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           width: 64,
           height: 106,
           borderRadius: 8,
-          border: '0.34px solid rgba(255, 255, 255, 0.35)',
-          background: 'rgba(55, 0, 60, 0.25)', // #37003C at 25%
-          backdropFilter: 'blur(8px)',
-          WebkitBackdropFilter: 'blur(8px)',
-          boxShadow: '0 1.02px 1.7px rgba(0, 0, 0, 0.08)',
+          border: '0.17px solid rgba(255, 255, 255, 0.35)',
+          background: 'rgba(55, 0, 60, 0.25)', // #37003C at 25% (exact Figma value)
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          boxShadow: '0 0.52px 0.87px 0 rgba(0, 0, 0, 0.08)', // exact Figma shadow
           padding: '4px 0',
         }}
       >
-        {/* ── Jersey hero ─────────── */}
-        <div className="relative w-full flex justify-center scale-90 -translate-y-1">
+        {/* ── Jersey hero — Zoomed / Cropped to fill the card ─────────── */}
+        <div className="relative w-full h-[82px] overflow-hidden flex justify-center items-start">
           {/* Captaincy badge */}
           {captaincy && (
             <div
-              className={`absolute z-20 top-0 left-1 w-4 h-4 rounded-full
-                flex items-center justify-center border border-white/50 shadow-md
+              className={`absolute z-30 top-1 left-1.5 w-4.5 h-4.5 rounded-full
+                flex items-center justify-center border border-white/40 shadow-md
                 ${captaincy === 'C' ? 'bg-[#ff6b00]' : 'bg-[#6B46C1]'}`}
             >
-              <span className="text-white text-[8px] font-black leading-none">{captaincy}</span>
+              <span className="text-white text-[9px] font-black leading-none">{captaincy}</span>
             </div>
           )}
 
-          {/* Status badge */}
+          {/* Status badge — Triangle for warning, Square for unavailable */}
           {status !== 'fit' && (
             <div
-              className={`absolute z-20 top-0 right-1 w-3.5 h-3.5 rounded-[3px]
-                flex items-center justify-center shadow-md
-                ${status === 'warning' ? 'bg-yellow-400' : 'bg-red-500'}`}
+              className="absolute z-30 top-1 right-1.5 flex items-center justify-center shadow-md"
+              style={{
+                width: 15,
+                height: 15,
+                backgroundColor: status === 'warning' ? '#FACC15' : '#EF4444',
+                clipPath: status === 'warning' 
+                  ? 'polygon(50% 0%, 0% 100%, 100% 100%)' // Triangle
+                  : 'none', // Square
+                borderRadius: status === 'warning' ? '0' : '2px',
+              }}
             >
-              <span className={`text-[9px] font-black leading-none ${status === 'warning' ? 'text-black' : 'text-white'}`}>
+              <span 
+                className={`font-black leading-none ${status === 'warning' ? 'text-black mt-1' : 'text-white'}`}
+                style={{ fontSize: status === 'warning' ? 8 : 9 }}
+              >
                 !
               </span>
             </div>
           )}
 
-          {/* Points pill */}
+          {/* Points pill — Floating premium badge */}
           {points !== undefined && (
             <div
-              className="absolute z-20 -top-2.5 -right-0.5 bg-[#ff6b00] text-white
-                text-[9px] font-black leading-none px-[5px] py-[2px] rounded shadow-md"
-              style={{ boxShadow: '0 1px 5px rgba(255,107,0,0.50)' }}
+              className="absolute z-30 -top-1 -right-1 bg-[#ff6b00] text-white
+                text-[9px] font-black leading-none px-[5px] py-[2.5px] rounded shadow-md"
+              style={{ boxShadow: '0 1px 5px rgba(255,107,0,0.50)', border: '0.5px solid rgba(255,255,255,0.3)' }}
             >
               {points}
             </div>
           )}
 
-          {/* The jersey */}
-          <div style={{ filter: jerseyGlow || undefined }}>
-            <JerseySvg
+          {/* The jersey — scaled up to fill the card width and overlap the bottom */}
+          <div style={{ filter: jerseyGlow || undefined }} className="w-full h-full">
+            <RealisticJersey
               primaryColor={resolvedJersey.primaryColor}
               secondaryColor={resolvedJersey.secondaryColor}
-              jerseyPattern={resolvedJersey.jerseyPattern}
-              teamCode={jersey?.teamCode}
-              width={60}
-              height={68}
-              className="group-hover:scale-105 transition-transform duration-150"
+              width={80} 
+              height={80}
+              className="transition-transform duration-150 transform -translate-y-1"
             />
           </div>
         </div>
 
-        {/* ── Compact nameplate ─────────── */}
+        {/* ── Overlapping nameplate — Covers the bottom of the jersey ─────────── */}
         <div
-          className="w-[58px] flex flex-col items-center rounded-[3px] -mt-1"
+          className="relative z-10 w-[58px] flex flex-col items-center rounded-sm -translate-y-[12px]"
           style={{
             background: plateBg,
-            paddingTop: 2,
-            paddingBottom: 3,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.20)',
+            paddingTop: 3,
+            paddingBottom: 4,
+            boxShadow: '0 4px 8px rgba(0,0,0,0.25)',
           }}
         >
           <p
             className="w-full text-center truncate font-black uppercase leading-none px-1"
-            style={{ fontSize: 8.5, color: plateNameColor, letterSpacing: '-0.01em' }}
+            style={{ fontSize: 9, color: plateNameColor, letterSpacing: '-0.01em' }}
           >
             {playerName || 'Player'}
           </p>
           <p
-            className="w-full text-center truncate font-semibold uppercase leading-none px-1"
-            style={{ fontSize: 7, color: plateFixtColor, marginTop: 2, letterSpacing: '0.01em' }}
+            className="w-full text-center truncate font-bold uppercase leading-none px-1"
+            style={{ fontSize: 7.5, color: plateFixtColor, marginTop: 2, letterSpacing: '0.01em' }}
           >
             {fixture || 'TBC'}
           </p>
