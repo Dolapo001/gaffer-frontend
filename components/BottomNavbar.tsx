@@ -40,9 +40,26 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             }}
           >
         {items.map((item) => {
-          const isActive = item.href === '/admin' || item.href === '/app/dashboard' 
-            ? pathname === item.href 
-            : pathname.startsWith(item.href)
+          // Strip query string from href before comparing against pathname
+          // (Next.js pathname never includes the query string)
+          const hrefPath = item.href.split('?')[0]
+
+          // Use exact-match if another sibling item has this path as a prefix,
+          // so only the most-specific item lights up.
+          // e.g. Home=/app/league/:id and League=/app/league/:id/details
+          // → Home uses exact match, League uses prefix match.
+          const hasMoreSpecificSibling = items.some(
+            (other) =>
+              other !== item &&
+              other.href.split('?')[0].startsWith(hrefPath + '/'),
+          )
+
+          const isActive =
+            hrefPath === '/admin' ||
+            hrefPath === '/app/dashboard' ||
+            hasMoreSpecificSibling
+              ? pathname === hrefPath
+              : pathname === hrefPath || pathname.startsWith(hrefPath + '/')
             
           return (
             <Link
