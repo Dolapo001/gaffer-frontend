@@ -103,7 +103,7 @@ export default function LeagueDetailsPage() {
       <div className="sticky top-0 z-30 bg-[#181928]/95 backdrop-blur-xl">
         <div className="flex items-center justify-between px-4 pt-12 pb-3">
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push(`/app/league/${leagueId}`)}
             className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
           >
             <ChevronLeft size={18} />
