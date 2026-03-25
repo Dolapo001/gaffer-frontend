@@ -36,12 +36,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const navItems = activeCompetitionId
     ? [
-        // Home → the rich league home dashboard for the current competition
-        { href: `/app/league/${activeCompetitionId}`,                      icon: Home,      label: 'Home'    },
-        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,       icon: Users,     label: 'Fantasy' },
-        // League → back to leagues list (acts as "switch / exit competition")
-        { href: '/app/league',                                             icon: Trophy,    label: 'League'  },
-        { href: '/app/news',                                               icon: Newspaper, label: 'News'    },
+        // Home → rich league home dashboard
+        { href: `/app/league/${activeCompetitionId}`,                        icon: Home,      label: 'Home'    },
+        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,         icon: Users,     label: 'Fantasy' },
+        // League → table + fixtures page for this competition
+        { href: `/app/league/${activeCompetitionId}/details`,                icon: Trophy,    label: 'League'  },
+        { href: '/app/news',                                                 icon: Newspaper, label: 'News'    },
       ]
     : DEFAULT_NAV
 
