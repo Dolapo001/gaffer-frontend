@@ -177,9 +177,7 @@ export function PitchLayout({
                       key={player.id}
                       playerName={player.shortName}
                       fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
-                      kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
                       jersey={toJersey(player)}
-                      points={player.points}
                       selected={selectedId === player.id}
                       highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                       onClick={() => onSelectPlayer(player.id)}
@@ -207,9 +205,7 @@ export function PitchLayout({
                   key={player.id}
                   playerName={player.shortName}
                   fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
-                  kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
                   jersey={toJersey(player)}
-                  points={player.points}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                   onClick={() => onSelectPlayer(player.id)}

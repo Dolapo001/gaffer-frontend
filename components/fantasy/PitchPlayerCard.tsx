@@ -60,52 +60,62 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
       style={{ width: 64, background: 'none', border: 'none', padding: 0 }}
     >
       {/* ── Figma Spec Glass Card Container ── */}
-      <div 
-        className="w-full flex flex-col items-center transition-all duration-300 overflow-hidden"
+       <div 
+        className="relative flex flex-col items-center transition-all duration-300"
         style={{
-          width: 53, // Precision Figma width: 52.97px
-          height: 73, // Precision Figma height: 72.73px
-          borderRadius: 2.77, // Precision Figma radius
-          border: '0.17px solid rgba(255, 255, 255, 0.35)',
-          background: 'rgba(55, 0, 60, 0.25)', // #37003C @ 25%
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
-          boxShadow: '0 0.52px 0.87px rgba(0,0,0,0.08)',
-          paddingTop: 3,
+          width: 51.3, 
+          height: 72.1, 
+          borderRadius: 4, 
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          background: 'rgba(255, 255, 255, 0.15)', 
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
         }}
       >
-        <div className="relative w-full h-[54px] flex justify-center items-start">
-           <div style={{ filter: jerseyGlow || undefined }} className="w-full h-full transform scale-[1.3]">
-             <RealisticJersey
-               primaryColor={resolvedJersey.primaryColor}
-               secondaryColor={resolvedJersey.secondaryColor}
-               width={53} 
-               height={53}
-             />
-           </div>
+        {/* JERSEY CONTAINER — Scaled to 54 width to ensure both sleeves are visible */}
+        <div className="absolute" style={{ top: 9.7, left: (51.3 - 44.4) / 2, width: 44.4, height: 58.5, overflow: 'visible' }}>
+            <div style={{ filter: jerseyGlow || undefined }} className="w-full h-full flex items-center justify-center">
+              <RealisticJersey
+                primaryColor={resolvedJersey.primaryColor}
+                secondaryColor={resolvedJersey.secondaryColor}
+                width={54} 
+                height={59.4}
+              />
+            </div>
         </div>
 
-        {/* ── Nameplate (Sticker Look) ── */}
+        {/* ── NAMEPLATE (Two-Tone overlapping jersey) ── */}
         <div
-          className="relative z-10 w-[48px] flex flex-col items-center -translate-y-[8px] rounded-[1px]"
+          className="absolute z-10 w-full flex flex-col items-center shadow-lg"
           style={{
-            background: plateBg,
-            padding: '2px 0 3px 0',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+            top: 49.13,
+            left: 0,
+            width: 51.3,
+            height: 23,
+            borderRadius: '0 0 4px 4px',
+            overflow: 'hidden',
+            borderTop: '0.5px solid rgba(0,0,0,0.1)',
           }}
         >
-          <p
-            className="w-full text-center truncate font-black uppercase leading-none px-0.5"
-            style={{ fontSize: 7.5, color: plateNameColor, letterSpacing: '-0.01em' }}
-          >
-            {playerName || 'Player'}
-          </p>
-          <p
-            className="w-full text-center truncate font-bold uppercase leading-none px-0.5 mt-1"
-            style={{ fontSize: 6, color: plateFixtColor }}
-          >
-            {fixture || 'TBC'}
-          </p>
+          {/* Top Half: Player Name */}
+          <div className="w-full bg-white flex items-center justify-center pt-1.5" style={{ height: '52%' }}>
+            <p
+              className="w-full text-center truncate font-black leading-none px-1.5"
+              style={{ fontSize: 8.2, color: '#310b42' }}
+            >
+              {playerName || 'Player'}
+            </p>
+          </div>
+          {/* Bottom Half: Fixture */}
+          <div className="w-full bg-[#f3f0f5] flex items-center justify-center pt-0.5 border-t border-black/5" style={{ height: '48%' }}>
+             <p
+              className="w-full text-center truncate font-bold uppercase leading-none px-1.5"
+              style={{ fontSize: 6.2, color: '#4a0e63', opacity: 0.8 }}
+            >
+              {fixture || 'TBC'}
+            </p>
+          </div>
         </div>
       </div>
     </button>
