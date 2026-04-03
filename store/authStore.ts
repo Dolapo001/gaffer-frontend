@@ -140,8 +140,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           const apiRole = (role === 'personal' || role === 'organization') ? role : undefined
           const res = await register(email, password, apiRole, isOrgActive)
+          if (!res.user) {
+            throw new Error('Registration succeeded but user payload was missing.')
+          }
           tokenStore.set(res.accessToken)
-          
+
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
             queryClient.clear()
@@ -149,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
 
           set({
             user: res.user,
-            role: res.user.lastRole || null,
+            role: res.user?.lastRole || null,
             accessToken: res.accessToken,
             isAuthenticated: true,
             error: null,

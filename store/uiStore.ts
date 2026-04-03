@@ -1,5 +1,4 @@
 import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
 
 interface UIState {
   isNavbarHidden: boolean
@@ -14,27 +13,15 @@ interface UIState {
   clearActiveCompetition: () => void
 }
 
-export const useUIStore = create<UIState>()(
-  persist(
-    (set) => ({
-      isNavbarHidden: false,
-      hideNavbar: () => set({ isNavbarHidden: true }),
-      showNavbar: () => set({ isNavbarHidden: false }),
+export const useUIStore = create<UIState>((set) => ({
+  isNavbarHidden: false,
+  hideNavbar: () => set({ isNavbarHidden: true }),
+  showNavbar: () => set({ isNavbarHidden: false }),
 
-      activeCompetitionId: null,
-      activeOrgId: null,
-      setActiveCompetition: (competitionId, orgId) =>
-        set({ activeCompetitionId: competitionId, activeOrgId: orgId }),
-      clearActiveCompetition: () =>
-        set({ activeCompetitionId: null, activeOrgId: null }),
-    }),
-    {
-      name: 'gaffer-ui',
-      // Only persist the competition context — isNavbarHidden is transient UI state
-      partialize: (state) => ({
-        activeCompetitionId: state.activeCompetitionId,
-        activeOrgId: state.activeOrgId,
-      }),
-    },
-  ),
-)
+  activeCompetitionId: null,
+  activeOrgId: null,
+  setActiveCompetition: (competitionId, orgId) =>
+    set({ activeCompetitionId: competitionId, activeOrgId: orgId }),
+  clearActiveCompetition: () =>
+    set({ activeCompetitionId: null, activeOrgId: null }),
+}))

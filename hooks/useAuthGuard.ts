@@ -49,14 +49,6 @@ export function useAuthGuard(requiredRole?: 'personal' | 'organization') {
     }
 
     if (requiredRole && role !== requiredRole) {
-      if (!hasWarnedRef.current) {
-        useToastStore.getState().addToast({
-          message: 'You do not have permission to access that area.',
-          type: 'error',
-          duration: 4000
-        })
-        hasWarnedRef.current = true
-      }
       router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
       return
     }

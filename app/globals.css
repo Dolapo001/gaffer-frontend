@@ -104,7 +104,9 @@ html {
 
 /* Force Navbar Hide when modals are up */
 body:has(.modal-open) #admin-nav-bar,
-body:has([data-nav-hidden="true"]) #admin-nav-bar {
+body:has(.modal-open) #global-nav-bar,
+body:has([data-nav-hidden="true"]) #admin-nav-bar,
+body:has([data-nav-hidden="true"]) #global-nav-bar {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;

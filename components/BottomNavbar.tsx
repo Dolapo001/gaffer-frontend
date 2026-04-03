@@ -25,65 +25,39 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
   return (
     <AnimatePresence>
       {!isNavbarHidden && (
-        <motion.div 
-          id={id} 
-          initial={{ y: 40, opacity: 0, x: '-50%' }}
+        <motion.div
+          id={id}
+          initial={{ y: 100, opacity: 0, x: '-50%' }}
           animate={{ y: 0, opacity: 1, x: '-50%' }}
-          exit={{ y: 40, opacity: 0, x: '-50%' }}
-          className="fixed bottom-8 left-1/2 z-[100] pointer-events-none flex justify-center"
+          exit={{ y: 100, opacity: 0, x: '-50%' }}
+          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[100] pointer-events-none flex justify-center w-[calc(100%-32px)] md:w-[460px] max-w-[460px]"
         >
-          <nav 
-            className="flex items-center justify-around h-[82px] backdrop-blur-3xl pointer-events-auto border border-white/10 bg-[#181928]/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)] transition-all"
-            style={{ 
-              width: 'min(500px, calc(100vw - 32px))',
-              borderRadius: '80px',
-            }}
+          <nav
+            className="flex items-center justify-around h-[72px] w-full pointer-events-auto bg-[#1d1f2e] border border-white/5 shadow-2xl rounded-full px-2 transition-all"
           >
         {items.map((item) => {
-          // Strip query string from href before comparing against pathname
-          // (Next.js pathname never includes the query string)
-          const hrefPath = item.href.split('?')[0]
+          const isActive = item.href === '/admin' || item.href === '/app/dashboard'
+            ? pathname === item.href
+            : pathname.startsWith(item.href)
 
-          // Use exact-match if another sibling item has this path as a prefix,
-          // so only the most-specific item lights up.
-          // e.g. Home=/app/league/:id and League=/app/league/:id/details
-          // → Home uses exact match, League uses prefix match.
-          const hasMoreSpecificSibling = items.some(
-            (other) =>
-              other !== item &&
-              other.href.split('?')[0].startsWith(hrefPath + '/'),
-          )
-
-          const isActive =
-            hrefPath === '/admin' ||
-            hrefPath === '/app/dashboard' ||
-            hasMoreSpecificSibling
-              ? pathname === hrefPath
-              : pathname === hrefPath || pathname.startsWith(hrefPath + '/')
-            
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 flex flex-col items-center gap-1.5 transition-all py-2"
+              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-center gap-1 transition-all h-full relative"
             >
-              <div className="w-10 h-10 flex items-center justify-center relative">
-                <item.icon 
-                  size={22} 
-                  strokeWidth={isActive ? 2.5 : 2} 
+              <div className="flex items-center justify-center">
+                <item.icon
+                  size={24}
+                  strokeWidth={isActive ? 2 : 1.5}
                   fill={isActive ? 'currentColor' : 'none'}
-                  className={isActive ? 'text-[#FF6B00]' : 'text-white/20'} 
+                  className={`transition-colors duration-200 ${isActive ? 'text-[#ff6b00]' : 'text-[#7A8293] hover:text-[#9EA5B4]'}`}
                 />
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeDot"
-                    className="absolute -top-1 w-1.5 h-1.5 bg-[#FF6B00] rounded-full shadow-[0_0_12px_#FF6B00]" 
-                  />
-                )}
               </div>
+
               <span
-                className={`${items.length > 5 ? 'text-[8px]' : 'text-[9px]'} font-chakra font-black tracking-widest uppercase transition-colors ${
-                  isActive ? 'text-[#FF6B00]' : 'text-white/20'
+                className={`text-[10px] sm:text-[11px] font-medium tracking-tight truncate max-w-full px-0.5 transition-colors duration-200 ${
+                  isActive ? 'text-[#ff6b00]' : 'text-[#7A8293] hover:text-[#9EA5B4]'
                 }`}
               >
                 {item.label}

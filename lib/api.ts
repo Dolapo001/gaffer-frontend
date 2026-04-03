@@ -53,6 +53,8 @@ export class ApiError extends Error {
 
 async function parseResponse<T>(res: Response): Promise<T> {
   const text = await res.text()
+  const contentType = res.headers.get('content-type') ?? ''
+  const looksLikeHtml = contentType.includes('text/html') || /^\s*<!DOCTYPE html/i.test(text) || /^\s*<html/i.test(text)
   let body: unknown
   try { body = text ? JSON.parse(text) : null } catch { body = null }
 
@@ -64,6 +66,25 @@ async function parseResponse<T>(res: Response): Promise<T> {
       err.message ?? `HTTP ${res.status}`,
       err.details,
       err.requestId,
+    )
+  }
+
+  // Successful API calls should always return JSON. If we got HTML, we're likely
+  // hitting the frontend origin (e.g. NEXT_PUBLIC_API_URL is missing/wrong).
+  if (looksLikeHtml) {
+    throw new ApiError(
+      502,
+      'INVALID_API_RESPONSE',
+      'Expected JSON from API but received HTML. Check NEXT_PUBLIC_API_URL and backend origin.',
+    )
+  }
+
+  // Non-empty, non-JSON success response: also treat as an API contract error.
+  if (text && body === null) {
+    throw new ApiError(
+      502,
+      'INVALID_API_RESPONSE',
+      'Expected JSON from API but received an invalid response body.',
     )
   }
 

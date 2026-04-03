@@ -23,34 +23,96 @@ export interface RefreshResponse {
   accessToken: string
 }
 
+type UnknownRecord = Record<string, unknown>
+
+function asRecord(value: unknown): UnknownRecord {
+  return value && typeof value === 'object' ? (value as UnknownRecord) : {}
+}
+
+function getTokenFromPayload(payload: UnknownRecord): string | undefined {
+  const directToken = payload.accessToken
+  if (typeof directToken === 'string' && directToken.length > 0) return directToken
+
+  const tokenAlias = payload.token
+  if (typeof tokenAlias === 'string' && tokenAlias.length > 0) return tokenAlias
+
+  const tokens = asRecord(payload.tokens)
+  const nestedToken = tokens.accessToken
+  if (typeof nestedToken === 'string' && nestedToken.length > 0) return nestedToken
+
+  return undefined
+}
+
+function normalizeAuthResponse(raw: unknown): AuthResponse | null {
+  const root = asRecord(raw)
+  const nested = asRecord(root.data)
+
+  const userCandidate = root.user ?? nested.user
+  const tokenCandidate = getTokenFromPayload(root) ?? getTokenFromPayload(nested)
+  const messageCandidate = root.message ?? nested.message
+  const message = typeof messageCandidate === 'string' ? messageCandidate : 'Success'
+
+  if (!userCandidate || typeof userCandidate !== 'object') {
+    return null
+  }
+
+  if (!tokenCandidate) {
+    return null
+  }
+
+  return {
+    message,
+    user: userCandidate as AuthUser,
+    accessToken: tokenCandidate,
+  }
+}
+
 // POST /auth/register
 export async function register(
-  email: string, 
+  email: string,
   password: string,
   lastRole?: 'personal' | 'organization',
-  isOrgActive?: boolean
+  isOrgActive?: boolean,
 ): Promise<AuthResponse> {
-  const data = await api.post<AuthResponse>('/auth/register', { email, password, lastRole, isOrgActive }, { public: true })
-  tokenStore.set(data.accessToken)
-  return data
+  const raw = await api.post<unknown>('/auth/register', { email, password, lastRole, isOrgActive }, { public: true })
+  const normalized = normalizeAuthResponse(raw)
+
+  if (normalized) {
+    tokenStore.set(normalized.accessToken)
+    return normalized
+  }
+
+  // Some backends return 200 for register with only a success message.
+  // Fallback to login so the client still gets a full auth payload.
+  return login(email, password)
 }
 
 // POST /auth/login
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const data = await api.post<AuthResponse>('/auth/login', { email, password }, { public: true })
-  tokenStore.set(data.accessToken)
-  return data
+  const raw = await api.post<unknown>('/auth/login', { email, password }, { public: true })
+  const normalized = normalizeAuthResponse(raw)
+  if (!normalized) {
+    throw new Error('Login succeeded but returned an invalid auth payload.')
+  }
+
+  tokenStore.set(normalized.accessToken)
+  return normalized
 }
 
 // POST /auth/refresh — reads rt cookie, no body
 export async function refreshToken(): Promise<RefreshResponse> {
-  const data = await api.post<RefreshResponse>('/auth/refresh', undefined, {
+  const raw = await api.post<unknown>('/auth/refresh', undefined, {
     public: true,
     skipRefresh: true,
     credentials: 'include',
   } as any)
-  tokenStore.set(data.accessToken)
-  return data
+  const normalized = normalizeAuthResponse(raw)
+  if (!normalized) {
+    throw new Error('Refresh succeeded but returned an invalid auth payload.')
+  }
+
+  tokenStore.set(normalized.accessToken)
+  return normalized
 }
 
 // POST /auth/forgot-password
