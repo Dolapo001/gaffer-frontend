@@ -1,0 +1,20 @@
+<svg width="152" height="152" viewBox="0 0 152 152" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="152" y2="152" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#1A1F2E"/>
+      <stop offset="100%" stop-color="#0A0C10"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="152" y2="152" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FF6B00"/>
+      <stop offset="100%" stop-color="#CC2200"/>
+    </linearGradient>
+    <clipPath id="rounded">
+      <rect width="152" height="152" rx="27.36" ry="27.36"/>
+    </clipPath>
+  </defs>
+  <rect width="152" height="152" rx="27.36" fill="url(#bg)"/>
+  <text x="76" y="96" 
+        font-family="Arial Black, Arial" font-weight="900" 
+        font-size="60" fill="url(#accent)" 
+        text-anchor="middle">G</text>
+</svg>
