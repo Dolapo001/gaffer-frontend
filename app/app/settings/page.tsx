@@ -3,27 +3,28 @@
 import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
+import { useToastStore } from '@/store/toastStore'
 import { Bell, Lock, Globe, HelpCircle, LogOut, ChevronRight, Smartphone } from 'lucide-react'
 
 const settingsGroups = [
   {
     title: 'Preferences',
     items: [
-      { icon: Bell, label: 'Notifications', desc: 'Manage push notifications' },
-      { icon: Globe, label: 'Language', desc: 'English (default)' },
+      { icon: Bell, label: 'Notifications', desc: 'Manage push notifications', href: '/app/notifications' },
+      { icon: Globe, label: 'Language', desc: 'English (default)', comingSoon: true },
     ],
   },
   {
     title: 'Security',
     items: [
-      { icon: Lock, label: 'Change Password', desc: 'Update your password' },
+      { icon: Lock, label: 'Change Password', desc: 'Update your password', comingSoon: true },
     ],
   },
   {
     title: 'App',
     items: [
       { icon: Smartphone, label: 'App Version', desc: 'v1.0.0' },
-      { icon: HelpCircle, label: 'Help & Support', desc: 'Get assistance' },
+      { icon: HelpCircle, label: 'Help & Support', desc: 'Get assistance', comingSoon: true },
     ],
   },
 ]
@@ -31,10 +32,19 @@ const settingsGroups = [
 export default function SettingsPage() {
   const router = useRouter()
   const { logout } = useAuthStore()
+  const toast = useToastStore()
 
   const handleLogout = async () => {
     await logout()
     router.replace('/onboarding/welcome')
+  }
+
+  const handleItemClick = (item: { href?: string; comingSoon?: boolean }) => {
+    if (item.href) {
+      router.push(item.href)
+    } else if (item.comingSoon) {
+      toast.addToast('Coming soon', 'info')
+    }
   }
 
   return (
@@ -59,7 +69,8 @@ export default function SettingsPage() {
               {group.items.map((item) => (
                 <button
                   key={item.label}
-                  className="w-full flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-xl p-4 hover:bg-gaffer-surface transition-colors text-left"
+                  onClick={() => handleItemClick(item)}
+                  className="w-full flex items-center gap-4 bg-gaffer-card border border-gaffer-border rounded-xl p-4 hover:bg-gaffer-surface transition-colors text-left active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-xl bg-gaffer-surface flex items-center justify-center">
                     <item.icon size={17} className="text-gaffer-muted" />
