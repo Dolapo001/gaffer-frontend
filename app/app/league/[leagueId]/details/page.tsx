@@ -3,10 +3,16 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft } from 'lucide-react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { ChevronLeft, Bell, BellOff } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 import { getCompetition } from '@/lib/services/competition.service'
+import {
+  followCompetition,
+  unfollowCompetition,
+} from '@/lib/services/notifications.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getTopScorers, getTopAssists, type PlayerStatEntry } from '@/lib/services/stats.service'
@@ -37,6 +43,20 @@ export default function LeagueDetailsPage() {
   const params = useParams()
   const leagueId = params.leagueId as string
   const [activeTab, setActiveTab] = useState<'table' | 'fixtures'>('table')
+  const [followingCompetition, setFollowingCompetition] = useState(false)
+  const toast = useToastStore()
+
+  const followCompetitionMutation = useMutation({
+    mutationFn: () =>
+      followingCompetition ? unfollowCompetition(leagueId) : followCompetition(leagueId),
+    onMutate: () => setFollowingCompetition((prev) => !prev),
+    onSuccess: () =>
+      toast.addToast(followingCompetition ? 'Unfollowed league' : 'Following league', 'success'),
+    onError: (err) => {
+      setFollowingCompetition((prev) => !prev)
+      toast.addToast(getErrorMessage(err), 'error')
+    },
+  })
 
   const { setActiveCompetition } = useUIStore()
 
@@ -113,7 +133,16 @@ export default function LeagueDetailsPage() {
               {competition.name}
             </p>
           )}
-          <div className="w-9" />
+          <button
+            onClick={() => followCompetitionMutation.mutate()}
+            disabled={followCompetitionMutation.isPending}
+            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
+            title={followingCompetition ? 'Unfollow league' : 'Follow league'}
+          >
+            {followingCompetition
+              ? <BellOff size={16} className="text-gaffer-orange" />
+              : <Bell size={16} className="text-white/60" />}
+          </button>
         </div>
       </div>
 

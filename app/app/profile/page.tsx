@@ -51,12 +51,15 @@ export default function ProfilePage() {
 
   const uploadAvatarMutation = useMutation({
     mutationFn: (file: File) => uploadAvatar(file),
-    onSuccess: (res) => {
-      const updatedProfile = { ...profile, avatarUrl: res.data.imageUrl } as UserProfile
-      queryClient.setQueryData(['profile'], updatedProfile)
-      setProfile(updatedProfile)
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      setAvatarPreview(null)
+      setSelectedAvatarFile(null)
     },
     onError: (err) => {
+      // Revert the local preview back to the server avatar
+      setAvatarPreview(null)
+      setSelectedAvatarFile(null)
       toast.addToast({ type: 'error', message: getErrorMessage(err) })
     },
   })
@@ -85,13 +88,8 @@ export default function ProfilePage() {
     profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
   const email = user?.email || profile?.email || 'Not provided'
 
-  const onSubmit = async (data: UpdateProfileFormData) => {
-    // Upload avatar first if a file was selected
-    if (selectedAvatarFile) {
-      await uploadAvatarMutation.mutateAsync(selectedAvatarFile)
-    }
-
-    // Only send changed text fields
+  const onSubmit = (data: UpdateProfileFormData) => {
+    // Only send changed text fields (avatar is uploaded immediately on file-select)
     const payload: UpdateProfileFormData = {}
     if (data.fullName !== (profile?.fullName ?? '')) payload.fullName = data.fullName
     if (data.username !== (profile?.username ?? '')) payload.username = data.username
@@ -99,12 +97,7 @@ export default function ProfilePage() {
 
     if (Object.keys(payload).length > 0) {
       updateMutation.mutate(payload)
-    } else if (!selectedAvatarFile) {
-      // nothing changed
-      setEditing(false)
     } else {
-      // avatar-only update already done
-      toast.addToast({ type: 'success', message: 'Avatar updated successfully' })
       setEditing(false)
     }
   }
@@ -119,15 +112,19 @@ export default function ProfilePage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    setSelectedAvatarFile(file)
+    // Show preview immediately, then fire upload
     const reader = new FileReader()
-    reader.onload = () => setAvatarPreview(reader.result as string)
+    reader.onload = () => {
+      setAvatarPreview(reader.result as string)
+      setSelectedAvatarFile(file)
+      uploadAvatarMutation.mutate(file)
+    }
     reader.readAsDataURL(file)
   }
 
   const currentAvatarUrl = avatarPreview ?? profile?.avatarUrl
-  const isSaving = updateMutation.isPending || uploadAvatarMutation.isPending
-  const hasChanges = isDirty || !!selectedAvatarFile
+  const isSaving = updateMutation.isPending
+  const hasChanges = isDirty
 
   return (
     <div className="min-h-screen bg-gaffer-bg">
@@ -168,6 +165,11 @@ export default function ProfilePage() {
             >
               {displayName[0].toUpperCase()}
             </motion.div>
+          )}
+          {uploadAvatarMutation.isPending && (
+            <div className="absolute inset-0 mb-3 rounded-full bg-black/50 flex items-center justify-center">
+              <div className="w-6 h-6 rounded-full border-2 border-white/20 border-t-white animate-spin" />
+            </div>
           )}
           {editing && (
             <>

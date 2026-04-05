@@ -12,7 +12,13 @@ import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
 import type { Team, Group, Player, OrganiseView, JerseyFormConfig } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listTeams, createTeam, deleteTeam, listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto, Team as BackendTeam } from '@/lib/services/team.service'
+import {
+  listTeams, createTeam, getTeam, updateTeam, deleteTeam,
+  listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto,
+  getTeamPhotos, uploadTeamPhoto, deleteTeamPhoto,
+  registerTeamForCompetition,
+  Team as BackendTeam, type TeamPhoto,
+} from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listGroups, createGroup, updateGroup, deleteGroup, Group as BackendGroup } from '@/lib/services/group.service'
 import { listCompetitions, registerTeams, removeCompetitionTeam, removeCompetitionGroup, assignTeamGroups, Competition } from '@/lib/services/competition.service'
@@ -64,6 +70,20 @@ export default function OrganizePage() {
     enabled: !!orgId
   })
 
+  // 3a. Fetch full team detail when a team is selected
+  const { data: selectedTeamDetail } = useQuery({
+    queryKey: ['team-detail', selectedTeam?.id],
+    queryFn: () => getTeam(selectedTeam!.id),
+    enabled: !!selectedTeam?.id,
+  })
+
+  // 3b. Fetch team photos when a team is selected
+  const { data: teamPhotos = [] } = useQuery<TeamPhoto[]>({
+    queryKey: ['team-photos', selectedTeam?.id],
+    queryFn: () => getTeamPhotos(selectedTeam!.id),
+    enabled: !!selectedTeam?.id,
+  })
+
   // 3. Fetch Players (when a team is selected)
   const { data: backendPlayers } = useQuery({
     queryKey: ['players', selectedTeam?.id, selectedCompetitionId],
@@ -92,6 +112,46 @@ export default function OrganizePage() {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
       addToast('Team deleted successfully', 'success')
       setView('list')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const updateTeamMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => updateTeam(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['team-detail', selectedTeam?.id] })
+      addToast('Team updated!', 'success')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const uploadTeamPhotoMutation = useMutation({
+    mutationFn: ({ teamId, file }: { teamId: string; file: File }) =>
+      uploadTeamPhoto(teamId, file),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-photos', selectedTeam?.id] })
+      addToast('Photo uploaded!', 'success')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const deleteTeamPhotoMutation = useMutation({
+    mutationFn: ({ teamId, photoId }: { teamId: string; photoId: string }) =>
+      deleteTeamPhoto(teamId, photoId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['team-photos', selectedTeam?.id] })
+      addToast('Photo deleted', 'info')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+  })
+
+  const registerTeamMutation = useMutation({
+    mutationFn: ({ teamId, competitionId }: { teamId: string; competitionId: string }) =>
+      registerTeamForCompetition(teamId, { competitionId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      addToast('Team registered!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
@@ -531,8 +591,10 @@ export default function OrganizePage() {
             {view === 'details' && (
               <OrganiseDetails
                 selectedTeam={selectedTeam}
+                selectedTeamDetail={selectedTeamDetail ?? null}
                 selectedGroup={selectedGroup || groups.find(g => g.teams.some(t => t.id === selectedTeam?.id)) || null}
                 players={players}
+                teamPhotos={teamPhotos}
                 competitions={competitions || []}
                 onBack={() => setView('list')}
                 onShare={() => setView('list')}
@@ -544,6 +606,18 @@ export default function OrganizePage() {
                 onAddToTournament={handleRegisterTeamToTournament}
                 onAddPlayerManual={handleManualAddPlayer}
                 onUploadPlayerPhoto={handleUploadPlayerPhoto}
+                onUpdateTeam={(payload) => {
+                  if (selectedTeam) updateTeamMutation.mutate({ id: selectedTeam.id, payload })
+                }}
+                onUploadTeamPhoto={(file) => {
+                  if (selectedTeam) uploadTeamPhotoMutation.mutate({ teamId: selectedTeam.id, file })
+                }}
+                onDeleteTeamPhoto={(photoId) => {
+                  if (selectedTeam) deleteTeamPhotoMutation.mutate({ teamId: selectedTeam.id, photoId })
+                }}
+                onRegisterTeam={(competitionId) => {
+                  if (selectedTeam) registerTeamMutation.mutate({ teamId: selectedTeam.id, competitionId })
+                }}
                 onUpdatePlayer={(playerId: string, payload: any) => {
                   if (!selectedTeam) return
                   updatePlayerMutation.mutate({ teamId: selectedTeam.id, playerId, payload })

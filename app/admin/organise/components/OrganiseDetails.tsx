@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X } from 'lucide-react'
+import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon } from 'lucide-react'
 import type { Team, Group, Player } from '../types'
+import type { Team as BackendTeam, TeamPhoto } from '@/lib/services/team.service'
 import { useToastStore } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
 import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
@@ -13,8 +14,10 @@ const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').r
 
 interface Props {
   selectedTeam: Team | null
+  selectedTeamDetail?: BackendTeam | null
   selectedGroup: Group | null
   players: Player[]
+  teamPhotos?: TeamPhoto[]
   competitions?: Competition[]
   onBack: () => void
   onShare: () => void
@@ -26,6 +29,10 @@ interface Props {
   onAddToTournament?: (teamId: string, competitionId: string) => void
   onAddPlayerManual?: (data: any) => void
   onUploadPlayerPhoto?: (playerId: string, file: File) => Promise<void>
+  onUpdateTeam?: (payload: any) => void
+  onUploadTeamPhoto?: (file: File) => void
+  onDeleteTeamPhoto?: (photoId: string) => void
+  onRegisterTeam?: (competitionId: string) => void
   onDeleteTeam?: () => void
   onDeleteGroup?: () => void
   onUpdatePlayer?: (playerId: string, payload: any) => void
@@ -59,8 +66,10 @@ function PlayerAvatar({ photo, size = 'md', jerseyNumber }: { photo?: string | n
 
 export function OrganiseDetails({
   selectedTeam,
+  selectedTeamDetail,
   selectedGroup,
   players,
+  teamPhotos = [],
   competitions = [],
   onBack,
   onShare,
@@ -72,6 +81,10 @@ export function OrganiseDetails({
   onAddToTournament,
   onAddPlayerManual,
   onUploadPlayerPhoto,
+  onUpdateTeam,
+  onUploadTeamPhoto,
+  onDeleteTeamPhoto,
+  onRegisterTeam,
   onDeleteTeam,
   onDeleteGroup,
   onUpdatePlayer,
@@ -82,6 +95,11 @@ export function OrganiseDetails({
 
   const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false)
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
+  const [showEditTeam, setShowEditTeam] = useState(false)
+  const [editTeamName, setEditTeamName] = useState('')
+  const [showPhotos, setShowPhotos] = useState(false)
+  const [deletePhotoTarget, setDeletePhotoTarget] = useState<string | null>(null)
+  const teamPhotoInputRef = useRef<HTMLInputElement>(null)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
   const [tempPrice, setTempPrice] = useState('')
@@ -300,6 +318,68 @@ export function OrganiseDetails({
               )}
             </AnimatePresence>
 
+            {/* Edit Team + Register Row */}
+            <div className="flex gap-2">
+              {onUpdateTeam && (
+                <button
+                  onClick={() => { setEditTeamName(selectedTeam?.name || ''); setShowEditTeam(true) }}
+                  className="flex-1 flex items-center justify-center gap-2 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-white hover:border-white/10 transition-all"
+                >
+                  <Pencil size={13} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Edit Team</span>
+                </button>
+              )}
+              {onRegisterTeam && competitions.length > 0 && (
+                <button
+                  onClick={() => onRegisterTeam(competitions[0]._id)}
+                  className="flex-1 flex items-center justify-center gap-2 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-gaffer-orange hover:border-gaffer-orange/20 transition-all"
+                >
+                  <Trophy size={13} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Register</span>
+                </button>
+              )}
+            </div>
+
+            {/* Team Photos Section */}
+            {(teamPhotos.length > 0 || onUploadTeamPhoto) && (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setShowPhotos(p => !p)}
+                  className="flex items-center justify-between w-full px-2 pt-1"
+                >
+                  <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Team Photos</h4>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[9px] text-white/20 font-bold">{teamPhotos.length}</span>
+                    {showPhotos ? <ChevronUp size={12} className="text-white/20" /> : <ChevronDown size={12} className="text-white/20" />}
+                  </div>
+                </button>
+                {showPhotos && (
+                  <div className="grid grid-cols-3 gap-2">
+                    {teamPhotos.map(photo => (
+                      <div key={photo._id} className="relative aspect-square rounded-xl overflow-hidden group">
+                        <img src={photo.url} className="w-full h-full object-cover" alt="" />
+                        {onDeleteTeamPhoto && (
+                          <button
+                            onClick={() => setDeletePhotoTarget(photo._id)}
+                            className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                          >
+                            <Trash2 size={16} className="text-red-400" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {onUploadTeamPhoto && (
+                      <label className="aspect-square rounded-xl bg-[#1C1E2B] border border-dashed border-white/10 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-gaffer-orange/30 transition-colors">
+                        <input ref={teamPhotoInputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) onUploadTeamPhoto(f) }} />
+                        <ImageIcon size={18} className="text-white/20" />
+                        <span className="text-[7px] font-black text-white/20 uppercase tracking-widest">Upload</span>
+                      </label>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between px-2 pt-2">
                <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Squad Roster</h4>
                <button 
@@ -448,6 +528,63 @@ export function OrganiseDetails({
         }}
         onCancel={() => setShowDeleteGroupConfirm(false)}
       />
+
+      <ConfirmDialog
+        open={!!deletePhotoTarget}
+        title="Delete Photo?"
+        message="This photo will be permanently removed from the team gallery."
+        confirmLabel="Delete"
+        destructive
+        onConfirm={() => {
+          if (deletePhotoTarget) onDeleteTeamPhoto?.(deletePhotoTarget)
+          setDeletePhotoTarget(null)
+        }}
+        onCancel={() => setDeletePhotoTarget(null)}
+      />
+
+      {/* ── Edit Team Modal ── */}
+      <AnimatePresence>
+        {showEditTeam && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-6">
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-[10px]"
+              onClick={() => setShowEditTeam(false)}
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-[340px] bg-[#1C1D2B] border border-white/10 rounded-[40px] overflow-hidden shadow-2xl p-8 space-y-6"
+            >
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Edit Team</p>
+                <button onClick={() => setShowEditTeam(false)} className="text-white/20 hover:text-white"><X size={16} /></button>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Team Name</label>
+                <input
+                  value={editTeamName}
+                  onChange={e => setEditTeamName(e.target.value)}
+                  placeholder="Enter team name"
+                  className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                />
+              </div>
+              <button
+                onClick={() => {
+                  if (!editTeamName.trim()) return
+                  onUpdateTeam?.({ name: editTeamName.trim() })
+                  setShowEditTeam(false)
+                }}
+                disabled={!editTeamName.trim()}
+                className="w-full h-14 rounded-[22px] bg-gradient-to-r from-gaffer-orange to-[#FF4D00] text-white font-black uppercase tracking-[0.25em] shadow-[0_8px_30px_rgba(255,102,0,0.25)] active:scale-95 transition-all text-sm disabled:opacity-40"
+              >
+                Save Changes
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Edit Player Modal ── */}
       <AnimatePresence>

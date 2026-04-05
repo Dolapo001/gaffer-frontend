@@ -9,7 +9,7 @@ import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
-import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getNews, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
 import { useUIStore } from '@/store/uiStore'
 
 function timeAgo(iso: string) {
@@ -56,6 +56,7 @@ function toArticleProps(item: FeedItem) {
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
+    isLiked: item.isLiked ?? false,
     author: {
       name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
       handle: `${item.authorType}_${item.authorId.slice(-6)}`,
@@ -71,8 +72,8 @@ export default function NewsPage() {
 
   // When inside a competition use the org's feed; otherwise show global news
   const { data, isLoading } = useQuery({
-    queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['global-feed-news', 1],
-    queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getGlobalFeed(1),
+    queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['feed-news', 1],
+    queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getNews(1),
     staleTime: 60_000,
   })
 

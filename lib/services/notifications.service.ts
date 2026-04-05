@@ -23,17 +23,17 @@ export async function getVapidKey(): Promise<{ vapidPublicKey: string }> {
   return api.get<{ vapidPublicKey: string }>('/notifications/vapid-key', { public: true })
 }
 
-// POST /notifications/subscribe
+// POST /notifications/push/subscribe
 export async function subscribePush(subscription: {
   endpoint: string
   keys: { p256dh: string; auth: string }
 }): Promise<{ message: string; subscription: unknown }> {
-  return api.post('/notifications/subscribe', subscription)
+  return api.post('/notifications/push/subscribe', subscription)
 }
 
-// POST /notifications/unsubscribe
+// DELETE /notifications/push/subscribe
 export async function unsubscribePush(endpoint: string): Promise<{ message: string }> {
-  return api.post<{ message: string }>('/notifications/unsubscribe', { endpoint })
+  return api.delete<{ message: string }>('/notifications/push/subscribe', { body: { endpoint } })
 }
 
 // GET /notifications/preferences
@@ -87,6 +87,21 @@ export async function getInboxNotifications(page = 1): Promise<{ notifications: 
 // PATCH /notifications/:id/read
 export async function markNotificationRead(id: string): Promise<{ message: string; notification: InboxNotification }> {
   return api.patch(`/notifications/${id}/read`, {})
+}
+
+// PATCH /notifications/read-all — mark every notification as read
+export async function markAllRead(): Promise<{ message: string }> {
+  return api.patch<{ message: string }>('/notifications/read-all', {})
+}
+
+// DELETE /notifications/:id — delete a single notification
+export async function deleteNotification(id: string): Promise<{ message: string }> {
+  return api.delete<{ message: string }>(`/notifications/${id}`)
+}
+
+// DELETE /notifications — clear all notifications
+export async function clearAllNotifications(): Promise<{ message: string }> {
+  return api.delete<{ message: string }>('/notifications')
 }
 
 // All mutable event types (for preferences UI)

@@ -4,17 +4,18 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
-  getInboxNotifications, 
-  markNotificationRead, 
-  getPreferences, 
+import {
+  getInboxNotifications,
+  markNotificationRead,
+  deleteNotification,
+  getPreferences,
   updatePreferences,
   MUTABLE_EVENT_TYPES,
-  type InboxNotification 
+  type InboxNotification
 } from '@/lib/services/notifications.service'
-import { 
-  ChevronLeft, Bell, BellOff, Settings2, CheckCircle2, Trophy, Flame, AlertCircle, 
-  ChevronDown, ChevronUp, BellRing, Inbox, Settings, X
+import {
+  ChevronLeft, Bell, BellOff, Settings2, CheckCircle2, Trophy, Flame, AlertCircle,
+  ChevronDown, ChevronUp, BellRing, Inbox, Settings, X, Trash2
 } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useToastStore } from '@/store/toastStore'
@@ -63,7 +64,14 @@ export default function NotificationsPage() {
   // 2. Mutations
   const readMutation = useMutation({
     mutationFn: (id: string) => markNotificationRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-inbox'] })
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-inbox'] }),
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteNotification(id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-inbox'] }),
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
   const prefsMutation = useMutation({
@@ -163,22 +171,33 @@ export default function NotificationsPage() {
                        [1, 2, 3].map(i => <div key={i} className="h-24 bg-white/5 rounded-[24px] animate-pulse" />)
                      ) : inbox && inbox.notifications && inbox.notifications.length > 0 ? (
                        inbox.notifications.map((n: InboxNotification) => (
-                         <button
+                         <div
                            key={n._id}
-                           onClick={() => !n.read && readMutation.mutate(n._id)}
-                           className={`w-full bg-[#1E2032] border border-white/5 rounded-[24px] p-5 flex items-start gap-4 text-left transition-all ${
+                           className={`bg-[#1E2032] border border-white/5 rounded-[24px] p-5 flex items-start gap-4 transition-all ${
                                !n.read ? 'border-l-4 border-l-gaffer-orange bg-gaffer-orange/5' : 'opacity-40'
                            }`}
                          >
-                           <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
-                              {getIcon(n.type)}
-                           </div>
-                           <div className="flex-1 space-y-1">
-                              <h4 className="font-chakra font-black text-sm uppercase leading-tight tracking-tight text-white">{n.title}</h4>
-                              <p className="text-xs text-white/40 font-medium leading-normal line-clamp-2">{n.body}</p>
-                              <span className="text-[9px] text-white/20 font-black uppercase inline-block pt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
-                           </div>
-                         </button>
+                           <button
+                             onClick={() => !n.read && readMutation.mutate(n._id)}
+                             className="flex items-start gap-4 flex-1 text-left"
+                           >
+                             <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0">
+                                {getIcon(n.type)}
+                             </div>
+                             <div className="flex-1 space-y-1">
+                                <h4 className="font-chakra font-black text-sm uppercase leading-tight tracking-tight text-white">{n.title}</h4>
+                                <p className="text-xs text-white/40 font-medium leading-normal line-clamp-2">{n.body}</p>
+                                <span className="text-[9px] text-white/20 font-black uppercase inline-block pt-1">{new Date(n.createdAt).toLocaleDateString()}</span>
+                             </div>
+                           </button>
+                           <button
+                             onClick={() => deleteMutation.mutate(n._id)}
+                             disabled={deleteMutation.isPending}
+                             className="w-8 h-8 flex items-center justify-center rounded-full text-white/20 hover:text-red-400 transition-colors shrink-0"
+                           >
+                             <Trash2 size={14} />
+                           </button>
+                         </div>
                        ))
                      ) : (
                        <div className="py-20 text-center space-y-4">

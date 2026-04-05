@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Camera, User, Phone, Plus } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
-import { validatePlayerInvite, acceptPlayerInvite } from '@/lib/services/team.service'
+import { validatePlayerInvite, acceptPlayerInvite, declinePlayerInvite } from '@/lib/services/team.service'
 import { getErrorMessage } from '@/lib/api'
 
 const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
@@ -16,9 +16,10 @@ export default function JoinTeamPage() {
   // The route param is the invite token
   const token = params.teamId as string
 
-  const [inviteInfo, setInviteInfo] = useState<{ email: string; teamId: string } | null>(null)
+  const [inviteInfo, setInviteInfo] = useState<{ _id: string; email: string; teamId: string } | null>(null)
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeclining, setIsDeclining] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
 
   const [formData, setFormData] = useState({
@@ -46,11 +47,11 @@ export default function JoinTeamPage() {
       setSubmitError('First and last name are required')
       return
     }
+    if (!inviteInfo) return
     setIsSubmitting(true)
     setSubmitError(null)
     try {
-      await acceptPlayerInvite({
-        token,
+      await acceptPlayerInvite(inviteInfo.teamId, inviteInfo._id, {
         firstName: formData.firstName,
         lastName: formData.lastName,
         phone: formData.phone || undefined,
@@ -61,6 +62,19 @@ export default function JoinTeamPage() {
       setSubmitError(getErrorMessage(err))
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDecline = async () => {
+    if (!inviteInfo) return
+    setIsDeclining(true)
+    try {
+      await declinePlayerInvite(inviteInfo.teamId, inviteInfo._id)
+      router.replace('/app/dashboard')
+    } catch (err) {
+      setSubmitError(getErrorMessage(err))
+    } finally {
+      setIsDeclining(false)
     }
   }
 
@@ -198,8 +212,8 @@ export default function JoinTeamPage() {
           </div>
         </div>
 
-        {/* Action Button */}
-        <div className="fixed bottom-10 left-6 right-6 z-50">
+        {/* Action Buttons */}
+        <div className="fixed bottom-10 left-6 right-6 z-50 space-y-3">
           <GradientButton
             onClick={handleSubmit}
             loading={isSubmitting}
@@ -207,6 +221,13 @@ export default function JoinTeamPage() {
           >
             Submit Registration
           </GradientButton>
+          <button
+            onClick={handleDecline}
+            disabled={isDeclining || isSubmitting}
+            className="w-full h-12 rounded-2xl border border-white/10 text-white/40 font-chakra font-black text-sm uppercase tracking-widest disabled:opacity-40 transition-all"
+          >
+            {isDeclining ? 'Declining...' : 'Decline Invite'}
+          </button>
         </div>
       </main>
     </div>
