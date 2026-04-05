@@ -3,11 +3,17 @@
 import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
-import { ChevronLeft, Info, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
-import { getImageUrl } from '@/lib/api'
+import {
+  followMatch,
+  unfollowMatch,
+  getPreferences,
+} from '@/lib/services/notifications.service'
+import { ChevronLeft, Bell, BellOff, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
+import { getImageUrl, getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
+import { useToastStore } from '@/store/toastStore'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -15,6 +21,8 @@ export default function MatchCenterPage() {
   const params = useParams()
   const matchId = params.matchId as string
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
+  const qc = useQueryClient()
+  const toast = useToastStore()
 
   const { data: matchData, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -24,6 +32,24 @@ export default function MatchCenterPage() {
   const { data: allEvents } = useQuery({
     queryKey: ['match-events', matchId],
     queryFn: () => getMatchEvents(matchId),
+  })
+
+  // ── Follow / unfollow match ─────────────────────────────────────────────
+  // Fetch preferences to determine current follow status
+  const { data: prefsData } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences,
+    retry: false,
+  })
+  const isFollowing = prefsData?.preferences?.followedMatches?.includes(matchId) ?? false
+
+  const followMutation = useMutation({
+    mutationFn: () => (isFollowing ? unfollowMatch(matchId) : followMatch(matchId)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notification-preferences'] })
+      toast.addToast(isFollowing ? 'Unfollowed match.' : 'Following match — you\'ll get live alerts!', 'success')
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
   const events = useMemo(() => {
@@ -63,8 +89,17 @@ export default function MatchCenterPage() {
         <h1 className="text-[18px] font-bold tracking-tight">
           {isCompleted ? 'Final Score' : isLive ? 'Live Match' : 'Match Schedule'}
         </h1>
-        <button className="text-white p-1 opacity-60">
-          <Info size={18} />
+        {/* Follow match — POST/DELETE /notifications/follow/match/:matchId */}
+        <button
+          onClick={() => followMutation.mutate()}
+          disabled={followMutation.isPending}
+          className="p-1 transition-colors disabled:opacity-40"
+          aria-label={isFollowing ? 'Unfollow match' : 'Follow match'}
+        >
+          {isFollowing
+            ? <Bell size={20} className="text-gaffer-orange" fill="currentColor" />
+            : <BellOff size={20} className="text-white/40 hover:text-white" />
+          }
         </button>
       </header>
 

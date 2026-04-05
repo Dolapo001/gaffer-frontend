@@ -3,10 +3,17 @@
 import { useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Heart, Share2 } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { ChevronLeft, Heart, Share2, Bell, BellOff } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
+import {
+  followCompetition,
+  unfollowCompetition,
+  getPreferences,
+} from '@/lib/services/notifications.service'
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 import { getCompetition } from '@/lib/services/competition.service'
@@ -176,6 +183,8 @@ export default function LeagueHomePage() {
   const leagueId = params.leagueId as string
   const { user } = useAuthStore()
   const { setActiveCompetition } = useUIStore()
+  const qc = useQueryClient()
+  const toast = useToastStore()
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -239,6 +248,26 @@ export default function LeagueHomePage() {
     retry: false,
   })
 
+  // ── Follow / unfollow competition ─────────────────────────────────────────
+  const { data: prefsData } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences,
+    retry: false,
+  })
+  const isFollowingComp = prefsData?.preferences?.followedCompetitions?.includes(leagueId) ?? false
+
+  const followCompMutation = useMutation({
+    mutationFn: () => (isFollowingComp ? unfollowCompetition(leagueId) : followCompetition(leagueId)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notification-preferences'] })
+      toast.addToast(
+        isFollowingComp ? 'Unfollowed competition.' : 'Following competition — you\'ll get updates!',
+        'success'
+      )
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
   // ── Derived values ─────────────────────────────────────────────────────────
 
   const isLoading = loadingComp || loadingFixtures
@@ -287,7 +316,18 @@ export default function LeagueHomePage() {
               {competition.name}
             </p>
           )}
-          <div className="w-9" />
+          {/* Follow competition — POST/DELETE /notifications/follow/competition/:id */}
+          <button
+            onClick={() => followCompMutation.mutate()}
+            disabled={followCompMutation.isPending || loadingComp}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border transition-colors disabled:opacity-40"
+            aria-label={isFollowingComp ? 'Unfollow competition' : 'Follow competition'}
+          >
+            {isFollowingComp
+              ? <Bell size={16} className="text-gaffer-orange" fill="currentColor" />
+              : <BellOff size={16} className="text-white/50" />
+            }
+          </button>
         </div>
       </div>
 
