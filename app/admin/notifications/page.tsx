@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
+import { useGoBack } from '@/hooks/useGoBack'
 import { useNotifStore, type NotifType } from '@/store/notifStore'
 import { ChevronLeft, Bell, BellOff, Trophy, Users, Newspaper, Zap } from 'lucide-react'
 
@@ -15,12 +16,13 @@ const notifIcons: Record<NotifType, { icon: typeof Bell; color: string; bg: stri
 
 export default function AdminNotificationsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/admin')
   const { notifications, unreadCount, markRead, markAllRead, clearAll } = useNotifStore()
 
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col">
       <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gaffer-border">
-        <button onClick={() => router.back()}
+        <button onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white">
           <ChevronLeft size={18} />
         </button>

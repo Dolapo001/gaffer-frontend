@@ -7,6 +7,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Sparkles, ShoppingBag, Zap, Clock, ShieldCheck, HelpCircle, X } from 'lucide-react'
 import { listChips, purchaseChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
 import { getWallet } from '@/lib/services/payment.service'
+import { listGameweeks, activateChip } from '@/lib/services/fantasy.service'
+import { useGoBack } from '@/hooks/useGoBack'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -27,6 +29,7 @@ const CHIP_DESCRIPTIONS: Record<string, string> = {
 
 export default function ChipsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/fantasy')
   const qc = useQueryClient()
   const toast = useToastStore()
   const { competitionId } = useFantasyStore()
@@ -44,6 +47,15 @@ export default function ChipsPage() {
     queryFn: getWallet
   })
 
+  const { data: gameweeks } = useQuery({
+    queryKey: ['gameweeks', competitionId],
+    queryFn: () => listGameweeks(competitionId!),
+    enabled: !!competitionId
+  })
+
+  // Active gameweek: first open one, otherwise the last one
+  const activeGameweek = gameweeks?.find((gw) => gw.lockStatus === 'open') ?? gameweeks?.[gameweeks.length - 1]
+
   // 2. Mutations
   const buyMutation = useMutation({
     mutationFn: (chipType: ChipType) => purchaseChip(competitionId!, chipType),
@@ -56,6 +68,17 @@ export default function ChipsPage() {
     onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
 
+  const activateMutation = useMutation({
+    mutationFn: (chipType: ChipType) =>
+      activateChip(competitionId!, chipType as any, activeGameweek!._id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['chips', competitionId] })
+      toast.addToast(`Chip activated for Gameweek ${activeGameweek?.number ?? ''}!`, 'success')
+      setSelectedChip(null)
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error')
+  })
+
   if (!competitionId) return null
 
   return (
@@ -63,7 +86,7 @@ export default function ChipsPage() {
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#181928]/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-4 px-6 pt-12 pb-4">
-          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
+          <button onClick={goBack} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1">
@@ -195,8 +218,8 @@ export default function ChipsPage() {
                    </div>
                 </div>
 
-                <div className="pt-4">
-                   <button 
+                <div className="pt-4 space-y-3">
+                   <button
                      onClick={() => buyMutation.mutate(selectedChip.chipType)}
                      disabled={buyMutation.isPending || (selectedChip.price.coins > (wallet?.balance ?? 0))}
                      className="w-full h-16 rounded-[24px] bg-gradient-to-r from-gaffer-orange to-red-600 text-white font-chakra font-black text-lg uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
@@ -204,11 +227,20 @@ export default function ChipsPage() {
                      {buyMutation.isPending ? 'Processing...' : selectedChip.price.coins > (wallet?.balance ?? 0) ? 'Insufficient Coins' : 'Confirm Purchase'}
                    </button>
                    {selectedChip.price.coins > (wallet?.balance ?? 0) && (
-                     <button 
+                     <button
                         onClick={() => router.push('/app/shop')}
-                        className="w-full py-4 text-[10px] text-gaffer-orange font-black uppercase tracking-widest mt-2 hover:underline"
+                        className="w-full py-4 text-[10px] text-gaffer-orange font-black uppercase tracking-widest hover:underline"
                      >
                        Buy more coins &rarr;
+                     </button>
+                   )}
+                   {activeGameweek && (
+                     <button
+                       onClick={() => activateMutation.mutate(selectedChip.chipType)}
+                       disabled={activateMutation.isPending || !activeGameweek}
+                       className="w-full h-14 rounded-[24px] bg-white/5 border border-white/10 text-white font-chakra font-black text-sm uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50"
+                     >
+                       {activateMutation.isPending ? 'Activating...' : `Activate for GW${activeGameweek.number}`}
                      </button>
                    )}
                 </div>

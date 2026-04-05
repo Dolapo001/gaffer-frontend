@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronRight, RefreshCw, Home, Trophy, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-import { GAMEWEEK_INFO } from '@/lib/fantasyMockData'
+import { GAMEWEEK_INFO, type FantasySquadPlayer } from '@/lib/fantasyMockData'
 import {
   useFantasyStore,
 } from '@/store/fantasyStore'
+import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
 
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
@@ -16,12 +17,15 @@ import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { BoostSelector } from './BoostSelector'
 import { FantasyHeroWave } from './FantasyHeroWave'
 
+const PITCH_ROW: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 }
+
 export function FantasyTeamScreen() {
   const router = useRouter()
   const [savedAnim, setSavedAnim] = useState(false)
   const [gameweek, setGameweek] = useState(5)
 
   // Zustand state
+  const competitionId = useFantasyStore((s) => s.competitionId)
   const selectedPlayerId = useFantasyStore((s) => s.selectedPlayerId)
   const selectedBoost = useFantasyStore((s) => s.selectedBoost)
   const budget = useFantasyStore((s) => s.budget)
@@ -29,6 +33,38 @@ export function FantasyTeamScreen() {
   const selectPlayer = useFantasyStore((s) => s.selectPlayer)
   const setBoost = useFantasyStore((s) => s.setBoost)
   const saveTeam = useFantasyStore((s) => s.saveTeam)
+  const setPlayers = useFantasyStore((s) => s.setPlayers)
+
+  // Load team from API on mount
+  useEffect(() => {
+    if (!competitionId) return
+    getMyFantasyTeam(competitionId).then((team) => {
+      if (!team || !team.squad?.length) return
+      const mapped: FantasySquadPlayer[] = team.squad.map((p) => ({
+        id: p._id,
+        name: `${p.playerId.firstName} ${p.playerId.lastName}`,
+        shortName: `${p.playerId.firstName[0]}. ${p.playerId.lastName}`,
+        teamName: p.teamId.name,
+        teamCode: p.teamId.handle,
+        teamColor: p.teamId.homeJersey?.primaryColor ?? '#888888',
+        jersey: p.teamId.homeJersey,
+        position: p.position,
+        points: p.totalPoints ?? 0,
+        price: p.price,
+        pitchRow: PITCH_ROW[p.position] ?? 1,
+        isOnPitch: team.startingXI.includes(p._id),
+        isCaptain: team.captainId === p._id,
+        isViceCaptain: team.viceCaptainId === p._id,
+        goals: 0,
+        assists: 0,
+        form: 0,
+        gwHistory: [],
+        nextFixtures: [],
+        teamLogoUrl: p.teamId.logoUrl,
+      }))
+      setPlayers(mapped)
+    }).catch(() => {/* no team yet – keep existing store state */})
+  }, [competitionId, setPlayers])
 
   const pitchPlayers = players.filter((p) => p.isOnPitch)
   const benchPlayers = players.filter((p) => !p.isOnPitch)

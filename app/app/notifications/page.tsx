@@ -19,6 +19,7 @@ import {
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
+import { useGoBack } from '@/hooks/useGoBack'
 
 type Tab = 'inbox' | 'settings'
 
@@ -41,6 +42,7 @@ const EVENT_LABELS: Record<string, string> = {
 
 export default function NotificationsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/dashboard')
   const qc = useQueryClient()
   const toast = useToastStore()
   const [activeTab, setActiveTab] = useState<Tab>('inbox')
@@ -96,7 +98,7 @@ export default function NotificationsPage() {
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#181928]/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-4 px-6 pt-12 pb-4">
-          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
+          <button onClick={goBack} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1">

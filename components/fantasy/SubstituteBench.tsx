@@ -98,9 +98,7 @@ export function SubstituteBench({
               <PitchPlayerCard
                 playerName={player.shortName}
                 fixture={fixtureLabel(player)}
-                kitImageUrl={getJerseyUrl(player.teamCode, player.position)}
                 jersey={toJersey(player)}
-                points={player.points}
                 selected={selectedId === player.id}
                 highlightMode={
                   substitutingOutId

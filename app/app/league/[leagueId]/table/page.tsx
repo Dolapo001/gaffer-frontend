@@ -5,9 +5,11 @@ import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react'
 import { getStandings } from '@/lib/services/standings.service'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function LeagueTablePage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/league')
   const params = useParams()
   const leagueId = params.leagueId as string
 
@@ -49,7 +51,7 @@ export default function LeagueTablePage() {
         </div>
         <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-tight">No Rankings Yet</h2>
         <p className="text-white/40 text-sm max-w-xs font-medium">Standings for this tournament haven't been calculated yet.</p>
-        <button onClick={() => router.back()} className="mt-8 text-gaffer-orange font-black uppercase tracking-[0.2em] text-xs">Go Back</button>
+        <button onClick={goBack} className="mt-8 text-gaffer-orange font-black uppercase tracking-[0.2em] text-xs">Go Back</button>
       </div>
     );
   }
@@ -59,7 +61,7 @@ export default function LeagueTablePage() {
       {/* Header */}
       <div className="pt-12 pb-6 px-4 sticky top-0 bg-[#10111d]/90 backdrop-blur-md z-40">
         <div className="flex items-center justify-between relative max-w-md mx-auto">
-          <button onClick={() => router.back()} className="text-white p-1 hover:text-gaffer-orange transition-colors">
+          <button onClick={goBack} className="text-white p-1 hover:text-gaffer-orange transition-colors">
             <ChevronLeft size={28} />
           </button>
           <h1 className="absolute left-1/2 -translate-x-1/2 text-white text-[22px] font-black uppercase tracking-tight">

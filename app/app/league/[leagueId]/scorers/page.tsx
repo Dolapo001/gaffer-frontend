@@ -6,9 +6,11 @@ import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react'
 import { getTopScorers, getTopAssists } from '@/lib/services/stats.service'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function PlayerStatsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/league')
   const params = useParams()
   const leagueId = params.leagueId as string
   const [tab, setTab] = useState<'goals' | 'assists'>('goals')
@@ -30,7 +32,7 @@ export default function PlayerStatsPage() {
   const players = hasData ? rawData.map((p, i) => ({
     name: typeof p.playerId === 'string' ? 'Player' : `${p.playerId.firstName} ${p.playerId.lastName}`,
     team: typeof p.teamId === 'string' ? '' : p.teamId.name,
-    crest: typeof p.teamId === 'string' ? '' : p.teamId.logoUrl,
+    crest: typeof p.teamId === 'string' ? '' : (p.teamId as any).logoUrl ?? '',
     value: tab === 'goals' ? (p.goals || 0) : (p.assists || 0),
     trend: i % 3 === 0 ? 'up' : i % 3 === 1 ? 'down' : 'steady',
     image: typeof p.playerId !== 'string' ? p.playerId.photoUrl : ''
@@ -52,7 +54,7 @@ export default function PlayerStatsPage() {
         </div>
         <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-tight">No Stats Available</h2>
         <p className="text-white/40 text-sm max-w-xs font-medium">There are currently no {tab} recorded for this league.</p>
-        <button onClick={() => router.back()} className="mt-8 text-gaffer-orange font-black uppercase tracking-[0.2em] text-xs">Go Back</button>
+        <button onClick={goBack} className="mt-8 text-gaffer-orange font-black uppercase tracking-[0.2em] text-xs">Go Back</button>
       </div>
     );
   }
@@ -74,7 +76,7 @@ export default function PlayerStatsPage() {
 
       {/* Header */}
       <div className="relative pt-12 pb-4 px-6 flex items-center justify-between z-10">
-        <button onClick={() => router.back()} className="text-white p-1 hover:text-gaffer-orange transition-colors">
+        <button onClick={goBack} className="text-white p-1 hover:text-gaffer-orange transition-colors">
           <ChevronLeft size={28} />
         </button>
         <h1 className="text-white text-[22px] font-black uppercase tracking-tight">Tables</h1>

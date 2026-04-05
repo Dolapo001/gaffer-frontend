@@ -5,6 +5,7 @@ import { BrowserProtection } from '@/components/BrowserProtection'
 import { ToastContainer } from '@/components/ToastContainer'
 import { QueryProvider } from '@/components/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
+import { GoogleAuthProvider } from '@/components/GoogleAuthProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -60,6 +61,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body bg-gaffer-bg text-white antialiased overscroll-none">
+        <GoogleAuthProvider>
         <QueryProvider>
           <PWAProvider>
             <AuthProvider>
@@ -72,6 +74,7 @@ export default function RootLayout({
             </AuthProvider>
           </PWAProvider>
         </QueryProvider>
+        </GoogleAuthProvider>
       </body>
     </html>
   )

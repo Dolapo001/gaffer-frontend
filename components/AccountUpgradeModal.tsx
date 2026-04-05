@@ -151,7 +151,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
                 { value: 'basketball', label: 'Basketball' },
                 { value: 'tennis', label: 'Tennis' },
               ]}
-              error={orgForm.formState.errors.sports}
+              error={orgForm.formState.errors.sports as any}
               {...orgForm.register('sports', { 
                 setValueAs: (v) => v ? [v] : [] 
               })}

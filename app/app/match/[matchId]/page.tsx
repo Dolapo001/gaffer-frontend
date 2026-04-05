@@ -7,9 +7,11 @@ import { useQuery } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
 import { ChevronLeft, Info, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
 import { getImageUrl } from '@/lib/api'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function MatchCenterPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/league')
   const params = useParams()
   const matchId = params.matchId as string
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
@@ -55,7 +57,7 @@ export default function MatchCenterPage() {
     <div className="min-h-screen bg-[#10111d] text-white pb-10">
       {/* Header */}
       <header className="px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 bg-[#10111d] z-50">
-        <button onClick={() => router.back()} className="text-white p-1">
+        <button onClick={goBack} className="text-white p-1">
           <ChevronLeft size={28} />
         </button>
         <h1 className="text-[18px] font-bold tracking-tight">

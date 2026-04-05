@@ -5,7 +5,7 @@
  * Standard error envelope: { error: { code, message, details, requestId } }
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? ''
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')
 
 // ─── Token storage (in-memory only — never localStorage for access tokens) ───
 

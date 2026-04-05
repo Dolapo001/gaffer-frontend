@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGoBack } from '@/hooks/useGoBack'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Camera, Building2, Check } from 'lucide-react'
@@ -12,6 +13,7 @@ import { getErrorMessage } from '@/lib/api'
 
 export default function AdminSettingsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/admin')
   const { user } = useAuthStore()
   const toast = useToastStore()
   const queryClient = useQueryClient()
@@ -65,7 +67,7 @@ export default function AdminSettingsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b border-gaffer-border">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />

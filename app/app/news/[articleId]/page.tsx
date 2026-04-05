@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { getFeedItem } from '@/lib/services/feed.service'
 import { ChevronLeft } from 'lucide-react'
+import { useGoBack } from '@/hooks/useGoBack'
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -14,6 +15,7 @@ function formatDate(iso: string) {
 export default function ArticlePage() {
   const { articleId } = useParams<{ articleId: string }>()
   const router = useRouter()
+  const goBack = useGoBack('/app/news')
 
   const { data: item, isLoading } = useQuery({
     queryKey: ['feed-item', articleId],
@@ -52,7 +54,7 @@ export default function ArticlePage() {
       <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center gap-4 px-4">
         <p className="text-gaffer-muted font-body text-sm">Article not found</p>
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="flex items-center gap-2 text-gaffer-orange font-body text-sm font-medium"
         >
           <ChevronLeft size={16} />
@@ -86,7 +88,7 @@ export default function ArticlePage() {
       animate={{ opacity: 1 }}
       className="min-h-screen bg-gaffer-bg flex flex-col"
     >
-      <ArticleDetail article={article} onBack={() => router.back()} />
+      <ArticleDetail article={article} onBack={goBack} />
     </motion.div>
   )
 }

@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGoBack } from '@/hooks/useGoBack'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
@@ -15,6 +16,7 @@ import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera
 
 export default function ProfilePage() {
   const router = useRouter()
+  const goBack = useGoBack('/admin')
   const { user, role, logout, setProfile } = useAuthStore()
   const toast = useToastStore()
   const queryClient = useQueryClient()
@@ -127,7 +129,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-4">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />

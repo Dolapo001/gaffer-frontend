@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Camera, User, Phone, Plus } from 'lucide-react'
+import { useGoBack } from '@/hooks/useGoBack'
 import { GradientButton } from '@/components/GradientButton'
 import { validatePlayerInvite, acceptPlayerInvite } from '@/lib/services/team.service'
 import { getErrorMessage } from '@/lib/api'
@@ -13,6 +14,7 @@ const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
 export default function JoinTeamPage() {
   const params = useParams()
   const router = useRouter()
+  const goBack = useGoBack('/app/league')
   // The route param is the invite token
   const token = params.teamId as string
 
@@ -86,7 +88,7 @@ export default function JoinTeamPage() {
       {/* Header */}
       <header className="px-6 pt-12 pb-6 flex items-center justify-between sticky top-0 bg-[#0F111A]/90 backdrop-blur-xl z-50">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-10 h-10 flex items-center justify-center rounded-full border border-white/10 text-white/60"
         >
           <ChevronLeft size={24} />

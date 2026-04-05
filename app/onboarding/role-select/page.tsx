@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGoBack } from '@/hooks/useGoBack'
 import { motion } from 'framer-motion'
 import { useAuthStore, type UserRole } from '@/store/authStore'
 import { RoleCard } from '@/components/RoleCard'
@@ -11,6 +12,7 @@ import { ChevronLeft, User, Building2 } from 'lucide-react'
 
 export default function RoleSelectPage() {
   const router = useRouter()
+  const goBack = useGoBack('/')
   const { setRole } = useAuthStore()
   const [selectedRole, setSelectedRole] = useState<UserRole>(null)
   const [showModal, setShowModal] = useState(false)
@@ -46,7 +48,7 @@ export default function RoleSelectPage() {
       {/* Header */}
       <div className="relative z-10 flex items-center gap-4 px-6 pt-14 pb-4">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           aria-label="Go back"
           className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white backdrop-blur-sm"
         >

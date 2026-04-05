@@ -13,9 +13,13 @@ import { ChevronLeft } from 'lucide-react'
 import { getErrorMessage } from '@/lib/api'
 
 import { GoogleIcon } from '@/components/icons/GoogleIcon'
+import { useGoogleLogin } from '@react-oauth/google'
+import { googleAuth } from '@/lib/services/auth.service'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function LoginPage() {
   const router = useRouter()
+  const goBack = useGoBack('/')
   const { login, error, clearError } = useAuthStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -23,9 +27,18 @@ export default function LoginPage() {
     return () => clearError()
   }, [clearError])
 
-  const handleGoogleAuth = () => {
-    window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/auth/google`
-  }
+  const handleGoogleAuth = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        await googleAuth(tokenResponse.access_token)
+        const currentRole = useAuthStore.getState().role
+        router.replace(currentRole === 'organization' ? '/admin' : '/app/dashboard')
+      } catch {
+        // error handled by store
+      }
+    },
+    onError: () => {},
+  })
 
   const {
     register,
@@ -76,7 +89,7 @@ export default function LoginPage() {
         {/* Header */}
         <div className="flex items-center gap-3 px-6 pt-12 pb-4 flex-shrink-0">
           <button
-            onClick={() => router.back()}
+            onClick={goBack}
             aria-label="Go back"
             className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white"
           >
@@ -167,7 +180,7 @@ export default function LoginPage() {
 
               <GradientButton
                 variant="google"
-                onClick={handleGoogleAuth}
+                onClick={() => handleGoogleAuth()}
                 className="h-16 rounded-lg bg-white/5 border-white/10 hover:bg-white/10 font-chakra font-semibold text-[15px]"
               >
                 <GoogleIcon className="w-6 h-6 mr-3" />
