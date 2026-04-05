@@ -5,7 +5,7 @@ import { motion } from 'framer-motion'
 import { Plus, Flame, Share2, Clock, CheckCircle2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
-import { getOrgFeed, publishNews, type FeedItem } from '@/lib/services/feed.service'
+import { getOrgFeed, publishNews, publishPost, type FeedItem } from '@/lib/services/feed.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 
@@ -21,16 +21,18 @@ function timeAgo(iso: string) {
 export default function AdminNewsPage() {
   const qc = useQueryClient()
   const toast = useToastStore()
+  const [activeTab, setActiveTab] = useState<'news' | 'posts'>('news')
   const [newsContent, setNewsContent] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [postContent, setPostContent] = useState('')
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
 
   const { data: feedData, isLoading } = useQuery({
     queryKey: ['org-feed', firstOrg?._id],
-    queryFn: () => getOrgFeed(firstOrg!._id),
+    queryFn: () => getOrgFeed(firstOrg!._id), // enabled guard ensures firstOrg is defined
     enabled: !!firstOrg?._id,
     staleTime: 30_000,
   })
@@ -50,8 +52,9 @@ export default function AdminNewsPage() {
         media = [{ url, type: 'image' }]
       }
 
+      if (!firstOrg) throw new Error('No organisation found')
       return publishNews({
-        orgId: firstOrg!._id,
+        orgId: firstOrg._id,
         body: newsContent.trim(),
         media,
         visibility: 'public',
@@ -76,17 +79,89 @@ export default function AdminNewsPage() {
     }
   }
 
+  const { data: teams } = useQuery({
+    queryKey: ['teams', firstOrg?._id],
+    queryFn: async () => {
+      const { listTeams } = await import('@/lib/services/team.service')
+      return listTeams(firstOrg!._id)
+    },
+    enabled: !!firstOrg?._id,
+  })
+  const firstTeam = teams?.[0]
+
+  const postMutationTeam = useMutation({
+    mutationFn: () => {
+      if (!firstTeam) throw new Error('No team found')
+      return publishPost({
+        teamId: firstTeam._id,
+        body: postContent.trim(),
+        visibility: 'team',
+      })
+    },
+    onSuccess: () => {
+      setPostContent('')
+      qc.invalidateQueries({ queryKey: ['org-feed', firstOrg?._id] })
+      toast.addToast('Post published!', 'success')
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
   const canPost = newsContent.trim().length > 0 && !!firstOrg
+  const canTeamPost = postContent.trim().length > 0 && !!firstTeam
 
   return (
     <div className="h-screen flex flex-col bg-[#181928] overflow-hidden relative">
       <div className="flex-1 overflow-y-auto no-scrollbar pb-40">
         <div className="px-6 pt-12 space-y-8">
-          {/* Header */}
-          <h2 className="font-chakra font-black text-lg text-white tracking-widest uppercase">Post News</h2>
+          {/* Header + tab */}
+          <div className="flex items-center justify-between">
+            <h2 className="font-chakra font-black text-lg text-white tracking-widest uppercase">
+              {activeTab === 'news' ? 'Post News' : 'Team Post'}
+            </h2>
+            <div className="flex p-1 bg-white/5 rounded-xl">
+              {(['news', 'posts'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-chakra font-black uppercase tracking-widest transition-all ${
+                    activeTab === tab ? 'bg-white text-black' : 'text-white/40'
+                  }`}
+                >
+                  {tab === 'news' ? 'Org News' : 'Team Post'}
+                </button>
+              ))}
+            </div>
+          </div>
 
-          {/* Posting Interface */}
-          <div className="space-y-4">
+          {/* Team Post Interface */}
+          {activeTab === 'posts' && (
+            <div className="space-y-4">
+              <div className="relative bg-[#1E2032] border border-white/5 rounded-[24px] p-6 focus-within:border-white/10 transition-all shadow-2xl">
+                <textarea
+                  value={postContent}
+                  onChange={(e) => setPostContent(e.target.value)}
+                  placeholder={`What's on your team's mind?`}
+                  className="w-full h-32 bg-transparent text-white text-sm font-chakra font-medium border-none outline-none resize-none placeholder:text-white/20"
+                />
+              </div>
+              {!firstTeam && (
+                <p className="text-center text-white/40 text-xs font-chakra py-1">
+                  You need a team to create team posts.
+                </p>
+              )}
+              <button
+                onClick={() => canTeamPost && postMutationTeam.mutate()}
+                disabled={!canTeamPost || postMutationTeam.isPending}
+                className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                {postMutationTeam.isPending && <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
+                {postMutationTeam.isPending ? 'Posting...' : 'Post to Team'}
+              </button>
+            </div>
+          )}
+
+          {/* Org News Posting Interface */}
+          {activeTab === 'news' && <div className="space-y-4">
             <div className="relative bg-[#1E2032] border border-white/5 rounded-[24px] p-6 focus-within:border-white/10 transition-all shadow-2xl">
               <textarea
                 value={newsContent}
@@ -122,7 +197,7 @@ export default function AdminNewsPage() {
               {postMutation.isPending && <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
               {postMutation.isPending ? 'Posting...' : 'Post'}
             </button>
-          </div>
+          </div>}
 
           {/* Feed Section */}
           <div className="space-y-6">

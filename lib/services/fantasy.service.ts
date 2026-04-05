@@ -123,7 +123,13 @@ export async function getFantasySeason(competitionId: string): Promise<FantasySe
 
 // GET /fantasy/:competitionId/gameweeks
 export async function listGameweeks(competitionId: string): Promise<FantasyGameweek[]> {
-  return api.get<FantasyGameweek[]>(`/fantasy/${competitionId}/gameweeks`)
+  const res = await api.get<FantasyGameweek[] | { gameweeks: FantasyGameweek[] } | { data: FantasyGameweek[] }>(
+    `/fantasy/${competitionId}/gameweeks`,
+  )
+  if (Array.isArray(res)) return res
+  if ('gameweeks' in res) return res.gameweeks
+  if ('data' in res) return res.data as FantasyGameweek[]
+  return []
 }
 
 // GET /fantasy/:competitionId/players

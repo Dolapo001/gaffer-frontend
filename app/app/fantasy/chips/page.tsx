@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Sparkles, ShoppingBag, Zap, Clock, ShieldCheck, HelpCircle, X } from 'lucide-react'
-import { listChips, purchaseChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
+import { ChevronLeft, Sparkles, Zap, Clock, ShieldCheck, HelpCircle, X, CheckCircle2 } from 'lucide-react'
+import { listChips, purchaseChip, activateChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
+import { listGameweeks } from '@/lib/services/fantasy.service'
 import { getWallet } from '@/lib/services/payment.service'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
@@ -31,6 +32,7 @@ export default function ChipsPage() {
   const toast = useToastStore()
   const { competitionId } = useFantasyStore()
   const [selectedChip, setSelectedChip] = useState<ChipInfo | null>(null)
+  const [activatingChipType, setActivatingChipType] = useState<ChipType | null>(null)
 
   // 1. Data Fetching
   const { data: chips, isLoading: isLoadingChips } = useQuery({
@@ -44,6 +46,20 @@ export default function ChipsPage() {
     queryFn: getWallet
   })
 
+  const { data: gameweeks = [], isLoading: isLoadingGameweeks } = useQuery({
+    queryKey: ['gameweeks', competitionId],
+    queryFn: () => listGameweeks(competitionId!),
+    enabled: !!competitionId,
+  })
+
+  // Current gameweek: earliest open one, or latest locked as fallback
+  const currentGameweek = useMemo(() => {
+    if (!gameweeks.length) return null
+    const open = gameweeks.filter(gw => gw.lockStatus === 'open')
+    if (open.length > 0) return open.reduce((a, b) => a.number < b.number ? a : b)
+    return gameweeks.reduce((a, b) => a.number > b.number ? a : b)
+  }, [gameweeks])
+
   // 2. Mutations
   const buyMutation = useMutation({
     mutationFn: (chipType: ChipType) => purchaseChip(competitionId!, chipType),
@@ -56,7 +72,40 @@ export default function ChipsPage() {
     onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
 
-  if (!competitionId) return null
+  const activateMutation = useMutation({
+    mutationFn: (chipType: ChipType) => {
+      if (!currentGameweek) throw new Error('No active gameweek found')
+      setActivatingChipType(chipType)
+      return activateChip(competitionId!, chipType, currentGameweek._id)
+    },
+    onSuccess: (_, chipType) => {
+      qc.invalidateQueries({ queryKey: ['chips', competitionId] })
+      toast.addToast(`${CHIP_LABELS[chipType]} activated for GW${currentGameweek?.number}!`, 'success')
+      setActivatingChipType(null)
+    },
+    onError: (err) => {
+      toast.addToast(getErrorMessage(err), 'error')
+      setActivatingChipType(null)
+    },
+  })
+
+  if (!competitionId) {
+    return (
+      <div className="min-h-screen bg-[#181928] text-white flex flex-col items-center justify-center gap-6 px-6">
+        <ShieldCheck size={48} className="text-white/10" />
+        <div className="text-center space-y-2">
+          <h2 className="font-chakra font-black text-lg uppercase tracking-widest">No League Selected</h2>
+          <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Open a league to access your tactical centre</p>
+        </div>
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-chakra font-black text-xs uppercase tracking-widest hover:text-white transition-all"
+        >
+          <ChevronLeft size={14} /> Go Back
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#181928] text-white flex flex-col font-inter">
@@ -101,10 +150,23 @@ export default function ChipsPage() {
                   <h4 className="font-chakra font-black text-sm uppercase tracking-tight">{CHIP_LABELS[chip.chipType]}</h4>
                   <p className="text-[9px] text-white/30 font-bold uppercase leading-tight mt-1 truncate">{CHIP_DESCRIPTIONS[chip.chipType]}</p>
                 </div>
-                {chip.cooldown.active && (
+                {chip.cooldown.active ? (
                    <div className="flex items-center gap-1.5 text-[9px] text-yellow-500 font-chakra font-black uppercase mt-1">
                       <Clock size={10} /> GW {chip.cooldown.nextAvailableGameweek}
                    </div>
+                ) : (
+                  <button
+                    onClick={() => activateMutation.mutate(chip.chipType)}
+                    disabled={activatingChipType === chip.chipType || isLoadingGameweeks || !currentGameweek}
+                    className="mt-1 flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 text-gaffer-orange font-chakra font-black text-[9px] uppercase tracking-widest hover:bg-gaffer-orange/20 transition-all disabled:opacity-40"
+                  >
+                    {activatingChipType === chip.chipType ? (
+                      <span className="w-3 h-3 rounded-full border border-gaffer-orange/40 border-t-gaffer-orange animate-spin" />
+                    ) : (
+                      <CheckCircle2 size={11} />
+                    )}
+                    {activatingChipType === chip.chipType ? 'Activating...' : isLoadingGameweeks ? 'Loading...' : !currentGameweek ? 'No Active GW' : 'Activate'}
+                  </button>
                 )}
               </div>
             ))}

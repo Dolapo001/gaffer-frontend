@@ -2,7 +2,19 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, Share2, ChevronLeft } from 'lucide-react'
+import { Flame, Share2, ChevronLeft, Send, Pencil, Trash2, X, Check } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import {
+  likeFeedItem,
+  unlikeFeedItem,
+  getComments,
+  addComment,
+  updateComment,
+  deleteComment,
+  type FeedComment,
+} from '@/lib/services/feed.service'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 
 interface ArticleDetailProps {
   onBack: () => void
@@ -13,6 +25,7 @@ interface ArticleDetailProps {
     image: string
     date: string
     likes: number
+    isLiked?: boolean
     author: {
       name: string
       handle: string
@@ -23,9 +36,63 @@ interface ArticleDetailProps {
 }
 
 export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
-  const [liked, setLiked] = useState(false)
+  const qc = useQueryClient()
+  const toast = useToastStore()
+  const [liked, setLiked] = useState(article.isLiked ?? false)
   const [likeCount, setLikeCount] = useState(article.likes)
   const [following, setFollowing] = useState(false)
+  const [commentText, setCommentText] = useState('')
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
+
+  const { data: commentsData } = useQuery({
+    queryKey: ['comments', article.id],
+    queryFn: () => getComments(article.id),
+  })
+  const comments: FeedComment[] = commentsData?.comments ?? []
+
+  const likeMutation = useMutation({
+    mutationFn: () => liked ? unlikeFeedItem(article.id) : likeFeedItem(article.id),
+    onMutate: () => {
+      setLiked((prev) => !prev)
+      setLikeCount((c) => liked ? c - 1 : c + 1)
+    },
+    onError: (err) => {
+      setLiked((prev) => !prev)
+      setLikeCount((c) => liked ? c + 1 : c - 1)
+      toast.addToast(getErrorMessage(err), 'error')
+    },
+  })
+
+  const addCommentMutation = useMutation({
+    mutationFn: (body: string) => addComment(article.id, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['comments', article.id] })
+      setCommentText('')
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const editCommentMutation = useMutation({
+    mutationFn: ({ commentId, body }: { commentId: string; body: string }) =>
+      updateComment(article.id, commentId, body),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['comments', article.id] })
+      setEditingId(null)
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const deleteCommentMutation = useMutation({
+    mutationFn: (commentId: string) => deleteComment(article.id, commentId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['comments', article.id] }),
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const handleSubmitComment = () => {
+    if (!commentText.trim()) return
+    addCommentMutation.mutate(commentText.trim())
+  }
 
   return (
     <motion.div
@@ -99,10 +166,8 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         {/* Actions + date */}
         <div className="flex items-center justify-between px-4 mb-4">
           <button
-            onClick={() => {
-              setLiked(!liked)
-              setLikeCount((c) => (liked ? c - 1 : c + 1))
-            }}
+            onClick={() => likeMutation.mutate()}
+            disabled={likeMutation.isPending}
             className="flex items-center gap-1.5"
           >
             <Flame size={16} className={liked ? 'text-gaffer-orange' : 'text-gaffer-subtle'} />
@@ -112,12 +177,91 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         </div>
 
         {/* Body */}
-        <div className="px-4 pb-8 space-y-4">
+        <div className="px-4 pb-6 space-y-4">
           {article.content.split('\n\n').map((paragraph, i) => (
             <p key={i} className="font-body text-white/70 text-sm leading-relaxed">
               {paragraph}
             </p>
           ))}
+        </div>
+
+        {/* Comments section */}
+        <div className="px-4 pb-8 border-t border-gaffer-border pt-6 space-y-4">
+          <h3 className="font-display font-bold text-white text-sm">
+            Comments {comments.length > 0 && <span className="text-gaffer-muted">({comments.length})</span>}
+          </h3>
+
+          {/* Comment input */}
+          <div className="flex gap-2">
+            <input
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSubmitComment()}
+              placeholder="Add a comment…"
+              className="flex-1 px-4 py-2.5 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+            />
+            <button
+              onClick={handleSubmitComment}
+              disabled={!commentText.trim() || addCommentMutation.isPending}
+              className="w-10 h-10 rounded-xl bg-gaffer-orange flex items-center justify-center text-white disabled:opacity-40 transition-opacity"
+            >
+              <Send size={15} />
+            </button>
+          </div>
+
+          {/* Comment list */}
+          <div className="space-y-3">
+            {comments.map((c) => (
+              <div key={c._id} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
+                {editingId === c._id ? (
+                  <div className="flex gap-2">
+                    <input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                      className="flex-1 px-3 py-1.5 rounded-lg bg-gaffer-surface border border-gaffer-border text-white font-body text-sm focus:outline-none focus:border-gaffer-orange"
+                    />
+                    <button
+                      onClick={() => editCommentMutation.mutate({ commentId: c._id, body: editText })}
+                      disabled={editCommentMutation.isPending}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-green-500/10 text-green-400"
+                    >
+                      <Check size={14} />
+                    </button>
+                    <button
+                      onClick={() => setEditingId(null)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-gaffer-muted"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-gaffer-orange text-[11px] font-body font-bold mb-1">
+                        {c.userId?.fullName ?? c.userId?.email ?? 'User'}
+                      </p>
+                      <p className="text-white/70 text-sm font-body">{c.body}</p>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => { setEditingId(c._id); setEditText(c.body) }}
+                        className="w-7 h-7 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-white transition-colors"
+                      >
+                        <Pencil size={12} />
+                      </button>
+                      <button
+                        onClick={() => deleteCommentMutation.mutate(c._id)}
+                        disabled={deleteCommentMutation.isPending}
+                        className="w-7 h-7 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-red-400 transition-colors"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </motion.div>

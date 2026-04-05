@@ -87,9 +87,9 @@ export async function getTeam(teamId: string): Promise<Team> {
   return data.team
 }
 
-// PATCH /teams/:teamId
+// PUT /teams/:teamId
 export async function updateTeam(teamId: string, payload: Partial<CreateTeamPayload>): Promise<Team> {
-  const data = await api.patch<{ team: Team }>(`/teams/${teamId}`, payload)
+  const data = await api.put<{ team: Team }>(`/teams/${teamId}`, payload)
   return data.team
 }
 
@@ -175,22 +175,33 @@ export async function listPlayerInvites(teamId: string): Promise<PlayerInvite[]>
 // POST /player-invites/validate — PUBLIC
 export async function validatePlayerInvite(
   token: string,
-): Promise<{ invite: { email: string; teamId: string } }> {
+): Promise<{ invite: { _id: string; email: string; teamId: string } }> {
   return api.post(`/player-invites/validate`, { token }, { public: true })
 }
 
-// POST /player-invites/accept — PUBLIC
-export async function acceptPlayerInvite(payload: {
-  token: string
-  firstName: string
-  lastName: string
-  phone?: string
-  dateOfBirth?: string
-  position?: string
-  jerseyNumber?: number
-  nationality?: string
-}): Promise<{ message: string }> {
-  return api.post(`/player-invites/accept`, payload, { public: true })
+// POST /teams/:teamId/invites/:inviteId/accept — PUBLIC (ID-based)
+export async function acceptPlayerInvite(
+  teamId: string,
+  inviteId: string,
+  payload: {
+    firstName: string
+    lastName: string
+    phone?: string
+    dateOfBirth?: string
+    position?: string
+    jerseyNumber?: number
+    nationality?: string
+  },
+): Promise<{ message: string }> {
+  return api.post(`/teams/${teamId}/invites/${inviteId}/accept`, payload, { public: true })
+}
+
+// POST /teams/:teamId/invites/:inviteId/decline — PUBLIC (ID-based)
+export async function declinePlayerInvite(
+  teamId: string,
+  inviteId: string,
+): Promise<{ message: string }> {
+  return api.post<{ message: string }>(`/teams/${teamId}/invites/${inviteId}/decline`, {}, { public: true })
 }
 
 // POST /player-invites/:inviteId/revoke
@@ -220,4 +231,47 @@ export async function uploadPublicPlayerPhoto(
   const form = new FormData()
   form.append('photo', file)
   await api.post(`/public/teams/${teamHandle}/players/${playerId}/photo`, form, { public: true })
+}
+
+// ── Team Photos ──────────────────────────────────────────────────────────────
+
+export interface TeamPhoto {
+  _id: string
+  url: string
+  createdAt: string
+}
+
+// GET /teams/:teamId/photos
+export async function getTeamPhotos(teamId: string): Promise<TeamPhoto[]> {
+  const data = await api.get<{ photos: TeamPhoto[] }>(`/teams/${teamId}/photos`)
+  return data.photos
+}
+
+// POST /teams/:teamId/photos  (multipart)
+export async function uploadTeamPhoto(teamId: string, file: File): Promise<TeamPhoto> {
+  const form = new FormData()
+  form.append('photo', file)
+  const data = await api.post<{ photo: TeamPhoto }>(`/teams/${teamId}/photos`, form)
+  return data.photo
+}
+
+// DELETE /teams/:teamId/photos/:photoId
+export async function deleteTeamPhoto(teamId: string, photoId: string): Promise<{ message: string }> {
+  return api.delete<{ message: string }>(`/teams/${teamId}/photos/${photoId}`)
+}
+
+// ── Team Registration ────────────────────────────────────────────────────────
+
+// POST /teams/:teamId/register — register team for a public competition
+export async function registerTeamForCompetition(
+  teamId: string,
+  payload?: { competitionId?: string },
+): Promise<{ message: string }> {
+  return api.post<{ message: string }>(`/teams/${teamId}/register`, payload ?? {})
+}
+
+// GET /teams/public — list all publicly registered teams
+export async function listPublicTeams(): Promise<Team[]> {
+  const data = await api.get<{ teams: Team[] }>('/teams/public', { public: true })
+  return data.teams
 }

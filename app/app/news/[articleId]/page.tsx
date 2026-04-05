@@ -73,6 +73,7 @@ export default function ArticlePage() {
     image: imageUrl,
     date: formatDate(item.createdAt),
     likes: item.likesCount,
+    isLiked: item.isLiked ?? false,
     author: {
       name: authorName,
       handle: authorHandle,

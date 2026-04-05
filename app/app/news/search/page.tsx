@@ -40,6 +40,7 @@ function toArticleProps(item: FeedItem) {
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
+    isLiked: item.isLiked ?? false,
     author: {
       name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
       handle: `${item.authorType}_${item.authorId.slice(-6)}`,

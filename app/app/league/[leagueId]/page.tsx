@@ -1,15 +1,21 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Heart, Share2 } from 'lucide-react'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { ChevronLeft, Heart, Share2, Bell, BellOff } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 
 // ─── Services ─────────────────────────────────────────────────────────────────
 import { getCompetition } from '@/lib/services/competition.service'
+import {
+  followCompetition,
+  unfollowCompetition,
+} from '@/lib/services/notifications.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getTopScorers, getTopAssists } from '@/lib/services/stats.service'
@@ -176,6 +182,20 @@ export default function LeagueHomePage() {
   const leagueId = params.leagueId as string
   const { user } = useAuthStore()
   const { setActiveCompetition } = useUIStore()
+  const toast = useToastStore()
+  const [followingCompetition, setFollowingCompetition] = useState(false)
+
+  const followCompetitionMutation = useMutation({
+    mutationFn: () =>
+      followingCompetition ? unfollowCompetition(leagueId) : followCompetition(leagueId),
+    onMutate: () => setFollowingCompetition((prev) => !prev),
+    onSuccess: () =>
+      toast.addToast(followingCompetition ? 'Unfollowed league' : 'Following league', 'success'),
+    onError: (err) => {
+      setFollowingCompetition((prev) => !prev)
+      toast.addToast(getErrorMessage(err), 'error')
+    },
+  })
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -287,7 +307,16 @@ export default function LeagueHomePage() {
               {competition.name}
             </p>
           )}
-          <div className="w-9" />
+          <button
+            onClick={() => followCompetitionMutation.mutate()}
+            disabled={followCompetitionMutation.isPending}
+            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
+            title={followingCompetition ? 'Unfollow league' : 'Follow league'}
+          >
+            {followingCompetition
+              ? <BellOff size={16} className="text-gaffer-orange" />
+              : <Bell size={16} className="text-white/60" />}
+          </button>
         </div>
       </div>
 
