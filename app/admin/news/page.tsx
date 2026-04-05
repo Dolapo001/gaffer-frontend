@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Plus, Flame, Share2, Clock, CheckCircle2 } from 'lucide-react'
+import { Plus, Flame, Share2, Clock, CheckCircle2, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
-import { getOrgFeed, publishNews, type FeedItem } from '@/lib/services/feed.service'
+import { getOrgFeed, publishNews, deletePost, type FeedItem } from '@/lib/services/feed.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -24,6 +25,7 @@ export default function AdminNewsPage() {
   const [newsContent, setNewsContent] = useState('')
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<FeedItem | null>(null)
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
@@ -42,8 +44,7 @@ export default function AdminNewsPage() {
   const postMutation = useMutation({
     mutationFn: async () => {
       let media: { url: string; type: 'image' }[] = []
-      
-      // Upload image if selected
+
       if (selectedFile && firstOrg) {
         const { uploadOrgAsset } = await import('@/lib/services/org.service')
         const { url } = await uploadOrgAsset(firstOrg._id, selectedFile)
@@ -65,6 +66,19 @@ export default function AdminNewsPage() {
       toast.addToast('News published!', 'success')
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deletePost(id),
+    onSuccess: () => {
+      setDeleteTarget(null)
+      qc.invalidateQueries({ queryKey: ['org-feed', firstOrg?._id] })
+      toast.addToast('Post deleted.', 'success')
+    },
+    onError: (err: unknown) => {
+      setDeleteTarget(null)
+      toast.addToast(getErrorMessage(err), 'error')
+    },
   })
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,17 +108,18 @@ export default function AdminNewsPage() {
                 placeholder="What's News are we posting today"
                 className="w-full h-32 bg-transparent text-white text-sm font-chakra font-medium border-none outline-none resize-none placeholder:text-white/20"
               />
-              
+
               <div className="flex items-center gap-3 mt-2">
                 <label className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/30 hover:text-white transition-all cursor-pointer">
-                    <input type="file" className="hidden" onChange={handleImageChange} />
-                    <Plus size={20} />
+                  <input type="file" className="hidden" onChange={handleImageChange} />
+                  <Plus size={20} />
                 </label>
                 {selectedImage && (
-                    <div className="h-10 w-16 rounded-md overflow-hidden relative group">
-                        <img src={selectedImage} className="w-full h-full object-cover" alt="" />
-                        <button onClick={() => setSelectedImage(null)} className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 uppercase text-[8px] font-chakra font-black">X</button>
-                    </div>
+                  <div className="h-10 w-16 rounded-md overflow-hidden relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selectedImage} className="w-full h-full object-cover" alt="" />
+                    <button onClick={() => setSelectedImage(null)} className="absolute inset-0 bg-black/40 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 uppercase text-[8px] font-chakra font-black">X</button>
+                  </div>
                 )}
               </div>
             </div>
@@ -135,9 +150,9 @@ export default function AdminNewsPage() {
                 ))}
               </div>
             ) : feedItems.length === 0 ? (
-                <div className="bg-[#1E2032] rounded-[24px] p-12 text-center border border-dashed border-white/10">
-                    <p className="text-white/20 font-chakra text-sm font-bold uppercase tracking-wider">No news posted yet</p>
-                </div>
+              <div className="bg-[#1E2032] rounded-[24px] p-12 text-center border border-dashed border-white/10">
+                <p className="text-white/20 font-chakra text-sm font-bold uppercase tracking-wider">No news posted yet</p>
+              </div>
             ) : (
               <div className="space-y-6 pb-20">
                 {feedItems.map((item, i) => (
@@ -149,20 +164,20 @@ export default function AdminNewsPage() {
                     className="bg-[#1E2032] rounded-[28px] overflow-hidden border border-white/5 shadow-2xl group flex flex-col"
                   >
                     <div className="relative h-56 overflow-hidden bg-gaffer-dark">
-                        {item.media?.[0]?.url && (
-                          <img src={item.media[0].url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
-                        )}
-                        <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/5">
-                          <Clock size={14} className="text-white/60" />
-                          <span className="text-[10px] text-white/80 font-chakra font-bold">{timeAgo(item.createdAt)}</span>
-                        </div>
+                      {item.media?.[0]?.url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={item.media[0].url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+                      )}
+                      <div className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/5">
+                        <Clock size={14} className="text-white/60" />
+                        <span className="text-[10px] text-white/80 font-chakra font-bold">{timeAgo(item.createdAt)}</span>
+                      </div>
                     </div>
 
                     <div className="p-6 space-y-4">
                       <div className="flex items-center gap-2">
                         <div className="w-6 h-6 rounded-full bg-gaffer-dark overflow-hidden border border-white/10">
-                            {/* Logo */}
-                            <div className="w-full h-full bg-[#FF4D00]/20 flex items-center justify-center font-black text-[8px] text-[#FF4D00]">G</div>
+                          <div className="w-full h-full bg-[#FF4D00]/20 flex items-center justify-center font-black text-[8px] text-[#FF4D00]">G</div>
                         </div>
                         <span className="font-chakra font-black text-[11px] text-white uppercase tracking-wider flex items-center gap-1.5">
                           {firstOrg?.name ?? 'GAFFER'}
@@ -173,7 +188,7 @@ export default function AdminNewsPage() {
                       <h3 className="font-chakra font-black text-xl text-white leading-tight uppercase line-clamp-2">
                         {item.body.split('\n')[0]}
                       </h3>
-                      
+
                       <p className="font-chakra text-white/50 text-xs line-clamp-2 font-medium">
                         {item.body}
                       </p>
@@ -183,9 +198,18 @@ export default function AdminNewsPage() {
                           <Flame size={18} className="text-[#FF8904]" />
                           <span className="font-chakra font-black text-[#FF8904] text-sm tracking-tight">{item.likesCount || 0}</span>
                         </div>
-                        <button className="text-white/40 hover:text-white transition-colors">
-                          <Share2 size={18} />
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button className="text-white/40 hover:text-white transition-colors">
+                            <Share2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(item)}
+                            className="text-white/30 hover:text-red-400 transition-colors"
+                            aria-label="Delete post"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </motion.div>
@@ -195,6 +219,17 @@ export default function AdminNewsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        confirmLabel={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+        destructive
+        onConfirm={() => deleteTarget && deleteMutation.mutate(deleteTarget._id)}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   )
 }
