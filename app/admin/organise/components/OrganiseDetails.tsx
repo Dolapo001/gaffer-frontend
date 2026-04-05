@@ -134,6 +134,7 @@ export function OrganiseDetails({
     } else {
       showNavbar()
     }
+    return () => showNavbar()
   }, [isAddingPlayer, editingPlayer, showRecruitment, hideNavbar, showNavbar])
 
   const handleEditClick = (player: Player) => {

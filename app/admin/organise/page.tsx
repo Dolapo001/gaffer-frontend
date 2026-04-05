@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Plus, Menu, ShieldCheck } from 'lucide-react'
-import { BrowserProtection } from '@/components/BrowserProtection'
 import { OrganiseList } from './components/OrganiseList'
 import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
 import { OrganiseDetails } from './components/OrganiseDetails'
@@ -290,14 +289,18 @@ export default function OrganizePage() {
     }
   }
 
-  const { hideNavbar } = useUIStore()
+  const { hideNavbar, showNavbar } = useUIStore()
 
-  // Double-ensure navbar is hidden when creating
+  // Sync navbar visibility with current view
   useEffect(() => {
     if (view === 'create') {
       hideNavbar()
+    } else {
+      showNavbar()
     }
-  }, [view, hideNavbar])
+    // Guarantee navbar is restored if this page unmounts while in create view
+    return () => showNavbar()
+  }, [view, hideNavbar, showNavbar])
 
   const handleTogglePlayer = (id: string) => {
     if (!selectedTeam) return
@@ -416,40 +419,37 @@ export default function OrganizePage() {
   // No organization found — show setup CTA instead of a broken empty page
   if (!orgId && !isLoadingOrgs) {
     return (
-      <BrowserProtection>
-        <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden">
-          <div className="flex items-center px-6 pt-12 pb-4 border-b border-white/10 shrink-0">
-            <Menu size={24} className="mr-4 text-white/60" />
-            <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-8">
-            <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
-              <ShieldCheck size={40} className="text-orange-500" />
-            </div>
-            <div className="space-y-3">
-              <h2 className="text-white font-chakra font-black text-2xl uppercase tracking-tighter">Complete Your Setup</h2>
-              <p className="text-white/40 text-sm font-chakra max-w-[280px] leading-relaxed">
-                Your manager account is active, but your club profile is missing its name. Finish. your setup to start managing tournaments.
-              </p>
-            </div>
-            <button
-              onClick={() => router.push('/auth/signup/organization')}
-              className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all"
-            >
-              Finish Setup
-            </button>
-          </div>
+      <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden">
+        <div className="flex items-center px-6 pt-12 pb-4 border-b border-white/10 shrink-0">
+          <Menu size={24} className="mr-4 text-white/60" />
+          <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
         </div>
-      </BrowserProtection>
+        <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-8">
+          <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
+            <ShieldCheck size={40} className="text-orange-500" />
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-white font-chakra font-black text-2xl uppercase tracking-tighter">Complete Your Setup</h2>
+            <p className="text-white/40 text-sm font-chakra max-w-[280px] leading-relaxed">
+              Your manager account is active, but your club profile is missing its name. Finish your setup to start managing tournaments.
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/auth/signup/organization')}
+            className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all"
+          >
+            Finish Setup
+          </button>
+        </div>
+      </div>
     )
   }
 
   return (
-    <BrowserProtection>
-      <div
-        className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4"
-        data-nav-hidden={isCreateOpen ? 'true' : undefined}
-      >
+    <div
+      className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4"
+      data-nav-hidden={isCreateOpen ? 'true' : undefined}
+    >
         {/* Header - Hidden in details view to avoid duplication with the team's own back button and title */}
         {view !== 'details' && (
           <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
@@ -593,6 +593,5 @@ export default function OrganizePage() {
           </button>
         )}
       </div>
-    </BrowserProtection>
   )
 }
