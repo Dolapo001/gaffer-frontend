@@ -16,7 +16,7 @@ interface AuthState {
   // Core auth
   user: AuthUser | null
   profile: UserProfile | null          // Full profile from GET /users
-  accessToken: string | null           // Kept in memory via tokenStore; also here for hydration
+  accessToken: string | null           // Kept in memory via tokenStore only — NOT persisted to localStorage
   isAuthenticated: boolean
   isLoading: boolean
   role: UserRole                       // 'personal' | 'organization' — set during onboarding
@@ -198,22 +198,19 @@ export const useAuthStore = create<AuthState>()(
     {
       name: 'gaffer-auth',
       storage: createJSONStorage(() => localStorage),
-      // Only persist isAuthenticated as a hydration hint.
-      // Role is intentionally excluded — it is re-hydrated from the auth cookie
-      // by middleware and re-set via setRole() after login/onboarding.
-      // This prevents a malicious localStorage edit from granting admin access.
+      // Persist just enough for instant UI hydration while the startup refresh is
+      // in-flight. The access token is intentionally excluded:
+      //   1. It is a short-lived JWT — it will be expired by the next app open.
+      //   2. Persisting it created a false "we already have a token" signal that
+      //      caused useAuthListener to skip /auth/refresh on startup, which is
+      //      the root cause of users being logged out on every reopen.
+      //   3. Storing JWTs in localStorage is an XSS risk — keep them in memory only.
+      // The authoritative token is always obtained from /auth/refresh on mount.
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
         user: state.user,
-        accessToken: state.accessToken,
-        role: state.role, // Now persisting role as it's a preference
+        role: state.role,
       }),
-      // On rehydration, restore the token to the in-memory store
-      onRehydrateStorage: () => (state) => {
-        if (state?.accessToken) {
-          tokenStore.set(state.accessToken)
-        }
-      },
     },
   ),
 )

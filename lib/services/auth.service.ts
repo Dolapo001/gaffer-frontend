@@ -99,13 +99,12 @@ export async function login(email: string, password: string): Promise<AuthRespon
   return normalized
 }
 
-// POST /auth/refresh — reads rt cookie, no body
+// POST /auth/refresh — reads rt cookie, no body needed
 export async function refreshToken(): Promise<RefreshResponse> {
   const raw = await api.post<unknown>('/auth/refresh', undefined, {
-    public: true,
-    skipRefresh: true,
-    credentials: 'include',
-  } as any)
+    public: true,     // skip Authorization header injection (we have no access token yet)
+    skipRefresh: true, // prevent recursive refresh loop if this call itself gets a 401
+  })
   const normalized = normalizeAuthResponse(raw)
   if (!normalized) {
     throw new Error('Refresh succeeded but returned an invalid auth payload.')

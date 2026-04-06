@@ -102,6 +102,19 @@ async function doRefresh(): Promise<string> {
   })
   const data = await parseResponse<{ accessToken: string }>(res)
   tokenStore.set(data.accessToken)
+
+  // Keep authStore in sync so its in-memory accessToken field reflects reality.
+  // Without this, authStore.accessToken stays stale (the old expired JWT) for
+  // the rest of the session after a silent interceptor refresh.
+  if (typeof window !== 'undefined') {
+    try {
+      const { useAuthStore } = require('@/store/authStore')
+      useAuthStore.setState({ accessToken: data.accessToken })
+    } catch {
+      // Non-critical — tokenStore is the true source of truth for API calls
+    }
+  }
+
   return data.accessToken
 }
 
