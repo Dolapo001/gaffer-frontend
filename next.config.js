@@ -69,6 +69,16 @@ const withPWA = require('@ducanh2912/next-pwa').default({
         },
       },
     },
+    // ── Video files — bypass SW entirely ────────────────────────────────────
+    // Browsers stream video using HTTP Range requests. Service workers that
+    // don't explicitly handle Range headers will break video playback by
+    // returning a 200 response instead of the required 206 Partial Content.
+    // NetworkOnly tells workbox to pass these requests straight through to
+    // the network, never touching the cache.
+    {
+      urlPattern: /\.(?:mp4|webm|ogg|mov)$/i,
+      handler: 'NetworkOnly',
+    },
     // NOTE: API / auth endpoints are intentionally NOT cached here.
     // React Query handles API response caching with explicit staleTime / gcTime.
     // Auth state is managed by Firebase SDK / cookies, never by the SW cache.

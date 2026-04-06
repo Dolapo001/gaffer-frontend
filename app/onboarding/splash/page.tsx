@@ -51,6 +51,12 @@ export default function SplashPage() {
     doNavigate()
   }
 
+  // If video fails to load (e.g. codec, network, SW range-request issue),
+  // let the 4s timer handle navigation — don't hang on a blank screen
+  const handleVideoError = () => {
+    console.warn('[Splash] Video failed to load — timer will handle navigation')
+  }
+
   return (
     <div
       style={{ backgroundColor: '#262A39' }}
@@ -62,6 +68,7 @@ export default function SplashPage() {
         muted
         playsInline
         onEnded={handleVideoEnded}
+        onError={handleVideoError}
         style={{
           width: '100%',
           height: '100%',
