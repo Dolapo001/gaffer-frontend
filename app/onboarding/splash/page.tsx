@@ -1,50 +1,54 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 
 export default function SplashPage() {
   const router = useRouter()
-  const { isAuthenticated, role, isLoading } = useAuthStore()
 
-  // Track whether the 4-second minimum timer has elapsed
+  // Refs so the timer closure never goes stale and never resets
   const timerElapsedRef = useRef(false)
-  // Track whether the video has naturally ended
-  const videoEndedRef = useRef(false)
+  const hasNavigatedRef = useRef(false)
 
-  const navigate = useCallback(() => {
-    // Only redirect once both the timer has elapsed AND auth state is resolved
-    if (!timerElapsedRef.current || isLoading) return
+  // Read auth state at redirect-time via the store directly — not captured in
+  // a useCallback closure (which would cause the timer useEffect to re-run and
+  // reset the 4s countdown every time isLoading / isAuthenticated changes).
+  const doNavigate = () => {
+    if (hasNavigatedRef.current) return
+    const { isAuthenticated, role, isLoading } = useAuthStore.getState()
+    if (isLoading) return // auth still resolving — wait for the watcher below
+    hasNavigatedRef.current = true
     if (isAuthenticated) {
       router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
     } else {
       router.replace('/onboarding/welcome')
     }
-  }, [router, isAuthenticated, role, isLoading])
+  }
 
-  // Minimum 4000ms timer — matches video length
+  // 4000ms minimum timer — set once, never reset
   useEffect(() => {
     const timer = setTimeout(() => {
       timerElapsedRef.current = true
-      navigate()
+      doNavigate()
     }, 4000)
-
     return () => clearTimeout(timer)
-  }, [navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-  // If auth state resolves after the timer has already elapsed, navigate immediately
+  // Watch for auth resolution AFTER the timer has already fired
+  const { isLoading } = useAuthStore()
   useEffect(() => {
-    if (timerElapsedRef.current) {
-      navigate()
+    if (timerElapsedRef.current && !isLoading) {
+      doNavigate()
     }
-  }, [isAuthenticated, isLoading, navigate])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading])
 
-  // Called when video ends naturally
+  // If video ends before 4s timer, mark timer elapsed and attempt navigate
   const handleVideoEnded = () => {
-    videoEndedRef.current = true
     timerElapsedRef.current = true
-    navigate()
+    doNavigate()
   }
 
   return (
