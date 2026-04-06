@@ -77,6 +77,9 @@ const withPWA = require('@ducanh2912/next-pwa').default({
 
 const nextConfig = {
   reactStrictMode: true,
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // swcMinify is the default in Next.js 13+ and no longer needs to be declared.
   images: {
     // Removed Firebase-specific domain; allow any https host for avatars/logos

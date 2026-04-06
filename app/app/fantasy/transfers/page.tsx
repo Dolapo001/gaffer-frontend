@@ -14,6 +14,7 @@ import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ChevronLeft, ArrowLeftRight, Search, X } from 'lucide-react'
+import { useGoBack } from '@/hooks/useGoBack'
 
 const POSITION_LABELS: Record<string, string> = {
   GK: 'Goalkeeper',
@@ -31,6 +32,7 @@ const POSITION_COLORS: Record<string, string> = {
 
 export default function TransfersPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/fantasy')
   const toast = useToastStore()
   const qc = useQueryClient()
   const { competitionId } = useFantasyStore()
@@ -96,7 +98,7 @@ export default function TransfersPage() {
       <div className="min-h-screen bg-gaffer-bg flex flex-col items-center justify-center px-6 text-center">
         <p className="text-gaffer-muted font-body text-sm">No competition selected.</p>
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="mt-4 text-gaffer-orange font-body font-medium"
         >
           Go back
@@ -110,7 +112,7 @@ export default function TransfersPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-4 border-b border-gaffer-border sticky top-0 bg-gaffer-bg/95 backdrop-blur-xl z-20">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />

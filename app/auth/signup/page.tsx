@@ -13,15 +13,32 @@ import { GradientButton } from '@/components/GradientButton'
 import { ChevronLeft } from 'lucide-react'
 
 import { GoogleIcon } from '@/components/icons/GoogleIcon'
+import { useGoogleLogin } from '@react-oauth/google'
+import { googleAuth } from '@/lib/services/auth.service'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function SignUpPage() {
   const router = useRouter()
+  const goBack = useGoBack('/')
   const { register: registerUser, error, clearError, setRole } = useAuthStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     return () => clearError()
   }, [clearError])
+
+  const handleGoogleAuth = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        await googleAuth(tokenResponse.access_token)
+        const currentRole = useAuthStore.getState().role
+        router.replace(currentRole === 'organization' ? '/admin' : '/app/dashboard')
+      } catch {
+        // error handled by store
+      }
+    },
+    onError: () => {},
+  })
 
   const {
     register,
@@ -74,7 +91,7 @@ export default function SignUpPage() {
         {/* Header */}
         <div className="flex items-center gap-3 px-6 pt-12 pb-4 flex-shrink-0">
           <button
-            onClick={() => router.back()}
+            onClick={goBack}
             aria-label="Go back"
             className="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 border border-white/10 text-white"
           >
@@ -168,6 +185,7 @@ export default function SignUpPage() {
               <GradientButton
                 variant="google"
                 loading={false}
+                onClick={() => handleGoogleAuth()}
                 className="h-16 rounded-xl bg-white/5 border-white/10 hover:bg-white/10 font-chakra font-semibold text-[15px]"
               >
                 <img src="/icons/google.svg" alt="" className="hidden" /> {/* We'll use our GoogleIcon component if we can't find the file */}

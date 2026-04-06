@@ -16,8 +16,11 @@ const schema = z.object({
 })
 type FormData = z.infer<typeof schema>
 
+import { useGoBack } from '@/hooks/useGoBack'
+
 export default function ForgotPasswordPage() {
   const router = useRouter()
+  const goBack = useGoBack('/auth/login')
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +50,7 @@ export default function ForgotPasswordPage() {
       {/* Header */}
       <div className="flex items-center gap-3 pt-12 pb-6">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="flex items-center justify-center w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />

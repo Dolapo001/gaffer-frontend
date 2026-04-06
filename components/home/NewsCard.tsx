@@ -3,7 +3,9 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Flame, Share2, Clock } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
 import { useToast } from '@/store/toastStore'
+import { likeFeedItem, unlikeFeedItem } from '@/lib/services/feed.service'
 
 export interface NewsCardProps {
   id: string
@@ -17,28 +19,45 @@ export interface NewsCardProps {
   excerpt?: string
   likes: number
   timeAgo: string
+  initialLiked?: boolean
   size?: 'large' | 'small'
   onClick?: () => void
 }
 
 export function NewsCard({
+  id,
   image,
   source,
   title,
   excerpt,
   likes,
   timeAgo,
+  initialLiked = false,
   size = 'large',
   onClick,
 }: NewsCardProps) {
-  const [liked, setLiked] = useState(false)
+  const [liked, setLiked] = useState(initialLiked)
   const [likeCount, setLikeCount] = useState(likes)
   const { addToast } = useToast()
 
+  const likeMutation = useMutation({
+    mutationFn: () => (liked ? unlikeFeedItem(id) : likeFeedItem(id)),
+    onMutate: () => {
+      // Optimistic update
+      setLiked((prev) => !prev)
+      setLikeCount((c) => (liked ? c - 1 : c + 1))
+    },
+    onError: () => {
+      // Revert on failure
+      setLiked((prev) => !prev)
+      setLikeCount((c) => (liked ? c + 1 : c - 1))
+      addToast('Could not update like. Please try again.', 'error')
+    },
+  })
+
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation()
-    setLiked(!liked)
-    setLikeCount((c) => (liked ? c - 1 : c + 1))
+    likeMutation.mutate()
   }
 
   if (size === 'small') {

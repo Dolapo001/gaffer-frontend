@@ -3,60 +3,26 @@
 import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
-import { followMatch, unfollowMatch, followTeam, unfollowTeam } from '@/lib/services/notifications.service'
-import { ChevronLeft, Info, RefreshCcw, Goal, CornerDownRight, Bell, BellOff } from 'lucide-react'
-import { getImageUrl } from '@/lib/api'
+import {
+  followMatch,
+  unfollowMatch,
+  getPreferences,
+} from '@/lib/services/notifications.service'
+import { ChevronLeft, Bell, BellOff, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
+import { getImageUrl, getErrorMessage } from '@/lib/api'
+import { useGoBack } from '@/hooks/useGoBack'
 import { useToastStore } from '@/store/toastStore'
-import { getErrorMessage } from '@/lib/api'
 
 export default function MatchCenterPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/league')
   const params = useParams()
   const matchId = params.matchId as string
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
-  const [isFollowing, setIsFollowing] = useState(false)
+  const qc = useQueryClient()
   const toast = useToastStore()
-
-  const [followingHomeTeam, setFollowingHomeTeam] = useState(false)
-  const [followingAwayTeam, setFollowingAwayTeam] = useState(false)
-
-  const followMutation = useMutation({
-    mutationFn: () => isFollowing ? unfollowMatch(matchId) : followMatch(matchId),
-    onMutate: () => setIsFollowing((prev) => !prev),
-    onSuccess: () => {
-      toast.addToast(isFollowing ? 'Unfollowed match' : 'Following match', 'success')
-    },
-    onError: (err) => {
-      setIsFollowing((prev) => !prev)
-      toast.addToast(getErrorMessage(err), 'error')
-    },
-  })
-
-  const followHomeTeamMutation = useMutation({
-    mutationFn: (teamId: string) =>
-      followingHomeTeam ? unfollowTeam(teamId) : followTeam(teamId),
-    onMutate: () => setFollowingHomeTeam((prev) => !prev),
-    onSuccess: () =>
-      toast.addToast(followingHomeTeam ? 'Unfollowed team' : 'Following team', 'success'),
-    onError: (err) => {
-      setFollowingHomeTeam((prev) => !prev)
-      toast.addToast(getErrorMessage(err), 'error')
-    },
-  })
-
-  const followAwayTeamMutation = useMutation({
-    mutationFn: (teamId: string) =>
-      followingAwayTeam ? unfollowTeam(teamId) : followTeam(teamId),
-    onMutate: () => setFollowingAwayTeam((prev) => !prev),
-    onSuccess: () =>
-      toast.addToast(followingAwayTeam ? 'Unfollowed team' : 'Following team', 'success'),
-    onError: (err) => {
-      setFollowingAwayTeam((prev) => !prev)
-      toast.addToast(getErrorMessage(err), 'error')
-    },
-  })
 
   const { data: matchData, isLoading } = useQuery({
     queryKey: ['match', matchId],
@@ -66,6 +32,24 @@ export default function MatchCenterPage() {
   const { data: allEvents } = useQuery({
     queryKey: ['match-events', matchId],
     queryFn: () => getMatchEvents(matchId),
+  })
+
+  // ── Follow / unfollow match ─────────────────────────────────────────────
+  // Fetch preferences to determine current follow status
+  const { data: prefsData } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences,
+    retry: false,
+  })
+  const isFollowing = prefsData?.preferences?.followedMatches?.includes(matchId) ?? false
+
+  const followMutation = useMutation({
+    mutationFn: () => (isFollowing ? unfollowMatch(matchId) : followMatch(matchId)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notification-preferences'] })
+      toast.addToast(isFollowing ? 'Unfollowed match.' : 'Following match — you\'ll get live alerts!', 'success')
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
   const events = useMemo(() => {
@@ -92,28 +76,30 @@ export default function MatchCenterPage() {
   const isCompleted = fixture.status === 'completed'
   const isLive = fixture.status === 'live'
 
-  const homeTeam = typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId : null
-  const awayTeam = typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId : null
-
-  if (!homeTeam || !awayTeam) return <NotFound router={router} />
+  const homeTeam = fixture.homeTeamId;
+  const awayTeam = fixture.awayTeamId;
 
   return (
     <div className="min-h-screen bg-[#10111d] text-white pb-10">
       {/* Header */}
       <header className="px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 bg-[#10111d] z-50">
-        <button onClick={() => router.back()} className="text-white p-1">
+        <button onClick={goBack} className="text-white p-1">
           <ChevronLeft size={28} />
         </button>
         <h1 className="text-[18px] font-bold tracking-tight">
           {isCompleted ? 'Final Score' : isLive ? 'Live Match' : 'Match Schedule'}
         </h1>
+        {/* Follow match — POST/DELETE /notifications/follow/match/:matchId */}
         <button
           onClick={() => followMutation.mutate()}
           disabled={followMutation.isPending}
-          className="text-white p-1 transition-opacity"
-          title={isFollowing ? 'Unfollow match' : 'Follow match'}
+          className="p-1 transition-colors disabled:opacity-40"
+          aria-label={isFollowing ? 'Unfollow match' : 'Follow match'}
         >
-          {isFollowing ? <BellOff size={18} className="text-gaffer-orange" /> : <Bell size={18} className="opacity-60" />}
+          {isFollowing
+            ? <Bell size={20} className="text-gaffer-orange" fill="currentColor" />
+            : <BellOff size={20} className="text-white/40 hover:text-white" />
+          }
         </button>
       </header>
 
@@ -133,15 +119,6 @@ export default function MatchCenterPage() {
                   )}
                </div>
                <span className="text-white text-[12px] font-black uppercase tracking-wider text-center line-clamp-1">{homeTeam.shortName || homeTeam.name}</span>
-               <button
-                 onClick={() => followHomeTeamMutation.mutate(homeTeam._id)}
-                 disabled={followHomeTeamMutation.isPending}
-                 className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
-               >
-                 {followingHomeTeam
-                   ? <><BellOff size={10} className="text-gaffer-orange" /><span className="text-gaffer-orange">Following</span></>
-                   : <><Bell size={10} className="text-white/30" /><span className="text-white/30">Follow</span></>}
-               </button>
             </div>
 
             <div className="flex items-center gap-4">
@@ -159,15 +136,6 @@ export default function MatchCenterPage() {
                   )}
                </div>
                <span className="text-white text-[12px] font-black uppercase tracking-wider text-center line-clamp-1">{awayTeam.shortName || awayTeam.name}</span>
-               <button
-                 onClick={() => followAwayTeamMutation.mutate(awayTeam._id)}
-                 disabled={followAwayTeamMutation.isPending}
-                 className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest"
-               >
-                 {followingAwayTeam
-                   ? <><BellOff size={10} className="text-gaffer-orange" /><span className="text-gaffer-orange">Following</span></>
-                   : <><Bell size={10} className="text-white/30" /><span className="text-white/30">Follow</span></>}
-               </button>
             </div>
          </div>
 

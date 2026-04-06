@@ -6,7 +6,7 @@ import { LeagueHeader } from './league/LeagueHeader';
 import { LiveMatchSection } from './league/LiveMatchSection';
 import { LeagueTabs } from './league/LeagueTabs';
 import { TableStandings } from './league/TableStandings';
-import { TopScorers } from './league/TopScorers';
+import { TopPlayersList } from './league/TopPlayersList';
 import { TopAssiterButton } from './league/TopAssiterButton';
 import { FixturesSection } from './league/FixturesSection';
 import { GoalsScoredDetails } from './league/GoalsScoredDetails';
@@ -57,7 +57,7 @@ export default function LeagueDashboard() {
             {activeTab === 'table' ? (
               <>
                 <TableStandings />
-                <TopScorers onSeeAll={() => setCurrentView('goals-scored')} />
+                <TopPlayersList title="Top Scorers" statKey="goals" statLabel="Goals" onSeeAll={() => setCurrentView('goals-scored')} />
                 <TopAssiterButton />
               </>
             ) : (

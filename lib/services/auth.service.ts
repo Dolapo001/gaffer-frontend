@@ -134,7 +134,13 @@ export async function logout(): Promise<void> {
   }
 }
 
-// Google OAuth — redirects to backend which handles the full OAuth flow
-export function startGoogleOAuth(): void {
-  window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/google`
+// Google OAuth — POST idToken to backend
+export async function googleAuth(idToken: string): Promise<AuthResponse> {
+  const raw = await api.post<unknown>('/auth/google', { idToken }, { public: true })
+  const normalized = normalizeAuthResponse(raw)
+  if (!normalized) {
+    throw new Error('Google auth succeeded but returned an invalid auth payload.')
+  }
+  tokenStore.set(normalized.accessToken)
+  return normalized
 }

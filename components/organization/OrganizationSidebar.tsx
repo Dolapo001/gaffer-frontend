@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { AccountUpgradeModal } from '../AccountUpgradeModal'
-import { useQuery } from '@tanstack/react-query'
-import { listOrgs } from '@/lib/services/org.service'
+import { useQuery, useMutation } from '@tanstack/react-query'
+import { listOrgs, deleteOrg } from '@/lib/services/org.service'
+import { ConfirmDialog } from '../ConfirmDialog'
 
 // --- Custom Inline SVGs ---
 const CloseIcon = ({ className = "" }: { className?: string }) => (
@@ -53,11 +54,23 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
   const router = useRouter()
   const [upgradeModalOpen, setUpgradeModalOpen] = React.useState(false)
   const [upgradeTarget, setUpgradeTarget] = React.useState<'personal' | 'organization'>('personal')
-  const { user, setRole, updateUser, role: currentRole } = useAuthStore()
+  const [showDeleteOrgConfirm, setShowDeleteOrgConfirm] = React.useState(false)
+  const { user, setRole, updateUser, role: currentRole, logout } = useAuthStore()
   const { addToast } = useToast()
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
   const org = orgs?.[0]
+
+  const deleteOrgMutation = useMutation({
+    mutationFn: () => deleteOrg(org!._id),
+    onSuccess: async () => {
+      addToast('Organisation deleted.', 'success')
+      onClose()
+      await logout()
+      router.replace('/auth/login')
+    },
+    onError: () => addToast('Failed to delete organisation. Please try again.', 'error'),
+  })
 
   const displayName = currentRole === 'organization' && org?.name
       ? org.name
@@ -208,10 +221,20 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
         </motion.button>
       </div>
 
+      {/* Delete Organisation */}
+      {currentRole === 'organization' && org && (
+        <button
+          onClick={() => setShowDeleteOrgConfirm(true)}
+          disabled={deleteOrgMutation.isPending}
+          className="text-red-600/60 hover:text-red-500 font-bold text-xs uppercase tracking-[0.2em] transition-all py-3 px-5 rounded-2xl border border-red-900/20 hover:border-red-500/30 hover:bg-red-500/10 flex items-center justify-center gap-3 relative z-10 disabled:opacity-50"
+        >
+          {deleteOrgMutation.isPending ? 'Deleting...' : 'Delete Organisation'}
+        </button>
+      )}
+
       {/* Logout button */}
       <button
         onClick={async () => {
-            const { logout } = useAuthStore.getState();
             await logout();
             router.push('/auth/login');
         }}
@@ -228,12 +251,23 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
                 isOpen={upgradeModalOpen}
                 onClose={() => {
                     setUpgradeModalOpen(false)
-                    onClose() // Also close sidebar
+                    onClose()
                 }}
                 targetRole={upgradeTarget}
             />
         )}
     </AnimatePresence>
+
+    <ConfirmDialog
+      open={showDeleteOrgConfirm}
+      title="Delete Organisation"
+      message="This will permanently delete your organisation and all associated competitions, teams, and data. This cannot be undone."
+      confirmLabel="Delete Organisation"
+      cancelLabel="Cancel"
+      destructive
+      onConfirm={() => { setShowDeleteOrgConfirm(false); deleteOrgMutation.mutate() }}
+      onCancel={() => setShowDeleteOrgConfirm(false)}
+    />
     </>
   )
 }

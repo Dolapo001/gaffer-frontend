@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useGoBack } from '@/hooks/useGoBack'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, ArrowLeft, TrendingUp } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
@@ -51,6 +52,7 @@ function toArticleProps(item: FeedItem) {
 
 export default function NewsSearchPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/news')
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
@@ -87,7 +89,7 @@ export default function NewsSearchPage() {
       {/* Search header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gaffer-border/50">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full text-gaffer-muted hover:text-white transition-colors flex-shrink-0"
         >
           <ArrowLeft size={20} />

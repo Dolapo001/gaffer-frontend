@@ -97,10 +97,10 @@ const TEAMS: Array<{
   color: string
   jersey: { primaryColor: string; secondaryColor: string; jerseyPattern: JerseyPattern }
 }> = [
-  { name: 'Engineering', code: 'ENG', color: '#1D4ED8', jersey: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'stripes'  } },
-  { name: 'Law',         code: 'LAW', color: '#DC2626', jersey: { primaryColor: '#DC2626', secondaryColor: '#fbbf24', jerseyPattern: 'solid'    } },
-  { name: 'Medicine',    code: 'MED', color: '#16A34A', jersey: { primaryColor: '#16A34A', secondaryColor: '#ffffff', jerseyPattern: 'split'    } },
-  { name: 'Sciences',    code: 'SCI', color: '#9333EA', jersey: { primaryColor: '#9333EA', secondaryColor: '#c084fc', jerseyPattern: 'gradient' } },
+  { name: 'Engineering', code: 'ENG', color: '#1D4ED8', jersey: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' as JerseyPattern } },
+  { name: 'Law',         code: 'LAW', color: '#DC2626', jersey: { primaryColor: '#DC2626', secondaryColor: '#fbbf24', jerseyPattern: 'solid' as JerseyPattern } },
+  { name: 'Medicine',    code: 'MED', color: '#16A34A', jersey: { primaryColor: '#16A34A', secondaryColor: '#ffffff', jerseyPattern: 'solid' as JerseyPattern } },
+  { name: 'Sciences',    code: 'SCI', color: '#9333EA', jersey: { primaryColor: '#9333EA', secondaryColor: '#c084fc', jerseyPattern: 'solid' as JerseyPattern } },
   { name: 'Business',    code: 'BUS', color: '#EA580C', jersey: { primaryColor: '#EA580C', secondaryColor: '#1e293b', jerseyPattern: 'solid'    } },
 ]
 

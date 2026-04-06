@@ -3,6 +3,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Flame, UserPlus } from 'lucide-react'
+import { useMutation } from '@tanstack/react-query'
+import { likeFeedItem, unlikeFeedItem } from '@/lib/services/feed.service'
+import { useToast } from '@/store/toastStore'
 
 interface TrendingPostProps {
   id: string
@@ -15,23 +18,40 @@ interface TrendingPostProps {
   content: string
   image?: string
   likes: number
+  initialLiked?: boolean
   onClick?: () => void
 }
 
 export function TrendingPost({
+  id,
   author,
   content,
   image,
   likes,
+  initialLiked = false,
   onClick,
 }: TrendingPostProps) {
   const [expanded, setExpanded] = useState(false)
-  const [liked, setLiked] = useState(false)
+  const [liked, setLiked] = useState(initialLiked)
   const [likeCount, setLikeCount] = useState(likes)
   const [following, setFollowing] = useState(false)
+  const { addToast } = useToast()
 
   const isLong = content.length > 120
   const displayContent = isLong && !expanded ? content.slice(0, 120) + '...' : content
+
+  const likeMutation = useMutation({
+    mutationFn: () => (liked ? unlikeFeedItem(id) : likeFeedItem(id)),
+    onMutate: () => {
+      setLiked((prev) => !prev)
+      setLikeCount((c) => (liked ? c - 1 : c + 1))
+    },
+    onError: () => {
+      setLiked((prev) => !prev)
+      setLikeCount((c) => (liked ? c + 1 : c - 1))
+      addToast('Could not update like. Please try again.', 'error')
+    },
+  })
 
   return (
     <motion.div
@@ -121,8 +141,7 @@ export function TrendingPost({
       <button
         onClick={(e) => {
           e.stopPropagation()
-          setLiked(!liked)
-          setLikeCount((c) => (liked ? c - 1 : c + 1))
+          likeMutation.mutate()
         }}
         className="flex items-center gap-1.5 group"
       >

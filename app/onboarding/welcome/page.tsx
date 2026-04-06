@@ -56,7 +56,7 @@ export default function WelcomePage() {
 
           {/* Subtitle */}
           <p className="font-chakra text-white/80 text-sm leading-relaxed max-w-xs font-medium">
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore.
+            Build your team, dominate your fantasy league, track every match, and stay ahead of the competition.
           </p>
 
           {/* CTA */}

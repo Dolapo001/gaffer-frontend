@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Sparkles, Zap, Clock, ShieldCheck, HelpCircle, X, CheckCircle2 } from 'lucide-react'
-import { listChips, purchaseChip, activateChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
-import { listGameweeks } from '@/lib/services/fantasy.service'
+import { ChevronLeft, Sparkles, ShoppingBag, Zap, Clock, ShieldCheck, HelpCircle, X } from 'lucide-react'
+import { listChips, purchaseChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
 import { getWallet } from '@/lib/services/payment.service'
+import { listGameweeks, activateChip } from '@/lib/services/fantasy.service'
+import { useGoBack } from '@/hooks/useGoBack'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -28,11 +29,11 @@ const CHIP_DESCRIPTIONS: Record<string, string> = {
 
 export default function ChipsPage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/fantasy')
   const qc = useQueryClient()
   const toast = useToastStore()
   const { competitionId } = useFantasyStore()
   const [selectedChip, setSelectedChip] = useState<ChipInfo | null>(null)
-  const [activatingChipType, setActivatingChipType] = useState<ChipType | null>(null)
 
   // 1. Data Fetching
   const { data: chips, isLoading: isLoadingChips } = useQuery({
@@ -46,19 +47,14 @@ export default function ChipsPage() {
     queryFn: getWallet
   })
 
-  const { data: gameweeks = [], isLoading: isLoadingGameweeks } = useQuery({
+  const { data: gameweeks } = useQuery({
     queryKey: ['gameweeks', competitionId],
     queryFn: () => listGameweeks(competitionId!),
-    enabled: !!competitionId,
+    enabled: !!competitionId
   })
 
-  // Current gameweek: earliest open one, or latest locked as fallback
-  const currentGameweek = useMemo(() => {
-    if (!gameweeks.length) return null
-    const open = gameweeks.filter(gw => gw.lockStatus === 'open')
-    if (open.length > 0) return open.reduce((a, b) => a.number < b.number ? a : b)
-    return gameweeks.reduce((a, b) => a.number > b.number ? a : b)
-  }, [gameweeks])
+  // Active gameweek: first open one, otherwise the last one
+  const activeGameweek = gameweeks?.find((gw) => gw.lockStatus === 'open') ?? gameweeks?.[gameweeks.length - 1]
 
   // 2. Mutations
   const buyMutation = useMutation({
@@ -73,46 +69,24 @@ export default function ChipsPage() {
   })
 
   const activateMutation = useMutation({
-    mutationFn: (chipType: ChipType) => {
-      if (!currentGameweek) throw new Error('No active gameweek found')
-      setActivatingChipType(chipType)
-      return activateChip(competitionId!, chipType, currentGameweek._id)
-    },
-    onSuccess: (_, chipType) => {
+    mutationFn: (chipType: ChipType) =>
+      activateChip(competitionId!, chipType as any, activeGameweek!._id),
+    onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['chips', competitionId] })
-      toast.addToast(`${CHIP_LABELS[chipType]} activated for GW${currentGameweek?.number}!`, 'success')
-      setActivatingChipType(null)
+      toast.addToast(`Chip activated for Gameweek ${activeGameweek?.number ?? ''}!`, 'success')
+      setSelectedChip(null)
     },
-    onError: (err) => {
-      toast.addToast(getErrorMessage(err), 'error')
-      setActivatingChipType(null)
-    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
 
-  if (!competitionId) {
-    return (
-      <div className="min-h-screen bg-[#181928] text-white flex flex-col items-center justify-center gap-6 px-6">
-        <ShieldCheck size={48} className="text-white/10" />
-        <div className="text-center space-y-2">
-          <h2 className="font-chakra font-black text-lg uppercase tracking-widest">No League Selected</h2>
-          <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Open a league to access your tactical centre</p>
-        </div>
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-white/5 border border-white/10 text-white/60 font-chakra font-black text-xs uppercase tracking-widest hover:text-white transition-all"
-        >
-          <ChevronLeft size={14} /> Go Back
-        </button>
-      </div>
-    )
-  }
+  if (!competitionId) return null
 
   return (
     <div className="min-h-screen bg-[#181928] text-white flex flex-col font-inter">
       {/* Header */}
       <div className="sticky top-0 z-50 bg-[#181928]/80 backdrop-blur-xl border-b border-white/5">
         <div className="flex items-center gap-4 px-6 pt-12 pb-4">
-          <button onClick={() => router.back()} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
+          <button onClick={goBack} className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center text-white/40 hover:text-white transition-all">
             <ChevronLeft size={20} />
           </button>
           <div className="flex-1">
@@ -150,23 +124,10 @@ export default function ChipsPage() {
                   <h4 className="font-chakra font-black text-sm uppercase tracking-tight">{CHIP_LABELS[chip.chipType]}</h4>
                   <p className="text-[9px] text-white/30 font-bold uppercase leading-tight mt-1 truncate">{CHIP_DESCRIPTIONS[chip.chipType]}</p>
                 </div>
-                {chip.cooldown.active ? (
+                {chip.cooldown.active && (
                    <div className="flex items-center gap-1.5 text-[9px] text-yellow-500 font-chakra font-black uppercase mt-1">
                       <Clock size={10} /> GW {chip.cooldown.nextAvailableGameweek}
                    </div>
-                ) : (
-                  <button
-                    onClick={() => activateMutation.mutate(chip.chipType)}
-                    disabled={activatingChipType === chip.chipType || isLoadingGameweeks || !currentGameweek}
-                    className="mt-1 flex items-center justify-center gap-1.5 w-full py-2 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20 text-gaffer-orange font-chakra font-black text-[9px] uppercase tracking-widest hover:bg-gaffer-orange/20 transition-all disabled:opacity-40"
-                  >
-                    {activatingChipType === chip.chipType ? (
-                      <span className="w-3 h-3 rounded-full border border-gaffer-orange/40 border-t-gaffer-orange animate-spin" />
-                    ) : (
-                      <CheckCircle2 size={11} />
-                    )}
-                    {activatingChipType === chip.chipType ? 'Activating...' : isLoadingGameweeks ? 'Loading...' : !currentGameweek ? 'No Active GW' : 'Activate'}
-                  </button>
                 )}
               </div>
             ))}
@@ -257,8 +218,8 @@ export default function ChipsPage() {
                    </div>
                 </div>
 
-                <div className="pt-4">
-                   <button 
+                <div className="pt-4 space-y-3">
+                   <button
                      onClick={() => buyMutation.mutate(selectedChip.chipType)}
                      disabled={buyMutation.isPending || (selectedChip.price.coins > (wallet?.balance ?? 0))}
                      className="w-full h-16 rounded-[24px] bg-gradient-to-r from-gaffer-orange to-red-600 text-white font-chakra font-black text-lg uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
@@ -266,11 +227,20 @@ export default function ChipsPage() {
                      {buyMutation.isPending ? 'Processing...' : selectedChip.price.coins > (wallet?.balance ?? 0) ? 'Insufficient Coins' : 'Confirm Purchase'}
                    </button>
                    {selectedChip.price.coins > (wallet?.balance ?? 0) && (
-                     <button 
+                     <button
                         onClick={() => router.push('/app/shop')}
-                        className="w-full py-4 text-[10px] text-gaffer-orange font-black uppercase tracking-widest mt-2 hover:underline"
+                        className="w-full py-4 text-[10px] text-gaffer-orange font-black uppercase tracking-widest hover:underline"
                      >
                        Buy more coins &rarr;
+                     </button>
+                   )}
+                   {activeGameweek && (
+                     <button
+                       onClick={() => activateMutation.mutate(selectedChip.chipType)}
+                       disabled={activateMutation.isPending || !activeGameweek}
+                       className="w-full h-14 rounded-[24px] bg-white/5 border border-white/10 text-white font-chakra font-black text-sm uppercase tracking-[0.2em] active:scale-95 transition-all disabled:opacity-50"
+                     >
+                       {activateMutation.isPending ? 'Activating...' : `Activate for GW${activeGameweek.number}`}
                      </button>
                    )}
                 </div>

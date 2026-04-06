@@ -7,21 +7,25 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useAuthStore } from '@/store/authStore'
-import { getProfile, updateProfile, uploadAvatar, type UserProfile } from '@/lib/services/user.service'
+import { getProfile, updateProfile, uploadAvatar, deleteAccount, type UserProfile } from '@/lib/services/user.service'
 import { updateProfileSchema, type UpdateProfileFormData } from '@/lib/schemas'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
-import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera, Trophy, ChevronRight } from 'lucide-react'
+import { User, Mail, Phone, AtSign, Shield, ChevronLeft, Edit2, Check, X, Camera, Trophy, ChevronRight, Trash2 } from 'lucide-react'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useGoBack } from '@/hooks/useGoBack'
 
 export default function ProfilePage() {
   const router = useRouter()
+  const goBack = useGoBack('/app/dashboard')
   const { user, role, logout, setProfile } = useAuthStore()
   const toast = useToastStore()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: profile, isLoading } = useQuery<UserProfile>({
@@ -84,6 +88,15 @@ export default function ProfilePage() {
     onSuccess: () => router.replace('/auth/login'),
   })
 
+  const deleteAccountMutation = useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: async () => {
+      await logout()
+      router.replace('/auth/signup')
+    },
+    onError: (err) => toast.addToast({ type: 'error', message: getErrorMessage(err) }),
+  })
+
   const displayName =
     profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
   const email = user?.email || profile?.email || 'Not provided'
@@ -131,7 +144,7 @@ export default function ProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-4 pt-12 pb-4">
         <button
-          onClick={() => router.back()}
+          onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />
@@ -334,9 +347,9 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Logout */}
+      {/* Logout + Delete Account */}
       {!editing && (
-        <div className="px-6 pt-8 pb-12">
+        <div className="px-6 pt-8 pb-12 space-y-3">
           <button
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
@@ -344,8 +357,27 @@ export default function ProfilePage() {
           >
             {logoutMutation.isPending ? 'Logging out...' : 'Log Out'}
           </button>
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deleteAccountMutation.isPending}
+            className="w-full py-3 rounded-xl border border-red-900/40 text-red-600 font-body text-sm flex items-center justify-center gap-2 hover:bg-red-900/10 transition-all disabled:opacity-50"
+          >
+            <Trash2 size={14} />
+            {deleteAccountMutation.isPending ? 'Deleting...' : 'Delete Account'}
+          </button>
         </div>
       )}
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        title="Delete Account"
+        message="This will permanently delete your account and all your data. This action cannot be undone."
+        confirmLabel="Delete Account"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => { setShowDeleteConfirm(false); deleteAccountMutation.mutate() }}
+        onCancel={() => setShowDeleteConfirm(false)}
+      />
     </div>
   )
 }

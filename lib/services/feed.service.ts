@@ -39,104 +39,151 @@ export interface FeedPage {
   page: number
 }
 
-// GET /feed — PUBLIC, page 1 cached
+// GET /feed — main feed (all types), page 1 cached
 export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
   const data = await api.get<{ feed: FeedPage }>(`/feed?page=${page}`, { public: true })
   return data.feed
 }
 
-// GET /feed/:id — PUBLIC
-export async function getFeedItem(id: string): Promise<FeedItem> {
-  const data = await api.get<{ item: FeedItem }>(`/feed/${id}`, { public: true })
-  return data.item
+// GET /feed/news — news items only
+export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
+  const raw = await api.get<unknown>(`/feed/news?page=${page}`, { public: true })
+  // Normalise: backend may return { feed: {...} } or { items, total, page } directly
+  const r = raw as any
+  if (r?.feed) return r.feed
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
 }
 
-// GET /feed/org/:orgId — PUBLIC
+// GET /feed/posts/:postId — single post detail
+export async function getFeedItem(id: string): Promise<FeedItem> {
+  const raw = await api.get<unknown>(`/feed/posts/${id}`, { public: true })
+  const r = raw as any
+  return r?.item ?? r?.post ?? r
+}
+
+// PUT /feed/posts/:postId — edit a post
+export async function updatePost(
+  id: string,
+  payload: { body?: string; media?: MediaItem[]; visibility?: string }
+): Promise<FeedItem> {
+  const raw = await api.put<unknown>(`/feed/posts/${id}`, payload)
+  const r = raw as any
+  return r?.item ?? r?.post ?? r
+}
+
+// DELETE /feed/posts/:postId — delete a post
+export async function deletePost(id: string): Promise<void> {
+  await api.delete<unknown>(`/feed/posts/${id}`)
+}
+
+// POST /feed/posts/:postId/likes — like a post
+export async function likeFeedItem(id: string): Promise<{ message: string }> {
+  const data = await api.post<{ message: string }>(`/feed/posts/${id}/likes`)
+  return data
+}
+
+// DELETE /feed/posts/:postId/likes — unlike a post
+export async function unlikeFeedItem(id: string): Promise<{ message: string }> {
+  const data = await api.delete<{ message: string }>(`/feed/posts/${id}/likes`)
+  return data
+}
+
+// GET /feed/posts/:postId/comments — fetch comments (newest first, 20/page)
+export async function getComments(
+  id: string,
+  page: number = 1
+): Promise<{ comments: FeedComment[]; total: number; page: number }> {
+  const data = await api.get<{ comments: FeedComment[]; total: number; page: number }>(
+    `/feed/posts/${id}/comments?page=${page}`,
+    { public: true }
+  )
+  return data
+}
+
+// POST /feed/posts/:postId/comments — add a comment
+export async function addComment(id: string, body: string): Promise<FeedComment> {
+  const raw = await api.post<unknown>(`/feed/posts/${id}/comments`, { body })
+  const r = raw as any
+  return r?.comment ?? r
+}
+
+// PUT /feed/posts/:postId/comments/:commentId — edit a comment
+export async function editComment(
+  postId: string,
+  commentId: string,
+  body: string
+): Promise<FeedComment> {
+  const raw = await api.put<unknown>(`/feed/posts/${postId}/comments/${commentId}`, { body })
+  const r = raw as any
+  return r?.comment ?? r
+}
+
+// DELETE /feed/posts/:postId/comments/:commentId — delete a comment
+export async function deleteComment(postId: string, commentId: string): Promise<void> {
+  await api.delete<unknown>(`/feed/posts/${postId}/comments/${commentId}`)
+}
+
+// GET /feed/search — search posts/feed content
+export async function searchFeedItems(query: string, page: number = 1): Promise<FeedPage> {
+  if (!query.trim()) return { items: [], total: 0, page: 1 }
+  const raw = await api.get<unknown>(
+    `/feed/search?q=${encodeURIComponent(query)}&page=${page}`,
+    { public: true }
+  )
+  const r = raw as any
+  if (r?.feed) return r.feed
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
+}
+
+// GET /feed/org/:orgId — org-scoped feed (PUBLIC)
 export async function getOrgFeed(orgId: string, page: number = 1): Promise<FeedPage> {
   const data = await api.get<{ feed: FeedPage }>(`/feed/org/${orgId}?page=${page}`, { public: true })
   return data.feed
 }
 
-// GET /feed/team/:teamId — PUBLIC
+// GET /feed/team/:teamId — team-scoped feed (PUBLIC)
 export async function getTeamFeed(teamId: string, page: number = 1): Promise<FeedPage> {
   const data = await api.get<{ feed: FeedPage }>(`/feed/team/${teamId}?page=${page}`, { public: true })
   return data.feed
 }
 
-// GET /feed/match/:fixtureId — PUBLIC
+// GET /feed/match/:fixtureId — match-scoped feed (PUBLIC)
 export async function getMatchFeed(fixtureId: string, page: number = 1): Promise<FeedPage> {
   const data = await api.get<{ feed: FeedPage }>(`/feed/match/${fixtureId}?page=${page}`, { public: true })
   return data.feed
 }
 
-// POST /feed/news
+// POST /feed/news — publish org news article
 export async function publishNews(payload: {
   orgId: string
   body: string
   media?: MediaItem[]
   visibility?: 'public' | 'org'
 }): Promise<FeedItem> {
-  const data = await api.post<{ item: FeedItem }>('/feed/news', payload)
-  return data.item
+  const raw = await api.post<unknown>('/feed/news', payload)
+  const r = raw as any
+  return r?.item ?? r
 }
 
-// POST /feed/posts
+// POST /feed/posts — create a team/user post
 export async function publishPost(payload: {
-  teamId: string
+  teamId?: string
   body: string
   media?: MediaItem[]
   visibility?: 'public' | 'team'
 }): Promise<FeedItem> {
-  const data = await api.post<{ item: FeedItem }>('/feed/posts', payload)
-  return data.item
+  const raw = await api.post<unknown>('/feed/posts', payload)
+  const r = raw as any
+  return r?.item ?? r
 }
 
 // POST /feed/:id/repost
 export async function repost(id: string, body?: string): Promise<FeedItem> {
-  const data = await api.post<{ item: FeedItem }>(`/feed/${id}/repost`, { body })
-  return data.item
-}
-
-// POST /feed/:id/like
-export async function likeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.post<{ message: string; item: FeedItem }>(`/feed/${id}/like`)
-  return data
-}
-
-// DELETE /feed/:id/like
-export async function unlikeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.delete<{ message: string; item: FeedItem }>(`/feed/${id}/like`)
-  return data
-}
-
-// POST /feed/:id/comments
-export async function addComment(id: string, body: string): Promise<FeedComment> {
-  const data = await api.post<{ comment: FeedComment }>(`/feed/${id}/comments`, { body })
-  return data.comment
-}
-
-// GET /feed/:id/comments — PUBLIC, newest first, 20/page
-export async function getComments(id: string, page: number = 1): Promise<{
-  comments: FeedComment[]
-  total: number
-  page: number
-}> {
-  const data = await api.get<{
-    comments: FeedComment[]
-    total: number
-    page: number
-  }>(`/feed/${id}/comments?page=${page}`, { public: true })
-  return data
-}
-
-// GET /feed/search — Search items by body text
-export async function searchFeedItems(query: string, page: number = 1): Promise<FeedPage> {
-  if (!query.trim()) return { items: [], total: 0, page: 1 }
-  const data = await api.get<{ feed: FeedPage }>(`/feed/search?q=${encodeURIComponent(query)}&page=${page}`, { public: true })
-  // Backend search returns the full FeedPage object or wraps it in 'feed'?
-  // Controller says: res.status(200).json(result); where result is from service.search
-  // service.search returns { items, total, page }
-  return (data as any).items ? (data as any) : data.feed
+  const raw = await api.post<unknown>(`/feed/${id}/repost`, { body })
+  const r = raw as any
+  return r?.item ?? r
 }
 
 // GET /feed/news — Fetch published news items

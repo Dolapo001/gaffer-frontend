@@ -9,7 +9,7 @@ import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
-import { getNews, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
 import { useUIStore } from '@/store/uiStore'
 
 function timeAgo(iso: string) {
@@ -29,6 +29,7 @@ function toNewsCardProps(item: FeedItem) {
     title: item.body.split('\n')[0].slice(0, 120),
     excerpt: item.body.length > 120 ? item.body.slice(0, 160) + '...' : undefined,
     likes: item.likesCount,
+    initialLiked: item.isLiked ?? false,
     timeAgo: timeAgo(item.createdAt),
   }
 }
@@ -45,6 +46,7 @@ function toTrendingProps(item: FeedItem) {
     content: item.body,
     image: item.media?.find((m) => m.type === 'image')?.url,
     likes: item.likesCount,
+    initialLiked: item.isLiked ?? false,
   }
 }
 
@@ -56,6 +58,7 @@ function toArticleProps(item: FeedItem) {
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
+    commentsCount: item.commentsCount,
     isLiked: item.isLiked ?? false,
     author: {
       name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
@@ -70,16 +73,32 @@ export default function NewsPage() {
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
   const { activeOrgId } = useUIStore()
 
-  // When inside a competition use the org's feed; otherwise show global news
-  const { data, isLoading } = useQuery({
-    queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['feed-news', 1],
-    queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getNews(1),
+  // News items (type=news) — dedicated endpoint
+  const { data: newsData, isLoading: newsLoading } = useQuery({
+    queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['news-feed', 1],
+    queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getNewsFeed(1),
     staleTime: 60_000,
   })
 
-  const items: FeedItem[] = (data?.items ?? data?.data ?? []) as FeedItem[]
-  const newsItems = items.filter((i) => i.type === 'news')
-  const postItems = items.filter((i) => i.type === 'post' || i.type === 'repost')
+  // Community posts (type=post/repost) — global feed
+  const { data: postsData, isLoading: postsLoading } = useQuery({
+    queryKey: ['global-feed', 1],
+    queryFn: () => getGlobalFeed(1),
+    staleTime: 60_000,
+    enabled: !activeOrgId,
+  })
+
+  const newsItems: FeedItem[] = ((newsData?.items ?? newsData?.data ?? []) as FeedItem[]).filter(
+    (i) => i.type === 'news'
+  )
+  const allNewsItems: FeedItem[] = newsItems.length > 0
+    ? newsItems
+    : (newsData?.items ?? newsData?.data ?? []) as FeedItem[]
+
+  const allFeedItems: FeedItem[] = (postsData?.items ?? postsData?.data ?? []) as FeedItem[]
+  const postItems: FeedItem[] = allFeedItems.filter((i) => i.type === 'post' || i.type === 'repost')
+
+  const isLoading = newsLoading || postsLoading
 
   return (
     <AnimatePresence mode="wait">
@@ -126,7 +145,7 @@ export default function NewsPage() {
                 <h2 className="font-display font-bold text-white text-base tracking-wide">Top News</h2>
               </div>
 
-              {isLoading ? (
+              {newsLoading ? (
                 <div className="space-y-3">
                   <SkeletonCard size="large" />
                   <div className="divide-y divide-gaffer-border">
@@ -137,13 +156,13 @@ export default function NewsPage() {
                     ))}
                   </div>
                 </div>
-              ) : newsItems.length === 0 && items.length === 0 ? (
+              ) : allNewsItems.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gaffer-muted text-sm font-body">No news yet</p>
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {(newsItems.length > 0 ? newsItems : items).slice(0, 1).map((item) => (
+                  {allNewsItems.slice(0, 1).map((item) => (
                     <motion.div key={item._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
                       <NewsCard
                         {...toNewsCardProps(item)}
@@ -153,7 +172,7 @@ export default function NewsPage() {
                     </motion.div>
                   ))}
                   <div className="divide-y divide-gaffer-border">
-                    {(newsItems.length > 0 ? newsItems : items).slice(1, 5).map((item, i) => (
+                    {allNewsItems.slice(1, 5).map((item, i) => (
                       <motion.div
                         key={item._id}
                         initial={{ opacity: 0, y: 8 }}
@@ -174,10 +193,10 @@ export default function NewsPage() {
             </section>
 
             {/* Trending posts */}
-            {postItems.length > 0 && (
+            {(postsLoading || postItems.length > 0) && (
               <section>
                 <h2 className="font-display font-bold text-white text-base tracking-wide mb-3">Trending</h2>
-                {isLoading ? (
+                {postsLoading ? (
                   <div className="space-y-3">
                     {[0, 1, 2].map((i) => (
                       <div key={i} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 animate-pulse h-24" />

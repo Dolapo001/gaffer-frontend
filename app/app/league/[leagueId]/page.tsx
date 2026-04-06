@@ -1,21 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Heart, Share2, Bell, BellOff } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
-
-// ─── Services ─────────────────────────────────────────────────────────────────
-import { getCompetition } from '@/lib/services/competition.service'
 import {
   followCompetition,
   unfollowCompetition,
+  getPreferences,
 } from '@/lib/services/notifications.service'
+
+// ─── Services ─────────────────────────────────────────────────────────────────
+import { getCompetition } from '@/lib/services/competition.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getTopScorers, getTopAssists } from '@/lib/services/stats.service'
@@ -182,20 +183,8 @@ export default function LeagueHomePage() {
   const leagueId = params.leagueId as string
   const { user } = useAuthStore()
   const { setActiveCompetition } = useUIStore()
+  const qc = useQueryClient()
   const toast = useToastStore()
-  const [followingCompetition, setFollowingCompetition] = useState(false)
-
-  const followCompetitionMutation = useMutation({
-    mutationFn: () =>
-      followingCompetition ? unfollowCompetition(leagueId) : followCompetition(leagueId),
-    onMutate: () => setFollowingCompetition((prev) => !prev),
-    onSuccess: () =>
-      toast.addToast(followingCompetition ? 'Unfollowed league' : 'Following league', 'success'),
-    onError: (err) => {
-      setFollowingCompetition((prev) => !prev)
-      toast.addToast(getErrorMessage(err), 'error')
-    },
-  })
 
   // ── Data fetching ──────────────────────────────────────────────────────────
 
@@ -259,6 +248,26 @@ export default function LeagueHomePage() {
     retry: false,
   })
 
+  // ── Follow / unfollow competition ─────────────────────────────────────────
+  const { data: prefsData } = useQuery({
+    queryKey: ['notification-preferences'],
+    queryFn: getPreferences,
+    retry: false,
+  })
+  const isFollowingComp = prefsData?.preferences?.followedCompetitions?.includes(leagueId) ?? false
+
+  const followCompMutation = useMutation({
+    mutationFn: () => (isFollowingComp ? unfollowCompetition(leagueId) : followCompetition(leagueId)),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notification-preferences'] })
+      toast.addToast(
+        isFollowingComp ? 'Unfollowed competition.' : 'Following competition — you\'ll get updates!',
+        'success'
+      )
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
   // ── Derived values ─────────────────────────────────────────────────────────
 
   const isLoading = loadingComp || loadingFixtures
@@ -307,15 +316,17 @@ export default function LeagueHomePage() {
               {competition.name}
             </p>
           )}
+          {/* Follow competition — POST/DELETE /notifications/follow/competition/:id */}
           <button
-            onClick={() => followCompetitionMutation.mutate()}
-            disabled={followCompetitionMutation.isPending}
-            className="w-9 h-9 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center text-white"
-            title={followingCompetition ? 'Unfollow league' : 'Follow league'}
+            onClick={() => followCompMutation.mutate()}
+            disabled={followCompMutation.isPending || loadingComp}
+            className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border transition-colors disabled:opacity-40"
+            aria-label={isFollowingComp ? 'Unfollow competition' : 'Follow competition'}
           >
-            {followingCompetition
-              ? <BellOff size={16} className="text-gaffer-orange" />
-              : <Bell size={16} className="text-white/60" />}
+            {isFollowingComp
+              ? <Bell size={16} className="text-gaffer-orange" fill="currentColor" />
+              : <BellOff size={16} className="text-white/50" />
+            }
           </button>
         </div>
       </div>
