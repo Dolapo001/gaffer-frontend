@@ -63,6 +63,6 @@ export const config = {
    * - api routes (handled by the backend)
    */
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icons|sw\\.js|workbox-.*\\.js|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff2?)).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|manifest\\.json|icons|sw\\.js|workbox-.*\\.js|.*\\.(?:png|jpg|jpeg|svg|webp|ico|woff2?|mp4|webm|ogg|mov)).*)',
   ],
 }

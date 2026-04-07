@@ -1,17 +1,13 @@
 'use client'
 
-import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
-
+// Onboarding routes (splash, welcome, role-select) are public entry points.
+// We intentionally do NOT apply useStandaloneGuard here because:
+//  1. The splash page itself needs to render immediately so the video plays.
+//     Blocking it with a spinner + standalone check causes a blank screen.
+//  2. app/page.tsx already redirects standalone users to /onboarding/splash,
+//     so non-standalone users arriving here via URL are fine to proceed.
+//  3. Individual protected app/admin routes still enforce standalone via
+//     useAuthGuard → useStandaloneGuard.
 export default function OnboardingLayout({ children }: { children: React.ReactNode }) {
-  const isReady = useStandaloneGuard()
-
-  if (!isReady) {
-    return (
-      <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-gaffer-border border-t-gaffer-orange rounded-full animate-spin" />
-      </div>
-    )
-  }
-
   return <>{children}</>
 }
