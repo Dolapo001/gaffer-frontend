@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { useAuthListener } from '@/hooks/useAuthListener'
 import { isStandalone } from '@/lib/pwa'
 
 import { usePWAInstall } from '@/hooks/usePWAInstall'
