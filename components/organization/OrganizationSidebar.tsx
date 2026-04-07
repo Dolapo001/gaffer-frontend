@@ -101,8 +101,13 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
             router.push('/admin')
             return
         }
-        setUpgradeTarget('organization')
-        setUpgradeModalOpen(true)
+        // No org account yet — navigate to the isolated org setup page.
+        // We deliberately do NOT open a modal here: the modal renders at
+        // z-[100] which is BELOW the sidebar (z-[110]) and the BottomNavbar
+        // (z-[100]), making it inaccessible. A full-page navigation to
+        // /onboarding/organization uses a layout with no navbar/sidebar at all.
+        onClose()
+        router.push('/onboarding/organization')
         return
     }
 

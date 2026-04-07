@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
-import { AccountUpgradeModal } from '@/components/AccountUpgradeModal'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 import { getWallet } from '@/lib/services/payment.service'
 import { getImageUrl } from '@/lib/api'
@@ -17,7 +16,6 @@ export default function DashboardPage() {
   const router = useRouter()
   const { user, profile, updateUser, setRole } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
   const [isLoadingNews, setIsLoadingNews] = useState(true)
   const [walletBalance, setWalletBalance] = useState<number | null>(null)
@@ -26,10 +24,10 @@ export default function DashboardPage() {
   const hasOrg = (orgs && orgs.length > 0) || user?.isOrgActive
 
   useLayoutEffect(() => {
-    const handleUpgrade = () => setUpgradeModalOpen(true)
+    const handleUpgrade = () => router.push('/onboarding/organization')
     window.addEventListener('gaffer:upgrade-org', handleUpgrade)
     return () => window.removeEventListener('gaffer:upgrade-org', handleUpgrade)
-  }, [])
+  }, [router])
 
   useEffect(() => {
     const fetchNews = async () => {
@@ -73,12 +71,6 @@ export default function DashboardPage() {
           </React.Fragment>
         )}
       </AnimatePresence>
-
-      <AccountUpgradeModal 
-          isOpen={upgradeModalOpen} 
-          onClose={() => setUpgradeModalOpen(false)} 
-          targetRole="organization" 
-      />
 
       {/* Header */}
       <header className="px-6 pt-12 pb-4 flex items-center justify-between flex-shrink-0 z-50">
@@ -194,7 +186,7 @@ export default function DashboardPage() {
                 <>
                   <p className="text-white font-chakra font-bold text-lg">Start a New Tournament</p>
                   <button
-                    onClick={() => setUpgradeModalOpen(true)}
+                    onClick={() => router.push('/onboarding/organization')}
                     className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
                   >
                     Upgrade to Org
