@@ -45,8 +45,16 @@ export function useAuthListener() {
         setUser(res.user, res.accessToken)
       })
       .catch(() => {
+        if (cancelled) return
         // rt cookie missing or expired — session is dead, clear local state.
-        if (!cancelled) setUser(null)
+        // IMPORTANT: only clear if the user hasn't authenticated through another
+        // path (e.g. login form) while this startup refresh was in-flight.
+        // If we clear unconditionally, a fresh login gets immediately reverted
+        // when this stale 401 response lands — causing a permanent loading deadlock.
+        const { isAuthenticated: alreadyAuthed } = useAuthStore.getState()
+        if (!alreadyAuthed) {
+          setUser(null)
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false)

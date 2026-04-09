@@ -18,12 +18,21 @@ export function useAuthGuard(requiredRole?: 'personal' | 'organization') {
   const pathname = usePathname()
   const { isAuthenticated, isLoading, role } = useAuthStore()
   const isStandaloneReady = useStandaloneGuard()
-  
+
   // Track if we've shown the warning to prevent strict-mode double toasts
   const hasWarnedRef = useRef(false)
 
   // Wait for both PWA standalone checks and auth rehydration to settle
   const isReady = isStandaloneReady && !isLoading
+
+  // Safety net: if a user is authenticated but has role=null (stale persisted
+  // localStorage state from an old app version, or a race during registration),
+  // default to 'personal' so the guard doesn't block indefinitely.
+  useEffect(() => {
+    if (isAuthenticated && !isLoading && !role) {
+      useAuthStore.getState().setRole('personal')
+    }
+  }, [isAuthenticated, isLoading, role])
 
   useEffect(() => {
     if (!isReady) return
