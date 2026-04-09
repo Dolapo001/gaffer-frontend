@@ -152,7 +152,9 @@ export const useAuthStore = create<AuthState>()(
 
           set({
             user: res.user,
-            role: res.user?.lastRole || null,
+            // Default new users to 'personal' — lastRole is absent on first registration.
+            // Without this, role stays null and useAuthGuard('personal') permanently blocks.
+            role: res.user?.lastRole === 'organization' ? 'organization' : 'personal',
             accessToken: res.accessToken,
             isAuthenticated: true,
             error: null,

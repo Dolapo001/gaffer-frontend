@@ -59,14 +59,18 @@ export default function SignUpPage() {
     setIsSubmitting(true)
     try {
       await registerUser(data.email, data.password)
-      
+
+      // Set role immediately so useAuthGuard('personal') can resolve without
+      // waiting for updateProfile. If updateProfile is slow or fails, the guard
+      // would otherwise see role=null and show a permanent loading spinner.
+      setRole('personal')
+
       const { updateProfile } = await import('@/lib/services/user.service')
       await updateProfile({
           isPersonalActive: true,
-          lastRole: 'personal' // Default for personal signup
+          lastRole: 'personal',
       })
 
-      setRole('personal')
       router.replace('/app/dashboard')
     } catch {
       // Error displayed from store
