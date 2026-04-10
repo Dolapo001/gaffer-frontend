@@ -51,7 +51,7 @@ export default function TournamentSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0C14] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#0B0C14] flex flex-col relative overflow-y-auto overflow-x-hidden">
       {/* Dynamic Background Elements */}
       <div className="absolute top-[-20%] left-[-10%] w-[100%] h-[100%] bg-gradient-radial from-[#FF8904]/10 to-transparent blur-[120px] rounded-full opacity-30 animate-pulse pointer-events-none" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[100%] h-[100%] bg-gradient-radial from-[#E7000B]/10 to-transparent blur-[120px] rounded-full opacity-30 animate-pulse pointer-events-none" style={{ animationDelay: '1s' }} />
@@ -60,10 +60,10 @@ export default function TournamentSuccessPage() {
         initial={{ scale: 0.95, opacity: 0, y: 30 }}
         animate={{ scale: 1, opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-md space-y-10 text-center"
+        className="relative z-10 w-full max-w-md space-y-6 sm:space-y-10 text-center mx-auto px-5 py-10"
       >
         {/* Premium Trophy Logo */}
-        <div className="relative mx-auto w-44 h-44 flex items-center justify-center">
+        <div className="relative mx-auto w-32 h-32 sm:w-44 sm:h-44 flex items-center justify-center">
           <motion.div 
             animate={{ 
               scale: [1, 1.15, 1],
@@ -77,7 +77,7 @@ export default function TournamentSuccessPage() {
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="relative z-10"
           >
-            <div className="w-32 h-32 bg-gradient-to-b from-[#1C1D2B] to-[#0F101A] rounded-[48px] flex items-center justify-center shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] border border-white/10 group overflow-hidden">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-b from-[#1C1D2B] to-[#0F101A] rounded-[36px] sm:rounded-[48px] flex items-center justify-center shadow-[0_30px_70px_-15px_rgba(0,0,0,0.6)] border border-white/10 group overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#FF8904]/20 to-[#E7000B]/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
               <div className="relative z-10 w-22 h-22 bg-gradient-to-br from-[#FF8904] to-[#E7000B] rounded-[34px] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500">
                 <Trophy size={48} className="text-white drop-shadow-[0_2px_15px_rgba(0,0,0,0.4)]" />
@@ -97,7 +97,7 @@ export default function TournamentSuccessPage() {
 
         {/* Headline Section */}
         <div className="space-y-6 px-2">
-          <h1 className="text-4xl md:text-6xl font-chakra font-black uppercase italic leading-[0.85] tracking-tighter bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent drop-shadow-[0_15px_30px_rgba(255,137,4,0.3)]">
+          <h1 className="text-3xl sm:text-4xl md:text-6xl font-chakra font-black uppercase italic leading-[0.85] tracking-tighter bg-gradient-to-b from-white to-white/50 bg-clip-text text-transparent drop-shadow-[0_15px_30px_rgba(255,137,4,0.3)]">
             Tournament<br/>Published!
           </h1>
           <div className="inline-flex items-center gap-3 px-6 py-2.5 bg-[#FF8904]/10 rounded-full border border-[#FF8904]/20 backdrop-blur-md">
@@ -150,7 +150,7 @@ export default function TournamentSuccessPage() {
               </button>
             </div>
             <div className="bg-gradient-to-r from-[#FF8904]/10 via-[#FF8904]/5 to-transparent rounded-2xl px-6 py-5 border border-[#FF8904]/20 flex items-center justify-center text-center shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)]">
-              <p className="text-4xl font-chakra font-black text-white tracking-[0.3em] ml-[0.3em] select-all shadow-glow">
+              <p className="text-2xl sm:text-4xl font-chakra font-black text-white tracking-[0.2em] sm:tracking-[0.3em] ml-[0.2em] sm:ml-[0.3em] select-all shadow-glow break-all">
                 {joinCode}
               </p>
             </div>
@@ -158,10 +158,10 @@ export default function TournamentSuccessPage() {
         </div>
 
         {/* Global Navigation Actions */}
-        <div className="pt-10 space-y-4 px-1">
+        <div className="pt-6 sm:pt-10 space-y-4 px-1">
           <button 
             onClick={() => router.push(`/admin/tournaments/${id}`)}
-            className="group relative w-full h-18 bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white font-chakra font-black text-base uppercase tracking-[0.25em] rounded-[24px] shadow-[0_15px_40px_rgba(231,0,11,0.4)] active:scale-[0.98] transition-all overflow-hidden"
+            className="group relative w-full py-4 bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white font-chakra font-black text-base uppercase tracking-[0.25em] rounded-[24px] shadow-[0_15px_40px_rgba(231,0,11,0.4)] active:scale-[0.98] transition-all overflow-hidden"
           >
             <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <span className="relative z-10">Back to Dashboard</span>
