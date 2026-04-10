@@ -10,6 +10,7 @@ import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getImageUrl } from '@/lib/api'
 import { useUIStore } from '@/store/uiStore'
 
 function timeAgo(iso: string) {
@@ -22,15 +23,23 @@ function timeAgo(iso: string) {
 }
 
 function toNewsCardProps(item: FeedItem) {
+  const isSystem = item.authorType === 'system'
+  const rawImage = item.media?.find((m) => m.type === 'image')?.url
   return {
     id: item._id,
-    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
-    source: { name: 'GAFFER', verified: true },
+    // getImageUrl resolves backend-relative paths (e.g. "images/gaffer-welcome-banner.jpg")
+    // to absolute URLs; leaves already-absolute URLs untouched.
+    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
+    source: {
+      name: isSystem ? (item.authorName ?? 'GAFFER') : 'GAFFER',
+      verified: true,
+    },
     title: item.body.split('\n')[0].slice(0, 120),
-    excerpt: item.body.length > 120 ? item.body.slice(0, 160) + '...' : undefined,
+    excerpt: item.body.length > 120 ? item.body.slice(120, 280) + '...' : undefined,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
     timeAgo: timeAgo(item.createdAt),
+    isSystemPost: isSystem,
   }
 }
 
@@ -51,19 +60,24 @@ function toTrendingProps(item: FeedItem) {
 }
 
 function toArticleProps(item: FeedItem) {
+  const isSystem = item.authorType === 'system'
+  const rawImage = item.media?.find((m) => m.type === 'image')?.url
   return {
     id: item._id,
     title: item.body.split('\n')[0].slice(0, 100),
     content: item.body,
-    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
+    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
     commentsCount: item.commentsCount,
     isLiked: item.isLiked ?? false,
+    isSystem,
     author: {
-      name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
-      handle: `${item.authorType}_${item.authorId.slice(-6)}`,
-      verified: item.authorType === 'org',
+      name: isSystem
+        ? (item.authorName ?? 'GAFFER')
+        : item.authorType === 'org' ? 'Organization' : 'Gaffer',
+      handle: isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`,
+      verified: isSystem || item.authorType === 'org',
     },
   }
 }

@@ -8,7 +8,9 @@ export interface MediaItem {
 export interface FeedItem {
   _id: string
   type: 'news' | 'post' | 'repost' | 'match_event'
-  authorType: 'org' | 'team' | 'user'
+  authorType: 'org' | 'team' | 'user' | 'system'
+  /** Display name for system posts where authorId is absent (e.g. "GAFFER") */
+  authorName?: string
   authorId: string
   orgId?: string
   teamId?: string
@@ -20,6 +22,10 @@ export interface FeedItem {
   commentsCount: number
   isLiked?: boolean
   parentId?: string
+  /** True on auto-generated welcome posts created by the backend */
+  isDefault?: boolean
+  /** True when the post should be surfaced at the top of the feed */
+  isPinned?: boolean
   createdAt: string
   updatedAt: string
 }

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, ChevronLeft, MessageCircle, Send, Loader2 } from 'lucide-react'
+import { Flame, ChevronLeft, MessageCircle, Send, Loader2, ShieldCheck } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   likeFeedItem,
@@ -24,6 +24,8 @@ interface ArticleDetailProps {
     likes: number
     commentsCount?: number
     isLiked?: boolean
+    /** True for backend system posts — hides the Follow button */
+    isSystem?: boolean
     author: {
       name: string
       handle: string
@@ -113,34 +115,39 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         {/* Author block */}
         <div className="flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-gaffer-orange flex items-center justify-center shadow-orange-glow">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-orange-glow ${article.isSystem ? 'bg-gradient-to-br from-[#FF8904] to-[#E7000B]' : 'bg-gaffer-orange'}`}>
               <span className="text-white font-display font-black text-base">
                 {article.author.name[0]}
               </span>
             </div>
             <div>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 <span className="font-body font-semibold text-white text-sm">{article.author.name}</span>
-                {article.author.verified && (
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                    <circle cx="6" cy="6" r="6" fill="#FF6B00" />
-                    <path d="M3.5 6l1.8 1.8 3.2-3.2" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
+                {(article.author.verified || article.isSystem) && (
+                  <ShieldCheck size={13} className="text-gaffer-orange flex-shrink-0" />
+                )}
+                {article.isSystem && (
+                  <span className="text-[9px] font-body font-bold uppercase tracking-widest text-gaffer-orange/60 border border-gaffer-orange/20 rounded-full px-1.5 py-0.5 leading-none">
+                    Official
+                  </span>
                 )}
               </div>
               <span className="text-gaffer-muted text-[11px] font-body">@{article.author.handle}</span>
             </div>
           </div>
-          <button
-            onClick={() => setFollowing(!following)}
-            className={`px-4 py-1.5 rounded-full text-xs font-body font-medium border transition-all ${
-              following
-                ? 'bg-gaffer-orange/10 border-gaffer-orange/30 text-gaffer-orange'
-                : 'border-gaffer-border text-gaffer-muted hover:border-gaffer-orange/40 hover:text-white'
-            }`}
-          >
-            {following ? 'Following' : 'Follow'}
-          </button>
+          {/* Follow button is hidden for system/official posts — there's no account to follow */}
+          {!article.isSystem && (
+            <button
+              onClick={() => setFollowing(!following)}
+              className={`px-4 py-1.5 rounded-full text-xs font-body font-medium border transition-all ${
+                following
+                  ? 'bg-gaffer-orange/10 border-gaffer-orange/30 text-gaffer-orange'
+                  : 'border-gaffer-border text-gaffer-muted hover:border-gaffer-orange/40 hover:text-white'
+              }`}
+            >
+              {following ? 'Following' : 'Follow'}
+            </button>
+          )}
         </div>
 
         {/* Title */}

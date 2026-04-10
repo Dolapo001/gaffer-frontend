@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { getFeedItem } from '@/lib/services/feed.service'
+import { getImageUrl } from '@/lib/api'
 import { ChevronLeft } from 'lucide-react'
 import { useGoBack } from '@/hooks/useGoBack'
 
@@ -64,9 +65,13 @@ export default function ArticlePage() {
     )
   }
 
-  const imageUrl = item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg'
-  const authorName = item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'Gaffer'
-  const authorHandle = `${item.authorType}_${item.authorId.slice(-6)}`
+  const isSystem = item.authorType === 'system'
+  const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg'
+  const authorName = isSystem
+    ? (item.authorName ?? 'GAFFER')
+    : item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'Gaffer'
+  const authorHandle = isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`
 
   const article = {
     id: item._id,
@@ -77,10 +82,11 @@ export default function ArticlePage() {
     likes: item.likesCount,
     commentsCount: item.commentsCount,
     isLiked: item.isLiked ?? false,
+    isSystem,
     author: {
       name: authorName,
       handle: authorHandle,
-      verified: item.authorType === 'org',
+      verified: isSystem || item.authorType === 'org',
     },
   }
 

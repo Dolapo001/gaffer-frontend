@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { Flame, Share2, Clock } from 'lucide-react'
+import { Flame, Share2, Clock, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { useToast } from '@/store/toastStore'
 import { likeFeedItem, unlikeFeedItem } from '@/lib/services/feed.service'
@@ -21,6 +21,8 @@ export interface NewsCardProps {
   timeAgo: string
   initialLiked?: boolean
   size?: 'large' | 'small'
+  /** True for backend system posts (authorType === "system") */
+  isSystemPost?: boolean
   onClick?: () => void
 }
 
@@ -34,6 +36,7 @@ export function NewsCard({
   timeAgo,
   initialLiked = false,
   size = 'large',
+  isSystemPost = false,
   onClick,
 }: NewsCardProps) {
   const [liked, setLiked] = useState(initialLiked)
@@ -76,17 +79,17 @@ export function NewsCard({
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
           <div>
             <div className="flex items-center gap-1.5 mb-1">
-              <div className="w-4 h-4 rounded-full bg-gaffer-orange/20 flex items-center justify-center">
-                <Flame size={9} className="text-gaffer-orange" />
+              <div className={`w-4 h-4 rounded-full flex items-center justify-center ${isSystemPost ? 'bg-gradient-to-br from-[#FF8904] to-[#E7000B]' : 'bg-gaffer-orange/20'}`}>
+                {isSystemPost
+                  ? <span className="text-white font-black text-[7px] leading-none">G</span>
+                  : <Flame size={9} className="text-gaffer-orange" />
+                }
               </div>
               <span className="text-gaffer-orange text-[10px] font-body font-semibold uppercase tracking-wide truncate">
                 {source.name}
               </span>
-              {source.verified && (
-                <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
-                  <circle cx="5" cy="5" r="5" fill="#FF6B00" />
-                  <path d="M2.5 5l1.5 1.5 3-3" stroke="white" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
+              {(source.verified || isSystemPost) && (
+                <ShieldCheck size={10} className="text-gaffer-orange flex-shrink-0" />
               )}
             </div>
             <p className="font-body font-semibold text-white text-xs leading-tight line-clamp-2">
@@ -133,20 +136,25 @@ export function NewsCard({
       <div className="p-4 space-y-2.5">
         {/* Source badge */}
         <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-gaffer-orange flex items-center justify-center flex-shrink-0">
-            <Flame size={10} className="text-white" />
+          <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${isSystemPost ? 'bg-gradient-to-br from-[#FF8904] to-[#E7000B]' : 'bg-gaffer-orange'}`}>
+            {isSystemPost
+              ? <span className="text-white font-black text-[8px] leading-none">G</span>
+              : <Flame size={10} className="text-white" />
+            }
           </div>
           <div className="flex items-center gap-1">
             <span className="text-gaffer-orange text-[11px] font-body font-semibold uppercase tracking-wide">
               {source.name}
             </span>
-            {source.verified && (
-              <svg width="11" height="11" viewBox="0 0 11 11" fill="none">
-                <circle cx="5.5" cy="5.5" r="5.5" fill="#FF6B00" />
-                <path d="M3 5.5l1.8 1.8 3.2-3.2" stroke="white" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
+            {(source.verified || isSystemPost) && (
+              <ShieldCheck size={11} className="text-gaffer-orange flex-shrink-0" />
             )}
           </div>
+          {isSystemPost && (
+            <span className="text-[9px] font-body font-bold uppercase tracking-widest text-gaffer-orange/60 border border-gaffer-orange/20 rounded-full px-1.5 py-0.5 leading-none">
+              Official
+            </span>
+          )}
         </div>
 
         {/* Title */}
