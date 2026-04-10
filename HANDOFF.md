@@ -1,7 +1,7 @@
 # Gaffer Frontend — Session Handoff
 
 **Date:** 2026-04-05
-**Branch:** `Adefolabi` (23 commits ahead of `origin/adefolabi`)
+**Branch:** `Adefolabi` (25 commits ahead of `origin/adefolabi`)
 **Stack:** Next.js 14 App Router · TanStack Query v5 · Zustand · Zod + react-hook-form · Framer Motion · Tailwind CSS (custom gaffer-* tokens) · TypeScript strict
 
 ---
@@ -39,8 +39,41 @@ Image URL helper: `getImageUrl(path)` — prefixes relative paths with backend b
 
 ## Modules Completed This Session
 
-### 1. Feed Module (`lib/services/feed.service.ts`)
-All 13 endpoints wired:
+### 1. Notifications Module (`lib/services/notifications.service.ts`)
+All 13 endpoints wired. Commit: `45cacad`
+
+| Method | Path | Service fn | UI |
+|--------|------|-----------|-----|
+| GET | `/notifications` | `getInboxNotifications(page)` | `app/app/notifications/page.tsx` + `app/admin/notifications/page.tsx` |
+| PATCH | `/notifications/:id/read` | `markNotificationRead(id)` | tap notification item |
+| PATCH | `/notifications/read-all` | `markAllRead()` | "Mark all read" button |
+| DELETE | `/notifications/:id` | `deleteNotification(id)` | X button per notification |
+| DELETE | `/notifications` | `clearAllNotifications()` | "Clear All" footer button |
+| POST | `/notifications/push/subscribe` | `subscribePush(sub)` | `hooks/usePushNotifications.ts` |
+| DELETE | `/notifications/push/subscribe` | `unsubscribePush(endpoint)` | same hook |
+| POST | `/notifications/follow/match/:matchId` | `followMatch(id)` | Bell button in `app/app/match/[matchId]/page.tsx` header |
+| DELETE | `/notifications/follow/match/:matchId` | `unfollowMatch(id)` | same |
+| POST | `/notifications/follow/team/:teamId` | `followTeam(id)` | Bell button per row in `app/app/league/[leagueId]/table/page.tsx` |
+| DELETE | `/notifications/follow/team/:teamId` | `unfollowTeam(id)` | same |
+| POST | `/notifications/follow/competition/:competitionId` | `followCompetition(id)` | Bell button in `app/app/league/[leagueId]/page.tsx` + `/details/page.tsx` |
+| DELETE | `/notifications/follow/competition/:competitionId` | `unfollowCompetition(id)` | same |
+
+**Follow state** is derived from `GET /notifications/preferences` → `preferences.followedMatches / followedTeams / followedCompetitions`.
+
+**Key changes per file:**
+- `app/app/notifications/page.tsx` — added `markAllRead`, `deleteNotification`, `clearAllNotifications` mutations + UI buttons
+- `app/admin/notifications/page.tsx` — **was pure mock (Zustand `useNotifStore`)**, now fully replaced with real API queries
+- `app/app/match/[matchId]/page.tsx` — replaced dead `<Info>` icon button in header with Bell follow/unfollow button
+- `app/app/league/[leagueId]/page.tsx` — replaced `<div className="w-9" />` placeholder with Bell follow competition button
+- `app/app/league/[leagueId]/details/page.tsx` — same Bell follow competition button added
+- `app/app/league/[leagueId]/table/page.tsx` — added `teamId` to standings pipeline; added `TeamFollowButton` per row + "Alert" column header
+
+---
+
+## Previously Completed (before this session)
+
+### 2. Feed Module (`lib/services/feed.service.ts`)
+All 13 endpoints wired. Commit: `02847ae`
 
 | Method | Path | Service fn | UI |
 |--------|------|-----------|-----|
@@ -63,32 +96,6 @@ All 13 endpoints wired:
 `ArticleDetail` now accepts `isLiked`, `commentsCount` props (passed from parent).
 
 ---
-
-### 2. Notifications Module (`lib/services/notifications.service.ts`)
-All 13 endpoints wired:
-
-| Method | Path | Service fn | UI |
-|--------|------|-----------|-----|
-| GET | `/notifications` | `getInboxNotifications(page)` | `app/app/notifications/page.tsx` + `app/admin/notifications/page.tsx` |
-| PATCH | `/notifications/:id/read` | `markNotificationRead(id)` | tap notification item |
-| PATCH | `/notifications/read-all` | `markAllRead()` | "Mark all read" button |
-| DELETE | `/notifications/:id` | `deleteNotification(id)` | X button per notification |
-| DELETE | `/notifications` | `clearAllNotifications()` | "Clear All" footer button |
-| POST | `/notifications/push/subscribe` | `subscribePush(sub)` | `hooks/usePushNotifications.ts` |
-| DELETE | `/notifications/push/subscribe` | `unsubscribePush(endpoint)` | same hook |
-| POST | `/notifications/follow/match/:matchId` | `followMatch(id)` | Bell button in `app/app/match/[matchId]/page.tsx` header |
-| DELETE | `/notifications/follow/match/:matchId` | `unfollowMatch(id)` | same |
-| POST | `/notifications/follow/team/:teamId` | `followTeam(id)` | Bell button per row in `app/app/league/[leagueId]/table/page.tsx` |
-| DELETE | `/notifications/follow/team/:teamId` | `unfollowTeam(id)` | same |
-| POST | `/notifications/follow/competition/:competitionId` | `followCompetition(id)` | Bell button in league home + details page headers |
-| DELETE | `/notifications/follow/competition/:competitionId` | `unfollowCompetition(id)` | same |
-
-**Follow state** is derived from `GET /notifications/preferences` → `preferences.followedMatches / followedTeams / followedCompetitions`.
-**Admin notifications page** was previously pure mock (local Zustand store) — now fully replaced with real API queries.
-
----
-
-## Previously Completed (before this session)
 
 ### Authentication
 - `POST /auth/login` → `login()` — `app/auth/login/page.tsx`
@@ -113,7 +120,7 @@ All 13 endpoints wired:
 ### Fantasy
 - `GET /fantasy/:id/team/me` → `getMyFantasyTeam(id)` — FantasyTeamScreen (on mount)
 - `POST /fantasy/:id/team` → `createFantasyTeam(id, payload)` — team creation flow
-- `PUT /fantasy/:id/team/squad` → `setSquad(id, payload)` — squad save
+- `PUT /fantasy/:id/squad` → `setSquad(id, payload)` — squad save
 - `POST /fantasy/:id/transfers` → `makeTransfer(id, payload)` — transfers page
 - `POST /fantasy/:id/chips/:gwId` → `activateChip(id, type, gwId)` — chips page
 - `GET /fantasy/:id/gameweeks` → `listGameweeks(id)` — chips + league home pages

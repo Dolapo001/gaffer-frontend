@@ -102,6 +102,16 @@ html {
   scrollbar-width: none;
 }
 
+/* PWA safe-area utilities — used by headers/spacers on all screens.
+   env(safe-area-inset-top) is the iOS/Android status-bar height exposed
+   by the browser when running in standalone (installed PWA) mode. */
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mt-safe {
+  margin-top: env(safe-area-inset-top, 0px);
+}
+
 /* Force Navbar Hide when modals are up */
 body:has(.modal-open) #admin-nav-bar,
 body:has(.modal-open) #global-nav-bar,
