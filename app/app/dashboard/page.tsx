@@ -73,41 +73,52 @@ export default function DashboardPage() {
       </AnimatePresence>
 
       {/* Header */}
-      <header className="px-6 pt-12 pb-4 flex items-center justify-between flex-shrink-0 z-50">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="w-10 h-10 flex items-center justify-start text-white hover:text-orange-gaffer transition-colors"
-        >
-          <Menu size={24} />
-        </button>
-        <div className="flex flex-col items-center">
+      <header
+        className="px-6 pb-4 flex-shrink-0 z-50"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+      >
+        <div className="flex items-center justify-between">
+          {/* Left — menu */}
+          <div className="flex-1 flex justify-start">
+            <button
+              onClick={() => setIsSidebarOpen(true)}
+              className="w-10 h-10 flex items-center justify-start text-white hover:text-orange-gaffer transition-colors"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
+
+          {/* Center — GAFFER branding */}
+          <div className="flex-1 flex flex-col items-center">
             <h1 className="font-chakra font-black text-xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent tracking-widest uppercase">GAFFER</h1>
             <p className="text-[9px] font-chakra font-bold text-white/40 uppercase tracking-[2px]">Personal</p>
-        </div>
-        <div className="flex items-center gap-2">
-          {walletBalance !== null && (
-            <motion.div 
+          </div>
+
+          {/* Right — wallet, notifications, profile */}
+          <div className="flex-1 flex items-center justify-end gap-1">
+            <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              onClick={() => router.push('/app/shop')}
-              className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-all mr-1"
+              animate={{ opacity: walletBalance !== null ? 1 : 0, scale: walletBalance !== null ? 1 : 0.8 }}
+              onClick={() => walletBalance !== null && router.push('/app/shop')}
+              className="flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1.5 rounded-full cursor-pointer hover:bg-white/10 transition-all"
+              style={{ pointerEvents: walletBalance !== null ? 'auto' : 'none', visibility: walletBalance !== null ? 'visible' : 'hidden' }}
             >
               <span className="text-orange-500 text-sm">💰</span>
-              <span className="text-[11px] font-chakra font-black text-white">{walletBalance}</span>
+              <span className="text-[11px] font-chakra font-black text-white">{walletBalance ?? 0}</span>
             </motion.div>
-          )}
-          <button 
-            onClick={() => router.push('/app/notifications')}
-            className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-          >
-            <Bell size={22} />
-          </button>
-          <button 
-            onClick={() => router.push('/app/profile')}
-            className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-          >
-            <UserIcon size={22} />
-          </button>
+            <button
+              onClick={() => router.push('/app/notifications')}
+              className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+            >
+              <Bell size={22} />
+            </button>
+            <button
+              onClick={() => router.push('/app/profile')}
+              className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+            >
+              <UserIcon size={22} />
+            </button>
+          </div>
         </div>
       </header>
 
@@ -127,7 +138,11 @@ export default function DashboardPage() {
               <div className="h-48 bg-white/5 animate-pulse rounded-[24px]" />
             ) : news.length > 0 ? (
               news.slice(0, 1).map(item => (
-                <div key={item._id} className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl">
+                <div
+                  key={item._id}
+                  className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl cursor-pointer active:opacity-80 transition-opacity"
+                  onClick={() => router.push('/app/news')}
+                >
                   <div className="relative h-48 bg-gaffer-dark">
                     {item.media?.[0]?.url && (
                         <img src={getImageUrl(item.media[0].url)} className="w-full h-full object-cover" alt="" />
