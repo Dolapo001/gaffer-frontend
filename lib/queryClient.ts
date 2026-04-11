@@ -12,9 +12,12 @@ export const queryClient = new QueryClient({
     }
   }),
   mutationCache: new MutationCache({
-    onError: (err: unknown) => {
+    onError: (err: unknown, _variables, _context, mutation) => {
       // 401 session errors are handled by the api client (token refresh / redirect)
       if (err instanceof ApiError && err.status === 401) return
+      // Mutations that handle their own onError can set meta.suppressGlobalError = true
+      // to avoid showing a duplicate global toast on top of their own inline error.
+      if ((mutation.meta as Record<string, unknown> | undefined)?.suppressGlobalError) return
       const message = getErrorMessage(err)
       useToastStore.getState().addToast({ message, type: 'error', duration: 5000 })
     }

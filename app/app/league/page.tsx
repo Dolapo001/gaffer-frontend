@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useToastStore } from '@/store/toastStore'
-import { getErrorMessage } from '@/lib/api'
+import { getErrorMessage, ApiError } from '@/lib/api'
 import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions } from '@/lib/services/competition.service'
 import { LeagueItem } from '@/components/home/LeagueItem'
 import { Trophy, Search, X, Plus } from 'lucide-react'
@@ -89,16 +89,32 @@ export default function LeaguePage() {
   const [joinError, setJoinError] = useState('')
   const [joiningId, setJoiningId] = useState<string | null>(null)
 
-  const { data: competitions, isLoading } = useQuery({
+  const { data: competitions, isLoading, isError: competitionsError } = useQuery({
     queryKey: ['joined-competitions'],
-    queryFn: listJoinedCompetitions,
+    queryFn: () => {
+      console.log('[LEAGUE] GET /competitions/joined')
+      return listJoinedCompetitions()
+    },
     enabled: isAuthenticated,
+    // Never re-throw to the ErrorBoundary — show graceful empty state instead
+    throwOnError: false,
   })
 
   // Code-based join — used by the "Join League" modal
   const joinMutation = useMutation({
-    mutationFn: (code: string) => joinCompetition(code),
+    // Suppress global mutationCache toast — this mutation shows its own inline error
+    meta: { suppressGlobalError: true },
+    mutationFn: (code: string) => {
+      console.log('[JOIN] POST /competitions/join — code:', code)
+      return joinCompetition(code)
+    },
     onSuccess: (data: Competition) => {
+      console.log('[JOIN] Success — competition id:', data._id)
+      if (!data._id) {
+        console.error('[JOIN] Unexpected: competition._id is missing in response', data)
+        setJoinError('Something went wrong. Please try again.')
+        return
+      }
       setIsJoinModalOpen(false)
       setJoinCode('')
       setJoinError('')
@@ -106,21 +122,60 @@ export default function LeaguePage() {
       router.push(`/app/league/${data._id}`)
     },
     onError: (error: unknown) => {
-      setJoinError(getErrorMessage(error))
+      console.error('[JOIN] Error:', error)
+      if (error instanceof ApiError) {
+        if (error.status === 404) {
+          setJoinError('Invalid join code. Please double-check and try again.')
+        } else if (error.status === 409) {
+          setJoinError("You've already joined this tournament.")
+        } else if (error.status === 400) {
+          setJoinError('Invalid join code format. Codes look like GAF-ABC123.')
+        } else if (error.status === 403) {
+          setJoinError("You don't have permission to join this tournament.")
+        } else {
+          setJoinError(getErrorMessage(error))
+        }
+      } else {
+        setJoinError(getErrorMessage(error))
+      }
     },
   })
 
   // Id-based join — used when tapping a search result card
   const joinByIdMutation = useMutation({
-    mutationFn: (competitionId: string) => joinCompetitionById(competitionId),
+    // Suppress global mutationCache toast — this mutation shows its own toast via addToast
+    meta: { suppressGlobalError: true },
+    mutationFn: (competitionId: string) => {
+      console.log('[JOIN_BY_ID] POST /competitions/:id/join — id:', competitionId)
+      return joinCompetitionById(competitionId)
+    },
     onSuccess: (data: Competition) => {
+      console.log('[JOIN_BY_ID] Success — competition id:', data._id)
       setJoiningId(null)
+      if (!data._id) {
+        console.error('[JOIN_BY_ID] Unexpected: competition._id is missing', data)
+        addToast({ message: 'Joined successfully but could not navigate. Try the League tab.', type: 'info' })
+        return
+      }
       queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })
       router.push(`/app/league/${data._id}`)
     },
     onError: (error: unknown) => {
+      console.error('[JOIN_BY_ID] Error:', error)
       setJoiningId(null)
-      addToast({ message: getErrorMessage(error), type: 'error' })
+      if (error instanceof ApiError) {
+        if (error.status === 409) {
+          addToast({ message: "You're already in this tournament.", type: 'info' })
+        } else if (error.status === 404) {
+          addToast({ message: 'Tournament not found.', type: 'error' })
+        } else if (error.status === 403) {
+          addToast({ message: "You don't have permission to join this tournament.", type: 'error' })
+        } else {
+          addToast({ message: getErrorMessage(error), type: 'error' })
+        }
+      } else {
+        addToast({ message: getErrorMessage(error), type: 'error' })
+      }
     },
   })
 
@@ -138,9 +193,14 @@ export default function LeaguePage() {
 
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['search-competitions', searchQuery],
-    queryFn: () => searchCompetitions(searchQuery),
+    queryFn: () => {
+      console.log('[LEAGUE] GET /competitions/search?q=', searchQuery)
+      return searchCompetitions(searchQuery)
+    },
     enabled: isAuthenticated && searchQuery.trim().length >= 2,
     staleTime: 30000,
+    // Never re-throw to the ErrorBoundary — missing endpoint shows empty search results
+    throwOnError: false,
   })
 
   const filteredCompetitions = competitions?.filter(c =>
@@ -184,6 +244,18 @@ export default function LeaguePage() {
             {[0, 1, 2].map((i) => (
               <div key={i} className="h-16 bg-gaffer-card/50 rounded-2xl animate-pulse" />
             ))}
+          </div>
+        ) : competitionsError ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <p className="text-gaffer-muted text-sm font-body max-w-[220px] mb-6 leading-relaxed">
+              Could not load your leagues right now. Check your connection and try again.
+            </p>
+            <button
+              onClick={() => queryClient.invalidateQueries({ queryKey: ['joined-competitions'] })}
+              className="bg-gaffer-orange text-white font-display font-bold text-sm px-8 py-3.5 rounded-full shadow-orange-glow"
+            >
+              Try Again
+            </button>
           </div>
         ) : (
           <div className="space-y-8">

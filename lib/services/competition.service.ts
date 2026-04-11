@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 
 export interface Competition {
   _id: string
@@ -176,13 +176,32 @@ export async function joinCompetitionById(competitionId: string): Promise<Compet
 }
 
 // GET /competitions/joined
+// Returns [] gracefully when the endpoint is not yet implemented (404) or user has none.
 export async function listJoinedCompetitions(): Promise<Competition[]> {
-  const data = await api.get<{ competitions: Competition[] }>('/competitions/joined')
-  return data.competitions
+  try {
+    const data = await api.get<{ competitions: Competition[] }>('/competitions/joined')
+    return data.competitions ?? []
+  } catch (err) {
+    // 404 = endpoint not yet live OR user has no joined competitions — both map to empty list
+    if (err instanceof ApiError && (err.status === 404 || err.status === 501)) {
+      console.warn('[competitions] GET /competitions/joined not available — returning []')
+      return []
+    }
+    throw err
+  }
 }
 
 // GET /competitions/search
+// Returns [] gracefully when the endpoint is not yet implemented (404).
 export async function searchCompetitions(query: string): Promise<Competition[]> {
-  const data = await api.get<{ competitions: Competition[] }>(`/competitions/search?q=${encodeURIComponent(query)}`)
-  return data.competitions
+  try {
+    const data = await api.get<{ competitions: Competition[] }>(`/competitions/search?q=${encodeURIComponent(query)}`)
+    return data.competitions ?? []
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 501)) {
+      console.warn('[competitions] GET /competitions/search not available — returning []')
+      return []
+    }
+    throw err
+  }
 }
