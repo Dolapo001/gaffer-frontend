@@ -51,14 +51,25 @@ export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
   return data.feed
 }
 
-// GET /feed/news — news items only
+// GET /feed/news — news items only.
+// Falls back to the global feed filtered for news/system posts if the dedicated
+// endpoint is unavailable (404) — backend may not have implemented it yet.
 export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
-  const raw = await api.get<unknown>(`/feed/news?page=${page}`, { public: true })
-  // Normalise: backend may return { feed: {...} } or { items, total, page } directly
-  const r = raw as any
-  if (r?.feed) return r.feed
-  if (r?.items || r?.data) return r as FeedPage
-  return { items: [], total: 0, page: 1 }
+  try {
+    const raw = await api.get<unknown>(`/feed/news?page=${page}`, { public: true })
+    const r = raw as any
+    if (r?.feed) return r.feed
+    if (r?.items || r?.data) return r as FeedPage
+    // Unexpected shape — fall through to global fallback below
+  } catch {
+    // /feed/news not yet available on this backend — use global feed
+  }
+  const fallback = await getGlobalFeed(page)
+  const allItems = (fallback.items ?? fallback.data ?? []) as FeedItem[]
+  const newsItems = allItems.filter(
+    (i) => i.type === 'news' || i.authorType === 'system'
+  )
+  return { ...fallback, items: newsItems, data: newsItems }
 }
 
 // GET /feed/posts/:postId — single post detail

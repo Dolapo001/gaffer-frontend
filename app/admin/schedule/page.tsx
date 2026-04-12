@@ -125,10 +125,10 @@ export default function SchedulePage() {
     ?.filter(f => f.status === 'scheduled' || f.status === 'live' || f.status === 'halftime')
     .map(f => ({
       id: f._id,
-      teamA: typeof f.homeTeamId === 'string' ? 'Team A' : f.homeTeamId.name,
-      teamB: typeof f.awayTeamId === 'string' ? 'Team B' : f.awayTeamId.name,
-      teamALogo: typeof f.homeTeamId === 'string' ? '/images/mc_logo.png' : (f.homeTeamId.logoUrl || '/images/mc_logo.png'),
-      teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
+      teamA: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name : 'Team A',
+      teamB: (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.name : 'Team B',
+      teamALogo: (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId.logoUrl || '/images/mc_logo.png') : '/images/mc_logo.png',
+      teamBLogo: (f.awayTeamId && typeof f.awayTeamId === 'object') ? (f.awayTeamId.logoUrl || '/images/barca_logo.png') : '/images/barca_logo.png',
       time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
       round: (f.roundId as any)?.name || 'General Schedule',
@@ -139,14 +139,14 @@ export default function SchedulePage() {
     ?.filter(f => f.status === 'completed')
     .map(f => ({
       id: f._id,
-      teamA: typeof f.homeTeamId === 'string' ? 'Team A' : f.homeTeamId.name,
-      teamB: typeof f.awayTeamId === 'string' ? 'Team B' : f.awayTeamId.name,
-      teamALogo: typeof f.homeTeamId === 'string' ? '/images/mc_logo.png' : (f.homeTeamId.logoUrl || '/images/mc_logo.png'),
-      teamBLogo: typeof f.awayTeamId === 'string' ? '/images/barca_logo.png' : (f.awayTeamId.logoUrl || '/images/barca_logo.png'),
+      teamA: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name : 'Team A',
+      teamB: (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.name : 'Team B',
+      teamALogo: (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId.logoUrl || '/images/mc_logo.png') : '/images/mc_logo.png',
+      teamBLogo: (f.awayTeamId && typeof f.awayTeamId === 'object') ? (f.awayTeamId.logoUrl || '/images/barca_logo.png') : '/images/barca_logo.png',
       time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short' }),
       round: (f.roundId as any)?.name || 'General Schedule',
-      score: `${f.score.home}:${f.score.away}`,
+      score: `${f.score?.home ?? 0}:${f.score?.away ?? 0}`,
       isLive: false
     })) || []
 

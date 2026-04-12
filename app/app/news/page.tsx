@@ -103,7 +103,7 @@ export default function NewsPage() {
   })
 
   const newsItems: FeedItem[] = ((newsData?.items ?? newsData?.data ?? []) as FeedItem[]).filter(
-    (i) => i.type === 'news'
+    (i) => i.type === 'news' || i.authorType === 'system'
   )
   const allNewsItems: FeedItem[] = newsItems.length > 0
     ? newsItems
