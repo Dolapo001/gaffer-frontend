@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -75,7 +75,7 @@ function DiscoveryCompetitionCard({
   )
 }
 
-export default function LeaguePage() {
+function LeaguePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const queryClient = useQueryClient()
@@ -204,7 +204,7 @@ export default function LeaguePage() {
   })
 
   const filteredCompetitions = competitions?.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    (c.name ?? '').toLowerCase().includes(searchQuery.toLowerCase())
   )
 
   // Hide search results that are already joined
@@ -400,5 +400,25 @@ export default function LeaguePage() {
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+// useSearchParams() requires a Suspense boundary in Next.js 14 App Router.
+// Without it, Next.js throws during SSR/hydration and the ErrorBoundary catches it.
+export default function LeaguePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-[#181928] pb-28 px-4 pt-12">
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse" />
+            ))}
+          </div>
+        </div>
+      }
+    >
+      <LeaguePageContent />
+    </Suspense>
   )
 }
