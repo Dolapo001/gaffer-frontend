@@ -11,6 +11,16 @@ const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? '').replace(/\/$/, '')
 
 let _accessToken: string | null = null
 
+// On module load, attempt to restore the access token from the JS-accessible
+// cookie written by tokenStore.set(). This prevents an unnecessary /auth/refresh
+// round-trip when the PWA is reopened with a still-valid token.
+if (typeof document !== 'undefined') {
+  const match = document.cookie.match(/(?:^|;\s*)gaffer-auth-token=([^;]+)/)
+  if (match?.[1]) {
+    _accessToken = match[1]
+  }
+}
+
 export const tokenStore = {
   get: (): string | null => _accessToken,
   set: (token: string | null) => {

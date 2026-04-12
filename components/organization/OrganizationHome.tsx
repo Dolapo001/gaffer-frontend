@@ -72,7 +72,10 @@ export function OrganizationHome() {
         )}
       </AnimatePresence>
 
-      <header className="px-4 md:px-6 pt-4 pb-3 flex items-center justify-between flex-shrink-0 transition-all z-50 relative">
+      <header
+        className="px-4 md:px-6 pb-3 flex items-center justify-between flex-shrink-0 transition-all z-50 relative"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+      >
         <button
           onClick={() => setIsSidebarOpen(true)}
           className="w-8 h-8 rounded-full flex items-center justify-start text-white/70 hover:text-[#ff6b00] active:scale-95 transition-all outline-none"

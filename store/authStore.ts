@@ -61,15 +61,6 @@ export const useAuthStore = create<AuthState>()(
 
         if (accessToken) tokenStore.set(accessToken)
         
-        // Auto-sync role based on user's flags if they are logged in
-        if (user) {
-          const currentRole = get().role
-          // If the database says they are an organization user, upgrade them if they are still 'personal' or null
-          if (user.isOrgActive && currentRole !== 'organization') {
-             get().setRole('organization')
-          }
-        }
-
         set({
           user,
           accessToken: accessToken ?? null,
@@ -109,10 +100,12 @@ export const useAuthStore = create<AuthState>()(
           const res = await login(email, password)
           tokenStore.set(res.accessToken)
           
-          // Auto-sync the UI role to whatever the user last used on the backend
-          // Defaults to personal if completely missing
-          const syncedRole: UserRole = res.user?.lastRole === 'organization' ? 'organization' : 'personal'
-          
+          // Always default to 'personal' on a fresh login so the user starts
+          // in the personal context. They can switch to org mode via the account
+          // switcher. lastRole from the server is only restored during silent
+          // session restore (useAuthListener), not on an explicit login action.
+          const syncedRole: UserRole = 'personal'
+
           if (typeof document !== 'undefined') {
             document.cookie = `gaffer-user-role=${syncedRole}; path=/; max-age=31536000; SameSite=Lax`
           }

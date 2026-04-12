@@ -31,8 +31,9 @@ export default function LoginPage() {
     onSuccess: async (tokenResponse) => {
       try {
         await googleAuth(tokenResponse.access_token)
-        const currentRole = useAuthStore.getState().role
-        router.replace(currentRole === 'organization' ? '/admin' : '/app/dashboard')
+        // Always land on personal dashboard after Google login — same as email login.
+        // The user can switch to org mode via the account switcher if needed.
+        router.replace('/app/dashboard')
       } catch {
         // error handled by store
       }
@@ -53,16 +54,14 @@ export default function LoginPage() {
     },
   })
 
-  const getPostLoginRoute = () => {
-    const currentRole = useAuthStore.getState().role
-    return currentRole === 'organization' ? '/admin' : '/app/dashboard'
-  }
-
   const onSubmit = async (data: SignInFormData) => {
     setIsSubmitting(true)
     try {
       await login(data.email, data.password)
-      router.replace(getPostLoginRoute())
+      // authStore.login() always sets role='personal' on a fresh login, so we
+      // always go to the personal dashboard. The user can switch to org via the
+      // account switcher.
+      router.replace('/app/dashboard')
     } catch {
       // Error is displayed from store
     } finally {

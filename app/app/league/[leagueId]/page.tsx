@@ -128,7 +128,7 @@ function CompactFeedItem({ item, index }: { item: FeedItem; index: number }) {
       className="flex gap-3 bg-[#1a1b2e]/60 border border-white/5 rounded-2xl p-3"
     >
       <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gaffer-orange to-[#E7000B] flex-shrink-0 flex items-center justify-center text-white font-display font-bold text-xs shadow-lg">
-        {item.authorType[0].toUpperCase()}
+        {(item.authorType?.[0] ?? '?').toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 mb-0.5">
