@@ -12,16 +12,17 @@ interface NextMatchCardProps {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function teamName(side: Fixture['homeTeamId']): string {
-  return typeof side === 'string' ? 'TBD' : side.name
+  if (!side || typeof side === 'string') return 'TBD'
+  return side.name
 }
 
 function teamInitials(side: Fixture['homeTeamId']): string {
-  if (typeof side === 'string') return '?'
+  if (!side || typeof side === 'string') return '?'
   return (side.shortName ?? side.name).slice(0, 3).toUpperCase()
 }
 
 function teamLogo(side: Fixture['homeTeamId']): string | null {
-  if (typeof side === 'string') return null
+  if (!side || typeof side === 'string') return null
   return (side as any).logoUrl ?? null
 }
 

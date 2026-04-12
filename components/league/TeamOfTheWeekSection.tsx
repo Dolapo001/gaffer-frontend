@@ -41,7 +41,7 @@ function playerFirstName(p: PlayerStatEntry): string {
 }
 
 function teamDisplayName(p: PlayerStatEntry): string {
-  return typeof p.teamId === 'string' ? '' : (p.teamId.shortName ?? p.teamId.name)
+  return (p.teamId && typeof p.teamId === 'object') ? (p.teamId.shortName ?? p.teamId.name) : ''
 }
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -55,7 +55,7 @@ function PlayerSlot({
   index: number
   stat: number
 }) {
-  const teamName = typeof player.teamId === 'string' ? 'Unknown' : player.teamId.name
+  const teamName = (player.teamId && typeof player.teamId === 'object') ? player.teamId.name : 'Unknown'
   const { primary, secondary } = colorFromTeamName(teamName)
 
   return (

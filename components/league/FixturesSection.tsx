@@ -63,8 +63,8 @@ function FixtureCard({
   score?: string;
 }) {
   // homeTeamId / awayTeamId are populated objects from the backend.
-  const home = typeof fixture.homeTeamId === 'string' ? { name: 'Home', logoUrl: '' } : fixture.homeTeamId;
-  const away = typeof fixture.awayTeamId === 'string' ? { name: 'Away', logoUrl: '' } : fixture.awayTeamId;
+  const home = (fixture.homeTeamId && typeof fixture.homeTeamId === 'object') ? fixture.homeTeamId : { name: 'Home', logoUrl: '' };
+  const away = (fixture.awayTeamId && typeof fixture.awayTeamId === 'object') ? fixture.awayTeamId : { name: 'Away', logoUrl: '' };
 
   const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date();
   const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
