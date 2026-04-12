@@ -87,7 +87,8 @@ export default function SplashPage() {
         muted
         playsInline
         disablePictureInPicture
-        // @ts-expect-error — non-standard WebKit attribute that suppresses AirPlay overlay
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore — non-standard WebKit attribute that suppresses AirPlay overlay
         x-webkit-airplay="deny"
         // Prevent browser media session controls (cast button, pip overlay)
         // from appearing over the splash on Android Chrome
