@@ -35,16 +35,17 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
   const realMatches: MatchData[] = (fixtures || []).map(f => ({
     id: f._id,
     homeTeam: {
-      name: typeof f.homeTeamId === 'string' ? 'Home' : f.homeTeamId.name,
-      crest: typeof f.homeTeamId === 'string' ? '' : f.homeTeamId.logoUrl || '',
-      scorers: [], 
-    },
-    awayTeam: {
-      name: typeof f.awayTeamId === 'string' ? 'Away' : f.awayTeamId.name,
-      crest: typeof f.awayTeamId === 'string' ? '' : f.awayTeamId.logoUrl || '',
+      // typeof null === 'object' in JS, so guard with truthiness check too
+      name:  (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name  : 'Home',
+      crest: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.logoUrl || '' : '',
       scorers: [],
     },
-    score: `${f.score.home} - ${f.score.away}`,
+    awayTeam: {
+      name:  (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.name  : 'Away',
+      crest: (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.logoUrl || '' : '',
+      scorers: [],
+    },
+    score: `${f.score?.home ?? 0} - ${f.score?.away ?? 0}`,
     isLive: f.status === 'live'
   }));
 
