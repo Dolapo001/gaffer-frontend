@@ -60,7 +60,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-gaffer-muted text-sm font-body leading-relaxed max-w-xs">
               An unexpected error occurred. Please try again or contact support if the problem persists.
             </p>
-            {process.env.NODE_ENV === 'development' && this.state.message && (
+            {this.state.message && (
               <pre className="mt-3 text-left text-xs text-red-400 bg-red-500/5 border border-red-500/10 rounded-lg p-3 overflow-auto max-w-xs">
                 {this.state.message}
               </pre>
