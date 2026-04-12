@@ -581,16 +581,22 @@ export default function TournamentDetailPage() {
                         <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
                       ))}
                     </div>
-                    {standings.map((row, i) => (
-                      <motion.div key={row.teamId._id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                    {standings.map((row, i) => {
+                      // teamId may be a plain string (un-populated) or a populated object.
+                      // Guard both cases to prevent a render crash hitting the ErrorBoundary.
+                      const team = typeof row.teamId === 'object' && row.teamId !== null
+                        ? row.teamId
+                        : { _id: String(row.teamId), name: 'Unknown', handle: '' }
+                      return (
+                      <motion.div key={team._id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
                         className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < standings.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
                         <span className={`font-display font-bold text-sm text-center ${i < 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{i + 1}</span>
-                        <span className="text-white font-body font-medium text-sm truncate">{row.teamId.name}</span>
+                        <span className="text-white font-body font-medium text-sm truncate">{team.name}</span>
                         {[row.played, row.won, row.drawn, row.lost, row.points].map((val, j) => (
                           <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
                         ))}
                       </motion.div>
-                    ))}
+                    )})}
                   </div>
                 )}
               </motion.div>
