@@ -257,13 +257,13 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
                     <div key={c._id} className="flex gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-gaffer-orange/20 flex items-center justify-center flex-shrink-0">
                         <span className="text-gaffer-orange text-xs font-body font-bold">
-                          {(c.userId.fullName ?? c.userId.email)[0].toUpperCase()}
+                          {(c.userId?.fullName ?? c.userId?.email ?? 'U')[0].toUpperCase()}
                         </span>
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-baseline gap-2">
                           <span className="text-white text-xs font-body font-semibold">
-                            {c.userId.fullName ?? c.userId.email.split('@')[0]}
+                            {c.userId?.fullName ?? c.userId?.email?.split('@')[0] ?? 'User'}
                           </span>
                           <span className="text-gaffer-subtle text-[10px] font-body">
                             {formatCommentTime(c.createdAt)}

@@ -57,20 +57,22 @@ export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
 }
 
 // GET /feed/news — news items only.
-// Falls back to the global feed filtered for news/system posts if the dedicated
-// endpoint is unavailable (404) — backend may not have implemented it yet.
+// Auth header is sent so the backend can return org-scoped news for the
+// logged-in user.  Falls back to the global feed when the endpoint is
+// unavailable (404) OR returns an empty result set.
 export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
   try {
-    const raw = await api.get<unknown>(`/feed/news?page=${page}`, { public: true })
+    const raw = await api.get<unknown>(`/feed/news?page=${page}`)
     const r = raw as any
-    if (r?.feed) return r.feed
-    if (r?.items || r?.data) return r as FeedPage
-    // Unexpected shape — fall through to global fallback below
+    // Normalise both { feed:{items:[]} } and { items:[] } / { data:[] } shapes
+    const result: FeedPage = r?.feed ?? (r as FeedPage)
+    const items: unknown[] = result?.items ?? result?.data ?? []
+    // Only use this result when it actually contains items; otherwise fall
+    // through so the global feed (with auth) can fill the news page.
+    if (items.length > 0) return result
   } catch {
-    // /feed/news not yet available on this backend — use global feed
+    // /feed/news not yet available on this backend — fall through
   }
-  // /feed/news not available — return the full global feed unfiltered so the
-  // news page can show all content (org posts, system posts, etc.)
   return getGlobalFeed(page)
 }
 
