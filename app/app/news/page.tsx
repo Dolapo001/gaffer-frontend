@@ -25,16 +25,17 @@ function timeAgo(iso: string) {
 
 function toNewsCardProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
-  const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   const body = item.body ?? ''
+  const title = item.title ?? body.split('\n')[0].slice(0, 120)
   return {
     id: item._id,
     image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
     source: {
-      name: isSystem ? (item.authorName ?? 'GAFFER') : 'GAFFER',
+      name: isSystem ? (item.authorName ?? 'GAFFER') : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER'),
       verified: true,
     },
-    title: body.split('\n')[0].slice(0, 120),
+    title,
     excerpt: body.length > 120 ? body.slice(120, 280) + '...' : undefined,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
@@ -44,16 +45,19 @@ function toNewsCardProps(item: FeedItem) {
 }
 
 function toTrendingProps(item: FeedItem) {
-  const authorLabel = item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'User'
+  const authorLabel =
+    item.authorType === 'org' ? (item.authorId?.name ?? 'Organization')
+    : item.authorType === 'team' ? (item.authorId?.name ?? 'Team')
+    : (item.authorId?.fullName ?? 'User')
   return {
     id: item._id,
     author: {
       name: authorLabel,
-      handle: item.authorId?.slice(-8) ?? '',
+      handle: item.authorId?._id?.slice(-8) ?? '',
       verified: item.authorType === 'org',
     },
     content: item.body ?? '',
-    image: item.media?.find((m) => m.type === 'image')?.url,
+    image: item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
   }
@@ -61,23 +65,24 @@ function toTrendingProps(item: FeedItem) {
 
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
-  const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   const body = item.body ?? ''
+  const authorDisplayName = isSystem
+    ? (item.authorName ?? 'GAFFER')
+    : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
   return {
     id: item._id,
-    title: body.split('\n')[0].slice(0, 100),
+    title: item.title ?? body.split('\n')[0].slice(0, 100),
     content: body,
     image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
-    commentsCount: item.commentsCount,
+    commentsCount: item.commentCount ?? item.commentsCount,
     isLiked: item.isLiked ?? false,
     isSystem,
     author: {
-      name: isSystem
-        ? (item.authorName ?? 'GAFFER')
-        : item.authorType === 'org' ? 'Organization' : 'Gaffer',
-      handle: isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`,
+      name: authorDisplayName,
+      handle: isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? ''),
       verified: isSystem || item.authorType === 'org',
     },
   }

@@ -66,25 +66,25 @@ export default function ArticlePage() {
   }
 
   const isSystem = item.authorType === 'system'
-  const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg'
-  const authorName = isSystem
+  const authorDisplayName = isSystem
     ? (item.authorName ?? 'GAFFER')
-    : item.authorType === 'org' ? 'Organization' : item.authorType === 'team' ? 'Team' : 'Gaffer'
-  const authorHandle = isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`
+    : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
+  const authorHandle = isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? '')
 
   const article = {
     id: item._id,
-    title: item.body.split('\n')[0].slice(0, 100),
+    title: item.title ?? item.body.split('\n')[0].slice(0, 100),
     content: item.body,
     image: imageUrl,
     date: formatDate(item.createdAt),
     likes: item.likesCount,
-    commentsCount: item.commentsCount,
+    commentsCount: item.commentCount ?? item.commentsCount,
     isLiked: item.isLiked ?? false,
     isSystem,
     author: {
-      name: authorName,
+      name: authorDisplayName,
       handle: authorHandle,
       verified: isSystem || item.authorType === 'org',
     },

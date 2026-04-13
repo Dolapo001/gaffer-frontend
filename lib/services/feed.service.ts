@@ -5,23 +5,38 @@ export interface MediaItem {
   type: 'image' | 'video' | 'link'
 }
 
+export interface PopulatedAuthor {
+  _id: string
+  name?: string | null
+  handle?: string | null
+  logoUrl?: string | null
+  fullName?: string | null
+  username?: string | null
+  avatarUrl?: string | null
+}
+
 export interface FeedItem {
   _id: string
   type: 'news' | 'post' | 'repost' | 'match_event'
   authorType: 'org' | 'team' | 'user' | 'system'
+  authorRef?: 'Org' | 'Team' | 'User' | null
   /** Display name for system posts where authorId is absent (e.g. "GAFFER") */
-  authorName?: string
-  authorId: string
-  orgId?: string
-  teamId?: string
+  authorName?: string | null
+  authorId?: PopulatedAuthor | null
+  orgId?: string | null
+  teamId?: string | null
+  title?: string | null
   body: string
+  imageUrl?: string | null
   media?: MediaItem[]
   visibility: 'public' | 'org' | 'team'
   allowComments: boolean
   likesCount: number
-  commentsCount: number
+  commentsCount?: number
+  commentCount?: number
+  repostCount?: number
   isLiked?: boolean
-  parentId?: string
+  parentFeedId?: FeedItem | null
   /** True on auto-generated welcome posts created by the backend */
   isDefault?: boolean
   /** True when the post should be surfaced at the top of the feed */
@@ -51,7 +66,8 @@ export interface FeedPage {
 export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
   const raw = await api.get<unknown>(`/feed?page=${page}`)
   const r = raw as any
-  if (r?.feed) return r.feed
+  if (Array.isArray(r?.feed)) return { items: r.feed, total: r.feed.length, page }
+  if (r?.feed?.items || r?.feed?.data) return r.feed as FeedPage
   if (r?.items || r?.data) return r as FeedPage
   return { items: [], total: 0, page: 1 }
 }
@@ -64,14 +80,11 @@ export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
   try {
     const raw = await api.get<unknown>(`/feed/news?page=${page}`)
     const r = raw as any
-    // Normalise both { feed:{items:[]} } and { items:[] } / { data:[] } shapes
-    const result: FeedPage = r?.feed ?? (r as FeedPage)
-    const items: unknown[] = result?.items ?? result?.data ?? []
-    // Only use this result when it actually contains items; otherwise fall
-    // through so the global feed (with auth) can fill the news page.
-    if (items.length > 0) return result
+    if (Array.isArray(r?.feed) && r.feed.length > 0) return { items: r.feed, total: r.feed.length, page }
+    if (r?.feed?.items?.length || r?.feed?.data?.length) return r.feed as FeedPage
+    if (r?.items?.length || r?.data?.length) return r as FeedPage
   } catch {
-    // /feed/news not yet available on this backend — fall through
+    // endpoint not available — fall through
   }
   return getGlobalFeed(page)
 }
@@ -163,7 +176,8 @@ export async function searchFeedItems(query: string, page: number = 1): Promise<
 export async function getOrgFeed(orgId: string, page: number = 1): Promise<FeedPage> {
   const raw = await api.get<unknown>(`/feed/org/${orgId}?page=${page}`)
   const r = raw as any
-  if (r?.feed) return r.feed
+  if (Array.isArray(r?.feed)) return { items: r.feed, total: r.feed.length, page }
+  if (r?.feed?.items || r?.feed?.data) return r.feed as FeedPage
   if (r?.items || r?.data) return r as FeedPage
   return { items: [], total: 0, page: 1 }
 }

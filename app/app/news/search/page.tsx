@@ -23,11 +23,13 @@ function timeAgo(iso: string) {
 
 function toNewsCardProps(item: FeedItem) {
   const body = item.body ?? ''
+  const title = item.title ?? body.split('\n')[0].slice(0, 120)
+  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   return {
     id: item._id,
-    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
+    image: rawImage ?? '/images/news-hero.jpg',
     source: { name: 'GAFFER', verified: true },
-    title: body.split('\n')[0].slice(0, 120),
+    title,
     excerpt: body.length > 120 ? body.slice(0, 160) + '...' : undefined,
     likes: item.likesCount,
     timeAgo: timeAgo(item.createdAt),
@@ -37,22 +39,23 @@ function toNewsCardProps(item: FeedItem) {
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
   const body = item.body ?? ''
+  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
+  const authorDisplayName = isSystem
+    ? (item.authorName ?? 'GAFFER')
+    : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
   return {
     id: item._id,
-    title: body.split('\n')[0].slice(0, 100),
+    title: item.title ?? body.split('\n')[0].slice(0, 100),
     content: body,
-    image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
+    image: rawImage ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
-    commentsCount: item.commentsCount,
+    commentsCount: item.commentCount ?? item.commentsCount,
     isLiked: item.isLiked ?? false,
     isSystem,
     author: {
-      name: isSystem
-        ? (item.authorName ?? 'GAFFER')
-        : item.authorType === 'org' ? 'Organization' : 'Gaffer',
-      // authorId can be null for system posts — use optional chaining
-      handle: isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`,
+      name: authorDisplayName,
+      handle: isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? ''),
       verified: isSystem || item.authorType === 'org',
     },
   }
