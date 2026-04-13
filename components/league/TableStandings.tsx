@@ -4,17 +4,20 @@ import { motion } from 'framer-motion'
 
 interface TableStandingsProps {
   standings?: any[]
+  /** Fallback list of competition teams to show when standings is empty */
+  competitionTeams?: any[]
   onSeeAll?: () => void
   /** Max rows to show before truncating. Defaults to showing all. */
   limit?: number
 }
 
-export function TableStandings({ standings, onSeeAll, limit }: TableStandingsProps) {
-  const hasData = standings && standings.length > 0
+export function TableStandings({ standings, competitionTeams, onSeeAll, limit }: TableStandingsProps) {
+  const hasStandings = standings && standings.length > 0
+  const hasTeams = competitionTeams && competitionTeams.length > 0
 
   // Map every row from the real standings endpoint
-  const allTeams = hasData
-    ? standings.map((s, i) => ({
+  const standingsTeams = hasStandings
+    ? standings!.map((s, i) => ({
         pos: i + 1,
         name: s.teamId?.shortName || s.teamId?.name || 'Team',
         logoUrl: s.teamId?.logoUrl ?? null,
@@ -28,10 +31,26 @@ export function TableStandings({ standings, onSeeAll, limit }: TableStandingsPro
         status:
           i + 1 <= 4 ? 'qualified' :
           i + 1 === 5 ? 'playoffs' :
-          standings.length >= 6 && i + 1 >= standings.length - 2 ? 'relegated' :
+          standings!.length >= 6 && i + 1 >= standings!.length - 2 ? 'relegated' :
           undefined,
       }))
     : []
+
+  // Fallback: when standings is empty but we have competition teams, show them with zero stats
+  const fallbackTeams = !hasStandings && hasTeams
+    ? [...competitionTeams!]
+        .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+        .map((t, i) => ({
+          pos: i + 1,
+          name: t.shortName || t.name || 'Team',
+          logoUrl: t.logoUrl ?? null,
+          mp: 0, w: 0, d: 0, l: 0, gd: 0, pts: 0,
+          status: undefined,
+        }))
+    : []
+
+  const allZeroStats = !hasStandings && fallbackTeams.length > 0
+  const allTeams = hasStandings ? standingsTeams : fallbackTeams
 
   const teams = limit ? allTeams.slice(0, limit) : allTeams
   const hasMore = limit != null && allTeams.length > limit
@@ -76,6 +95,15 @@ export function TableStandings({ standings, onSeeAll, limit }: TableStandingsPro
             </button>
           )}
         </div>
+
+        {/* No matches played hint */}
+        {allZeroStats && (
+          <div className="px-5 pb-3">
+            <p className="text-white/30 text-[10px] font-medium uppercase tracking-widest text-center">
+              No matches played yet
+            </p>
+          </div>
+        )}
 
         {/* Column headers */}
         <div className="flex items-center text-[#94a3b8] text-[10px] font-bold uppercase tracking-widest px-5 pb-2">

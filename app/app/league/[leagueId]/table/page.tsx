@@ -6,6 +6,7 @@ import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Bell, BellOff } from 'lucide-react'
 import { getStandings } from '@/lib/services/standings.service'
+import { listCompetitionTeams } from '@/lib/services/competition.service'
 import {
   followTeam,
   unfollowTeam,
@@ -59,6 +60,11 @@ export default function LeagueTablePage() {
     queryFn: () => getStandings(leagueId),
   })
 
+  const { data: compTeams } = useQuery({
+    queryKey: ['competition-teams', leagueId],
+    queryFn: () => listCompetitionTeams(leagueId),
+  })
+
   // Fetch preferences to show correct follow state — GET /notifications/preferences
   const { data: prefsData } = useQuery({
     queryKey: ['notification-preferences'],
@@ -84,26 +90,42 @@ export default function LeagueTablePage() {
     },
   })
 
+  const hasStandings = standingsData?.standings && standingsData.standings.length > 0
+  const allZeroStats = !hasStandings && (compTeams?.length ?? 0) > 0
+
   // Build groups, preserving teamId for follow buttons
-  const processedGroups =
-    standingsData?.standings && standingsData.standings.length > 0
+  const processedGroups: any[] =
+    hasStandings
       ? Object.values(
-          standingsData.standings.reduce((acc: any, s: any) => {
+          standingsData!.standings.reduce((acc: any, s: any) => {
             const groupName = s.stageId?.name || s.groupId?.name || 'GROUP A'
             if (!acc[groupName]) acc[groupName] = { id: groupName, name: groupName.toUpperCase(), teams: [] }
             acc[groupName].teams.push({
               teamId: s.teamId?._id ?? '',
               name: s.teamId?.shortName || s.teamId?.name || 'Team',
-              w: s.won || 0,
-              d: s.drawn || 0,
-              l: s.lost || 0,
-              pts: s.points || 0,
+              w: s.won ?? 0,
+              d: s.drawn ?? 0,
+              l: s.lost ?? 0,
+              pts: s.points ?? 0,
               status: 'qualified',
             })
             return acc
           }, {})
         )
-      : []
+      : allZeroStats
+        ? [{
+            id: 'GROUP A',
+            name: 'GROUP A',
+            teams: [...(compTeams ?? [])]
+              .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+              .map(t => ({
+                teamId: t.teamId ?? t._id ?? '',
+                name: t.name || 'Team',
+                w: 0, d: 0, l: 0, pts: 0,
+                status: undefined,
+              })),
+          }]
+        : []
 
   if (isLoading) {
     return (
@@ -119,9 +141,9 @@ export default function LeagueTablePage() {
         <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
           <div className="w-10 h-10 border-2 border-white/10 rounded-full" />
         </div>
-        <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-tight">No Rankings Yet</h2>
+        <h2 className="text-white text-xl font-bold mb-2 uppercase tracking-tight">No Teams Yet</h2>
         <p className="text-white/40 text-sm max-w-xs font-medium">
-          Standings for this tournament haven't been calculated yet.
+          No teams have been added to this tournament yet.
         </p>
         <button
           onClick={goBack}
@@ -156,12 +178,18 @@ export default function LeagueTablePage() {
             </h2>
 
             <div className="bg-[#1a2138]/60 border border-white/[0.03] rounded-[24px] p-6 shadow-2xl backdrop-blur-sm">
-              <div className="flex items-center gap-3 mb-8">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
                 <span className="text-white text-[14px] font-black uppercase tracking-widest leading-none">
                   {group.name}
                 </span>
               </div>
+
+              {allZeroStats && groupIdx === 0 && (
+                <p className="text-white/30 text-[10px] font-medium uppercase tracking-widest text-center mb-4">
+                  No matches played yet
+                </p>
+              )}
 
               <div className="flex items-center text-white/40 text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                 <span className="flex-1">Club</span>

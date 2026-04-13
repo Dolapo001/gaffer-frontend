@@ -31,8 +31,8 @@ import { EditTournamentModal } from '@/components/tournament/EditTournamentModal
 import { RecordEventModal } from '@/components/admin/RecordEventModal'
 
 function teamLabel(side: Fixture['homeTeamId']) {
-  if (typeof side === 'string') return 'TBD'
-  return side.shortName ?? side.name
+  if (!side || typeof side === 'string') return 'TBD'
+  return side.shortName ?? side.name ?? 'TBD'
 }
 
 function formatDate(iso: string) {
@@ -205,7 +205,18 @@ export default function TournamentDetailPage() {
   }
 
   const standings = standingsData?.standings ?? []
-  const allFixtures = fixtures ?? []
+  const allFixtures = Array.isArray(fixtures) ? fixtures : []
+  const standingsAllZero = standings.length === 0 && (compTeams?.length ?? 0) > 0
+  const standingsRows = standings.length > 0
+    ? standings
+    : standingsAllZero
+      ? [...(compTeams ?? [])]
+          .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
+          .map(t => ({
+            teamId: { _id: t.teamId ?? t._id ?? '', name: t.name || 'Team', handle: t.handle ?? '' },
+            played: 0, won: 0, drawn: 0, lost: 0, points: 0,
+          }))
+      : []
   const completed = allFixtures.filter((f) => f.status === 'completed')
   const upcoming = allFixtures.filter((f) => f.status !== 'completed')
 
@@ -546,7 +557,7 @@ export default function TournamentDetailPage() {
                             </div>
                             <div className="px-3 py-1 rounded-xl bg-gaffer-surface">
                               <p className="font-display font-black text-base leading-none text-center text-white">
-                                {f.score.home} - {f.score.away}
+                                {f.score?.home ?? 0} - {f.score?.away ?? 0}
                               </p>
                             </div>
                             <div className="flex-1">
@@ -570,18 +581,23 @@ export default function TournamentDetailPage() {
             {/* ── STANDINGS ── */}
             {activeTab === 'standings' && (
               <motion.div key="st" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {standings.length === 0 ? (
+                {standingsRows.length === 0 ? (
                   <div className="py-12 text-center">
                     <p className="text-gaffer-muted text-sm font-body">No standings data yet</p>
                   </div>
                 ) : (
                   <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
+                    {standingsAllZero && (
+                      <p className="text-gaffer-muted text-[10px] font-body text-center py-2">
+                        No matches played yet
+                      </p>
+                    )}
                     <div className="grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
                       {['#', 'Team', 'P', 'W', 'D', 'L', 'Pts'].map((h) => (
                         <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
                       ))}
                     </div>
-                    {standings.map((row, i) => {
+                    {standingsRows.map((row, i) => {
                       // teamId may be a plain string (un-populated) or a populated object.
                       // Guard both cases to prevent a render crash hitting the ErrorBoundary.
                       const team = typeof row.teamId === 'object' && row.teamId !== null
@@ -589,10 +605,10 @@ export default function TournamentDetailPage() {
                         : { _id: String(row.teamId), name: 'Unknown', handle: '' }
                       return (
                       <motion.div key={team._id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                        className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < standings.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
+                        className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < standingsRows.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
                         <span className={`font-display font-bold text-sm text-center ${i < 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{i + 1}</span>
                         <span className="text-white font-body font-medium text-sm truncate">{team.name}</span>
-                        {[row.played, row.won, row.drawn, row.lost, row.points].map((val, j) => (
+                        {[row.played ?? 0, row.won ?? 0, row.drawn ?? 0, row.lost ?? 0, row.points ?? 0].map((val, j) => (
                           <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
                         ))}
                       </motion.div>

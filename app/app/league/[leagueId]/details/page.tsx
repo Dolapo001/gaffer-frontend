@@ -13,7 +13,7 @@ import {
   unfollowCompetition,
   getPreferences,
 } from '@/lib/services/notifications.service'
-import { getCompetition } from '@/lib/services/competition.service'
+import { getCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getTopScorers, getTopAssists, type PlayerStatEntry } from '@/lib/services/stats.service'
@@ -67,6 +67,12 @@ export default function LeagueDetailsPage() {
   const { data: standingsData } = useQuery({
     queryKey: ['standings', leagueId],
     queryFn: () => getStandings(leagueId),
+  })
+
+  // Fallback team list — used to populate the table with zero stats before any matches
+  const { data: compTeams } = useQuery({
+    queryKey: ['competition-teams', leagueId],
+    queryFn: () => listCompetitionTeams(leagueId),
   })
 
   const { data: fixtures, isLoading: loadingFixtures } = useQuery({
@@ -127,7 +133,7 @@ export default function LeagueDetailsPage() {
   ).slice(0, 3)
 
   return (
-    <div className="min-h-screen bg-[#181928] pb-28">
+    <div className="min-h-screen bg-[#181928]">
       {/* Sticky header */}
       <div className="sticky top-0 z-30 bg-[#181928]/95 backdrop-blur-xl">
         <div className="flex items-center justify-between px-4 pt-12 pb-3">
@@ -194,6 +200,7 @@ export default function LeagueDetailsPage() {
               <div className="flex flex-col items-center w-full gap-3">
                 <TableStandings
                   standings={standings}
+                  competitionTeams={compTeams}
                   onSeeAll={() =>
                     router.push(`/app/league/${leagueId}/table`)
                   }
