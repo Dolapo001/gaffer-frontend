@@ -40,28 +40,32 @@ export function FantasyTeamScreen() {
     if (!competitionId) return
     getMyFantasyTeam(competitionId).then((team) => {
       if (!team || !team.squad?.length) return
-      const mapped: FantasySquadPlayer[] = team.squad.map((p) => ({
-        id: p._id,
-        name: `${p.playerId.firstName} ${p.playerId.lastName}`,
-        shortName: `${p.playerId.firstName[0]}. ${p.playerId.lastName}`,
-        teamName: p.teamId.name,
-        teamCode: p.teamId.handle,
-        teamColor: p.teamId.homeJersey?.primaryColor ?? '#888888',
-        jersey: p.teamId.homeJersey,
-        position: p.position,
-        points: p.totalPoints ?? 0,
-        price: p.price,
-        pitchRow: PITCH_ROW[p.position] ?? 1,
-        isOnPitch: team.startingXI.includes(p._id),
-        isCaptain: team.captainId === p._id,
-        isViceCaptain: team.viceCaptainId === p._id,
-        goals: 0,
-        assists: 0,
-        form: 0,
-        gwHistory: [],
-        nextFixtures: [],
-        teamLogoUrl: p.teamId.logoUrl,
-      }))
+      const mapped: FantasySquadPlayer[] = team.squad.map((p) => {
+        const pid = (p.playerId && typeof p.playerId === 'object') ? p.playerId : null
+        const tid = (p.teamId && typeof p.teamId === 'object') ? p.teamId : null
+        return {
+          id: p._id,
+          name: pid ? `${pid.firstName} ${pid.lastName}` : 'Unknown',
+          shortName: pid ? `${pid.firstName?.[0] ?? '?'}. ${pid.lastName}` : '?',
+          teamName: tid?.name ?? '',
+          teamCode: tid?.handle ?? '',
+          teamColor: tid?.homeJersey?.primaryColor ?? '#888888',
+          jersey: tid?.homeJersey ?? undefined,
+          position: p.position,
+          points: p.totalPoints ?? 0,
+          price: p.price,
+          pitchRow: PITCH_ROW[p.position] ?? 1,
+          isOnPitch: team.startingXI.includes(p._id),
+          isCaptain: team.captainId === p._id,
+          isViceCaptain: team.viceCaptainId === p._id,
+          goals: 0,
+          assists: 0,
+          form: 0,
+          gwHistory: [],
+          nextFixtures: [],
+          teamLogoUrl: tid?.logoUrl ?? undefined,
+        }
+      })
       setPlayers(mapped)
     }).catch(() => {/* no team yet – keep existing store state */})
   }, [competitionId, setPlayers])

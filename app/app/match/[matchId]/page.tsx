@@ -76,8 +76,13 @@ export default function MatchCenterPage() {
   const isCompleted = fixture.status === 'completed'
   const isLive = fixture.status === 'live'
 
-  const homeTeam = fixture.homeTeamId;
-  const awayTeam = fixture.awayTeamId;
+  // homeTeamId / awayTeamId may be null or a bare string ID when not populated
+  const homeTeam = (fixture.homeTeamId && typeof fixture.homeTeamId === 'object')
+    ? fixture.homeTeamId
+    : { name: 'Home', shortName: 'HME', logoUrl: null }
+  const awayTeam = (fixture.awayTeamId && typeof fixture.awayTeamId === 'object')
+    ? fixture.awayTeamId
+    : { name: 'Away', shortName: 'AWY', logoUrl: null }
 
   return (
     <div className="min-h-screen bg-[#10111d] text-white pb-10">
@@ -122,9 +127,9 @@ export default function MatchCenterPage() {
             </div>
 
             <div className="flex items-center gap-4">
-               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score.home}</span>
+               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score?.home ?? 0}</span>
                <span className="text-[32px] font-black italic tracking-widest text-white/10">-</span>
-               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score.away}</span>
+               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score?.away ?? 0}</span>
             </div>
 
             <div className="flex flex-col items-center gap-3 w-[100px]">

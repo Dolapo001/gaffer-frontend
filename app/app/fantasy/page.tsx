@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
@@ -17,7 +17,7 @@ import { GafferLogo } from '@/components/GafferLogo'
 import { mapApiTeamToSquad } from '@/lib/converters'
 import { getImageUrl } from '@/lib/api'
 
-export default function FantasyPage() {
+function FantasyPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const {
@@ -190,4 +190,16 @@ export default function FantasyPage() {
   }
 
   return <FantasyDashboard />
+}
+
+export default function FantasyPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#181928] flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
+      </div>
+    }>
+      <FantasyPageContent />
+    </Suspense>
+  )
 }
