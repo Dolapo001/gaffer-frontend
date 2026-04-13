@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGoBack } from '@/hooks/useGoBack'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -52,7 +52,8 @@ function toArticleProps(item: FeedItem) {
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,
     isLiked: item.isLiked ?? false,
-    isSystem,
+    isSystemPost: isSystem,
+    authorType: item.authorType,
     author: {
       name: authorDisplayName,
       handle: isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? ''),
@@ -62,7 +63,23 @@ function toArticleProps(item: FeedItem) {
 }
 
 export default function NewsSearchPage() {
-  const router = useRouter()
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen bg-gaffer-bg flex flex-col p-4 pt-safe">
+          <div className="h-10 bg-gaffer-card rounded-xl animate-pulse mb-6" />
+          <div className="space-y-4">
+            {[0, 1, 2].map(i => <div key={i} className="h-24 bg-gaffer-card rounded-2xl animate-pulse" />)}
+          </div>
+        </div>
+      }
+    >
+      <NewsSearchPageContent />
+    </Suspense>
+  )
+}
+
+function NewsSearchPageContent() {
   const goBack = useGoBack('/app/news')
   const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
@@ -79,6 +96,7 @@ export default function NewsSearchPage() {
       : getGlobalFeed(1),
     staleTime: 5000,
     enabled: true, // we always want some context (either hot topics or results)
+    throwOnError: false,
   })
 
   // Normalize backend response: some endpoints return .items, others .data, others both.

@@ -29,7 +29,7 @@ export const queryClient = new QueryClient({
       retry: (failureCount, err) => {
         // Don't retry auth / permission errors
         if (err instanceof ApiError && (err.status === 401 || err.status === 403)) return false
-        return failureCount < 1
+        return failureCount < 2
       },
     },
   },

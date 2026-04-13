@@ -47,7 +47,8 @@ export default function SchedulePage() {
   const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
     queryKey: ['orgs'],
     queryFn: listOrgs,
-    enabled: !!user
+    enabled: !!user,
+    throwOnError: false,
   })
 
   const orgId = orgs?.[0]?._id
@@ -56,7 +57,8 @@ export default function SchedulePage() {
   const { data: competitions, isLoading: isLoadingComps } = useQuery({
     queryKey: ['competitions', orgId],
     queryFn: () => listCompetitions(orgId!),
-    enabled: !!orgId
+    enabled: !!orgId,
+    throwOnError: false,
   })
 
   // Determine the best default competition (Most recent + Live > Published > Draft)
@@ -110,7 +112,8 @@ export default function SchedulePage() {
   const { data: backendFixtures, isLoading: isLoadingFixtures } = useQuery({
     queryKey: ['fixtures', competitionId],
     queryFn: () => listFixtures(competitionId!),
-    enabled: !!competitionId
+    enabled: !!competitionId,
+    throwOnError: false,
   })
 
   // 4. Fetch Teams (specifically for the selected tournament)

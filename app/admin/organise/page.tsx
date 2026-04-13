@@ -52,6 +52,7 @@ export default function OrganizePage() {
     queryFn: listOrgs,
     enabled: !!user,
     retry: 2,
+    throwOnError: false,
   })
 
   useEffect(() => {
@@ -66,7 +67,8 @@ export default function OrganizePage() {
   const { data: backendTeams, isLoading: isLoadingTeams } = useQuery({
     queryKey: ['teams', orgId],
     queryFn: () => listTeams(orgId!),
-    enabled: !!orgId
+    enabled: !!orgId,
+    throwOnError: false,
   })
 
   // 3a. Fetch full team detail when a team is selected
@@ -74,6 +76,7 @@ export default function OrganizePage() {
     queryKey: ['team-detail', selectedTeam?.id],
     queryFn: () => getTeam(selectedTeam!.id),
     enabled: !!selectedTeam?.id,
+    throwOnError: false,
   })
 
   // 3b. Fetch team photos when a team is selected
@@ -81,27 +84,31 @@ export default function OrganizePage() {
     queryKey: ['team-photos', selectedTeam?.id],
     queryFn: () => getTeamPhotos(selectedTeam!.id),
     enabled: !!selectedTeam?.id,
+    throwOnError: false,
   })
 
   // 3. Fetch Players (when a team is selected)
   const { data: backendPlayers } = useQuery({
     queryKey: ['players', selectedTeam?.id, selectedCompetitionId],
     queryFn: () => listPlayers(selectedTeam!.id, selectedCompetitionId),
-    enabled: !!selectedTeam?.id
+    enabled: !!selectedTeam?.id,
+    throwOnError: false,
   })
 
   // 4. Fetch Groups
   const { data: backendGroups, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups', orgId],
     queryFn: () => listGroups(orgId!),
-    enabled: !!orgId
+    enabled: !!orgId,
+    throwOnError: false,
   })
 
   // 5. Fetch Competitions (Tournaments)
   const { data: competitions, isLoading: isLoadingCompetitions } = useQuery({
     queryKey: ['competitions', orgId],
     queryFn: () => listCompetitions(orgId!),
-    enabled: !!orgId
+    enabled: !!orgId,
+    throwOnError: false,
   })
 
   // Mutations
