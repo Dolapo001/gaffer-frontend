@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 
 /**
  * Returns a goBack() function that calls router.back() when there is
@@ -8,13 +8,21 @@ import { useRouter, useSearchParams } from 'next/navigation'
  * opened cold (direct link, PWA launch, share target, etc.).
  *
  * Supports an optional 'returnTo' query parameter to override behavior.
+ *
+ * NOTE: deliberately avoids useSearchParams() so no Suspense boundary is
+ * required on every page that uses this hook. The returnTo param is read
+ * lazily from window.location.search at call time — safe because goBack()
+ * is always triggered by user interaction (after mount).
  */
 export function useGoBack(fallback: string) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const returnTo = searchParams.get('returnTo')
 
   return () => {
+    const returnTo =
+      typeof window !== 'undefined'
+        ? new URLSearchParams(window.location.search).get('returnTo')
+        : null
+
     if (returnTo) {
       router.push(returnTo)
     } else if (typeof window !== 'undefined' && window.history.length > 1) {
