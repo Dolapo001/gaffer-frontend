@@ -16,7 +16,7 @@ import {
 } from '@/lib/services/notifications.service'
 
 // ─── Services ─────────────────────────────────────────────────────────────────
-import { getCompetition } from '@/lib/services/competition.service'
+import { getCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getTopScorers, getTopAssists } from '@/lib/services/stats.service'
@@ -59,13 +59,15 @@ function Sk({ h, className = '' }: { h: string; className?: string }) {
 // ─── Featured News Card ───────────────────────────────────────────────────────
 
 function FeaturedNewsCard({ item }: { item: FeedItem }) {
+  const router = useRouter()
   const hasImage = !!(item.media?.[0]?.url)
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-[#1a1b2e]/80 rounded-[24px] overflow-hidden border border-white/5 shadow-2xl"
+      onClick={() => router.push(`/app/news/${item._id}?returnTo=${window.location.pathname}`)}
+      className="bg-[#1a1b2e]/80 rounded-[24px] overflow-hidden border border-white/5 shadow-2xl cursor-pointer active:opacity-95 transition-all"
     >
       {/* Image */}
       {hasImage && (
@@ -213,6 +215,11 @@ export default function LeagueHomePage() {
     queryFn: () => getStandings(leagueId),
   })
 
+  const { data: compTeams } = useQuery({
+    queryKey: ['competition-teams', leagueId],
+    queryFn: () => listCompetitionTeams(leagueId),
+  })
+
   const { data: fixtures, isLoading: loadingFixtures } = useQuery({
     queryKey: ['fixtures', leagueId],
     queryFn: () => listFixtures(leagueId),
@@ -301,7 +308,7 @@ export default function LeagueHomePage() {
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-[#181928] pb-32">
+    <div className="min-h-screen bg-[#181928]">
       {/* ── Sticky minimal nav ───────────────────────────────────────────── */}
       <div className="sticky top-0 z-30 bg-[#181928]/95 backdrop-blur-xl">
         <div className="flex items-center justify-between px-4 pt-12 pb-3">
@@ -437,6 +444,7 @@ export default function LeagueHomePage() {
           {/* ── 11. Table Standings — preview (8 rows), full table via See All */}
           <TableStandings
             standings={standings}
+            competitionTeams={compTeams}
             limit={8}
             onSeeAll={() => router.push(`/app/league/${leagueId}/table`)}
           />

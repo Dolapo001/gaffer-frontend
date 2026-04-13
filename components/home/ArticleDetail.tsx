@@ -98,17 +98,20 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
       className="flex flex-col min-h-full"
     >
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-4 pb-3 border-b border-gaffer-border">
+      <div 
+        className="sticky top-0 z-50 flex items-center gap-3 px-4 pb-3 border-b border-gaffer-border bg-gaffer-bg/95 backdrop-blur-md"
+        style={{ paddingTop: 'calc(env(safe-area-inset-top, 0px) + 16px)' }}
+      >
         <button
           onClick={onBack}
-          className="w-8 h-8 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
+          className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 border border-white/10 text-white hover:bg-white/10 active:scale-95 transition-all shadow-lg"
+          aria-label="Go back"
         >
-          <ChevronLeft size={17} />
+          <ChevronLeft size={20} />
         </button>
-        <h2 className="flex-1 text-center font-display font-bold text-white text-base tracking-widest uppercase">
+        <h2 className="flex-1 text-center font-display font-bold text-white text-sm tracking-[0.2em] uppercase mr-10">
           NEWS
         </h2>
-        <div className="w-8" />
       </div>
 
       <div className="flex-1 overflow-y-auto">

@@ -141,7 +141,7 @@ export default function DashboardPage() {
                 <div
                   key={item._id}
                   className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl cursor-pointer active:opacity-80 transition-opacity"
-                  onClick={() => router.push('/app/news')}
+                  onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)}
                 >
                   <div className="relative h-48 bg-gaffer-dark">
                     {item.media?.[0]?.url && (

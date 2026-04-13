@@ -13,9 +13,10 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-export default function ArticlePage() {
+import { Suspense } from 'react'
+
+function ArticleContent() {
   const { articleId } = useParams<{ articleId: string }>()
-  const router = useRouter()
   const goBack = useGoBack('/app/news')
 
   const { data: item, isLoading } = useQuery({
@@ -98,5 +99,13 @@ export default function ArticlePage() {
     >
       <ArticleDetail article={article} onBack={goBack} />
     </motion.div>
+  )
+}
+
+export default function ArticlePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gaffer-bg animate-pulse" />}>
+      <ArticleContent />
+    </Suspense>
   )
 }

@@ -36,9 +36,29 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             className="flex items-center justify-around h-[72px] w-full pointer-events-auto bg-[#1d1f2e] border border-white/5 shadow-2xl rounded-full px-2 transition-all"
           >
         {items.map((item) => {
-          const isActive = item.href === '/admin' || item.href === '/app/dashboard'
-            ? pathname === item.href
-            : pathname.startsWith(item.href)
+          const isActive = React.useMemo(() => {
+            const itemPath = item.href.split('?')[0]
+            
+            // 1. Exact matches for top-level non-league routes
+            if (itemPath === '/app/dashboard' || itemPath === '/admin') {
+              return pathname === itemPath
+            }
+
+            // 2. Exact match check
+            if (pathname === itemPath) return true
+
+            // 3. For nested routes, ensure we pick the most specific one
+            // Home tab in league context should NOT be active if a more specific tab (like /details) matches
+            const isSpecificMatch = pathname.startsWith(itemPath)
+            if (!isSpecificMatch) return false
+
+            const hasMoreSpecificMatch = items.some(other => {
+              const otherPath = other.href.split('?')[0]
+              return otherPath.length > itemPath.length && pathname.startsWith(otherPath)
+            })
+
+            return !hasMoreSpecificMatch
+          }, [pathname, item.href, items])
 
           return (
             <Link

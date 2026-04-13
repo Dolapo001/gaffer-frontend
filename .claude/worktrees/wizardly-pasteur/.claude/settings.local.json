@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find 'C:/Users/adefo/OneDrive/Desktop/The Gaffer -backend' -type f -name *.ts -o -name *.js -o -name *.json)",
+      "Bash(find C:/Users/adefo/OneDrive/Desktop/gaffer-frontend -maxdepth 2 -name .env* -o -name config.*)",
+      "Bash(find C:/Users/adefo/The-Gaffer--backend/src -type f -name *.ts -o -name *.js)",
+      "Bash(find C:/Users/adefo/The-Gaffer--backend/src -type f \\\\\\(-name *.ts -o -name *.js \\\\\\))",
+      "Bash(ls \"C:\\\\Users\\\\adefo\\\\The-Gaffer--backend\\\\public\"\" 2>/dev/null || echo \"no public dir \")",
+      "Bash(xargs grep:*)",
+      "Bash(grep -r \"listJoinedCompetitions\\\\|joinCompetition\\\\|joinCompetitionById\" C:UsersadefoThe-Gaffer--backendsrc --include=*.js)",
+      "Bash(find /c/Users/adefo/OneDrive/Desktop -maxdepth 3 -name *.js -path */competition*)",
+      "Bash(find /c/Users/adefo -maxdepth 5 -name competition*.js -o -name competition*.ts)",
+      "Bash(find /c/Users/adefo/Documents -maxdepth 5 -name *.js)",
+      "Bash(find /c/Users/adefo -maxdepth 4 -type d -name *gaffer* -o -type d -name *Gaffer*)",
+      "Bash(grep -n \"joinCode\\\\|join\\\\|Join\\\\|copy\\\\|Copy\\\\|share\\\\|Share\" /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/app/admin/tournaments/[id]/page.tsx)",
+      "Bash(grep -n \"generate\\\\|Generate\\\\|regenerate\\\\|RefreshCw\\\\|joinCode\\\\|join-code\\\\|join_code\" /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/app/admin/tournaments/[id]/page.tsx)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(find /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/public -name gaffer-splash* -o -name *.mp4)",
+      "Bash(grep -n \"standings\\\\|teamId\\\\._id\\\\|row\\\\.\" /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/app/admin/tournaments/[id]/page.tsx)",
+      "Bash(head -20 grep -n \"teamId\\\\._id\\\\|teamId\\\\.name\\\\|row\\\\.teamId\" /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/app/app/league/[leagueId]/details/page.tsx)",
+      "Bash(head -10 grep -n \"teamId\\\\._id\\\\|teamId\\\\.name\\\\|row\\\\.teamId\" /c/Users/adefo/OneDrive/Desktop/gaffer-frontend/app/app/league/[leagueId]/table/page.tsx)",
+      "Bash(git add:*)",
+      "Bash(node -e \"const p=require\\(''./package.json''\\); console.log\\(''next:'', p.dependencies.next\\)\")",
+      "Bash(grep -rn \"typeof.*=== ''string'' ? \" \"C:\\\\Users\\\\adefo\\\\OneDrive\\\\Desktop\\\\gaffer-frontend\\\\components\\\\league\" --include=\"*.tsx\")",
+      "Bash(npm run:*)",
+      "Bash(dir /s /b C:UsersadefoOneDriveDesktopgaffer-frontendappappleague)",
+      "Bash(dir /s /b \"C:\\\\Users\\\\adefo\\\\OneDrive\\\\Desktop\\\\gaffer-frontend\\\\components\")",
+      "Bash(dir /s /b C:UsersadefoOneDriveDesktopgaffer-frontendapp)",
+      "Bash(findstr /i \"news search\")",
+      "Bash(find /c/Users/adefo -name feed.routes.js -not -path */node_modules/*)",
+      "Bash(find /c/Users/adefo -name *.routes.js -not -path */node_modules/*)",
+      "Bash(find /c/Users/adefo -name server.js -not -path */node_modules/*)",
+      "Bash(find /c/Users/adefo -name app.js -not -path */node_modules/*)",
+      "Bash(npx tsc:*)"
+    ]
+  }
+}
