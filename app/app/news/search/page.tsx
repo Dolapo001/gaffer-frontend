@@ -22,12 +22,13 @@ function timeAgo(iso: string) {
 }
 
 function toNewsCardProps(item: FeedItem) {
+  const body = item.body ?? ''
   return {
     id: item._id,
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     source: { name: 'GAFFER', verified: true },
-    title: item.body.split('\n')[0].slice(0, 120),
-    excerpt: item.body.length > 120 ? item.body.slice(0, 160) + '...' : undefined,
+    title: body.split('\n')[0].slice(0, 120),
+    excerpt: body.length > 120 ? body.slice(0, 160) + '...' : undefined,
     likes: item.likesCount,
     timeAgo: timeAgo(item.createdAt),
   }
@@ -35,10 +36,11 @@ function toNewsCardProps(item: FeedItem) {
 
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
+  const body = item.body ?? ''
   return {
     id: item._id,
-    title: item.body.split('\n')[0].slice(0, 100),
-    content: item.body,
+    title: body.split('\n')[0].slice(0, 100),
+    content: body,
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,

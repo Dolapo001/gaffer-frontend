@@ -191,7 +191,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
         {/* Body */}
         <div className="px-4 pb-4 space-y-4">
-          {article.content.split('\n\n').map((paragraph, i) => (
+          {(article.content ?? '').split('\n\n').map((paragraph, i) => (
             <p key={i} className="font-body text-white/70 text-sm leading-relaxed">
               {paragraph}
             </p>

@@ -9,7 +9,8 @@ import { NewsCard } from '@/components/home/NewsCard'
 import { TrendingPost } from '@/components/home/TrendingPost'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
-import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
+import { listJoinedCompetitions } from '@/lib/services/competition.service'
 import { getImageUrl } from '@/lib/api'
 import { useUIStore } from '@/store/uiStore'
 
@@ -25,17 +26,16 @@ function timeAgo(iso: string) {
 function toNewsCardProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
   const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const body = item.body ?? ''
   return {
     id: item._id,
-    // getImageUrl resolves backend-relative paths (e.g. "images/gaffer-welcome-banner.jpg")
-    // to absolute URLs; leaves already-absolute URLs untouched.
     image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
     source: {
       name: isSystem ? (item.authorName ?? 'GAFFER') : 'GAFFER',
       verified: true,
     },
-    title: item.body.split('\n')[0].slice(0, 120),
-    excerpt: item.body.length > 120 ? item.body.slice(120, 280) + '...' : undefined,
+    title: body.split('\n')[0].slice(0, 120),
+    excerpt: body.length > 120 ? body.slice(120, 280) + '...' : undefined,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
     timeAgo: timeAgo(item.createdAt),
@@ -49,10 +49,10 @@ function toTrendingProps(item: FeedItem) {
     id: item._id,
     author: {
       name: authorLabel,
-      handle: item.authorId.slice(-8),
+      handle: item.authorId?.slice(-8) ?? '',
       verified: item.authorType === 'org',
     },
-    content: item.body,
+    content: item.body ?? '',
     image: item.media?.find((m) => m.type === 'image')?.url,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
@@ -62,10 +62,11 @@ function toTrendingProps(item: FeedItem) {
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
   const rawImage = item.media?.find((m) => m.type === 'image')?.url
+  const body = item.body ?? ''
   return {
     id: item._id,
-    title: item.body.split('\n')[0].slice(0, 100),
-    content: item.body,
+    title: body.split('\n')[0].slice(0, 100),
+    content: body,
     image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
@@ -87,14 +88,36 @@ export default function NewsPage() {
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
   const { activeOrgId } = useUIStore()
 
-  // News items (type=news) — dedicated endpoint
+  // ── Active-competition news (when inside a league) ─────────────────────────
   const { data: newsData, isLoading: newsLoading } = useQuery({
     queryKey: activeOrgId ? ['org-feed-news', activeOrgId] : ['news-feed', 1],
     queryFn: () => activeOrgId ? getOrgFeed(activeOrgId) : getNewsFeed(1),
     staleTime: 60_000,
   })
 
-  // Community posts (type=post/repost) — global feed
+  // ── Joined competitions → fetch each org's feed ────────────────────────────
+  // Only when the user is NOT inside a specific competition.
+  const { data: joinedComps } = useQuery({
+    queryKey: ['joined-competitions'],
+    queryFn: listJoinedCompetitions,
+    staleTime: 5 * 60_000,
+    enabled: !activeOrgId,
+  })
+
+  const joinedOrgIds = (joinedComps ?? []).map((c) => c.orgId).filter(Boolean)
+
+  const { data: joinedOrgNewsData, isLoading: joinedNewsLoading } = useQuery({
+    queryKey: ['joined-orgs-news', ...joinedOrgIds],
+    queryFn: async (): Promise<FeedPage> => {
+      const feeds = await Promise.all(joinedOrgIds.map((id) => getOrgFeed(id)))
+      const allItems = feeds.flatMap((f) => (f?.items ?? f?.data ?? []) as FeedItem[])
+      return { items: allItems, total: allItems.length, page: 1 }
+    },
+    enabled: joinedOrgIds.length > 0 && !activeOrgId,
+    staleTime: 60_000,
+  })
+
+  // ── Trending posts — global feed ───────────────────────────────────────────
   const { data: postsData, isLoading: postsLoading } = useQuery({
     queryKey: ['global-feed', 1],
     queryFn: () => getGlobalFeed(1),
@@ -102,17 +125,26 @@ export default function NewsPage() {
     enabled: !activeOrgId,
   })
 
-  // Show all feed items — news, org posts, and system posts.
-  // Prefer explicit news/system items first; fall back to all items so the
-  // page is never empty when the backend only returns 'post' type items.
-  const rawItems: FeedItem[] = (newsData?.items ?? newsData?.data ?? []) as FeedItem[]
-  const strictItems = rawItems.filter((i) => i.type === 'news' || i.authorType === 'system')
-  const allNewsItems: FeedItem[] = strictItems.length > 0 ? strictItems : rawItems
+  // ── Merge news: joined orgs first (most relevant), then global fallback ────
+  const globalItems: FeedItem[] = (newsData?.items ?? newsData?.data ?? []) as FeedItem[]
+  const orgItems: FeedItem[] = (joinedOrgNewsData?.items ?? []) as FeedItem[]
+
+  // Deduplicate by _id; joined-org items take priority (listed first)
+  const mergedItems = [...orgItems, ...globalItems].filter(
+    (item, index, arr) => arr.findIndex((x) => x._id === item._id) === index
+  )
+
+  // Prefer explicit news/system/org items; fall back to everything so the page
+  // is never empty when items exist but have a different type.
+  const strictItems = mergedItems.filter(
+    (i) => i.type === 'news' || i.authorType === 'system' || i.authorType === 'org'
+  )
+  const allNewsItems: FeedItem[] = strictItems.length > 0 ? strictItems : mergedItems
 
   const allFeedItems: FeedItem[] = (postsData?.items ?? postsData?.data ?? []) as FeedItem[]
   const postItems: FeedItem[] = allFeedItems.filter((i) => i.type === 'post' || i.type === 'repost')
 
-  const isLoading = newsLoading || postsLoading
+  const isLoading = newsLoading || (joinedOrgIds.length > 0 && joinedNewsLoading)
 
   return (
     <AnimatePresence mode="wait">
@@ -159,7 +191,7 @@ export default function NewsPage() {
                 <h2 className="font-display font-bold text-white text-base tracking-wide">Top News</h2>
               </div>
 
-              {newsLoading ? (
+              {isLoading ? (
                 <div className="space-y-3">
                   <SkeletonCard size="large" />
                   <div className="divide-y divide-gaffer-border">

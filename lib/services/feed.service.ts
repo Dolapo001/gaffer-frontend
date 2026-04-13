@@ -45,10 +45,15 @@ export interface FeedPage {
   page: number
 }
 
-// GET /feed — main feed (all types), page 1 cached
+// GET /feed — main feed (all types), page 1 cached.
+// Auth header is included when a token is present so the backend can return
+// org-scoped items (visibility:'org') that the logged-in user is a member of.
 export async function getGlobalFeed(page: number = 1): Promise<FeedPage> {
-  const data = await api.get<{ feed: FeedPage }>(`/feed?page=${page}`, { public: true })
-  return data.feed
+  const raw = await api.get<unknown>(`/feed?page=${page}`)
+  const r = raw as any
+  if (r?.feed) return r.feed
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
 }
 
 // GET /feed/news — news items only.
@@ -151,10 +156,14 @@ export async function searchFeedItems(query: string, page: number = 1): Promise<
   return { items: [], total: 0, page: 1 }
 }
 
-// GET /feed/org/:orgId — org-scoped feed (PUBLIC)
+// GET /feed/org/:orgId — org-scoped feed.
+// Auth header included so members see visibility:'org' items.
 export async function getOrgFeed(orgId: string, page: number = 1): Promise<FeedPage> {
-  const data = await api.get<{ feed: FeedPage }>(`/feed/org/${orgId}?page=${page}`, { public: true })
-  return data.feed
+  const raw = await api.get<unknown>(`/feed/org/${orgId}?page=${page}`)
+  const r = raw as any
+  if (r?.feed) return r.feed
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
 }
 
 // GET /feed/team/:teamId — team-scoped feed (PUBLIC)
