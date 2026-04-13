@@ -15,7 +15,7 @@ export function mapApiPlayer(
   fixtures: Fixture[] = []
 ): FantasySquadPlayer {
   if (!p || !p.playerId || typeof p.playerId !== 'object') {
-    const fallbackTeamObj = typeof p?.teamId === 'object' ? (p.teamId as any) : null
+    const fallbackTeamObj = (p?.teamId && typeof p.teamId === 'object') ? (p.teamId as any) : null
     const fallbackJersey = fallbackTeamObj?.homeJersey || fallbackTeamObj?.jersey || undefined
     return {
       id: p?._id || '',
@@ -48,7 +48,7 @@ export function mapApiPlayer(
   const isCaptain = captainId === p._id
   const isViceCaptain = viceCaptainId === p._id
 
-  const teamObj = typeof p.teamId === 'object' ? (p.teamId as any) : null
+  const teamObj = (p.teamId && typeof p.teamId === 'object') ? (p.teamId as any) : null
   const playerTeamId = teamObj?._id || (typeof p.teamId === 'string' ? p.teamId : '')
   const playerTeamHandle = teamObj?.shortName || teamObj?.handle || ''
 
@@ -67,18 +67,18 @@ export function mapApiPlayer(
       // Only show upcoming or live matches
       if (f.status !== 'scheduled' && f.status !== 'live') return false;
 
-      const homeId = typeof f.homeTeamId === 'object' ? (f.homeTeamId as any)._id : f.homeTeamId
-      const awayId = typeof f.awayTeamId === 'object' ? (f.awayTeamId as any)._id : f.awayTeamId
+      const homeId = (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId as any)._id : f.homeTeamId
+      const awayId = (f.awayTeamId && typeof f.awayTeamId === 'object') ? (f.awayTeamId as any)._id : f.awayTeamId
 
       const isMatch = (homeId === playerTeamId || awayId === playerTeamId)
       return isMatch;
     })
     .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime())
     .map(f => {
-      const home = typeof f.homeTeamId === 'object' ? f.homeTeamId : { name: 'Home', handle: 'HOM' }
-      const away = typeof f.awayTeamId === 'object' ? f.awayTeamId : { name: 'Away', handle: 'AWA' }
+      const home = (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId : { name: 'Home', handle: 'HOM' }
+      const away = (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId : { name: 'Away', handle: 'AWA' }
 
-      const homeId = typeof f.homeTeamId === 'object' ? (f.homeTeamId as any)._id : f.homeTeamId
+      const homeId = (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId as any)._id : f.homeTeamId
       const isHome = homeId === playerTeamId
 
       return {
