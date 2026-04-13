@@ -162,11 +162,11 @@ export async function deleteComment(postId: string, commentId: string): Promise<
 export async function searchFeedItems(query: string, page: number = 1): Promise<FeedPage> {
   if (!query.trim()) return { items: [], total: 0, page: 1 }
   const raw = await api.get<unknown>(
-    `/feed/search?q=${encodeURIComponent(query)}&page=${page}`,
-    { public: true }
+    `/feed/search?q=${encodeURIComponent(query)}&page=${page}`
   )
   const r = raw as any
-  if (r?.feed) return r.feed
+  if (Array.isArray(r?.feed)) return { items: r.feed, total: r.feed.length, page }
+  if (r?.feed?.items || r?.feed?.data) return r.feed as FeedPage
   if (r?.items || r?.data) return r as FeedPage
   return { items: [], total: 0, page: 1 }
 }
@@ -184,14 +184,22 @@ export async function getOrgFeed(orgId: string, page: number = 1): Promise<FeedP
 
 // GET /feed/team/:teamId — team-scoped feed (PUBLIC)
 export async function getTeamFeed(teamId: string, page: number = 1): Promise<FeedPage> {
-  const data = await api.get<{ feed: FeedPage }>(`/feed/team/${teamId}?page=${page}`, { public: true })
-  return data.feed
+  const raw = await api.get<unknown>(`/feed/team/${teamId}?page=${page}`, { public: true })
+  const r = raw as any
+  if (Array.isArray(r?.feed)) return { items: r.feed, total: r.feed.length, page }
+  if (r?.feed?.items || r?.feed?.data) return r.feed as FeedPage
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
 }
 
 // GET /feed/match/:fixtureId — match-scoped feed (PUBLIC)
 export async function getMatchFeed(fixtureId: string, page: number = 1): Promise<FeedPage> {
-  const data = await api.get<{ feed: FeedPage }>(`/feed/match/${fixtureId}?page=${page}`, { public: true })
-  return data.feed
+  const raw = await api.get<unknown>(`/feed/match/${fixtureId}?page=${page}`, { public: true })
+  const r = raw as any
+  if (Array.isArray(r?.feed)) return { items: r.feed, total: r.feed.length, page }
+  if (r?.feed?.items || r?.feed?.data) return r.feed as FeedPage
+  if (r?.items || r?.data) return r as FeedPage
+  return { items: [], total: 0, page: 1 }
 }
 
 // POST /feed/news — publish org news article
