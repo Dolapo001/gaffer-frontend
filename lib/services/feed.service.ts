@@ -64,12 +64,9 @@ export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
   } catch {
     // /feed/news not yet available on this backend — use global feed
   }
-  const fallback = await getGlobalFeed(page)
-  const allItems = (fallback.items ?? fallback.data ?? []) as FeedItem[]
-  const newsItems = allItems.filter(
-    (i) => i.type === 'news' || i.authorType === 'system'
-  )
-  return { ...fallback, items: newsItems, data: newsItems }
+  // /feed/news not available — return the full global feed unfiltered so the
+  // news page can show all content (org posts, system posts, etc.)
+  return getGlobalFeed(page)
 }
 
 // GET /feed/posts/:postId — single post detail

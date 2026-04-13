@@ -34,6 +34,7 @@ function toNewsCardProps(item: FeedItem) {
 }
 
 function toArticleProps(item: FeedItem) {
+  const isSystem = item.authorType === 'system'
   return {
     id: item._id,
     title: item.body.split('\n')[0].slice(0, 100),
@@ -41,11 +42,16 @@ function toArticleProps(item: FeedItem) {
     image: item.media?.find((m) => m.type === 'image')?.url ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
+    commentsCount: item.commentsCount,
     isLiked: item.isLiked ?? false,
+    isSystem,
     author: {
-      name: item.authorType === 'org' ? 'Organization' : 'Gaffer',
-      handle: `${item.authorType}_${item.authorId.slice(-6)}`,
-      verified: item.authorType === 'org',
+      name: isSystem
+        ? (item.authorName ?? 'GAFFER')
+        : item.authorType === 'org' ? 'Organization' : 'Gaffer',
+      // authorId can be null for system posts — use optional chaining
+      handle: isSystem ? 'gaffer' : `${item.authorType}_${item.authorId?.slice(-6) ?? ''}`,
+      verified: isSystem || item.authorType === 'org',
     },
   }
 }

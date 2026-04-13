@@ -102,12 +102,12 @@ export default function NewsPage() {
     enabled: !activeOrgId,
   })
 
-  const newsItems: FeedItem[] = ((newsData?.items ?? newsData?.data ?? []) as FeedItem[]).filter(
-    (i) => i.type === 'news' || i.authorType === 'system'
-  )
-  const allNewsItems: FeedItem[] = newsItems.length > 0
-    ? newsItems
-    : (newsData?.items ?? newsData?.data ?? []) as FeedItem[]
+  // Show all feed items — news, org posts, and system posts.
+  // Prefer explicit news/system items first; fall back to all items so the
+  // page is never empty when the backend only returns 'post' type items.
+  const rawItems: FeedItem[] = (newsData?.items ?? newsData?.data ?? []) as FeedItem[]
+  const strictItems = rawItems.filter((i) => i.type === 'news' || i.authorType === 'system')
+  const allNewsItems: FeedItem[] = strictItems.length > 0 ? strictItems : rawItems
 
   const allFeedItems: FeedItem[] = (postsData?.items ?? postsData?.data ?? []) as FeedItem[]
   const postItems: FeedItem[] = allFeedItems.filter((i) => i.type === 'post' || i.type === 'repost')
