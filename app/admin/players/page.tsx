@@ -16,6 +16,7 @@ import {
   listPlayers, addPlayer, removePlayer, createPlayerInvite,
   listPlayerInvites, revokePlayerInvite, type Player, type PlayerInvite,
 } from '@/lib/services/team.service'
+import { buildInviteLink } from '@/lib/routes'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -113,7 +114,8 @@ export default function PlayersPage() {
     mutationFn: (email: string) => createPlayerInvite(activeTeamId!, email),
     onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ['player-invites', activeTeamId] })
-      if (data?.inviteLink) setGeneratedLink(data.inviteLink)
+      // Backend returns a RELATIVE path — prepend origin to make it shareable
+      if (data?.inviteLink) setGeneratedLink(buildInviteLink(data.inviteLink))
       toast.addToast('Invite created! Email sent.', 'success')
       setInviteEmail('')
     },
@@ -233,7 +235,7 @@ export default function PlayersPage() {
                   <p className="text-gaffer-muted text-xs font-body">{timeUntil(inv.expiresAt)}</p>
                 </div>
                 <button
-                  onClick={() => copyLink(inv.inviteLink)}
+                  onClick={() => copyLink(buildInviteLink(inv.inviteLink))}
                   title="Copy invite link"
                   className="w-8 h-8 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-white transition-colors"
                 >

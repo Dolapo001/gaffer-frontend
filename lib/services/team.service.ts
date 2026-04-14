@@ -209,6 +209,28 @@ export async function revokePlayerInvite(inviteId: string): Promise<{ message: s
   return api.post<{ message: string }>(`/player-invites/${inviteId}/revoke`)
 }
 
+// ── Token-based accept (used by /player/onboarding?token=...) ─────────────────
+
+export interface AcceptInvitePayload {
+  token: string
+  firstName: string
+  lastName: string
+  phone?: string
+  dateOfBirth?: string
+  position?: string
+  jerseyNumber?: number
+  nationality?: string
+}
+
+// POST /player-invites/accept — PUBLIC
+// Used by the player onboarding page after they click the invite link.
+// The token comes from the invite URL query param.
+export async function acceptPlayerInviteWithToken(
+  payload: AcceptInvitePayload,
+): Promise<{ message: string }> {
+  return api.post('/player-invites/accept', payload, { public: true })
+}
+
 // ── Public Routes (Recruitment) ──────────────────────────────────────────
 
 // GET /public/teams/:teamHandle
