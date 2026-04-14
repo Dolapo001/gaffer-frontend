@@ -8,6 +8,7 @@ import { useToast } from '@/store/toastStore'
 import { AccountUpgradeModal } from '../AccountUpgradeModal'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { listOrgs, deleteOrg } from '@/lib/services/org.service'
+import { updateProfile } from '@/lib/services/user.service'
 import { ConfirmDialog } from '../ConfirmDialog'
 
 // --- Custom Inline SVGs ---
@@ -125,6 +126,13 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
     onClose()
 
     addToast(`Switched to ${role} account`, 'success')
+
+    // Persist lastRole to the server so that useAuthListener never overwrites
+    // the user's explicit choice when the app reloads and calls /auth/refresh.
+    // Fire-and-forget — we don't block the navigation on this.
+    updateProfile({ lastRole: role }).catch(() => {
+      // Non-fatal: the role is already set client-side and in the cookie.
+    })
 
     if (role === 'personal') {
       router.push('/app/dashboard')

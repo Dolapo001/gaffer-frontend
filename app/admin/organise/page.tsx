@@ -132,6 +132,8 @@ export default function OrganizePage() {
   })
 
   // Mutations
+  // Each mutation has its own onError handler so the global mutationCache.onError
+  // must NOT also fire — otherwise the user sees the same error toast twice.
   const deleteTeamMutation = useMutation({
     mutationFn: (id: string) => deleteTeam(id),
     onSuccess: () => {
@@ -140,6 +142,7 @@ export default function OrganizePage() {
       setView('list')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const updateTeamMutation = useMutation({
@@ -150,6 +153,7 @@ export default function OrganizePage() {
       addToast('Team updated!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const uploadTeamPhotoMutation = useMutation({
@@ -160,6 +164,7 @@ export default function OrganizePage() {
       addToast('Photo uploaded!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const deleteTeamPhotoMutation = useMutation({
@@ -170,16 +175,20 @@ export default function OrganizePage() {
       addToast('Photo deleted', 'info')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const registerTeamMutation = useMutation({
+    // Use the competition-service endpoint (POST /competitions/:id/teams) — the
+    // team-service endpoint (POST /teams/:id/register) returns 404 on the backend.
     mutationFn: ({ teamId, competitionId }: { teamId: string; competitionId: string }) =>
-      registerTeamForCompetition(teamId, { competitionId }),
+      registerTeams(competitionId, [{ teamId }]),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
       addToast('Team registered!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const createTeamMutation = useMutation({
@@ -188,6 +197,7 @@ export default function OrganizePage() {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const createGroupMutation = useMutation({
@@ -196,6 +206,7 @@ export default function OrganizePage() {
       queryClient.invalidateQueries({ queryKey: ['groups', orgId] })
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const updateGroupMutation = useMutation({
@@ -220,6 +231,7 @@ export default function OrganizePage() {
       }
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const deleteGroupMutation = useMutation({
@@ -230,6 +242,7 @@ export default function OrganizePage() {
       setView('list')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const [jerseyConfig, setJerseyConfig] = useState<JerseyFormConfig>({
@@ -363,7 +376,8 @@ export default function OrganizePage() {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
       addToast(' team removed from tournament', 'success')
     },
-    onError: (err) => addToast(getErrorMessage(err), 'error')
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const handleRegisterTeamToTournament = async (teamId: string, competitionId: string) => {
@@ -426,16 +440,17 @@ export default function OrganizePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
     },
-    onError: (err) => addToast(getErrorMessage(err), 'error')
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const addPlayerMutation = useMutation({
     mutationFn: ({ teamId, data }: { teamId: string, data: any }) => {
       // Strip the local-only _photoFile before sending JSON to the backend
       const { _photoFile, ...payload } = data
-      return addPlayer(teamId, { 
-        ...payload, 
-        competitionId: selectedCompetitionId || undefined 
+      return addPlayer(teamId, {
+        ...payload,
+        competitionId: selectedCompetitionId || undefined
       })
     },
     onSuccess: async (player, variables) => {
@@ -450,7 +465,8 @@ export default function OrganizePage() {
       queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
       addToast('Player added to squad!', 'success')
     },
-    onError: (err) => addToast(getErrorMessage(err), 'error')
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
   })
 
   const handleManualAddPlayer = (data: any) => {

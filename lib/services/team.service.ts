@@ -87,9 +87,9 @@ export async function getTeam(teamId: string): Promise<Team> {
   return data.team
 }
 
-// PUT /teams/:teamId
+// PATCH /teams/:teamId
 export async function updateTeam(teamId: string, payload: Partial<CreateTeamPayload>): Promise<Team> {
-  const data = await api.put<{ team: Team }>(`/teams/${teamId}`, payload)
+  const data = await api.patch<{ team: Team }>(`/teams/${teamId}`, payload)
   return data.team
 }
 
