@@ -86,7 +86,17 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
       return
     }
 
-    if (role === 'personal' && !user?.isPersonalActive) {
+    // Only show the "Setup Personal Account" modal when the user genuinely has
+    // no personal profile yet (no fullName AND isPersonalActive is explicitly
+    // false). We deliberately do NOT gate on !isPersonalActive alone because
+    // the /auth/refresh endpoint often omits that field, causing it to be
+    // undefined after every app restart even for users who already set up.
+    const needsPersonalSetup =
+      role === 'personal' &&
+      !user?.fullName &&
+      user?.isPersonalActive === false
+
+    if (needsPersonalSetup) {
         setUpgradeTarget('personal')
         setUpgradeModalOpen(true)
         return
