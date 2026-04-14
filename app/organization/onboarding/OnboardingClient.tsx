@@ -9,15 +9,15 @@ import {
   InviteErrorScreen,
   InviteDoneScreen,
 } from '@/components/invite/InviteStatusScreen'
-import { InviteForm } from '@/components/player/InviteForm'
+import { OrgInviteForm } from '@/components/organization/OrgInviteForm'
 
-interface OnboardingClientProps {
+interface OrgOnboardingClientProps {
   token: string
 }
 
-export function OnboardingClient({ token }: OnboardingClientProps) {
+export function OrgOnboardingClient({ token }: OrgOnboardingClientProps) {
   const router = useRouter()
-  const validation = useInviteValidation(token || undefined, 'player')
+  const validation = useInviteValidation(token || undefined, 'organization')
   const [isDone, setIsDone] = useState(false)
 
   const handleSuccess = () => {
@@ -34,7 +34,7 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
             Gaffer FC
           </span>
           <h1 className="font-chakra font-black text-2xl uppercase tracking-tight italic text-white">
-            Join Your Team
+            Join the Organisation
           </h1>
         </div>
       </header>
@@ -48,13 +48,16 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
           )}
 
           {/* Error states */}
-          {!isDone && (validation.status === 'invalid' || validation.status === 'expired' || validation.status === 'used') && (
-            <InviteErrorScreen
-              key={validation.status}
-              variant={validation.status}
-              message={validation.message}
-            />
-          )}
+          {!isDone &&
+            (validation.status === 'invalid' ||
+              validation.status === 'expired' ||
+              validation.status === 'used') && (
+              <InviteErrorScreen
+                key={validation.status}
+                variant={validation.status}
+                message={validation.message}
+              />
+            )}
 
           {/* Valid — show form */}
           {!isDone && validation.status === 'valid' && (
@@ -72,14 +75,14 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
                 <p className="text-white font-display font-bold text-base">
                   {validation.invite.email}
                 </p>
-                {validation.invite.teamName && (
+                {validation.invite.orgName && (
                   <p className="text-white/40 text-xs font-body mt-1">
-                    Team: {validation.invite.teamName}
+                    Organisation: {validation.invite.orgName}
                   </p>
                 )}
               </div>
 
-              <InviteForm token={token} onSuccess={handleSuccess} />
+              <OrgInviteForm token={token} onSuccess={handleSuccess} />
             </motion.div>
           )}
 
@@ -87,8 +90,8 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
           {isDone && (
             <InviteDoneScreen
               key="done"
-              heading="You're In!"
-              subtext={`You have successfully joined the team.\nRedirecting you now…`}
+              heading="Welcome Aboard!"
+              subtext={`You have successfully joined the organisation.\nRedirecting you now…`}
             />
           )}
 

@@ -5,6 +5,9 @@ const ADMIN_ROUTES = ['/admin']
 const APP_ROUTES = ['/app']
 const AUTH_ROUTES = ['/auth']
 const PUBLIC_ROUTES = ['/', '/onboarding']
+// Invite onboarding pages must be reachable without a session — the token
+// itself authenticates the request at the API layer.
+const INVITE_ROUTES = ['/player/onboarding', '/organization/onboarding']
 
 /**
  * Server-side route protection.
@@ -22,6 +25,16 @@ export function middleware(request: NextRequest) {
     (r) => pathname === r || pathname.startsWith(r + '/')
   )
   if (isPublic) return NextResponse.next()
+
+  // Invite onboarding routes are public when a token is present.
+  // A logged-out user arriving from an invite email must reach these pages.
+  const isInviteRoute = INVITE_ROUTES.some((r) => pathname.startsWith(r))
+  if (isInviteRoute) {
+    const token = request.nextUrl.searchParams.get('token')
+    // Token present → always allow (validation happens client-side)
+    // Token absent  → fall through to the standard auth checks below
+    if (token) return NextResponse.next()
+  }
 
   // Read the auth presence cookie (set during login, cleared on logout)
   const authToken = request.cookies.get('gaffer-auth-token')?.value
