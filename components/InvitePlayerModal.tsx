@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, X, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -8,6 +8,7 @@ import { createPlayerInvite } from '@/lib/services/team.service'
 import { buildInviteLink } from '@/lib/routes'
 import { CopyLink } from '@/components/CopyLink'
 import { ApiError, getErrorMessage } from '@/lib/api'
+import { useUIStore } from '@/store/uiStore'
 
 interface InvitePlayerModalProps {
   teamId: string
@@ -32,9 +33,22 @@ type ModalState =
  */
 export function InvitePlayerModal({ teamId, isOpen, onClose }: InvitePlayerModalProps) {
   const qc = useQueryClient()
+  const { hideNavbar, showNavbar } = useUIStore()
   const [email, setEmail] = useState('')
   const [fieldError, setFieldError] = useState<string | null>(null)
   const [state, setState] = useState<ModalState>({ step: 'form' })
+
+  useEffect(() => {
+    if (isOpen) {
+      hideNavbar()
+    } else {
+      showNavbar()
+    }
+    // Cleanup on unmount to ensure navbar is restored
+    return () => {
+      showNavbar()
+    }
+  }, [isOpen, hideNavbar, showNavbar])
 
   const reset = () => {
     setEmail('')
@@ -87,30 +101,16 @@ export function InvitePlayerModal({ teamId, isOpen, onClose }: InvitePlayerModal
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={handleClose}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
-          />
-
-          {/* Bottom sheet */}
+          {/* Fullscreen modal */}
           <motion.div
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-            className="fixed inset-x-0 bottom-0 z-[110] bg-gaffer-surface border-t border-gaffer-border rounded-t-3xl"
+            className="fixed inset-0 z-[100] bg-gaffer-surface flex flex-col"
           >
-            {/* Drag handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="w-10 h-1 rounded-full bg-gaffer-border" />
-            </div>
-
             {/* Header */}
-            <div className="flex items-center justify-between px-5 py-3 border-b border-gaffer-border">
+            <div className="flex items-center justify-between px-5 pt-12 pb-3 border-b border-gaffer-border">
               <div>
                 <h2 className="font-display font-bold text-white text-lg">
                   {state.step === 'success' ? 'Invite Sent!' : 'Invite Player'}
@@ -123,9 +123,9 @@ export function InvitePlayerModal({ teamId, isOpen, onClose }: InvitePlayerModal
               </div>
               <button
                 onClick={handleClose}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-gaffer-muted hover:text-white transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-gaffer-muted hover:text-white transition-colors"
               >
-                <X size={16} />
+                <X size={20} />
               </button>
             </div>
 
