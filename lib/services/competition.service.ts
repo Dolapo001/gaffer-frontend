@@ -65,9 +65,16 @@ export interface CreateCompetitionPayload {
 }
 
 // GET /orgs/:orgId/competitions
+// Some backends return 404 when no competitions exist yet rather than [].
+// Normalise to [] so callers never have to handle a 404 for an empty list.
 export async function listCompetitions(orgId: string): Promise<Competition[]> {
-  const data = await api.get<{ competitions: Competition[] }>(`/orgs/${orgId}/competitions`)
-  return data.competitions
+  try {
+    const data = await api.get<{ competitions: Competition[] }>(`/orgs/${orgId}/competitions`)
+    return data.competitions ?? []
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return []
+    throw err
+  }
 }
 
 // POST /orgs/:orgId/competitions

@@ -4,9 +4,18 @@ import { useToastStore } from '@/store/toastStore'
 
 export const queryClient = new QueryClient({
   queryCache: new QueryCache({
-    onError: (err: unknown) => {
+    onError: (err: unknown, query) => {
       // 401 session errors are handled by the api client (token refresh / redirect)
       if (err instanceof ApiError && err.status === 401) return
+
+      // Queries can opt out of the global toast by setting
+      //   meta: { suppressGlobalError: true }
+      // This mirrors the same pattern already in mutationCache below.
+      // Use it for queries that handle their own error UI inline, or for
+      // collection endpoints where 404 legitimately means "empty" rather
+      // than "something broke".
+      if ((query.meta as Record<string, unknown> | undefined)?.suppressGlobalError) return
+
       const message = getErrorMessage(err)
       useToastStore.getState().addToast({ message, type: 'error', duration: 5000 })
     }

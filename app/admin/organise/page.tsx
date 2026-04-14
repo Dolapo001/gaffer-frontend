@@ -81,12 +81,15 @@ export default function OrganizePage() {
     throwOnError: false,
   })
 
-  // 3a. Fetch full team detail when a team is selected
+  // 3a. Fetch full team detail when a team is selected.
+  // suppressGlobalError: the details view already renders gracefully with
+  // undefined data; a toast here would be confusing and duplicate noise.
   const { data: selectedTeamDetail } = useQuery({
     queryKey: ['team-detail', selectedTeam?.id],
     queryFn: () => getTeam(selectedTeam!.id),
     enabled: !!selectedTeam?.id,
     throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
   // 3b. Fetch team photos when a team is selected
@@ -95,6 +98,7 @@ export default function OrganizePage() {
     queryFn: () => getTeamPhotos(selectedTeam!.id),
     enabled: !!selectedTeam?.id,
     throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
   // 3. Fetch Players (when a team is selected)
@@ -103,22 +107,28 @@ export default function OrganizePage() {
     queryFn: () => listPlayers(selectedTeam!.id, selectedCompetitionId),
     enabled: !!selectedTeam?.id,
     throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
-  // 4. Fetch Groups
+  // 4. Fetch Groups.
+  // listGroups already normalises backend 404 → [] at the service layer.
+  // Keep suppressGlobalError as a belt-and-suspenders guard.
   const { data: backendGroups, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['groups', orgId],
     queryFn: () => listGroups(orgId!),
     enabled: !!orgId,
     throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
-  // 5. Fetch Competitions (Tournaments)
+  // 5. Fetch Competitions (Tournaments).
+  // listCompetitions already normalises backend 404 → [] at the service layer.
   const { data: competitions, isLoading: isLoadingCompetitions } = useQuery({
     queryKey: ['competitions', orgId],
     queryFn: () => listCompetitions(orgId!),
     enabled: !!orgId,
     throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
   // Mutations

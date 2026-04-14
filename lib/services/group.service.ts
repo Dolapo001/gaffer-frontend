@@ -1,4 +1,4 @@
-import { api } from '@/lib/api'
+import { api, ApiError } from '@/lib/api'
 import type { Team } from './team.service'
 
 export interface Group {
@@ -18,9 +18,16 @@ export interface CreateGroupPayload {
 }
 
 // GET /orgs/:orgId/groups
+// Some backends return 404 when no groups exist yet rather than an empty array.
+// We normalise that to [] so callers never have to handle a 404 for an empty list.
 export async function listGroups(orgId: string): Promise<Group[]> {
-  const data = await api.get<{ groups: Group[] }>(`/orgs/${orgId}/groups`)
-  return data.groups
+  try {
+    const data = await api.get<{ groups: Group[] }>(`/orgs/${orgId}/groups`)
+    return data.groups ?? []
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) return []
+    throw err
+  }
 }
 
 // POST /orgs/:orgId/groups
