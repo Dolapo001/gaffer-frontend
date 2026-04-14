@@ -77,6 +77,38 @@ export const useAuthStore = create<AuthState>()(
       setProfile: (profile) => set({ profile }),
 
       setRole: (role) => {
+        const currentRole = get().role
+
+        // When the user explicitly switches between personal ↔ organisation context
+        // we must discard every org-scoped React Query cache entry so that the
+        // incoming context never sees data that belongs to the previous context.
+        //
+        // We deliberately SKIP this on the initial null → role restoration
+        // (startup / auth-listener) so that a normal app launch does not blow away
+        // freshly-fetched data.  The guard is: currentRole must already be a real
+        // value AND be different from the new role.
+        if (currentRole !== null && currentRole !== role) {
+          if (typeof window !== 'undefined') {
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const { queryClient } = require('@/lib/queryClient')
+              queryClient.clear()
+            } catch {
+              // SSR or bundler tree-shaking may strip this — ignore
+            }
+          }
+
+          // Also wipe the UIStore competition context so the old competitionId /
+          // activeOrgId don't sneak into API calls made in the new context.
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const { useUIStore } = require('@/store/uiStore')
+            useUIStore.getState().clearActiveCompetition()
+          } catch {
+            // ignore
+          }
+        }
+
         // Mirror role into cookie so middleware can gate routes server-side.
         if (typeof document !== 'undefined') {
           if (role) {

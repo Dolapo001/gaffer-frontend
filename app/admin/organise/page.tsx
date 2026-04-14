@@ -63,6 +63,16 @@ export default function OrganizePage() {
 
   const orgId = orgs?.[0]?._id
 
+  // Guard: if the active org changes (role switch / re-auth), snap back to the
+  // list view and clear any selection so stale teamId / groupId values never
+  // reach API calls in the new context.
+  useEffect(() => {
+    if (!orgId) return
+    setSelectedTeam(null)
+    setSelectedGroup(null)
+    setView('list')
+  }, [orgId])
+
   // 2. Fetch Teams
   const { data: backendTeams, isLoading: isLoadingTeams } = useQuery({
     queryKey: ['teams', orgId],
