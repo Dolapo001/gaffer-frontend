@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon } from 'lucide-react'
+import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon, Mail } from 'lucide-react'
 import type { Team, Group, Player } from '../types'
 import type { Team as BackendTeam, TeamPhoto } from '@/lib/services/team.service'
 import { useToastStore } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
 import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { InvitePlayerModal } from '@/components/InvitePlayerModal'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -98,6 +99,7 @@ export function OrganiseDetails({
   const [showEditTeam, setShowEditTeam] = useState(false)
   const [editTeamName, setEditTeamName] = useState('')
   const [showPhotos, setShowPhotos] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<string | null>(null)
   const teamPhotoInputRef = useRef<HTMLInputElement>(null)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
@@ -383,13 +385,22 @@ export function OrganiseDetails({
 
             <div className="flex items-center justify-between px-2 pt-2">
                <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Squad Roster</h4>
-               <button 
-                 onClick={() => setIsAddingPlayer(true)}
-                 className="flex items-center gap-1.5 text-gaffer-orange/60 hover:text-gaffer-orange transition-all active:scale-95"
-               >
-                 <Plus size={12} strokeWidth={3} />
-                 <span className="text-[9px] font-black uppercase tracking-widest">Manual Add</span>
-               </button>
+               <div className="flex items-center gap-3">
+                 <button
+                   onClick={() => setShowInviteModal(true)}
+                   className="flex items-center gap-1.5 text-white/30 hover:text-gaffer-orange transition-all active:scale-95"
+                 >
+                   <Mail size={12} strokeWidth={2.5} />
+                   <span className="text-[9px] font-black uppercase tracking-widest">Invite</span>
+                 </button>
+                 <button
+                   onClick={() => setIsAddingPlayer(true)}
+                   className="flex items-center gap-1.5 text-gaffer-orange/60 hover:text-gaffer-orange transition-all active:scale-95"
+                 >
+                   <Plus size={12} strokeWidth={3} />
+                   <span className="text-[9px] font-black uppercase tracking-widest">Manual Add</span>
+                 </button>
+               </div>
             </div>
 
             {/* Player Roster */}
@@ -866,6 +877,15 @@ export function OrganiseDetails({
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Invite Player Modal ── */}
+      {selectedTeam && (
+        <InvitePlayerModal
+          teamId={selectedTeam.id}
+          isOpen={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+        />
+      )}
     </motion.div>
   )
 }
