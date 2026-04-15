@@ -8,6 +8,9 @@ const PUBLIC_ROUTES = ['/', '/onboarding']
 // Invite onboarding pages must be reachable without a session — the token
 // itself authenticates the request at the API layer.
 const INVITE_ROUTES = ['/player/onboarding', '/organization/onboarding']
+// Recruitment links are fully public — no token in the URL is needed because
+// the token is the path segment itself (/recruit/:token).
+const RECRUIT_PREFIX = '/recruit'
 
 /**
  * Server-side route protection.
@@ -25,6 +28,9 @@ export function middleware(request: NextRequest) {
     (r) => pathname === r || pathname.startsWith(r + '/')
   )
   if (isPublic) return NextResponse.next()
+
+  // Recruitment links are fully public — the token is the URL segment itself
+  if (pathname.startsWith(RECRUIT_PREFIX)) return NextResponse.next()
 
   // Invite onboarding routes are public when a token is present.
   // A logged-out user arriving from an invite email must reach these pages.
