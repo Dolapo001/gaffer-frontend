@@ -29,9 +29,8 @@ export function TopPlayersList({ title, players, statKey, statLabel, onSeeAll }:
   if (list.length === 0) {
     return (
       <div
-        className="bg-[#1a1b2e]/60 rounded-[28.03px] p-10 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center text-center mx-auto w-full mb-6"
+        className="bg-[#1a1b2e]/60 rounded-[28.03px] p-10 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center text-center w-full mb-6"
         style={{
-          maxWidth: '340px',
           fontFamily: "'Poppins', sans-serif"
         }}
       >
@@ -43,9 +42,8 @@ export function TopPlayersList({ title, players, statKey, statLabel, onSeeAll }:
 
   return (
     <div
-      className="bg-[#1a1b2e]/60 rounded-[28.03px] p-6 backdrop-blur-md shadow-2xl flex flex-col mx-auto w-full mb-6"
+      className="bg-[#1a1b2e]/60 rounded-[28.03px] p-6 backdrop-blur-md shadow-2xl flex flex-col w-full mb-6"
       style={{
-        maxWidth: '340px',
         border: '1.31px solid rgba(255,255,255,0.08)',
         fontFamily: "'Poppins', sans-serif"
       }}

@@ -65,7 +65,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             className="flex-1"
-            style={{ paddingBottom: 'calc(88px + env(safe-area-inset-bottom, 16px))' }}
+            style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}
           >
             {children}
           </motion.main>

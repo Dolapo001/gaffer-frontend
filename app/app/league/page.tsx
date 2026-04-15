@@ -7,9 +7,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage, ApiError } from '@/lib/api'
-import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions } from '@/lib/services/competition.service'
+import { listJoinedCompetitions, joinCompetition, joinCompetitionById, searchCompetitions, listAllPublicCompetitions } from '@/lib/services/competition.service'
 import { LeagueItem } from '@/components/home/LeagueItem'
-import { Trophy, Search, X, Plus } from 'lucide-react'
+import { Search, X, Plus } from 'lucide-react'
 import type { Competition } from '@/lib/services/competition.service'
 import { getImageUrl } from '@/lib/api'
 
@@ -47,11 +47,15 @@ function DiscoveryCompetitionCard({
       className="w-full flex items-center gap-4 bg-[#202235]/40 border border-white/5 rounded-xl p-4 text-left disabled:cursor-not-allowed transition-colors"
       style={{ opacity: isAnyJoining && !isThisJoining ? 0.5 : 1 }}
     >
-      <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
+      <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0">
         {displayLogo ? (
-          <img src={getImageUrl(displayLogo)} alt={`${competition.name} Logo`} className="w-full h-full object-cover opacity-60" />
+          <img src={getImageUrl(displayLogo)} alt={`${competition.name} Logo`} className="w-full h-full object-cover" />
         ) : (
-          <Trophy size={24} className="text-gaffer-muted" />
+          <div className="w-full h-full bg-gradient-to-br from-[#FF8904] to-[#E7000B] flex items-center justify-center">
+            <span className="text-white font-black text-lg uppercase tracking-wide">
+              {competition.name.split(' ').slice(0, 2).map((w: string) => w[0]).join('')}
+            </span>
+          </div>
         )}
       </div>
 
@@ -191,6 +195,13 @@ function LeaguePageContent() {
     joinByIdMutation.mutate(competitionId)
   }
 
+  const { data: allCompetitions, isLoading: isLoadingAll } = useQuery({
+    queryKey: ['all-competitions'],
+    queryFn: listAllPublicCompetitions,
+    enabled: isAuthenticated,
+    throwOnError: false,
+  })
+
   const { data: searchResults, isLoading: isSearching } = useQuery({
     queryKey: ['search-competitions', searchQuery],
     queryFn: () => {
@@ -213,7 +224,7 @@ function LeaguePageContent() {
   )
 
   return (
-    <div className="min-h-screen bg-[#181928] pb-28">
+    <div className="min-h-screen bg-[#181928] pb-24">
       {/* Search bar */}
       <div className="px-4 pt-12 pb-3">
         <div className="flex items-center gap-3 bg-[#1e1f30] rounded-2xl px-4 h-12">
@@ -281,20 +292,50 @@ function LeaguePageContent() {
                 ))}
               </div>
             ) : !searchQuery && (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="w-20 h-20 rounded-full bg-gaffer-card border border-gaffer-border flex items-center justify-center mb-6">
-                  <Trophy size={32} className="text-gaffer-subtle" />
+              <div className="space-y-4">
+                {/* All Leagues section */}
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <div className="h-px bg-white/5 flex-1" />
+                  <span className="text-[10px] text-gaffer-muted font-black tracking-[4px] uppercase">All Leagues</span>
+                  <div className="h-px bg-white/5 flex-1" />
                 </div>
-                <p className="text-white font-display font-bold text-lg mb-2">No leagues yet</p>
-                <p className="text-gaffer-muted text-sm font-body max-w-[220px] mb-8 leading-relaxed">
-                  Enter a league code to join a competition and see it here in your favourites.
-                </p>
-                <button
-                  onClick={() => setIsJoinModalOpen(true)}
-                  className="bg-gaffer-orange text-white font-display font-bold text-sm px-8 py-3.5 rounded-full shadow-orange-glow"
-                >
-                  Enter League Code
-                </button>
+
+                {isLoadingAll ? (
+                  <div className="space-y-3">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className="h-16 bg-white/5 rounded-xl animate-pulse" />
+                    ))}
+                  </div>
+                ) : allCompetitions && allCompetitions.length > 0 ? (
+                  <div className="space-y-3">
+                    {allCompetitions
+                      .filter(c => !competitions?.some(j => j._id === c._id))
+                      .map((comp) => (
+                        <DiscoveryCompetitionCard
+                          key={comp._id}
+                          competition={comp}
+                          joiningId={joiningId}
+                          onJoin={handleDiscoveryJoin}
+                        />
+                      ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#FF8904]/20 to-[#E7000B]/20 border border-gaffer-orange/20 flex items-center justify-center mb-6">
+                      <span className="text-gaffer-orange font-black text-3xl">?</span>
+                    </div>
+                    <p className="text-white font-display font-bold text-lg mb-2">No leagues yet</p>
+                    <p className="text-gaffer-muted text-sm font-body max-w-[220px] mb-8 leading-relaxed">
+                      There are no active leagues right now. Check back soon or join with a code.
+                    </p>
+                    <button
+                      onClick={() => setIsJoinModalOpen(true)}
+                      className="bg-gaffer-orange text-white font-display font-bold text-sm px-8 py-3.5 rounded-full shadow-orange-glow"
+                    >
+                      Enter League Code
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
@@ -409,7 +450,7 @@ export default function LeaguePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#181928] pb-28 px-4 pt-12">
+        <div className="min-h-screen bg-[#181928] pb-24 px-4 pt-12">
           <div className="space-y-3">
             {[0, 1, 2].map((i) => (
               <div key={i} className="h-16 bg-white/5 rounded-2xl animate-pulse" />

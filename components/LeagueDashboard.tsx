@@ -57,7 +57,9 @@ export default function LeagueDashboard() {
             {activeTab === 'table' ? (
               <>
                 <TableStandings />
-                <TopPlayersList title="Top Scorers" statKey="goals" statLabel="Goals" onSeeAll={() => setCurrentView('goals-scored')} />
+                <div className="w-full px-4">
+                  <TopPlayersList title="Top Scorers" statKey="goals" statLabel="Goals" onSeeAll={() => setCurrentView('goals-scored')} />
+                </div>
                 <TopAssiterButton />
               </>
             ) : (

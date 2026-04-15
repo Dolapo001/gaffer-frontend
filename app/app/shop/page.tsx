@@ -85,7 +85,7 @@ export default function ShopPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-8 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-24 space-y-8 no-scrollbar">
         
         {/* Verification Loader */}
         <AnimatePresence>

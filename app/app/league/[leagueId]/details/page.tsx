@@ -205,24 +205,28 @@ export default function LeagueDetailsPage() {
                     router.push(`/app/league/${leagueId}/table`)
                   }
                 />
-                <TopPlayersList
-                  title="Top Scorer"
-                  players={scorers}
-                  statKey="goals"
-                  statLabel="Goals"
-                  onSeeAll={() =>
-                    router.push(`/app/league/${leagueId}/scorers`)
-                  }
-                />
-                <TopPlayersList
-                  title="Top Assister"
-                  players={assists}
-                  statKey="assists"
-                  statLabel="Assists"
-                  onSeeAll={() =>
-                    router.push(`/app/league/${leagueId}/scorers`)
-                  }
-                />
+                <div className="w-full px-4">
+                  <TopPlayersList
+                    title="Top Scorer"
+                    players={scorers}
+                    statKey="goals"
+                    statLabel="Goals"
+                    onSeeAll={() =>
+                      router.push(`/app/league/${leagueId}/scorers`)
+                    }
+                  />
+                </div>
+                <div className="w-full px-4">
+                  <TopPlayersList
+                    title="Top Assister"
+                    players={assists}
+                    statKey="assists"
+                    statLabel="Assists"
+                    onSeeAll={() =>
+                      router.push(`/app/league/${leagueId}/scorers`)
+                    }
+                  />
+                </div>
 
                 {/* Trending / social feed */}
                 {socialPosts.length > 0 && (

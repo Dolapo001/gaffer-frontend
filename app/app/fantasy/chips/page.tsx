@@ -100,7 +100,7 @@ export default function ChipsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 space-y-10 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-24 space-y-10 no-scrollbar">
         
         {/* Inventory Section */}
         <section className="space-y-4">
@@ -222,7 +222,7 @@ export default function ChipsPage() {
                    <button
                      onClick={() => buyMutation.mutate(selectedChip.chipType)}
                      disabled={buyMutation.isPending || (selectedChip.price.coins > (wallet?.balance ?? 0))}
-                     className="w-full h-16 rounded-[24px] bg-gradient-to-r from-gaffer-orange to-red-600 text-white font-chakra font-black text-lg uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
+                     className="w-full h-16 rounded-[24px] bg-gradient-to-r from-gaffer-orange to-red-600 text-white font-chakra font-black text-sm uppercase tracking-[0.2em] shadow-2xl active:scale-95 transition-all disabled:opacity-50"
                    >
                      {buyMutation.isPending ? 'Processing...' : selectedChip.price.coins > (wallet?.balance ?? 0) ? 'Insufficient Coins' : 'Confirm Purchase'}
                    </button>

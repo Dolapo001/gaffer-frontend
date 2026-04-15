@@ -29,6 +29,7 @@ interface FantasyState {
   isSaved: boolean
   isSaving: boolean
   saveError: string | null
+  substituteError: string | null
 
   // Onboarding flow flags
   hasSeenWelcome: boolean
@@ -58,6 +59,7 @@ interface FantasyState {
   setHasNamedTeam: (val: boolean) => void
   setTeamName: (name: string) => void
   setPlayers: (players: FantasySquadPlayer[]) => void
+  adjustBudget: (delta: number) => void
   resetTeam: () => void
 }
 
@@ -73,6 +75,7 @@ export const useFantasyStore = create<FantasyState>()(
       isSaved: false,
       isSaving: false,
       saveError: null,
+      substituteError: null,
       hasSeenWelcome: false,
       hasCreatedTeam: false,
       hasOrganizedBench: false,
@@ -115,8 +118,29 @@ export const useFantasyStore = create<FantasyState>()(
 
             // GK can only swap with GK
             if ((p1.position === 'GK') !== (p2.position === 'GK')) {
-              console.warn('Cannot swap Goalkeeper with a field player.')
-              return { substitutingOutId: null }
+              return { substitutingOutId: null, substituteError: 'Goalkeeper can only swap with another goalkeeper.' }
+            }
+
+            // Simulate the swap and check position min/max on the pitch
+            const MIN: Record<string, number> = { GK: 1, DEF: 3, MID: 3, FWD: 1 }
+            const MAX: Record<string, number> = { GK: 1, DEF: 5, MID: 5, FWD: 3 }
+
+            const pitchAfter: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
+            newPlayers.forEach((p, i) => {
+              let onPitch = p.isOnPitch
+              if (i === p1Index) onPitch = p2.isOnPitch
+              if (i === p2Index) onPitch = p1.isOnPitch
+              if (onPitch) pitchAfter[p.position] = (pitchAfter[p.position] ?? 0) + 1
+            })
+
+            for (const pos of ['DEF', 'MID', 'FWD']) {
+              const count = pitchAfter[pos] ?? 0
+              if (count < MIN[pos]) {
+                return { substitutingOutId: null, substituteError: `You need at least ${MIN[pos]} ${pos} on the pitch.` }
+              }
+              if (count > MAX[pos]) {
+                return { substitutingOutId: null, substituteError: `You can have at most ${MAX[pos]} ${pos} on the pitch.` }
+              }
             }
 
             const p1WasOnPitch = p1.isOnPitch
@@ -125,7 +149,7 @@ export const useFantasyStore = create<FantasyState>()(
             newPlayers[p1Index] = { ...p1, isOnPitch: p2WasOnPitch }
             newPlayers[p2Index] = { ...p2, isOnPitch: p1WasOnPitch }
 
-            return { players: newPlayers, substitutingOutId: null }
+            return { players: newPlayers, substitutingOutId: null, substituteError: null }
           }
           return state
         }),
@@ -200,6 +224,7 @@ export const useFantasyStore = create<FantasyState>()(
       setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
       setTeamName: (name) => set({ teamName: name }),
       setPlayers: (players) => set({ players }),
+      adjustBudget: (delta) => set((state) => ({ budget: Math.max(0, state.budget + delta) })),
 
       resetTeam: () =>
         set({

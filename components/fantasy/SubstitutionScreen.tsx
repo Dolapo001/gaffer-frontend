@@ -1,7 +1,8 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { ChevronLeft, RefreshCw, Home, Trophy, FileText } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 
 import { useFantasyStore } from '@/store/fantasyStore'
@@ -21,6 +22,17 @@ export function SubstitutionScreen() {
   const setSubstitutingOutId = useFantasyStore((s) => s.setSubstitutingOutId)
   const performSubstitution = useFantasyStore((s) => s.performSubstitution)
   const budget = useFantasyStore((s) => s.budget)
+  const substituteError = useFantasyStore((s) => s.substituteError)
+
+  const [visibleError, setVisibleError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (substituteError) {
+      setVisibleError(substituteError)
+      const t = setTimeout(() => setVisibleError(null), 2500)
+      return () => clearTimeout(t)
+    }
+  }, [substituteError])
   
   // Player state setup
   const pitchPlayers = players.filter((p) => p.isOnPitch)
@@ -89,6 +101,20 @@ export function SubstitutionScreen() {
         </button>
         <h1 className="text-white text-[24px] font-bold tracking-tight">Substitution</h1>
       </header>
+
+      {/* Substitute error toast */}
+      <AnimatePresence>
+        {visibleError && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-28 left-1/2 -translate-x-1/2 z-50 bg-[#ff4d00] text-white text-[12px] font-bold px-5 py-2.5 rounded-full shadow-lg whitespace-nowrap"
+          >
+            {visibleError}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content Area - Scrollable */}
       <div className="flex-1 overflow-y-auto pb-32 relative z-10 touch-pan-y scrollbar-hide">

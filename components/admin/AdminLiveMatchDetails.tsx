@@ -512,7 +512,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                 else setAwayFormation(form as any)
                                 setIsSelectingFormation(null)
                               }}
-                              className={`w-full py-4 rounded-2xl font-inter font-bold text-lg uppercase transition-all mb-1 last:mb-0 ${
+                              className={`w-full py-4 rounded-2xl font-inter font-bold text-sm uppercase transition-all mb-1 last:mb-0 ${
                                 (isSelectingFormation === 'home' ? homeFormation : awayFormation) === form
                                   ? 'bg-gradient-to-r from-[#FF5C00] to-[#FF2D20] text-white shadow-lg'
                                   : 'text-white/40 hover:text-white hover:bg-white/5'

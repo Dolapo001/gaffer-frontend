@@ -88,12 +88,6 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Center — GAFFER branding */}
-          <div className="flex-1 flex flex-col items-center">
-            <h1 className="font-chakra font-black text-xl bg-gradient-to-r from-[#FF8904] to-[#E7000B] bg-clip-text text-transparent tracking-widest uppercase">GAFFER</h1>
-            <p className="text-[9px] font-chakra font-bold text-white/40 uppercase tracking-[2px]">Personal</p>
-          </div>
-
           {/* Right — wallet, notifications, profile */}
           <div className="flex-1 flex items-center justify-end gap-1">
             <motion.div
@@ -124,7 +118,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6">
-        <main className="space-y-8 pb-32 pt-4">
+        <main className="space-y-8 pb-24 pt-4">
           <div>
              <p className="font-chakra text-white/40 text-xs font-bold uppercase tracking-wider">Good Day,</p>
              <h2 className="font-chakra font-black text-2xl text-white uppercase tracking-tight -mt-1">{displayName}</h2>
@@ -192,9 +186,9 @@ export default function DashboardPage() {
                       setRole('organization')
                       router.push('/admin')
                     }}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
+                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
                   >
-                    Go to Admin
+                    Go to Organization
                   </button>
                 </>
               ) : (
@@ -202,7 +196,7 @@ export default function DashboardPage() {
                   <p className="text-white font-chakra font-bold text-lg">Start a New Tournament</p>
                   <button
                     onClick={() => router.push('/onboarding/organization')}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
+                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
                   >
                     Upgrade to Org
                   </button>

@@ -539,7 +539,7 @@ export default function OrganizePage() {
           </div>
           <button
             onClick={() => router.push('/auth/signup/organization')}
-            className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all"
+            className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider shadow-lg active:scale-[0.98] transition-all"
           >
             Finish Setup
           </button>

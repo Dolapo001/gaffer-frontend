@@ -157,7 +157,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
               })}
             />
             <div className="pt-4">
-              <GradientButton type="submit" loading={isSubmitting} className="w-full py-4 rounded-xl text-lg uppercase font-black">
+              <GradientButton type="submit" loading={isSubmitting} className="w-full py-4 rounded-xl text-sm uppercase font-black">
                 Create Organization
               </GradientButton>
             </div>
@@ -178,7 +178,7 @@ export function AccountUpgradeModal({ isOpen, onClose, targetRole }: AccountUpgr
               {...personalForm.register('username')}
             />
             <div className="pt-4">
-              <GradientButton type="submit" loading={isSubmitting} className="w-full py-4 rounded-xl text-lg uppercase font-black font-chakra">
+              <GradientButton type="submit" loading={isSubmitting} className="w-full py-4 rounded-xl text-sm uppercase font-black font-chakra">
                 Complete Profile
               </GradientButton>
             </div>

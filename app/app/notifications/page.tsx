@@ -160,7 +160,7 @@ export default function NotificationsPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-32 no-scrollbar">
+      <div className="flex-1 overflow-y-auto px-6 pt-8 pb-24 no-scrollbar">
         <AnimatePresence mode="wait">
           {/* ── INBOX TAB ─────────────────────────────────────────────────── */}
           {activeTab === 'inbox' ? (

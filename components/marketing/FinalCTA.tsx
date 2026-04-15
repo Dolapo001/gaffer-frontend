@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion'
 import { ArrowRight, Smartphone } from 'lucide-react'
+import Image from 'next/image'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { IOSInstallModal } from '@/components/IOSInstallModal'
 
@@ -48,11 +49,26 @@ export function FinalCTA() {
         transition={{ duration: 0.8 }}
         className="max-w-7xl mx-auto relative rounded-[32px] overflow-hidden bg-brand-gradient py-20 px-6 md:px-20 text-center"
       >
-        {/* Glow effect */}
-        <div className="absolute top-0 right-0 w-1/3 h-full bg-white/10 blur-[100px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-1/3 h-full bg-black/10 blur-[100px] pointer-events-none" />
+        {/* Animated background image */}
+        <motion.div
+          className="absolute inset-0 z-0"
+          animate={{ scale: [1.15, 1.0, 1.15] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          <Image
+            src="/images/stadium_bg.png"
+            alt=""
+            fill
+            className="object-cover opacity-20"
+            priority
+          />
+        </motion.div>
 
-        <div className="relative z-10 space-y-8">
+        {/* Glow effect */}
+        <div className="absolute top-0 right-0 w-1/3 h-full bg-white/10 blur-[100px] pointer-events-none z-[1]" />
+        <div className="absolute bottom-0 left-0 w-1/3 h-full bg-black/10 blur-[100px] pointer-events-none z-[1]" />
+
+        <div className="relative z-10 space-y-8" style={{ isolation: 'isolate' }}>
            <motion.h2
               variants={container}
               initial="hidden"

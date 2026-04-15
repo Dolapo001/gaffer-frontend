@@ -132,7 +132,7 @@ export default function AdminNewsPage() {
             <button
               onClick={() => canPost && postMutation.mutate()}
               disabled={!canPost || postMutation.isPending}
-              className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+              className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {postMutation.isPending && <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
               {postMutation.isPending ? 'Posting...' : 'Post'}

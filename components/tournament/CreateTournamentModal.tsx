@@ -546,7 +546,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 <button 
                   onClick={nextStep} 
                   disabled={!details.name.trim() || details.endDate < details.startDate}
-                  className="w-full py-4 rounded-2xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
+                  className="w-full py-4 rounded-2xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale"
                 >
                     Next
                 </button>
@@ -681,7 +681,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                 <button onClick={prevStep} className="font-chakra font-black text-sm text-white/40 uppercase tracking-widest hover:text-white transition-colors pl-4">Back</button>
                 <button 
                   onClick={nextStep} 
-                  className="flex-1 py-4 rounded-2xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all"
+                  className="flex-1 py-4 rounded-2xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-xl shadow-[#FF8904]/10 active:scale-[0.98] transition-all"
                 >
                     Next
                 </button>
@@ -767,7 +767,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                     <button 
                       onClick={() => addedFormats.length > 0 && setShowConfirm(true)} 
                       disabled={addedFormats.length === 0}
-                      className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
+                      className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
                     >
                       Create Tournament
                     </button>

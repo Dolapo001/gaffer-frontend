@@ -66,7 +66,7 @@ export default function WelcomePage() {
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => router.push('/onboarding/role-select')}
-              className="w-full bg-white text-black py-4 rounded-xl font-chakra font-bold text-lg tracking-wide shadow-lg"
+              className="w-full bg-white text-black py-4 rounded-xl font-chakra font-bold text-sm tracking-wide shadow-lg"
             >
               GET STARTED
             </motion.button>

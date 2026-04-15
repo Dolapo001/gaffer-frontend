@@ -351,7 +351,7 @@ export default function CollaboratorsPage() {
                     <button
                       onClick={() => sendInviteMutation.mutate({ email: inviteEmail, role: inviteRole })}
                       disabled={!inviteEmail || sendInviteMutation.isPending}
-                      className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-black text-lg py-5 rounded-[24px] shadow-[0_10px_20px_rgba(255,0,0,0.2)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
+                      className="w-full bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white font-black text-sm py-5 rounded-[24px] shadow-[0_10px_20px_rgba(255,0,0,0.2)] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale flex items-center justify-center gap-2"
                     >
                       {sendInviteMutation.isPending ? (
                         <>

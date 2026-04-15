@@ -1,7 +1,6 @@
 'use client'
 
 import { motion } from 'framer-motion'
-import { Info, Flame } from 'lucide-react'
 import Image from 'next/image'
 
 interface LeagueItemProps {
@@ -27,11 +26,15 @@ export function LeagueItem({
       className="flex items-center gap-3 py-3.5 cursor-pointer group"
     >
       {/* League Avatar */}
-      <div className="flex-shrink-0 w-11 h-11 rounded-full bg-gaffer-orange flex items-center justify-center shadow-orange-glow overflow-hidden">
+      <div className="flex-shrink-0 w-11 h-11 rounded-full overflow-hidden shadow-orange-glow">
         {avatar ? (
           <Image src={avatar} alt={name} width={44} height={44} className="w-full h-full object-cover" />
         ) : (
-          <Flame size={18} className="text-white" />
+          <div className="w-full h-full bg-gradient-to-br from-[#FF8904] to-[#E7000B] flex items-center justify-center">
+            <span className="text-white font-black text-sm uppercase tracking-wide">
+              {name.split(' ').slice(0, 2).map(w => w[0]).join('')}
+            </span>
+          </div>
         )}
       </div>
 
@@ -51,13 +54,6 @@ export function LeagueItem({
         <p className="text-gaffer-muted text-xs font-body mt-0.5">{dateRange}</p>
       </div>
 
-      {/* Info icon */}
-      <button
-        onClick={(e) => e.stopPropagation()}
-        className="flex-shrink-0 w-8 h-8 rounded-full border border-gaffer-border flex items-center justify-center text-gaffer-subtle hover:text-white hover:border-gaffer-orange/40 transition-all"
-      >
-        <Info size={14} />
-      </button>
     </motion.div>
   )
 }

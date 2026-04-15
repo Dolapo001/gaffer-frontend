@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { Search, ChevronRight, CheckCircle2, Plus } from 'lucide-react'
 import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal'
 import { listOrgs } from '@/lib/services/org.service'
 import { listCompetitions } from '@/lib/services/competition.service'
@@ -87,7 +87,7 @@ export default function TournamentsPage() {
 
               <button
                 onClick={handleCreateTournament}
-                className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
+                className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest shadow-lg active:scale-[0.98] transition-all"
               >
                 {firstOrg ? 'Create Tournament' : 'Set Up Organization First'}
               </button>
@@ -146,7 +146,7 @@ export default function TournamentsPage() {
           onClick={handleCreateTournament}
           className="absolute bottom-28 right-6 w-16 h-16 rounded-full bg-gradient-to-br from-[#FF8904] to-[#E7000B] text-white flex items-center justify-center shadow-[0_8px_32px_rgba(231,0,11,0.3)] active:scale-90 transition-transform z-30"
         >
-          <div className="text-4xl font-light">+</div>
+          <Plus size={28} strokeWidth={2.5} />
         </button>
       )}
 

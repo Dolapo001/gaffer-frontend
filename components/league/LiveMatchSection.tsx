@@ -27,15 +27,17 @@ interface LiveMatchSectionProps {
   fixtures?: any[];
 }
 
+const GAP = 12;
+const SIDE_PADDING = 16;
+
 export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const firstCardRef = useRef<HTMLDivElement | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Match data mapping
   const realMatches: MatchData[] = (fixtures || []).map(f => ({
     id: f._id,
     homeTeam: {
-      // typeof null === 'object' in JS, so guard with truthiness check too
       name:  (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name  : 'Home',
       crest: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.logoUrl || '' : '',
       scorers: [],
@@ -51,11 +53,7 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
 
   const displayMatches = realMatches;
 
-  // Design constants
-  const CARD_WIDTH = 222.53;
-  const GAP = 16;
-  const START_PADDING = 20;
-
+  // Auto-advance every 5 s
   useEffect(() => {
     if (displayMatches.length <= 1) return;
     const interval = setInterval(() => {
@@ -64,51 +62,59 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
     return () => clearInterval(interval);
   }, [displayMatches.length]);
 
-  // Flush Left Scrolling Logic
+  // Scroll to the active card using measured card width for accuracy
   useEffect(() => {
-    if (containerRef.current && displayMatches.length > 0) {
-      const scrollPos = currentIndex * (CARD_WIDTH + GAP);
-      containerRef.current.scrollTo({
-        left: scrollPos,
-        behavior: 'smooth'
-      });
-    }
+    if (!containerRef.current || displayMatches.length === 0) return;
+    const cardWidth = firstCardRef.current?.offsetWidth ?? 0;
+    if (!cardWidth) return;
+    containerRef.current.scrollTo({
+      left: currentIndex * (cardWidth + GAP),
+      behavior: 'smooth',
+    });
   }, [currentIndex, displayMatches.length]);
 
   if (displayMatches.length === 0) return null;
 
   return (
     <div className="w-full relative overflow-hidden py-4">
-      <div 
+      <div
         ref={containerRef}
         className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory pb-4"
-        style={{ scrollPaddingLeft: `${START_PADDING}px` }}
+        style={{
+          scrollPaddingLeft: `${SIDE_PADDING}px`,
+          WebkitOverflowScrolling: 'touch',
+          scrollBehavior: 'smooth',
+        }}
       >
-        <div className="flex shrink-0 pb-2" style={{ paddingLeft: `${START_PADDING}px`, gap: `${GAP}px` }}>
+        <div
+          className="flex shrink-0 pb-2"
+          style={{ paddingLeft: `${SIDE_PADDING}px`, paddingRight: `${SIDE_PADDING}px`, gap: `${GAP}px` }}
+        >
           {displayMatches.map((match: MatchData, index: number) => {
             const isActive = index === currentIndex;
 
             return (
               <motion.div
                 key={match.id}
+                ref={index === 0 ? (el) => { firstCardRef.current = el as HTMLDivElement | null; } : undefined}
                 onClick={() => {
                   setCurrentIndex(index);
                   if (isActive) onCardClick?.(match.id);
                 }}
                 className="snap-start shrink-0 rounded-[24px] overflow-hidden cursor-pointer"
                 animate={{
-                  opacity: isActive ? 1 : 0.6,
-                  scale: isActive ? 1 : 0.98,
+                  opacity: isActive ? 1 : 0.55,
+                  scale: isActive ? 1 : 0.97,
                 }}
-                transition={{ duration: 0.5 }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
                 style={{
-                  width: `${CARD_WIDTH}px`,
+                  width: 'calc(100vw - 32px)',
                   height: '140.17px',
                   background: isActive
                     ? 'linear-gradient(91.01deg, #4568DC 0%, #B06AB3 100%)'
                     : '#1a2138',
                   border: '1.27px solid rgba(255,255,255,0.05)',
-                  boxShadow: isActive ? '0 10px 40px -10px rgba(69, 104, 220, 0.4)' : 'none'
+                  boxShadow: isActive ? '0 10px 40px -10px rgba(69, 104, 220, 0.4)' : 'none',
                 }}
               >
                 <div className="relative z-10 w-full h-full flex flex-col p-4 px-5">
@@ -117,37 +123,47 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
                   </span>
 
                   <div className="flex items-center justify-between w-full">
-                    <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full overflow-hidden p-1.5 backdrop-blur-sm shadow-inner">
-                       <img src={match.homeTeam.crest} className="w-full h-full object-cover" alt="" />
+                    <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full overflow-hidden backdrop-blur-sm shadow-inner flex-shrink-0">
+                      {match.homeTeam.crest ? (
+                        <img src={match.homeTeam.crest} className="w-full h-full object-cover rounded-full" alt="" />
+                      ) : (
+                        <span className="text-white font-black text-sm uppercase">
+                          {match.homeTeam.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
                     <span className="text-[30px] font-black text-white italic tracking-widest">{match.score}</span>
-                    <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full overflow-hidden p-1.5 backdrop-blur-sm shadow-inner">
-                       <img src={match.awayTeam.crest} className="w-full h-full object-cover" alt="" />
+                    <div className="w-12 h-12 flex items-center justify-center bg-white/10 rounded-full overflow-hidden backdrop-blur-sm shadow-inner flex-shrink-0">
+                      {match.awayTeam.crest ? (
+                        <img src={match.awayTeam.crest} className="w-full h-full object-cover rounded-full" alt="" />
+                      ) : (
+                        <span className="text-white font-black text-sm uppercase">
+                          {match.awayTeam.name.charAt(0)}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex justify-between w-full mt-auto mb-1 opacity-90 px-1">
-                     <span className="text-[9px] font-bold text-white italic">
-                        {match.homeTeam.name}
-                     </span>
-                     <span className="text-[9px] font-bold text-white italic">
-                        {match.awayTeam.name}
-                     </span>
+                    <span className="text-[9px] font-bold text-white italic">
+                      {match.homeTeam.name}
+                    </span>
+                    <span className="text-[9px] font-bold text-white italic">
+                      {match.awayTeam.name}
+                    </span>
                   </div>
                 </div>
               </motion.div>
             );
           })}
-          {/* Invisible spacer to allow snap-start on trailing items */}
-          <div className="w-[150px] shrink-0" />
         </div>
       </div>
 
       <div className="flex justify-center gap-1.5 pt-2">
         {displayMatches.map((_: any, i: number) => (
-          <div 
-            key={i} 
-            className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-white w-3' : 'bg-white/20'}`} 
+          <div
+            key={i}
+            className={`h-1.5 rounded-full transition-all duration-300 ${i === currentIndex ? 'bg-white w-3' : 'bg-white/20 w-1.5'}`}
           />
         ))}
       </div>

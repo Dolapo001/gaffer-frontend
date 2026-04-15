@@ -114,7 +114,7 @@ function FantasyPageContent() {
   if (!competitionId) {
     // Select from list (even if only 1, so they can see 'Join New' button)
     return (
-      <div className="min-h-screen bg-[#181928] p-6 pb-32">
+      <div className="min-h-screen bg-[#181928] p-6 pb-24">
         <div className="flex items-center gap-3 mb-8 mt-12">
            <div className="w-10 h-10 rounded-xl bg-gaffer-orange flex items-center justify-center">
               <Gamepad2 size={24} className="text-[#181928]" fill="currentColor" />

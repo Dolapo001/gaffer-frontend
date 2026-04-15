@@ -198,6 +198,21 @@ export async function listJoinedCompetitions(): Promise<Competition[]> {
   }
 }
 
+// GET /competitions/all
+// Returns all published/live competitions (no query needed).
+export async function listAllPublicCompetitions(): Promise<Competition[]> {
+  try {
+    const data = await api.get<{ competitions: Competition[] }>('/competitions/all')
+    return data.competitions ?? []
+  } catch (err) {
+    if (err instanceof ApiError && (err.status === 404 || err.status === 501)) {
+      console.warn('[competitions] GET /competitions/all not available — returning []')
+      return []
+    }
+    throw err
+  }
+}
+
 // GET /competitions/search
 // Returns [] gracefully when the endpoint is not yet implemented (404).
 export async function searchCompetitions(query: string): Promise<Competition[]> {

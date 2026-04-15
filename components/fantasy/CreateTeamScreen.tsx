@@ -21,7 +21,7 @@ interface CreateTeamScreenProps {
 
 export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }) => {
   const router = useRouter();
-  const { competitionId, resetTeam, setPlayers, budget, saveTeam } = useFantasyStore();
+  const { competitionId, resetTeam, setPlayers, budget, adjustBudget, saveTeam } = useFantasyStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<{ position: Position; index: number } | null>(null);
 
@@ -55,16 +55,15 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   const handleAddPlayer = (player: FantasySquadPlayer) => {
-    // Add player to draft
-    // In search overlay, we don't know the exact slot, but PitchLayout handles rendering based on row.
-    // So we just add to the array.
     setDraftPlayers([...draftPlayers, { ...player, isOnPitch: true }]);
+    adjustBudget(-(player.price ?? 0));
     setIsSearchOpen(false);
     setActiveSlot(null);
   };
 
   const handleRemovePlayer = (player: FantasySquadPlayer) => {
     setDraftPlayers(draftPlayers.filter(p => p.id !== player.id));
+    adjustBudget(player.price ?? 0);
     setSelectedPlayerForDrawer(null);
   };
 
@@ -73,7 +72,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   const handleConfirmSave = () => {
-    setPlayers(draftPlayers);
+    setPlayers(apply442(draftPlayers));
     setIsConfirmModalOpen(false);
     onComplete();
   };
@@ -165,6 +164,22 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   );
 };
 
+// ─── Auto 4-4-2 Formation ────────────────────────────────────────────────────
+// Assigns 1 GK, 4 DEF, 4 MID, 2 FWD to pitch; rest go to bench.
+// Bench order: remaining DEF/MID/FWD first, then the reserve GK last.
+function apply442(players: FantasySquadPlayer[]): FantasySquadPlayer[] {
+  const STARTERS: Record<string, number> = { GK: 1, DEF: 4, MID: 4, FWD: 2 };
+  const counts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
+
+  return players.map((p) => {
+    const pos = p.position as string;
+    const limit = STARTERS[pos] ?? 0;
+    const isStarter = counts[pos] < limit;
+    if (isStarter) counts[pos]++;
+    return { ...p, isOnPitch: isStarter };
+  });
+}
+
 // ─── PlayerSearchOverlay Component ──────────────────────────────────────────
 
 interface PlayerOverlayProps {
@@ -178,7 +193,13 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(20);
+  const [teamMaxToast, setTeamMaxToast] = useState(false);
   const { budget } = useFantasyStore();
+
+  const showTeamMaxMessage = () => {
+    setTeamMaxToast(true);
+    setTimeout(() => setTeamMaxToast(false), 2500);
+  };
 
   // Count players per team
   const teamCounts: Record<string, number> = {};
@@ -206,11 +227,8 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     // Exclude if already in squad
     if (excludeIds.includes(p._id)) return false;
 
-    // Exclude if team limit (3) reached
-    const teamName = p.teamId?.name || '';
-    if (teamCounts[teamName] >= 3) return false;
-
     // Team filter
+    const teamName = p.teamId?.name || '';
     if (selectedTeam !== 'all' && teamName !== selectedTeam) return false;
 
     // Price filter
@@ -219,7 +237,13 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     return true;
   });
 
-  const mappedPlayers = apiPlayers.map(p => mapApiPlayer(p, [], [], null, null, fixtures || []));
+  const mappedPlayers = apiPlayers.map(p => {
+    const teamName = p.teamId?.name || '';
+    return {
+      ...mapApiPlayer(p, [], [], null, null, fixtures || []),
+      isTeamMaxed: (teamCounts[teamName] ?? 0) >= 3,
+    };
+  });
 
   const filteredPlayers = mappedPlayers.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -313,7 +337,18 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
             </div>
           ) : filteredPlayers.length > 0 ? (
             filteredPlayers.map(p => (
-              <PlayerRow key={p.id} player={p} onClick={() => onSelect(p)} />
+              <PlayerRow
+                key={p.id}
+                player={p}
+                isTeamMaxed={(p as any).isTeamMaxed}
+                onClick={() => {
+                  if ((p as any).isTeamMaxed) {
+                    showTeamMaxMessage();
+                  } else {
+                    onSelect(p);
+                  }
+                }}
+              />
             ))
           ) : (
             <div className="text-center py-20 text-white/20 font-bold uppercase tracking-widest">
@@ -322,6 +357,20 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
           )}
         </div>
       </div>
+
+            {/* Team limit toast */}
+            <AnimatePresence>
+              {teamMaxToast && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="absolute top-24 left-1/2 -translate-x-1/2 z-[150] bg-[#ff4d00] text-white text-[12px] font-bold px-5 py-2.5 rounded-full shadow-lg whitespace-nowrap"
+                >
+                  You&apos;ve already picked 3 players from this team
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Solid Footer Info Bar - Floating above the Navbar with higher z-index */}
             <div className="absolute bottom-[120px] left-0 right-0 bg-[#3d3f56]/95 backdrop-blur-md px-8 py-3 flex justify-between items-center z-[130] border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
@@ -355,10 +404,10 @@ const Header = ({ onClose, searchQuery, onSearchChange }: { onClose: () => void,
   </div>
 );
 
-const PlayerRow = ({ player, onClick }: { player: FantasySquadPlayer, onClick: () => void }) => (
+const PlayerRow = ({ player, isTeamMaxed, onClick }: { player: FantasySquadPlayer, isTeamMaxed?: boolean, onClick: () => void }) => (
   <button
     onClick={onClick}
-    className="w-full flex items-center py-3 px-2 hover:bg-white/5 transition-colors border-b border-white/5 group"
+    className={`w-full flex items-center py-3 px-2 transition-colors border-b border-white/5 group ${isTeamMaxed ? 'opacity-40' : 'hover:bg-white/5'}`}
   >
     <div className="w-12 h-12 rounded-full overflow-hidden bg-[#2a2b3d] relative mr-4 border border-white/10 shadow-lg">
       <img
@@ -366,23 +415,24 @@ const PlayerRow = ({ player, onClick }: { player: FantasySquadPlayer, onClick: (
         alt={player.name}
         className="w-full h-full object-cover"
       />
-      {/* Small Club Logo Overlay - More prominent version */}
       <div className="absolute bottom-0 left-0 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-[#2a2b3d] p-0.5 shadow-md">
-        <div className="w-full h-full bg-[#004170] rounded-full" /> {/* High-contrast Club Logo */}
+        <div className="w-full h-full bg-[#004170] rounded-full" />
       </div>
     </div>
 
     <div className="flex flex-col items-start flex-1 min-w-0">
-      <span className="text-white text-[15px] font-bold truncate group-hover:text-[#ff6b00] transition-colors leading-tight">
+      <span className={`text-[15px] font-bold truncate transition-colors leading-tight ${isTeamMaxed ? 'text-white/60' : 'text-white group-hover:text-[#ff6b00]'}`}>
         {player.name}
       </span>
-      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5">{player.position}</span>
+      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5">
+        {player.position}{isTeamMaxed ? ' · 3 max reached' : ''}
+      </span>
     </div>
 
     <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
-        <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{(player.price ?? 0).toFixed(1)}M</div>
-        <div className="w-[1px] bg-white/10 h-3 mx-1" />
-        <div className="text-right text-white text-[14px] font-black w-14">{player.points ?? 0}</div>
+      <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{(player.price ?? 0).toFixed(1)}M</div>
+      <div className="w-[1px] bg-white/10 h-3 mx-1" />
+      <div className="text-right text-white text-[14px] font-black w-14">{player.points ?? 0}</div>
     </div>
   </button>
 );

@@ -420,7 +420,7 @@ export default function LeagueHomePage() {
           )}
 
           {/* ── 9. Top Scorers list ───────────────────────────────────────── */}
-          <div className="mb-2">
+          <div className="px-4 mb-2">
             <TopPlayersList
               title="Top Scorers"
               players={scorers}
@@ -431,7 +431,7 @@ export default function LeagueHomePage() {
           </div>
 
           {/* ── 10. Top Assisters list ────────────────────────────────────── */}
-          <div className="mb-2">
+          <div className="px-4 mb-2">
             <TopPlayersList
               title="Top Assisters"
               players={assists}

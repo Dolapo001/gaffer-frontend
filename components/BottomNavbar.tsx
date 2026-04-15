@@ -25,16 +25,23 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
   return (
     <AnimatePresence>
       {!isNavbarHidden && (
-        <motion.div
+        <motion.nav
           id={id}
-          initial={{ y: 100, opacity: 0, x: '-50%' }}
-          animate={{ y: 0, opacity: 1, x: '-50%' }}
-          exit={{ y: 100, opacity: 0, x: '-50%' }}
-          className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-[100] pointer-events-none flex justify-center w-[calc(100%-32px)] md:w-[460px] max-w-[460px]"
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          className="flex items-center justify-around px-2 bg-[#1d1f2e] border-t border-white/5 shadow-2xl"
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            zIndex: 100,
+            height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          }}
         >
-          <nav
-            className="flex items-center justify-around h-[72px] w-full pointer-events-auto bg-[#1d1f2e] border border-white/5 shadow-2xl rounded-full px-2 transition-all"
-          >
         {items.map((item) => {
           // Compute active state inline — no hook inside a loop
           const itemPath = item.href.split('?')[0]
@@ -79,8 +86,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             </Link>
           )
         })}
-      </nav>
-        </motion.div>
+      </motion.nav>
       )}
     </AnimatePresence>
   )

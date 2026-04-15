@@ -111,7 +111,7 @@ export default function JoinTeamPage() {
         <div className="w-10" />
       </header>
 
-      <main className="flex-1 px-6 pt-8 pb-32 space-y-8 overflow-y-auto">
+      <main className="flex-1 px-6 pt-8 pb-24 space-y-8 overflow-y-auto">
         {/* Team Context */}
         {inviteInfo && (
           <div className="bg-[#1C1F2D] rounded-[32px] p-6 border border-white/5 flex items-center gap-4 shadow-2xl">
@@ -219,7 +219,7 @@ export default function JoinTeamPage() {
           <GradientButton
             onClick={handleSubmit}
             loading={isSubmitting}
-            className="w-full h-16 rounded-2xl font-chakra font-black text-lg uppercase tracking-widest shadow-2xl transition-all"
+            className="w-full h-16 rounded-2xl font-chakra font-black text-sm uppercase tracking-widest shadow-2xl transition-all"
           >
             Submit Registration
           </GradientButton>

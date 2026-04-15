@@ -109,17 +109,24 @@ export default function NewsPage() {
     enabled: !activeOrgId,
   })
 
-  const joinedOrgIds = (joinedComps ?? []).map((c) => c.orgId).filter(Boolean)
+  // orgId may be a populated object from the backend (e.g. { _id, name, logoUrl })
+  // or a plain string — handle both to avoid passing "[object Object]" to getOrgFeed.
+  const joinedOrgIds = (joinedComps ?? [])
+    .map((c) => (typeof c.orgId === 'object' && c.orgId !== null ? (c.orgId as any)._id : c.orgId) as string | null)
+    .filter((id): id is string => Boolean(id))
 
   const { data: joinedOrgNewsData, isLoading: joinedNewsLoading } = useQuery({
     queryKey: ['joined-orgs-news', ...joinedOrgIds],
     queryFn: async (): Promise<FeedPage> => {
-      const feeds = await Promise.all(joinedOrgIds.map((id) => getOrgFeed(id)))
-      const allItems = feeds.flatMap((f) => (f?.items ?? f?.data ?? []) as FeedItem[])
+      const feeds = await Promise.allSettled(joinedOrgIds.map((id) => getOrgFeed(id)))
+      const allItems = feeds
+        .filter((r): r is PromiseFulfilledResult<FeedPage> => r.status === 'fulfilled')
+        .flatMap((r) => (r.value?.items ?? r.value?.data ?? []) as FeedItem[])
       return { items: allItems, total: allItems.length, page: 1 }
     },
     enabled: joinedOrgIds.length > 0 && !activeOrgId,
     staleTime: 60_000,
+    meta: { suppressGlobalError: true },
   })
 
   // ── Trending posts — global feed ───────────────────────────────────────────
@@ -189,7 +196,7 @@ export default function NewsPage() {
             )}
           </div>
 
-          <div className="px-4 py-4 space-y-6 pb-28">
+          <div className="px-4 py-4 space-y-6 pb-24">
             {/* Top News */}
             <section>
               <div className="flex items-center justify-between mb-3">

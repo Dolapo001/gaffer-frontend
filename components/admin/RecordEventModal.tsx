@@ -194,7 +194,7 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
           <button
             onClick={handleRecord}
             disabled={eventMutation.isPending || (!selectedPlayerId && !['start', 'fulltime'].includes(eventType))}
-            className={`w-full h-16 rounded-[24px] font-chakra font-black text-lg uppercase tracking-widest shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
+            className={`w-full h-16 rounded-[24px] font-chakra font-black text-sm uppercase tracking-widest shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 ${
                 isScoringEvent ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white' :
                 isCardEvent ? 'bg-gradient-to-r from-yellow-400 to-orange-500 text-black' :
                 'bg-gradient-to-r from-[#FF7A00] to-[#FF0000] text-white'

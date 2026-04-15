@@ -144,7 +144,7 @@ export default function OrganizationSetupPage() {
           <GradientButton
             type="submit"
             loading={isSubmitting}
-            className="w-full py-4 rounded-xl text-lg uppercase font-black font-chakra"
+            className="w-full py-4 rounded-xl text-sm uppercase font-black font-chakra"
           >
             Create Organization
           </GradientButton>

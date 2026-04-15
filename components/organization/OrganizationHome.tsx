@@ -165,7 +165,7 @@ export function OrganizationHome() {
                   </div>
                   <button
                     onClick={() => router.push('/auth/signup/organization')}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider active:scale-[0.98] transition-all"
+                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider active:scale-[0.98] transition-all"
                   >
                     Create Organization
                   </button>
@@ -196,7 +196,7 @@ export function OrganizationHome() {
                   <p className="text-white font-chakra font-bold text-lg">You Don&apos;t have any Tournament</p>
                   <button
                     onClick={() => router.push('/admin/tournaments')}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-lg bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
+                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
                   >
                     Create Tournament
                   </button>

@@ -143,7 +143,7 @@ function NewsSearchPageContent() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-4 pb-28">
+      <div className="flex-1 overflow-y-auto px-4 py-4 pb-24">
         <AnimatePresence mode="wait">
           {query.trim().length < 2 && (
             <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
