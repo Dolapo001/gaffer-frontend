@@ -9,7 +9,15 @@ import { isStandalone } from '@/lib/pwa'
  * PWA-standalone check, so no blocking overlay is ever painted on them.
  */
 function isAlwaysAllowed(pathname: string): boolean {
-  return pathname === '/' || pathname.startsWith('/onboarding/')
+  return (
+    pathname === '/' ||
+    pathname.startsWith('/onboarding/') ||
+    // Public invite + recruitment routes — must work in a regular browser
+    // without the PWA being installed (shared links, email links, etc.)
+    pathname.startsWith('/recruit/') ||
+    pathname.startsWith('/player/onboarding') ||
+    pathname.startsWith('/organization/onboarding')
+  )
 }
 
 export function BrowserProtection({ children }: { children: ReactNode }) {
