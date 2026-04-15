@@ -1,67 +1,13 @@
 /**
  * recruitment.service.ts
  *
- * Public recruitment-link validation + submission.
+ * Re-exports the public team endpoints used by the /recruit/:handle page.
+ * The actual implementation lives in team.service.ts — this file exists so
+ * the recruit page has a clean, self-describing import.
  *
- * Endpoint contract:
- *   POST /recruitment/link         → { link: { token, ... } }  (manager, auth required)
- *   GET  /recruitment/link/:token  → { link: { teamName, ... } } (public)
- *   POST /recruitment/submit       → { message }                  (public)
+ * Backend endpoints:
+ *   GET  /public/teams/:handle          → validate team + get info
+ *   POST /public/teams/:handle/register → submit player application
  */
 
-import { api } from '@/lib/api'
-
-// ── Create (manager only) ─────────────────────────────────────────────────────
-
-export interface CreateRecruitmentLinkResponse {
-  link: RecruitmentLink
-}
-
-export async function createRecruitmentLink(
-  teamId: string,
-): Promise<CreateRecruitmentLinkResponse> {
-  return api.post<CreateRecruitmentLinkResponse>('/recruitment/link', { teamId })
-}
-
-// ── Validate ─────────────────────────────────────────────────────────────────
-
-export interface RecruitmentLink {
-  token: string
-  teamId: string
-  teamName: string
-  expiresAt?: string
-  [key: string]: unknown
-}
-
-export interface RecruitmentValidateResponse {
-  link: RecruitmentLink
-}
-
-export async function validateRecruitmentLink(
-  token: string,
-): Promise<RecruitmentValidateResponse> {
-  return api.get<RecruitmentValidateResponse>(`/recruitment/link/${token}`, {
-    public: true,
-  })
-}
-
-// ── Submit ────────────────────────────────────────────────────────────────────
-
-export interface RecruitmentPayload {
-  token: string
-  firstName: string
-  lastName: string
-  age: number
-  position: string
-  phone?: string
-  email?: string
-  jerseyNumber?: number
-}
-
-export async function submitRecruitment(
-  payload: RecruitmentPayload,
-): Promise<{ message: string }> {
-  return api.post<{ message: string }>('/recruitment/submit', payload, {
-    public: true,
-  })
-}
+export { getPublicTeamByHandle, registerPublicPlayer } from '@/lib/services/team.service'

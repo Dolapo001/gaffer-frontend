@@ -10,7 +10,6 @@ import { useUIStore } from '@/store/uiStore'
 import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
-import { createRecruitmentLink } from '@/lib/services/recruitment.service'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -105,16 +104,19 @@ export function OrganiseDetails({
 
   const handleGetRecruitmentLink = async () => {
     if (!selectedTeam || isGeneratingLink) return
+    const handle = selectedTeam.handle || slugify(selectedTeam.name)
+    if (!handle) {
+      toast.addToast('Team has no handle — cannot generate link', 'error')
+      return
+    }
+    const origin = typeof window !== 'undefined' ? window.location.origin : ''
+    const fullLink = `${origin}/recruit/${handle}`
     setIsGeneratingLink(true)
     try {
-      const res = await createRecruitmentLink(selectedTeam.id)
-      const token = res.link.token
-      const origin = typeof window !== 'undefined' ? window.location.origin : ''
-      const fullLink = `${origin}/recruit/${token}`
       await navigator.clipboard.writeText(fullLink)
       toast.addToast('Recruitment link copied!', 'success')
     } catch {
-      toast.addToast('Failed to generate recruitment link', 'error')
+      toast.addToast('Could not copy to clipboard', 'error')
     } finally {
       setIsGeneratingLink(false)
     }

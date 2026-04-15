@@ -1,11 +1,23 @@
 'use client'
 
+/**
+ * RecruitmentPageClient
+ *
+ * Public open-recruitment page at /recruit/:handle
+ *
+ * Uses the existing public backend endpoints:
+ *   GET  /public/teams/:handle          → validate team exists
+ *   POST /public/teams/:handle/register → submit application
+ *
+ * State machine: loading → valid | invalid → done
+ * No auth required. No redirect under any condition.
+ */
+
 import { useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   RefreshCw,
   ShieldAlert,
-  Clock,
   CheckCircle2,
   User,
   Phone,
@@ -15,23 +27,18 @@ import {
 } from 'lucide-react'
 import { ApiError } from '@/lib/api'
 import {
-  validateRecruitmentLink,
-  submitRecruitment,
-  type RecruitmentLink,
-} from '@/lib/services/recruitment.service'
+  getPublicTeamByHandle,
+  registerPublicPlayer,
+  type Team,
+} from '@/lib/services/team.service'
 
-// ── State machine ─────────────────────────────────────────────────────────────
-
-type PageStatus = 'loading' | 'valid' | 'expired' | 'invalid'
+type PageStatus = 'loading' | 'valid' | 'invalid'
 
 const POSITIONS = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'] as const
-
-// ── Field errors ──────────────────────────────────────────────────────────────
 
 interface FieldErrors {
   firstName?: string
   lastName?: string
-  age?: string
   position?: string
   phone?: string
   email?: string
@@ -39,24 +46,20 @@ interface FieldErrors {
   general?: string
 }
 
-// ── Component ─────────────────────────────────────────────────────────────────
-
 interface RecruitmentPageClientProps {
-  token: string
+  token: string // actually the team handle
 }
 
-export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
+export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientProps) {
   // ── Validation state ──
   const [status, setStatus] = useState<PageStatus>('loading')
-  const [errorMessage, setErrorMessage] = useState('')
-  const [link, setLink] = useState<RecruitmentLink | null>(null)
+  const [team, setTeam] = useState<Team | null>(null)
   const calledRef = useRef(false)
 
   // ── Form state ──
   const [fields, setFields] = useState({
     firstName: '',
     lastName: '',
-    age: '',
     position: '',
     phone: '',
     email: '',
@@ -71,34 +74,18 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
     if (calledRef.current) return
     calledRef.current = true
 
-    if (!token) {
-      setErrorMessage('No recruitment token found in the link.')
+    if (!handle) {
       setStatus('invalid')
       return
     }
 
-    validateRecruitmentLink(token)
-      .then((res) => {
-        setLink(res.link)
+    getPublicTeamByHandle(handle)
+      .then((t) => {
+        setTeam(t)
         setStatus('valid')
       })
-      .catch((err: unknown) => {
-        if (err instanceof ApiError) {
-          if (err.status === 410) {
-            setErrorMessage('This recruitment link has expired.')
-            setStatus('expired')
-            return
-          }
-          if (err.status === 404) {
-            setErrorMessage('This link is invalid or does not exist.')
-            setStatus('invalid')
-            return
-          }
-        }
-        setErrorMessage('Unable to validate this link. Please try again later.')
-        setStatus('invalid')
-      })
-  }, [token])
+      .catch(() => setStatus('invalid'))
+  }, [handle])
 
   // ── Field helpers ─────────────────────────────────────────────────────────
   const set =
@@ -108,14 +95,11 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
       setErrors((prev) => ({ ...prev, [key]: undefined, general: undefined }))
     }
 
-  // ── Client-side validation ────────────────────────────────────────────────
+  // ── Validation ────────────────────────────────────────────────────────────
   const validate = (): FieldErrors => {
     const errs: FieldErrors = {}
     if (!fields.firstName.trim()) errs.firstName = 'First name is required.'
     if (!fields.lastName.trim()) errs.lastName = 'Last name is required.'
-    const ageNum = Number(fields.age)
-    if (!fields.age) errs.age = 'Age is required.'
-    else if (isNaN(ageNum) || ageNum < 5 || ageNum > 80) errs.age = 'Enter a valid age (5–80).'
     if (!fields.position) errs.position = 'Please select a position.'
     if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
       errs.email = 'Enter a valid email address.'
@@ -138,16 +122,14 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
       setErrors(clientErrors)
       return
     }
-    if (isSubmitting) return // prevent double-submit
+    if (isSubmitting) return
 
     setIsSubmitting(true)
     try {
-      await submitRecruitment({
-        token,
+      await registerPublicPlayer(handle, {
         firstName: fields.firstName.trim(),
         lastName: fields.lastName.trim(),
-        age: Number(fields.age),
-        position: fields.position,
+        position: fields.position.toLowerCase(),
         phone: fields.phone.trim() || undefined,
         email: fields.email.trim() || undefined,
         jerseyNumber: fields.jerseyNumber ? Number(fields.jerseyNumber) : undefined,
@@ -155,11 +137,6 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
       setIsDone(true)
     } catch (err: unknown) {
       if (err instanceof ApiError) {
-        if (err.status === 410) {
-          setErrors({ general: 'This recruitment link has expired.' })
-          setStatus('expired')
-          return
-        }
         setErrors({ general: err.message || 'Submission failed. Please try again.' })
       } else {
         setErrors({ general: 'Something went wrong. Please try again.' })
@@ -176,16 +153,15 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
         : 'border-white/5 focus:border-orange-500/50'
     }`
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-[#0F111A] text-white flex flex-col font-inter">
       {/* Header */}
-      <header className="px-6 pt-14 pb-6 shrink-0 border-b border-white/[0.05]">
+      <header className="px-6 pt-14 pb-5 shrink-0 border-b border-white/[0.05]">
         <span className="text-[11px] font-body font-bold text-white/30 uppercase tracking-[0.25em]">
           Gaffer FC
         </span>
         <h1 className="font-chakra font-black text-2xl uppercase tracking-tight italic text-white mt-1">
-          {link?.teamName ? `Join ${link.teamName}` : 'Open Recruitment'}
+          {team?.name ? `Join ${team.name}` : 'Open Recruitment'}
         </h1>
       </header>
 
@@ -202,30 +178,7 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
               className="flex flex-col items-center justify-center min-h-[55vh] gap-4"
             >
               <RefreshCw size={32} className="text-orange-500 animate-spin" />
-              <p className="text-white/40 text-sm font-body">Checking recruitment link…</p>
-            </motion.div>
-          )}
-
-          {/* ── Expired ── */}
-          {status === 'expired' && (
-            <motion.div
-              key="expired"
-              initial={{ opacity: 0, scale: 0.96 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center justify-center min-h-[55vh] gap-6 text-center px-4"
-            >
-              <div className="w-20 h-20 rounded-[28px] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                <Clock size={36} className="text-amber-400" />
-              </div>
-              <div>
-                <h2 className="font-chakra font-black text-xl uppercase text-white mb-2">
-                  Link Expired
-                </h2>
-                <p className="text-white/40 text-sm font-body leading-relaxed max-w-xs mx-auto">
-                  {errorMessage}
-                </p>
-              </div>
+              <p className="text-white/40 text-sm font-body">Loading recruitment form…</p>
             </motion.div>
           )}
 
@@ -243,10 +196,10 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
               </div>
               <div>
                 <h2 className="font-chakra font-black text-xl uppercase text-white mb-2">
-                  Invalid Link
+                  Team Not Found
                 </h2>
                 <p className="text-white/40 text-sm font-body leading-relaxed max-w-xs mx-auto">
-                  {errorMessage}
+                  This recruitment link is invalid. Please contact the manager for a new one.
                 </p>
               </div>
             </motion.div>
@@ -290,20 +243,27 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
               className="pt-6 space-y-6"
             >
               {/* Team context card */}
-              {link?.teamName && (
+              {team && (
                 <div className="bg-[#1C1F2D] rounded-[20px] p-4 border border-white/5 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
-                    <span className="text-orange-400 font-black text-xs uppercase">
-                      {link.teamName.charAt(0)}
-                    </span>
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-orange-500/10 border border-orange-500/20 flex items-center justify-center shrink-0">
+                    {team.logoUrl ? (
+                      <img src={team.logoUrl} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <span className="text-orange-400 font-black text-sm uppercase">
+                        {team.name?.charAt(0)}
+                      </span>
+                    )}
                   </div>
                   <div>
                     <p className="text-[10px] font-body font-bold text-white/30 uppercase tracking-widest">
                       Recruiting for
                     </p>
                     <p className="text-white font-display font-bold text-base leading-tight">
-                      {link.teamName}
+                      {team.name}
                     </p>
+                    {team.handle && (
+                      <p className="text-white/30 text-[11px] font-body">@{team.handle}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -320,13 +280,12 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                 </motion.div>
               )}
 
-              {/* ── Required fields ── */}
+              {/* Required */}
               <div className="space-y-4">
                 <p className="text-[11px] font-body font-bold text-white/30 uppercase tracking-widest">
                   Required Info
                 </p>
 
-                {/* Name row */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <label className="text-xs font-body font-medium text-white/70 flex items-center gap-1">
@@ -343,9 +302,7 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                         className={`${inputCls('firstName')} pl-9`}
                       />
                     </div>
-                    {errors.firstName && (
-                      <p className="text-red-400 text-xs">{errors.firstName}</p>
-                    )}
+                    {errors.firstName && <p className="text-red-400 text-xs">{errors.firstName}</p>}
                   </div>
 
                   <div className="space-y-1.5">
@@ -360,31 +317,10 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                       disabled={isSubmitting}
                       className={inputCls('lastName')}
                     />
-                    {errors.lastName && (
-                      <p className="text-red-400 text-xs">{errors.lastName}</p>
-                    )}
+                    {errors.lastName && <p className="text-red-400 text-xs">{errors.lastName}</p>}
                   </div>
                 </div>
 
-                {/* Age */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-body font-medium text-white/70 flex items-center gap-1">
-                    Age <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={5}
-                    max={80}
-                    value={fields.age}
-                    onChange={set('age')}
-                    placeholder="e.g. 22"
-                    disabled={isSubmitting}
-                    className={inputCls('age')}
-                  />
-                  {errors.age && <p className="text-red-400 text-xs">{errors.age}</p>}
-                </div>
-
-                {/* Position */}
                 <div className="space-y-2">
                   <label className="text-xs font-body font-medium text-white/70 flex items-center gap-1">
                     Preferred Position <span className="text-red-400">*</span>
@@ -409,23 +345,18 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                       </button>
                     ))}
                   </div>
-                  {errors.position && (
-                    <p className="text-red-400 text-xs">{errors.position}</p>
-                  )}
+                  {errors.position && <p className="text-red-400 text-xs">{errors.position}</p>}
                 </div>
               </div>
 
-              {/* ── Optional fields ── */}
+              {/* Optional */}
               <div className="space-y-4">
                 <p className="text-[11px] font-body font-bold text-white/30 uppercase tracking-widest">
                   Optional Info
                 </p>
 
-                {/* Phone */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-body font-medium text-white/70">
-                    Phone Number
-                  </label>
+                  <label className="text-xs font-body font-medium text-white/70">Phone Number</label>
                   <div className="relative">
                     <Phone size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
                     <input
@@ -439,11 +370,8 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                   </div>
                 </div>
 
-                {/* Email */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-body font-medium text-white/70">
-                    Email Address
-                  </label>
+                  <label className="text-xs font-body font-medium text-white/70">Email Address</label>
                   <div className="relative">
                     <Mail size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
                     <input
@@ -458,11 +386,8 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                   {errors.email && <p className="text-red-400 text-xs">{errors.email}</p>}
                 </div>
 
-                {/* Jersey number */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-body font-medium text-white/70">
-                    Preferred Jersey #
-                  </label>
+                  <label className="text-xs font-body font-medium text-white/70">Preferred Jersey #</label>
                   <div className="relative">
                     <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/20" />
                     <input
@@ -476,9 +401,7 @@ export function RecruitmentPageClient({ token }: RecruitmentPageClientProps) {
                       className={`${inputCls('jerseyNumber')} pl-9`}
                     />
                   </div>
-                  {errors.jerseyNumber && (
-                    <p className="text-red-400 text-xs">{errors.jerseyNumber}</p>
-                  )}
+                  {errors.jerseyNumber && <p className="text-red-400 text-xs">{errors.jerseyNumber}</p>}
                 </div>
               </div>
 
