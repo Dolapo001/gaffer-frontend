@@ -4,13 +4,24 @@
  * Public recruitment-link validation + submission.
  *
  * Endpoint contract:
- *   GET  /recruitment/link/:token  → { link: { teamName, teamId, expiresAt, ... } }
- *   POST /recruitment/submit       → { message }
- *
- * Both are public — no auth token required.
+ *   POST /recruitment/link         → { link: { token, ... } }  (manager, auth required)
+ *   GET  /recruitment/link/:token  → { link: { teamName, ... } } (public)
+ *   POST /recruitment/submit       → { message }                  (public)
  */
 
 import { api } from '@/lib/api'
+
+// ── Create (manager only) ─────────────────────────────────────────────────────
+
+export interface CreateRecruitmentLinkResponse {
+  link: RecruitmentLink
+}
+
+export async function createRecruitmentLink(
+  teamId: string,
+): Promise<CreateRecruitmentLinkResponse> {
+  return api.post<CreateRecruitmentLinkResponse>('/recruitment/link', { teamId })
+}
 
 // ── Validate ─────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon, Mail } from 'lucide-react'
+import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon, Mail, Link2 } from 'lucide-react'
 import type { Team, Group, Player } from '../types'
 import type { Team as BackendTeam, TeamPhoto } from '@/lib/services/team.service'
 import { useToastStore } from '@/store/toastStore'
@@ -10,6 +10,7 @@ import { useUIStore } from '@/store/uiStore'
 import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
+import { createRecruitmentLink } from '@/lib/services/recruitment.service'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -100,6 +101,24 @@ export function OrganiseDetails({
   const [editTeamName, setEditTeamName] = useState('')
   const [showPhotos, setShowPhotos] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false)
+
+  const handleGetRecruitmentLink = async () => {
+    if (!selectedTeam || isGeneratingLink) return
+    setIsGeneratingLink(true)
+    try {
+      const res = await createRecruitmentLink(selectedTeam.id)
+      const token = res.link.token
+      const origin = typeof window !== 'undefined' ? window.location.origin : ''
+      const fullLink = `${origin}/recruit/${token}`
+      await navigator.clipboard.writeText(fullLink)
+      toast.addToast('Recruitment link copied!', 'success')
+    } catch {
+      toast.addToast('Failed to generate recruitment link', 'error')
+    } finally {
+      setIsGeneratingLink(false)
+    }
+  }
   const [deletePhotoTarget, setDeletePhotoTarget] = useState<string | null>(null)
   const teamPhotoInputRef = useRef<HTMLInputElement>(null)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
@@ -386,6 +405,17 @@ export function OrganiseDetails({
             <div className="flex items-center justify-between px-2 pt-2">
                <h4 className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Squad Roster</h4>
                <div className="flex items-center gap-3">
+                 <button
+                   onClick={handleGetRecruitmentLink}
+                   disabled={isGeneratingLink}
+                   className="flex items-center gap-1.5 text-white/30 hover:text-gaffer-orange transition-all active:scale-95 disabled:opacity-40"
+                   title="Copy open recruitment link"
+                 >
+                   <Link2 size={12} strokeWidth={2.5} />
+                   <span className="text-[9px] font-black uppercase tracking-widest">
+                     {isGeneratingLink ? '…' : 'Recruit'}
+                   </span>
+                 </button>
                  <button
                    onClick={() => setShowInviteModal(true)}
                    className="flex items-center gap-1.5 text-white/30 hover:text-gaffer-orange transition-all active:scale-95"
