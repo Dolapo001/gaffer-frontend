@@ -224,5 +224,5 @@ export async function approveLineup(fixtureId: string, teamId: string): Promise<
 // GET /fixtures/:fixtureId/lineups — PUBLIC
 export async function listLineups(fixtureId: string): Promise<Lineup[]> {
   const data = await api.get<{ lineups: Lineup[] }>(`/fixtures/${fixtureId}/lineups`, { public: true })
-  return data.lineups
+  return data.lineups ?? []
 }

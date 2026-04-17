@@ -134,6 +134,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     queryKey: ['lineups', id],
     queryFn: () => listLineups(id),
     enabled: !!id,
+    throwOnError: false,
   })
 
   // Populate slot state from server lineup when the page first loads
@@ -394,7 +395,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   </div>
 
                   <div className="space-y-2">
-                    {formations[awayFormation].map((_, idx) => {
+                    {(formations[awayFormation]|| formations['4-3-3']).map((_, idx) => {
                       const player = awayLineup[idx]
                       return (
                         <div key={`a-list-${idx}`} onClick={() => setIsSelectingPlayer({ team: 'away', idx })} className="flex items-center justify-between bg-[#1C1F2D] p-4 rounded-[20px] border border-white/[0.03] active:scale-[0.98] transition-all cursor-pointer">
@@ -425,7 +426,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   </div>
 
                   <div className="space-y-2">
-                    {formations[homeFormation].map((_, idx) => {
+                    {(formations[homeFormation]|| formations['4-3-3']).map((_, idx) => {
                       const player = homeLineup[idx]
                       return (
                         <div key={`h-list-${idx}`} onClick={() => setIsSelectingPlayer({ team: 'home', idx })} className="flex items-center justify-between bg-[#1C1F2D] p-4 rounded-[20px] border border-white/[0.03] active:scale-[0.98] transition-all cursor-pointer">

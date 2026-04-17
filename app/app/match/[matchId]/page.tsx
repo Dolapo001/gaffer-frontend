@@ -42,6 +42,7 @@ export default function MatchCenterPage() {
     queryKey: ['lineups', matchId],
     queryFn: () => listLineups(matchId),
     enabled: !!matchId,
+    throwOnError: false,
   })
 
   // ── Follow / unfollow match ─────────────────────────────────────────────
