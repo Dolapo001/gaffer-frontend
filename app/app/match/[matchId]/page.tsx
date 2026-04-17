@@ -227,7 +227,7 @@ export default function MatchCenterPage() {
                         ? (fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string)
                         : (fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string)
                      const teamLineup = (lineupsData ?? []).find((l: any) => {
-                       const lid = typeof l.teamId === 'object' ? l.teamId._id : l.teamId
+                       const lid = (typeof l.teamId === 'object' && l.teamId !== null) ? l.teamId._id : l.teamId
                        return lid === teamId
                      })
                      const formation = lineupTeam === 'home' ? (fixture.formation || '4-3-3') : (fixture.awayFormation || '4-3-3')

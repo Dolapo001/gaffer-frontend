@@ -141,11 +141,11 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   useEffect(() => {
     if (!existingLineups || !homeId || !awayId) return
     const homeServerLineup = existingLineups.find((l: any) => {
-      const tid = typeof l.teamId === 'object' ? (l.teamId as any)._id : l.teamId
+      const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
       return tid === homeId
     })
     const awayServerLineup = existingLineups.find((l: any) => {
-      const tid = typeof l.teamId === 'object' ? (l.teamId as any)._id : l.teamId
+      const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
       return tid === awayId
     })
     if (homeServerLineup?.starters?.length && Object.keys(homeLineup).length === 0) {
