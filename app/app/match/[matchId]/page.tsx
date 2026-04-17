@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
+import { listLineups } from '@/lib/services/fixture.service'
 import {
   followMatch,
   unfollowMatch,
@@ -21,6 +22,7 @@ export default function MatchCenterPage() {
   const params = useParams()
   const matchId = params.matchId as string
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('commentary')
+  const [lineupTeam, setLineupTeam] = useState<'home' | 'away'>('home')
   const qc = useQueryClient()
   const toast = useToastStore()
 
@@ -29,9 +31,17 @@ export default function MatchCenterPage() {
     queryFn: () => getMatchState(matchId),
   })
 
-  const { data: allEvents } = useQuery({
+  const { data: allEvents, isLoading: isEventsLoading } = useQuery({
     queryKey: ['match-events', matchId],
     queryFn: () => getMatchEvents(matchId),
+    enabled: !!matchId,
+  })
+
+  // Lineups live at GET /fixtures/:id/lineups, not inside the match state
+  const { data: lineupsData } = useQuery({
+    queryKey: ['lineups', matchId],
+    queryFn: () => listLineups(matchId),
+    enabled: !!matchId,
   })
 
   // ── Follow / unfollow match ─────────────────────────────────────────────
@@ -58,15 +68,22 @@ export default function MatchCenterPage() {
 
   const fixture = matchData?.fixture;
   
+  const getScorerName = (g: MatchEvent): string => {
+    if (g.playerId && typeof g.playerId === 'object') {
+      return g.playerId.lastName || g.playerId.firstName || `#${(g.playerId as any).jerseyNumber}` || 'Unknown'
+    }
+    return 'Unknown'
+  }
+
   // Calculate Scorers from Events
   const scorers = useMemo(() => {
     if (!events.length || !fixture) return { home: [], away: [] };
     const homeGoals = events.filter((e: MatchEvent) => (e.type === 'goal' || e.type === 'penalty_scored') && (typeof e.teamId === 'string' ? e.teamId === fixture.homeTeamId?._id : (e.teamId as any)?._id === fixture.homeTeamId?._id));
     const awayGoals = events.filter((e: MatchEvent) => (e.type === 'goal' || e.type === 'penalty_scored') && (typeof e.teamId === 'string' ? e.teamId === fixture.awayTeamId?._id : (e.teamId as any)?._id === fixture.awayTeamId?._id));
-    
+
     return {
-      home: homeGoals.map((g: MatchEvent) => ({ name: g.commentaryText?.split(' ')[1] || 'Player', minute: `${g.minute || 0}'` })),
-      away: awayGoals.map((g: MatchEvent) => ({ name: g.commentaryText?.split(' ')[1] || 'Player', minute: `${g.minute || 0}'` }))
+      home: homeGoals.map((g: MatchEvent) => ({ name: getScorerName(g), minute: `${g.minute || 0}'` })),
+      away: awayGoals.map((g: MatchEvent) => ({ name: getScorerName(g), minute: `${g.minute || 0}'` }))
     };
   }, [events, fixture]);
 
@@ -184,46 +201,69 @@ export default function MatchCenterPage() {
       <div className="px-4">
          <AnimatePresence mode="wait">
             {activeTab === 'lineup' ? (
-               <motion.div 
+               <motion.div
                   key="lineup"
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
                   className="flex flex-col gap-6 px-1"
                >
-                   <div className="relative">
-                      {/* Top Team Header (Inside content) */}
-                      <div className="flex items-center justify-between px-3 mb-6">
-                         <div className="flex items-center gap-2">
-                            {homeTeam.logoUrl && <img src={getImageUrl(homeTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />}
-                            <span className="text-white text-[14px] font-black uppercase tracking-wider">{homeTeam.shortName || homeTeam.name}</span>
-                         </div>
-                         <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{fixture.formation || '4-3-3'}</span>
-                      </div>
+                  {/* HOME / AWAY team toggle */}
+                  <div className="flex gap-2">
+                     {(['home', 'away'] as const).map((side) => (
+                        <button
+                           key={side}
+                           onClick={() => setLineupTeam(side)}
+                           className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-colors ${lineupTeam === side ? 'bg-gaffer-orange text-white' : 'bg-white/5 text-white/40'}`}
+                        >
+                           {side === 'home' ? (homeTeam.shortName || homeTeam.name) : (awayTeam.shortName || awayTeam.name)}
+                        </button>
+                     ))}
+                  </div>
 
-                      <div className="relative">
-                         <Pitch lineup={fixture.lineup} />
-                      </div>
-
-                      {/* Bottom Team Header */}
-                      <div className="flex items-center justify-between px-3 mt-6">
-                         <div className="flex items-center gap-2">
-                            {awayTeam.logoUrl && <img src={getImageUrl(awayTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />}
-                            <span className="text-white text-[14px] font-black uppercase tracking-wider">{awayTeam.shortName || awayTeam.name}</span>
-                         </div>
-                         <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{fixture.awayFormation || '4-3-3'}</span>
-                      </div>
-                   </div>
+                  {(() => {
+                     const teamId = lineupTeam === 'home'
+                        ? (fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string)
+                        : (fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string)
+                     const teamLineup = (lineupsData ?? []).find((l: any) => {
+                       const lid = typeof l.teamId === 'object' ? l.teamId._id : l.teamId
+                       return lid === teamId
+                     })
+                     const formation = lineupTeam === 'home' ? (fixture.formation || '4-3-3') : (fixture.awayFormation || '4-3-3')
+                     return (
+                        <div className="relative">
+                           <div className="flex items-center justify-between px-3 mb-4">
+                              <div className="flex items-center gap-2">
+                                 {lineupTeam === 'home'
+                                    ? homeTeam.logoUrl && <img src={getImageUrl(homeTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />
+                                    : awayTeam.logoUrl && <img src={getImageUrl(awayTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />
+                                 }
+                                 <span className="text-white text-[14px] font-black uppercase tracking-wider">
+                                    {lineupTeam === 'home' ? (homeTeam.shortName || homeTeam.name) : (awayTeam.shortName || awayTeam.name)}
+                                 </span>
+                              </div>
+                              <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{formation}</span>
+                           </div>
+                           <div className="relative">
+                              <Pitch starters={teamLineup?.starters as any[]} formation={formation} />
+                           </div>
+                        </div>
+                     )
+                  })()}
                </motion.div>
             ) : (
-               <motion.div 
+               <motion.div
                   key="commentary"
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   className="flex flex-col gap-3 px-1"
                >
-                  {events && events.length > 0 ? (
+                  {isEventsLoading ? (
+                    <div className="flex justify-center py-20">
+                       <div className="w-8 h-8 border-2 border-white/10 border-t-gaffer-orange rounded-full animate-spin" />
+                    </div>
+                  ) : events && events.length > 0 ? (
                     [...events].reverse().map((event: MatchEvent, i: number) => (
                       <CommentaryCard key={event._id || i} event={event} />
                     ))
@@ -268,10 +308,29 @@ function CommentaryCard({ event }: { event: MatchEvent }) {
    )
 }
 
-function Pitch({ lineup }: { lineup?: any[] }) {
+function playerLabel(p: any): { name: string; initial: string } {
+   if (!p || typeof p === 'string') return { name: '—', initial: '?' }
+   const jersey = p.jerseyNumber != null ? String(p.jerseyNumber) : null
+   const last = p.lastName || p.firstName || null
+   return {
+      name: last || (jersey ? `#${jersey}` : '—'),
+      initial: jersey ?? last?.[0]?.toUpperCase() ?? '?',
+   }
+}
+
+function Pitch({ starters, formation }: { starters?: any[]; formation?: string }) {
+   // starters is an ordered array from GET /fixtures/:id/lineups — position 0 = GK,
+   // then DEF rows, MID rows, ATT rows in formation order.
+   const players = (starters ?? []).filter(Boolean)
+   const [defN, midN, attN] = (formation || '4-3-3').split('-').map(Number)
+   let idx = 0
+   const gk    = players[idx++]
+   const defs  = players.slice(idx, (idx += defN || 4))
+   const mids  = players.slice(idx, (idx += midN || 3))
+   const atts  = players.slice(idx, (idx += attN || 3))
+
    return (
       <div className="w-full aspect-[1/1.8] bg-[#1e212f] border-[1.5px] border-white/10 rounded-[28px] relative overflow-hidden shadow-2xl">
-         {/* Pitch Markings */}
          <div className="absolute inset-x-12 top-[-1px] h-16 border-x border-b border-white opacity-40" />
          <div className="absolute inset-x-20 top-[-1px] h-6 border-x border-b border-white opacity-40" />
          <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/20" />
@@ -280,39 +339,24 @@ function Pitch({ lineup }: { lineup?: any[] }) {
          <div className="absolute inset-x-20 bottom-[-1px] h-6 border-x border-t border-white opacity-40" />
 
          <div className="flex flex-col justify-between h-full w-full py-6 z-10">
-            {lineup && lineup.length > 0 ? (
+            {players.length > 0 ? (
                <div className="w-full h-full flex flex-col justify-between py-6">
-                  <div className="flex justify-center"><PlayerPos name={lineup.find(p => p.role === 'gk')?.playerId?.lastName || 'GK'} initial="GK" color="bg-[#5C5020]" /></div>
-                  <div className="flex justify-around">
-                     {lineup.filter(p => p.role === 'def').slice(0, 4).map((p, i) => (
-                        <PlayerPos key={i} name={p.playerId?.lastName || 'DEF'} initial={p.playerId?.lastName?.[0] || 'D'} color="bg-[#1D3E64]" />
-                     ))}
+                  <div className="flex justify-center">
+                     {(() => { const d = playerLabel(gk); return <PlayerPos name={d.name} initial={d.initial} color="bg-[#5C5020]" /> })()}
                   </div>
                   <div className="flex justify-around">
-                      {lineup.filter(p => p.role === 'mid').slice(0, 3).map((p, i) => (
-                        <PlayerPos key={i} name={p.playerId?.lastName || 'MID'} initial={p.playerId?.lastName?.[0] || 'M'} color="bg-[#0D4429]" />
-                     ))}
+                     {defs.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#1D3E64]" /> })}
                   </div>
                   <div className="flex justify-around">
-                      {lineup.filter(p => p.role === 'att').slice(0, 2).map((p, i) => (
-                        <PlayerPos key={i} name={p.playerId?.lastName || 'ATT'} initial={p.playerId?.lastName?.[0] || 'A'} color="bg-[#5C5020]" />
-                     ))}
+                     {mids.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#0D4429]" /> })}
+                  </div>
+                  <div className="flex justify-around">
+                     {atts.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#5C5020]" /> })}
                   </div>
                </div>
             ) : (
-               <div className="w-full h-full flex flex-col justify-between py-6 opacity-30">
-                  <div className="flex justify-center"><PlayerPos name="TBD" initial="ARS" color="bg-[#5C5020]" /></div>
-                  <div className="flex justify-between px-4">
-                     <PlayerPos name="TBD" initial="A" color="bg-[#5C5020]" />
-                     <PlayerPos name="TBD" initial="I" color="bg-[#5C5020]" />
-                     <PlayerPos name="TBD" initial="E" color="bg-[#1D3E64]" />
-                     <PlayerPos name="TBD" initial="P" color="bg-[#1D3E64]" />
-                  </div>
-                  <div className="flex justify-around w-full px-12">
-                     <PlayerPos name="TBD" initial="D" color="bg-[#5C5020]" />
-                     <PlayerPos name="TBD" initial="G" color="bg-[#0D4429]" />
-                  </div>
-                  <div className="flex justify-center"><PlayerPos name="TBD" initial="ARS" color="bg-[#5C5020]" /></div>
+               <div className="w-full h-full flex items-center justify-center opacity-20">
+                  <p className="text-[10px] font-black uppercase tracking-widest">Lineup not announced</p>
                </div>
             )}
          </div>

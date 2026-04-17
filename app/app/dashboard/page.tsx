@@ -33,7 +33,13 @@ export default function DashboardPage() {
     const fetchNews = async () => {
       try {
         const feed = await getGlobalFeed(1)
-        setNews((feed.data || feed.items || []).slice(0, 3))
+        const sorted = [...(feed.data || feed.items || [])].sort((a, b) => {
+          const aSystem = a.authorType === 'system' ? 1 : 0
+          const bSystem = b.authorType === 'system' ? 1 : 0
+          if (bSystem !== aSystem) return bSystem - aSystem
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        })
+        setNews(sorted.slice(0, 3))
       } catch (err) {
         console.error('Failed to fetch news:', err)
       } finally {

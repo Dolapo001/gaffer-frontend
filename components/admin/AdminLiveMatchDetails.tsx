@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, updateFixture, listEvents, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
+import { getFixture, startMatch, updateFixture, listEvents, listLineups, submitLineup, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
@@ -65,38 +65,34 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     onError: (err: any) => addToast(err?.message || "Failed to update status", "error")
   })
 
-  // 2.1 Save Lineup & Match State
+  // 2.1 Save Lineup — POST /fixtures/:id/lineups (once per team)
   const saveLineupMutation = useMutation({
     mutationFn: async () => {
-      const prepareLineup = (lineup: any) => {
-        return Object.fromEntries(
-          Object.entries(lineup || {}).map(([k, v]: any) => {
-            const pid = v?._id || v?.id || (typeof v === 'string' ? v : undefined)
-            return [k, pid]
-          }).filter(([_, pid]) => pid !== undefined)
-        )
-      }
+      const toPlayerIds = (lineup: Record<number, any>): string[] =>
+        Object.values(lineup)
+          .map((v: any) => v?._id || v?.id || (typeof v === 'string' ? v : null))
+          .filter(Boolean) as string[]
 
-      return updateFixture(id, {
-        homeLineup: prepareLineup(homeLineup),
-        awayLineup: prepareLineup(awayLineup),
-        homeFormation,
-        awayFormation,
-        status: fixture?.status || 'scheduled'
-      })
+      const saves: Promise<any>[] = []
+      if (homeId && Object.keys(homeLineup).length > 0) {
+        saves.push(submitLineup(id, { teamId: homeId, starters: toPlayerIds(homeLineup) }))
+      }
+      if (awayId && Object.keys(awayLineup).length > 0) {
+        saves.push(submitLineup(id, { teamId: awayId, starters: toPlayerIds(awayLineup) }))
+      }
+      return Promise.all(saves)
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['lineups', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       addToast("Changes saved successfully", "success")
     },
     onError: (err: any) => addToast(err?.message || "Failed to save changes", "error")
   })
 
-  // Sync state with server fixture data
+  // Sync formation state from fixture (lineup is handled separately via listLineups)
   useEffect(() => {
     if (fixture) {
-      if (fixture.homeLineup) setHomeLineup(fixture.homeLineup)
-      if (fixture.awayLineup) setAwayLineup(fixture.awayLineup)
       if (fixture.homeFormation) setHomeFormation(fixture.homeFormation as any)
       if (fixture.awayFormation) setAwayFormation(fixture.awayFormation as any)
     }
@@ -132,6 +128,42 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     queryFn: () => awayId ? listPlayers(awayId) : Promise.resolve([]),
     enabled: !!awayId
   })
+
+  // 1.25 Fetch existing lineups (GET /fixtures/:id/lineups)
+  const { data: existingLineups } = useQuery({
+    queryKey: ['lineups', id],
+    queryFn: () => listLineups(id),
+    enabled: !!id,
+  })
+
+  // Populate slot state from server lineup when the page first loads
+  useEffect(() => {
+    if (!existingLineups || !homeId || !awayId) return
+    const homeServerLineup = existingLineups.find((l: any) => {
+      const tid = typeof l.teamId === 'object' ? (l.teamId as any)._id : l.teamId
+      return tid === homeId
+    })
+    const awayServerLineup = existingLineups.find((l: any) => {
+      const tid = typeof l.teamId === 'object' ? (l.teamId as any)._id : l.teamId
+      return tid === awayId
+    })
+    if (homeServerLineup?.starters?.length && Object.keys(homeLineup).length === 0) {
+      const mapped: Record<number, any> = {}
+      ;(homeServerLineup.starters as any[]).forEach((p: any, i: number) => {
+        if (p && typeof p === 'object') mapped[i] = p
+      })
+      if (Object.keys(mapped).length) setHomeLineup(mapped)
+    }
+    if (awayServerLineup?.starters?.length && Object.keys(awayLineup).length === 0) {
+      const mapped: Record<number, any> = {}
+      ;(awayServerLineup.starters as any[]).forEach((p: any, i: number) => {
+        if (p && typeof p === 'object') mapped[i] = p
+      })
+      if (Object.keys(mapped).length) setAwayLineup(mapped)
+    }
+  // Only run when lineup data first arrives — not on every homeLineup/awayLineup change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingLineups, homeId, awayId])
 
   // 1.3 Fetch Events (poll every 10s when live)
   const { data: events = [], isLoading: isEventsLoading } = useQuery({

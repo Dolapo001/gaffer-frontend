@@ -151,7 +151,14 @@ export default function NewsPage() {
   const strictItems = mergedItems.filter(
     (i) => i.type === 'news' || i.authorType === 'system' || i.authorType === 'org'
   )
-  const allNewsItems: FeedItem[] = strictItems.length > 0 ? strictItems : mergedItems
+  const rawNewsItems: FeedItem[] = strictItems.length > 0 ? strictItems : mergedItems
+  // System posts (authorType==='system') act as pinned/welcome items — surface them first
+  const allNewsItems: FeedItem[] = [...rawNewsItems].sort((a, b) => {
+    const aSystem = a.authorType === 'system' ? 1 : 0
+    const bSystem = b.authorType === 'system' ? 1 : 0
+    if (bSystem !== aSystem) return bSystem - aSystem
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  })
 
   const allFeedItems: FeedItem[] = (postsData?.items ?? postsData?.data ?? []) as FeedItem[]
   const postItems: FeedItem[] = allFeedItems.filter((i) => i.type === 'post' || i.type === 'repost')
