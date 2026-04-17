@@ -89,9 +89,9 @@ export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
   return getGlobalFeed(page)
 }
 
-// GET /feed/posts/:postId — single post detail
+// GET /feed/:id — single post detail
 export async function getFeedItem(id: string): Promise<FeedItem> {
-  const raw = await api.get<unknown>(`/feed/posts/${id}`, { public: true })
+  const raw = await api.get<unknown>(`/feed/${id}`, { public: true })
   const r = raw as any
   return r?.item ?? r?.post ?? r
 }

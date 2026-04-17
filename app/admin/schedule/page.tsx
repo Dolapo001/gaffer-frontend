@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Menu, ChevronDown, Calendar, Clock, X, ChevronLeft } from 'lucide-react'
+import { Plus, Menu, ChevronDown, Calendar, Clock, X, ChevronLeft, Trash2 } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
@@ -21,7 +21,7 @@ type Match = {
 }
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFixtures, createFixture, Fixture, listRounds, Round } from '@/lib/services/fixture.service'
+import { listFixtures, createFixture, deleteFixture, Fixture, listRounds, Round } from '@/lib/services/fixture.service'
 import { listCompetitions, Competition, listCompetitionTeams, CompetitionTeam } from '@/lib/services/competition.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listTeams } from '@/lib/services/team.service' // Added listTeams import
@@ -479,6 +479,7 @@ function MatchCard({ match }: { match: Match }) {
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [isLive, setIsLive] = useState(match.isLive)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     setIsLive(match.isLive)
@@ -486,82 +487,140 @@ function MatchCard({ match }: { match: Match }) {
 
   const toggleMutation = useMutation({
     mutationFn: async (live: boolean) => {
-      const { startMatch, updateFixture } = await import('@/lib/services/fixture.service')
-      if (live) {
-        return startMatch(match.id)
-      } else {
-        return updateFixture(match.id, { status: 'scheduled' })
-      }
+      const { startMatch, cancelLive } = await import('@/lib/services/fixture.service')
+      if (live) return startMatch(match.id)
+      return cancelLive(match.id)
     },
     onSuccess: (_, live) => {
       queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      addToast(
-        live 
-          ? `${match.teamA} vs ${match.teamB} is now LIVE!` 
-          : `${match.teamA} vs ${match.teamB} scheduled.`, 
-        'success'
-      )
+      addToast(live ? `${match.teamA} vs ${match.teamB} is now LIVE!` : `${match.teamA} vs ${match.teamB} set to scheduled.`, 'success')
     },
     onError: (err: any) => {
-      setIsLive(!isLive) // revert local state
+      setIsLive(!isLive)
       addToast(err?.message || 'Failed to update match status', 'error')
     }
   })
 
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteFixture(match.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['fixtures'] })
+      addToast('Fixture deleted.', 'success')
+      setShowDeleteConfirm(false)
+    },
+    onError: (err: any) => addToast(err?.message || 'Failed to delete fixture', 'error')
+  })
+
   const handleToggleLive = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (toggleMutation.isPending) return
     const nextValue = e.target.checked
     setIsLive(nextValue)
     toggleMutation.mutate(nextValue)
   }
 
-  return (
-    <div 
-      onClick={() => router.push(`/admin/schedule/${match.id}`)}
-      className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
-    >
-      <div className="flex items-center justify-between">
-        {/* Team A */}
-        <div className="flex flex-col items-center gap-2 w-24">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
-            <img src={match.teamALogo} className="w-full h-full object-cover" alt="" />
-          </div>
-          <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
-            {match.teamA}
-          </span>
-        </div>
+  const handleDeleteClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (match.isLive) {
+      addToast('Cannot delete a live fixture. Turn off live first.', 'error')
+      return
+    }
+    setShowDeleteConfirm(true)
+  }
 
-        {/* Center Info */}
-        <div className="flex flex-col items-center gap-1.5 flex-1">
-          <span className="text-[11px] text-white/40 font-bold uppercase tracking-tight">
-            {match.date}
-          </span>
-          <div className="bg-[#0F111A] min-w-[100px] h-11 flex items-center justify-center rounded-xl border border-white/5 shadow-inner">
-            <span className="font-chakra font-black text-lg text-white tracking-widest leading-none">
-              {match.score || match.time}
+  return (
+    <>
+      <div
+        onClick={() => router.push(`/admin/schedule/${match.id}`)}
+        className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
+      >
+        {/* Delete button */}
+        <button
+          onClick={handleDeleteClick}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/30 hover:bg-red-500/20 hover:text-red-400 transition-all z-10"
+        >
+          <Trash2 size={14} />
+        </button>
+
+        <div className="flex items-center justify-between">
+          {/* Team A */}
+          <div className="flex flex-col items-center gap-2 w-24">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
+              <img src={match.teamALogo} className="w-full h-full object-cover" alt="" />
+            </div>
+            <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
+              {match.teamA}
             </span>
           </div>
-          
-          {!match.score && (
-            <div className="flex flex-col items-center gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
-              <label className="relative inline-flex items-center cursor-pointer scale-90">
-                <input type="checkbox" className="sr-only peer" checked={isLive} onChange={handleToggleLive} />
-                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-              </label>
-              <span className="text-[9px] text-[#FF4D00] font-black uppercase tracking-[0.2em] italic leading-none">Go Live</span>
-            </div>
-          )}
-        </div>
 
-        {/* Team B */}
-        <div className="flex flex-col items-center gap-2 w-24">
-          <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
-            <img src={match.teamBLogo} className="w-full h-full object-cover" alt="" />
+          {/* Center Info */}
+          <div className="flex flex-col items-center gap-1.5 flex-1">
+            <span className="text-[11px] text-white/40 font-bold uppercase tracking-tight">
+              {match.date}
+            </span>
+            <div className="bg-[#0F111A] min-w-[100px] h-11 flex items-center justify-center rounded-xl border border-white/5 shadow-inner">
+              <span className="font-chakra font-black text-lg text-white tracking-widest leading-none">
+                {match.score || match.time}
+              </span>
+            </div>
+
+            {!match.score && (
+              <div className="flex flex-col items-center gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
+                <label className={`relative inline-flex items-center scale-90 ${toggleMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={handleToggleLive} disabled={toggleMutation.isPending} />
+                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
+                </label>
+                <span className="text-[9px] text-[#FF4D00] font-black uppercase tracking-[0.2em] italic leading-none">
+                  {toggleMutation.isPending ? '...' : 'Go Live'}
+                </span>
+              </div>
+            )}
           </div>
-          <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
-            {match.teamB}
-          </span>
+
+          {/* Team B */}
+          <div className="flex flex-col items-center gap-2 w-24">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
+              <img src={match.teamBLogo} className="w-full h-full object-cover" alt="" />
+            </div>
+            <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
+              {match.teamB}
+            </span>
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Delete confirmation modal */}
+      <AnimatePresence>
+        {showDeleteConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center px-6"
+            onClick={() => setShowDeleteConfirm(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-[#1E2032] border border-white/10 rounded-[24px] p-6 w-full max-w-sm space-y-4"
+            >
+              <h3 className="font-chakra font-black text-white text-lg uppercase tracking-tight">Delete Fixture?</h3>
+              <p className="text-white/50 text-sm font-chakra">Are you sure you want to delete <span className="text-white font-bold">{match.teamA} vs {match.teamB}</span>? This action cannot be undone.</p>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-chakra font-bold text-sm uppercase hover:bg-white/5 transition-colors">Cancel</button>
+                <button
+                  onClick={() => deleteMutation.mutate()}
+                  disabled={deleteMutation.isPending}
+                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-chakra font-bold text-sm uppercase hover:bg-red-500 transition-colors disabled:opacity-50"
+                >
+                  {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   )
 }

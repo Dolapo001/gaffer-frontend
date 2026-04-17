@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, updateFixture, listEvents, listLineups, submitLineup, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
+import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, submitLineup, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
@@ -56,7 +56,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const toggleMutation = useMutation({
     mutationFn: async (live: boolean) => {
       if (live) return startMatch(id)
-      return updateFixture(id, { status: 'scheduled' })
+      return cancelLive(id)
     },
     onSuccess: (_, live) => {
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
@@ -383,67 +383,96 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
         <AnimatePresence mode="wait">
           {activeTab === 'lineup' ? (
             <motion.div key="lineup" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4">
-              <div className="space-y-6">
-                {/* Away Team Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between px-1">
-                    <span className="font-inter font-bold text-[12px] uppercase text-white/50 tracking-widest">AWAY TEAM</span>
-                    <button onClick={() => setIsSelectingFormation('away')} className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
-                      <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{awayFormation}</span>
-                      <ChevronDown size={12} className="text-white/40 group-hover:text-white transition-colors" />
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {(formations[awayFormation]|| formations['4-3-3']).map((_, idx) => {
-                      const player = awayLineup[idx]
-                      return (
-                        <div key={`a-list-${idx}`} onClick={() => setIsSelectingPlayer({ team: 'away', idx })} className="flex items-center justify-between bg-[#1C1F2D] p-4 rounded-[20px] border border-white/[0.03] active:scale-[0.98] transition-all cursor-pointer">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-inter font-bold text-xs ${player ? 'bg-blue-500/20 text-blue-400' : 'bg-white/5 text-white/20'}`}>
-                              {player?.jerseyNumber || '—'}
-                            </div>
-                            <div>
-                              <h4 className={`font-inter font-bold text-sm uppercase ${player ? 'text-white' : 'text-white/20'}`}>{player ? `${player.firstName} ${player.lastName}` : 'Empty Slot'}</h4>
-                              <p className="text-[10px] font-inter font-bold text-white/30 uppercase tracking-widest mt-0.5">{player?.position || 'UNASSIGNED'}</p>
-                            </div>
-                          </div>
-                          <Plus size={18} className="text-white/10" />
-                        </div>
-                      )
-                    })}
-                  </div>
+              {/* Pitch Visual */}
+              <div className="space-y-2">
+                {/* Away formation selector */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-inter font-bold uppercase tracking-widest text-blue-400/70">
+                    {typeof fixture?.awayTeamId === 'object' ? ((fixture.awayTeamId as any).shortName || (fixture.awayTeamId as any).name) : 'Away'}
+                  </span>
+                  <button onClick={() => setIsSelectingFormation('away')} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
+                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{awayFormation}</span>
+                    <ChevronDown size={10} className="text-white/40 group-hover:text-white transition-colors" />
+                  </button>
                 </div>
 
-                {/* Home Team Section */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between px-1 border-t border-white/5 pt-6">
-                    <span className="font-inter font-bold text-[12px] uppercase text-white/50 tracking-widest">HOME TEAM</span>
-                    <button onClick={() => setIsSelectingFormation('home')} className="flex items-center gap-2 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
-                      <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{homeFormation}</span>
-                      <ChevronDown size={12} className="text-white/40 group-hover:text-white transition-colors" />
-                    </button>
-                  </div>
+                {/* Pitch */}
+                <div
+                  className="relative w-full rounded-2xl overflow-hidden border border-white/10"
+                  style={{ backgroundColor: '#1e6b2e', aspectRatio: '0.65' }}
+                >
+                  {/* Pitch boundary */}
+                  <div className="absolute inset-[3%] border border-white/20 pointer-events-none" />
+                  {/* Center line */}
+                  <div className="absolute left-[3%] right-[3%] bg-white/20 pointer-events-none" style={{ top: '50%', height: '1px' }} />
+                  {/* Center circle */}
+                  <div className="absolute border border-white/20 rounded-full pointer-events-none" style={{ width: '22%', aspectRatio: '1', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                  <div className="absolute w-1.5 h-1.5 bg-white/30 rounded-full pointer-events-none" style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }} />
+                  {/* Away penalty area (top) */}
+                  <div className="absolute left-[28%] right-[28%] border border-white/20 pointer-events-none" style={{ top: '3%', height: '13%' }} />
+                  {/* Away goal */}
+                  <div className="absolute left-[40%] right-[40%] border-x border-b border-white/30 pointer-events-none" style={{ top: '3%', height: '4%' }} />
+                  {/* Home penalty area (bottom) */}
+                  <div className="absolute left-[28%] right-[28%] border border-white/20 pointer-events-none" style={{ bottom: '3%', height: '13%' }} />
+                  {/* Home goal */}
+                  <div className="absolute left-[40%] right-[40%] border-x border-t border-white/30 pointer-events-none" style={{ bottom: '3%', height: '4%' }} />
 
-                  <div className="space-y-2">
-                    {(formations[homeFormation]|| formations['4-3-3']).map((_, idx) => {
-                      const player = homeLineup[idx]
-                      return (
-                        <div key={`h-list-${idx}`} onClick={() => setIsSelectingPlayer({ team: 'home', idx })} className="flex items-center justify-between bg-[#1C1F2D] p-4 rounded-[20px] border border-white/[0.03] active:scale-[0.98] transition-all cursor-pointer">
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-inter font-bold text-xs ${player ? 'bg-[#FF5C00]/20 text-[#FF5C00]' : 'bg-white/5 text-white/20'}`}>
-                              {player?.jerseyNumber || '—'}
-                            </div>
-                            <div>
-                              <h4 className={`font-inter font-bold text-sm uppercase ${player ? 'text-white' : 'text-white/20'}`}>{player ? `${player.firstName} ${player.lastName}` : 'Empty Slot'}</h4>
-                              <p className="text-[10px] font-inter font-bold text-white/30 uppercase tracking-widest mt-0.5">{player?.position || 'UNASSIGNED'}</p>
-                            </div>
-                          </div>
-                          <Plus size={18} className="text-white/10" />
+                  {/* Away players — t=88 (GK) maps near top, t=18 (FWD) maps near center */}
+                  {(formations[awayFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
+                    const player = awayLineup[idx]
+                    const pitchT = ((100 - t) / 100) * 47 + 2
+                    return (
+                      <button
+                        key={`ap-${idx}`}
+                        onClick={() => setIsSelectingPlayer({ team: 'away', idx })}
+                        style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+                        className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
+                      >
+                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
+                          {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
                         </div>
-                      )
-                    })}
-                  </div>
+                        {player && (
+                          <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
+                            {player.lastName || player.firstName}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+
+                  {/* Home players — t=88 (GK) maps near bottom, t=18 (FWD) maps near center */}
+                  {(formations[homeFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
+                    const player = homeLineup[idx]
+                    const pitchT = 51 + (t / 100) * 47
+                    return (
+                      <button
+                        key={`hp-${idx}`}
+                        onClick={() => setIsSelectingPlayer({ team: 'home', idx })}
+                        style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
+                        className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
+                      >
+                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
+                          {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
+                        </div>
+                        {player && (
+                          <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
+                            {player.lastName || player.firstName}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+
+                {/* Home formation selector */}
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[10px] font-inter font-bold uppercase tracking-widest text-[#FF5C00]/70">
+                    {typeof fixture?.homeTeamId === 'object' ? ((fixture.homeTeamId as any).shortName || (fixture.homeTeamId as any).name) : 'Home'}
+                  </span>
+                  <button onClick={() => setIsSelectingFormation('home')} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
+                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{homeFormation}</span>
+                    <ChevronDown size={10} className="text-white/40 group-hover:text-white transition-colors" />
+                  </button>
                 </div>
               </div>
 
@@ -862,12 +891,13 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
               {/* Floating Action Button */}
               <button
+                disabled={recordEventMutation.isPending}
                 onClick={(e) => {
                   e.stopPropagation()
                   if (commentaryStep === 'idle') setCommentaryStep('menu')
                   else resetCommentary()
                 }}
-                className={`fixed ${commentaryStep !== 'idle' ? 'bottom-8' : 'bottom-32'} right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white z-[120] shadow-2xl active:scale-95 transition-all duration-500 ${commentaryStep !== 'idle' ? 'rotate-45' : ''}`}
+                className={`fixed ${commentaryStep !== 'idle' ? 'bottom-8' : 'bottom-32'} right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white z-[120] shadow-2xl active:scale-95 transition-all duration-500 ${commentaryStep !== 'idle' ? 'rotate-45' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <Plus size={28} strokeWidth={3} />
               </button>

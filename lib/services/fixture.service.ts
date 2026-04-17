@@ -180,6 +180,12 @@ export async function endMatch(fixtureId: string): Promise<Fixture> {
   return data.fixture
 }
 
+// POST /fixtures/:fixtureId/cancel-live — set live fixture back to scheduled
+export async function cancelLive(fixtureId: string): Promise<Fixture> {
+  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/cancel-live`)
+  return data.fixture
+}
+
 // POST /fixtures/:fixtureId/events (legacy)
 export async function recordEvent(
   fixtureId: string,

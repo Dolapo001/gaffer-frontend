@@ -184,9 +184,23 @@ export function NewsCard({
             </span>
           </button>
           <button
-            onClick={(e) => {
+            onClick={async (e) => {
               e.stopPropagation()
-              addToast('Article link copied to clipboard!', 'success')
+              const url = `${window.location.origin}/app/news/${id}`
+              if (navigator.share) {
+                try {
+                  await navigator.share({ title, url })
+                  return
+                } catch {
+                  // user cancelled or API unavailable — fall through to clipboard
+                }
+              }
+              try {
+                await navigator.clipboard.writeText(url)
+                addToast('Link copied to clipboard!', 'success')
+              } catch {
+                addToast('Could not copy link.', 'error')
+              }
             }}
             className="text-gaffer-subtle hover:text-white transition-colors"
           >
