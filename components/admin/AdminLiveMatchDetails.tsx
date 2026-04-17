@@ -139,7 +139,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
   // Populate slot state from server lineup when the page first loads
   useEffect(() => {
-    if (!existingLineups || !homeId || !awayId) return
+    if (!Array.isArray(existingLineups) || !homeId || !awayId) return
     const homeServerLineup = existingLineups.find((l: any) => {
       const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
       return tid === homeId

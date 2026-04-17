@@ -226,10 +226,10 @@ export default function MatchCenterPage() {
                      const teamId = lineupTeam === 'home'
                         ? (fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string)
                         : (fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string)
-                     const teamLineup = (lineupsData ?? []).find((l: any) => {
+                     const teamLineup = Array.isArray(lineupsData) ? lineupsData.find((l: any) => {
                        const lid = (typeof l.teamId === 'object' && l.teamId !== null) ? l.teamId._id : l.teamId
                        return lid === teamId
-                     })
+                     }) : undefined
                      const formation = lineupTeam === 'home' ? (fixture.formation || '4-3-3') : (fixture.awayFormation || '4-3-3')
                      return (
                         <div className="relative">
