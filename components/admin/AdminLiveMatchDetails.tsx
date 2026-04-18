@@ -35,6 +35,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const [homeLineup, setHomeLineup] = useState<Record<number, any>>({})
   const [awayLineup, setAwayLineup] = useState<Record<number, any>>({})
   const [isSelectingPlayer, setIsSelectingPlayer] = useState<{ team: 'home' | 'away', idx: number } | null>(null)
+  const [slotContextMenu, setSlotContextMenu] = useState<{ team: 'home' | 'away', idx: number, player: any } | null>(null)
+  const [savingTeam, setSavingTeam] = useState<'home' | 'away' | null>(null)
 
   // 1. Fetch Fixture
   const { data: fixture, isLoading: isFixtureLoading } = useQuery({
@@ -58,18 +60,29 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       if (live) {
         const localHomeCount = Object.values(homeLineup).filter(Boolean).length
         const localAwayCount = Object.values(awayLineup).filter(Boolean).length
-        const savedHomeCount = Array.isArray(existingLineups)
-          ? existingLineups.filter((l: any) => {
+        let savedHomeCount = 0
+        let savedAwayCount = 0
+
+        if (existingLineups?.homeTeam) {
+          savedHomeCount = existingLineups.homeTeam.players?.length ?? 0
+        }
+        if (existingLineups?.awayTeam) {
+          savedAwayCount = existingLineups.awayTeam.players?.length ?? 0
+        }
+
+        // Legacy array fallback
+        if (Array.isArray(existingLineups)) {
+          savedHomeCount = existingLineups
+            .filter((l: any) => {
               const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
               return tid === homeId
             }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
-          : 0
-        const savedAwayCount = Array.isArray(existingLineups)
-          ? existingLineups.filter((l: any) => {
+          savedAwayCount = existingLineups
+            .filter((l: any) => {
               const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
               return tid === awayId
             }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
-          : 0
+        }
 
         if (localHomeCount === 0 || localAwayCount === 0) {
           throw new Error("Both team lineups must be assigned before going live")
@@ -91,17 +104,45 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   // 2.1 Save Lineup — POST /fixtures/:id/lineups (once per team)
   const saveLineupMutation = useMutation({
     mutationFn: async () => {
-      const toPlayerIds = (lineup: Record<number, any>): string[] =>
-        Object.values(lineup)
-          .map((v: any) => v?._id || v?.id || (typeof v === 'string' ? v : null))
-          .filter(Boolean) as string[]
+      // Extract unique, valid player IDs from the lineup slots
+      const getLineupArray = (lineup: Record<number, any>, formation: string): string[] => {
+        const slotCount = formations[formation as keyof typeof formations]?.length || 11
+        const seen = new Set<string>()
+        const arr: string[] = []
+        for (let i = 0; i < slotCount; i++) {
+          const p = lineup[i]
+          const id = p?._id || p?.id || (typeof p === 'string' ? p : null)
+          if (id && id.trim() !== '' && !seen.has(id)) {
+            seen.add(id)
+            arr.push(id)
+          }
+        }
+        return arr
+      }
 
       const saves: Promise<any>[] = []
-      if (homeId && Object.keys(homeLineup).length > 0) {
-        saves.push(submitLineup(id, { teamId: homeId, starters: toPlayerIds(homeLineup) }))
+      
+      // 1. Save Formations to Fixture object
+      saves.push(updateFixture(id, { 
+        homeFormation, 
+        awayFormation 
+      }))
+
+      // 2. Save Lineups (only if there are actual players)
+      const homeStarters = homeId ? getLineupArray(homeLineup, homeFormation) : []
+      const awayStarters = awayId ? getLineupArray(awayLineup, awayFormation) : []
+
+      if (homeId && homeStarters.length > 0) {
+        saves.push(submitLineup(id, { 
+          teamId: homeId, 
+          starters: homeStarters 
+        }))
       }
-      if (awayId && Object.keys(awayLineup).length > 0) {
-        saves.push(submitLineup(id, { teamId: awayId, starters: toPlayerIds(awayLineup) }))
+      if (awayId && awayStarters.length > 0) {
+        saves.push(submitLineup(id, { 
+          teamId: awayId, 
+          starters: awayStarters 
+        }))
       }
       return Promise.all(saves)
     },
@@ -160,34 +201,6 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     throwOnError: false,
   })
 
-  // Populate slot state from server lineup when the page first loads
-  useEffect(() => {
-    if (!Array.isArray(existingLineups) || !homeId || !awayId) return
-    const homeServerLineup = existingLineups.find((l: any) => {
-      const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
-      return tid === homeId
-    })
-    const awayServerLineup = existingLineups.find((l: any) => {
-      const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
-      return tid === awayId
-    })
-    if (homeServerLineup?.starters?.length && Object.keys(homeLineup).length === 0) {
-      const mapped: Record<number, any> = {}
-      ;(homeServerLineup.starters as any[]).forEach((p: any, i: number) => {
-        if (p && typeof p === 'object') mapped[i] = p
-      })
-      if (Object.keys(mapped).length) setHomeLineup(mapped)
-    }
-    if (awayServerLineup?.starters?.length && Object.keys(awayLineup).length === 0) {
-      const mapped: Record<number, any> = {}
-      ;(awayServerLineup.starters as any[]).forEach((p: any, i: number) => {
-        if (p && typeof p === 'object') mapped[i] = p
-      })
-      if (Object.keys(mapped).length) setAwayLineup(mapped)
-    }
-  // Only run when lineup data first arrives — not on every homeLineup/awayLineup change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [existingLineups, homeId, awayId])
 
   // 1.3 Fetch Events (poll every 10s when live)
   const { data: events = [], isLoading: isEventsLoading } = useQuery({
@@ -222,6 +235,75 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const flattenedAwaySquad = flattenSquad(awaySquad)
   const isSquadLoading = isHomeSquadLoading || isAwaySquadLoading
   const commentarySquad = selectedTeam === 'home' ? flattenedHomeSquad : selectedTeam === 'away' ? flattenedAwaySquad : []
+
+  // Populate slot state from server lineup when the page first loads
+  useEffect(() => {
+    if (!existingLineups || !homeId || !awayId || isSquadLoading) return
+
+    const hydrateLineup = (serverPlayers: any[], squad: any[]) => {
+      const mapped: Record<number, any> = {}
+      if (!Array.isArray(serverPlayers)) return mapped
+      serverPlayers.forEach((p: any, i: number) => {
+        if (!p) return
+        
+        // Get the player ID regardless of format
+        const pid = typeof p === 'string' ? p : (p?._id || p?.id)
+        if (!pid) return
+
+        // Try to find full details from the squad roster
+        const fromRoster = squad.find(s => s._id === pid || s._id === String(pid))
+        if (fromRoster) {
+          mapped[i] = fromRoster
+        } else if (typeof p === 'object' && (p.lastName || p.firstName)) {
+          // Server returned a populated object — use it directly
+          mapped[i] = p
+        }
+      })
+      return mapped
+    }
+
+    // Handle structured response: { homeTeam: { players: [...] }, awayTeam: { players: [...] } }
+    if (existingLineups?.homeTeam || existingLineups?.awayTeam) {
+      const homeServerPlayers = existingLineups.homeTeam?.players || []
+      const awayServerPlayers = existingLineups.awayTeam?.players || []
+
+      if (homeServerPlayers.length > 0 && Object.keys(homeLineup).length === 0) {
+        const mapped = hydrateLineup(homeServerPlayers, flattenedHomeSquad)
+        if (Object.keys(mapped).length) setHomeLineup(mapped)
+      }
+      if (awayServerPlayers.length > 0 && Object.keys(awayLineup).length === 0) {
+        const mapped = hydrateLineup(awayServerPlayers, flattenedAwaySquad)
+        if (Object.keys(mapped).length) setAwayLineup(mapped)
+      }
+
+      // Also restore formations from the response if available
+      if (existingLineups.homeTeam?.formation) setHomeFormation(existingLineups.homeTeam.formation as any)
+      if (existingLineups.awayTeam?.formation) setAwayFormation(existingLineups.awayTeam.formation as any)
+      return
+    }
+
+    // Legacy fallback: array of lineup objects
+    if (Array.isArray(existingLineups)) {
+      const homeServerLineup = existingLineups.find((l: any) => {
+        const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
+        return tid === homeId
+      })
+      const awayServerLineup = existingLineups.find((l: any) => {
+        const tid = (typeof l.teamId === 'object' && l.teamId !== null) ? (l.teamId as any)._id : l.teamId
+        return tid === awayId
+      })
+
+      if (homeServerLineup?.starters?.length && Object.keys(homeLineup).length === 0) {
+        const mapped = hydrateLineup(homeServerLineup.starters, flattenedHomeSquad)
+        if (Object.keys(mapped).length) setHomeLineup(mapped)
+      }
+      if (awayServerLineup?.starters?.length && Object.keys(awayLineup).length === 0) {
+        const mapped = hydrateLineup(awayServerLineup.starters, flattenedAwaySquad)
+        if (Object.keys(mapped).length) setAwayLineup(mapped)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [existingLineups, homeId, awayId, isSquadLoading])
   const recordEventMutation = useMutation({
     mutationFn: (payload: any) => recordEvent(id, payload),
     onSuccess: () => {
@@ -268,14 +350,63 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     ]
   }
 
+  const persistLineup = async (team: 'home' | 'away', lineup: Record<number, any>) => {
+    const teamId = team === 'home' ? homeId : awayId
+    if (!teamId) return
+    const starters = Object.values(lineup)
+      .filter(Boolean)
+      .map((p: any) => p._id || p.id)
+      .filter(Boolean)
+    setSavingTeam(team)
+    try {
+      await submitLineup(id, { teamId, starters })
+      queryClient.invalidateQueries({ queryKey: ['lineups', id] })
+    } catch (err: any) {
+      addToast(err?.message || 'Failed to save lineup', 'error')
+    } finally {
+      setSavingTeam(null)
+    }
+  }
+
   const assignPlayer = (team: 'home' | 'away', idx: number, player: any) => {
-    if (team === 'home') setHomeLineup({ ...homeLineup, [idx]: player })
-    else setAwayLineup({ ...awayLineup, [idx]: player })
+    const lineup = team === 'home' ? { ...homeLineup } : { ...awayLineup }
+    // If this player is already assigned to another slot, remove them from the old slot
+    for (const key in lineup) {
+      if (lineup[key]?._id && lineup[key]._id === player._id) {
+        delete lineup[key]
+      }
+    }
+    lineup[idx] = player
+    if (team === 'home') setHomeLineup(lineup)
+    else setAwayLineup(lineup)
     setIsSelectingPlayer(null)
+    setSlotContextMenu(null)
+    persistLineup(team, lineup)
+  }
+
+  const unassignPlayer = (team: 'home' | 'away', idx: number) => {
+    const updated = team === 'home' ? { ...homeLineup } : { ...awayLineup }
+    delete updated[idx]
+    if (team === 'home') setHomeLineup(updated)
+    else setAwayLineup(updated)
+    setSlotContextMenu(null)
+    persistLineup(team, updated)
+  }
+
+  const handleSlotClick = (team: 'home' | 'away', idx: number) => {
+    const lineup = team === 'home' ? homeLineup : awayLineup
+    const player = lineup[idx]
+    if (player) {
+      // Slot is occupied — show context menu
+      setSlotContextMenu({ team, idx, player })
+    } else {
+      // Slot is empty — open player picker directly
+      setIsSelectingPlayer({ team, idx })
+    }
   }
 
   useEffect(() => {
-    const shouldHide = commentaryStep !== 'idle' || !!isSelectingPlayer || !!isSelectingFormation
+    const shouldHide = commentaryStep !== 'idle' || !!isSelectingPlayer || !!isSelectingFormation || !!slotContextMenu
 
     if (shouldHide) {
       document.body.style.overflow = 'hidden'
@@ -447,11 +578,11 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     return (
                       <button
                         key={`ap-${idx}`}
-                        onClick={() => setIsSelectingPlayer({ team: 'away', idx })}
+                        onClick={() => handleSlotClick('away', idx)}
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
+                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'away' ? 'animate-pulse opacity-70' : ''}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
                         </div>
                         {player && (
@@ -470,11 +601,11 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     return (
                       <button
                         key={`hp-${idx}`}
-                        onClick={() => setIsSelectingPlayer({ team: 'home', idx })}
+                        onClick={() => handleSlotClick('home', idx)}
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
+                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'home' ? 'animate-pulse opacity-70' : ''}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
                         </div>
                         {player && (
@@ -539,13 +670,14 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                             {(isSelectingPlayer.team === 'home' ? flattenedHomeSquad : flattenedAwaySquad)
                               ?.map((player: any) => {
                               const lineup = isSelectingPlayer.team === 'home' ? homeLineup : awayLineup
-                              const isAssigned = Object.values(lineup).some((p: any) => p?._id && p?._id === player?._id)
+                              const assignedSlot = Object.entries(lineup).find(([, p]: [string, any]) => p?._id && p?._id === player?._id)
+                              const isInCurrentSlot = assignedSlot && Number(assignedSlot[0]) === isSelectingPlayer.idx
                               return (
                                 <button
                                   key={player._id || player.membershipId}
-                                  disabled={isAssigned}
+                                  disabled={isInCurrentSlot}
                                   onClick={() => assignPlayer(isSelectingPlayer.team, isSelectingPlayer.idx, player)}
-                                  className={`w-full flex items-center justify-between gap-5 p-5 rounded-2xl border border-white/5 transition-all ${isAssigned ? 'opacity-20 cursor-not-allowed bg-black/20' : 'bg-white/10 hover:bg-white/20 active:scale-x-[0.98]'}`}
+                                  className={`w-full flex items-center justify-between gap-5 p-5 rounded-2xl border border-white/5 transition-all ${isInCurrentSlot ? 'opacity-20 cursor-not-allowed bg-black/20' : assignedSlot ? 'bg-yellow-500/5 border-yellow-500/20 hover:bg-yellow-500/10 active:scale-x-[0.98]' : 'bg-white/10 hover:bg-white/20 active:scale-x-[0.98]'}`}
                                 >
                                 <div className="flex items-center gap-5">
                                   <div className="relative">
@@ -564,15 +696,80 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                   </div>
                                   <div className="flex-1 text-left">
                                     <h4 className="font-inter font-bold text-white text-base uppercase leading-tight">{player.firstName} {player.lastName}</h4>
-                                    <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">{player.position || player.role || 'PLAYER'}</p>
+                                    <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">
+                                      {player.position || player.role || 'PLAYER'}
+                                      {assignedSlot && !isInCurrentSlot && <span className="text-yellow-400 ml-2">• Will move from slot {Number(assignedSlot[0]) + 1}</span>}
+                                    </p>
                                   </div>
                                 </div>
-                                {!isAssigned && <Plus size={20} className="text-white/40 group-hover:text-white transition-colors" />}
+                                {!isInCurrentSlot && <>{assignedSlot ? <Repeat size={18} className="text-yellow-400/60" /> : <Plus size={20} className="text-white/40" />}</>}
                               </button>
                             )
                           })}
                           </>
                         )}
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Slot Context Menu (Unassign / Replace) */}
+              <AnimatePresence>
+                {slotContextMenu && (
+                  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[999] flex items-center justify-center px-6">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setSlotContextMenu(null)} />
+                    <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="bg-[#1C1F2D] w-full max-w-[320px] rounded-[32px] border border-white/10 z-10 overflow-hidden shadow-2xl">
+                      {/* Player info */}
+                      <div className="p-6 border-b border-white/5 flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center">
+                          {(slotContextMenu.player.photoUrl || slotContextMenu.player.photo) ? (
+                            <img src={slotContextMenu.player.photoUrl || slotContextMenu.player.photo} className="w-full h-full object-cover" alt="" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center font-inter font-bold text-xs text-white/30">GAF</div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-inter font-bold text-white text-base uppercase leading-tight truncate">
+                            {slotContextMenu.player.firstName} {slotContextMenu.player.lastName}
+                          </h4>
+                          <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">
+                            #{slotContextMenu.player.jerseyNumber || '?'} · Slot {slotContextMenu.idx + 1}
+                          </p>
+                        </div>
+                        <button onClick={() => setSlotContextMenu(null)} className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/40">
+                          <X size={16} />
+                        </button>
+                      </div>
+                      {/* Actions */}
+                      <div className="p-4 space-y-2">
+                        <button
+                          onClick={() => {
+                            setIsSelectingPlayer({ team: slotContextMenu.team, idx: slotContextMenu.idx })
+                            setSlotContextMenu(null)
+                          }}
+                          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-blue-500/10 border border-blue-500/20 flex items-center justify-center">
+                            <Repeat size={18} className="text-blue-400" />
+                          </div>
+                          <div className="text-left">
+                            <span className="font-inter font-bold text-white text-sm uppercase tracking-wide">Replace</span>
+                            <p className="text-[10px] text-white/30 font-inter font-bold uppercase tracking-widest">Pick a different player</p>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => unassignPlayer(slotContextMenu.team, slotContextMenu.idx)}
+                          className="w-full flex items-center gap-4 p-4 rounded-2xl bg-white/5 hover:bg-red-500/10 border border-white/5 hover:border-red-500/20 transition-colors group"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                            <X size={18} className="text-red-400" />
+                          </div>
+                          <div className="text-left">
+                            <span className="font-inter font-bold text-white text-sm uppercase tracking-wide">Unassign</span>
+                            <p className="text-[10px] text-white/30 font-inter font-bold uppercase tracking-widest">Remove from lineup</p>
+                          </div>
+                        </button>
                       </div>
                     </motion.div>
                   </motion.div>

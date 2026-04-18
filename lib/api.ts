@@ -14,10 +14,69 @@ let _accessToken: string | null = null
 // On module load, attempt to restore the access token from the JS-accessible
 // cookie written by tokenStore.set(). This prevents an unnecessary /auth/refresh
 // round-trip when the PWA is reopened with a still-valid token.
+//
+// IMPORTANT: only restore the token if it hasn't expired yet. An expired token
+// in the cookie is the normal case after 15+ minutes away — useAuthListener will
+// call /auth/refresh to get a fresh one. If we restore an expired token and then
+// call scheduleAutoLogout, it fires forceEjectAndRedirect immediately (delay <= 0),
+// which races ahead of useAuthListener and logs the user out on every hard refresh.
 if (typeof document !== 'undefined') {
   const match = document.cookie.match(/(?:^|;\s*)gaffer-auth-token=([^;]+)/)
   if (match?.[1]) {
-    _accessToken = match[1]
+    const restoredToken = match[1]
+    try {
+      const base64Url = restoredToken.split('.')[1]
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+      const payload = JSON.parse(decodeURIComponent(
+        atob(base64).split('').map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')
+      ))
+      if (payload.exp && payload.exp * 1000 > Date.now()) {
+        // Token is still valid — restore and schedule logout for when it expires
+        _accessToken = restoredToken
+        setTimeout(() => {
+          if (_accessToken) scheduleAutoLogout(_accessToken)
+        }, 0)
+      }
+      // Expired: leave _accessToken = null — useAuthListener will refresh via rt cookie
+    } catch {
+      // Malformed token — ignore, useAuthListener will handle the session
+    }
+  }
+}
+
+let _logoutTimer: any = null
+
+function scheduleAutoLogout(token: string) {
+  if (typeof window === 'undefined') return
+  if (_logoutTimer) clearTimeout(_logoutTimer)
+
+  try {
+    // Decode JWT payload (middle part)
+    const base64Url = token.split('.')[1]
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    )
+    
+    const payload = JSON.parse(jsonPayload)
+    if (!payload.exp) return
+
+    const exp = payload.exp * 1000 // Convert to milliseconds
+    const now = Date.now()
+    const delay = exp - now
+
+    if (delay <= 0) {
+      forceEjectAndRedirect('Your session has expired.')
+    } else {
+      _logoutTimer = setTimeout(() => {
+        forceEjectAndRedirect('Your session has expired. Please log in again.')
+      }, delay)
+    }
+  } catch (e) {
+    console.warn('Failed to parse JWT for auto-logout:', e)
   }
 }
 
@@ -28,8 +87,13 @@ export const tokenStore = {
     if (typeof document !== 'undefined') {
       if (token) {
         document.cookie = `gaffer-auth-token=${token}; path=/; max-age=31536000; SameSite=Lax`
+        scheduleAutoLogout(token)
       } else {
         document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+        if (_logoutTimer) {
+          clearTimeout(_logoutTimer)
+          _logoutTimer = null
+        }
       }
     }
   },
@@ -37,6 +101,10 @@ export const tokenStore = {
     _accessToken = null
     if (typeof document !== 'undefined') {
       document.cookie = `gaffer-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax`
+      if (_logoutTimer) {
+        clearTimeout(_logoutTimer)
+        _logoutTimer = null
+      }
     }
   },
 }
