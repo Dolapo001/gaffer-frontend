@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useGoBack } from '@/hooks/useGoBack'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Camera, Building2, Check } from 'lucide-react'
-import { listOrgs, updateOrgLogo, type Org } from '@/lib/services/org.service'
+import { ChevronLeft, Camera, Building2, Check, Pencil, X } from 'lucide-react'
+import { listOrgs, updateOrgLogo, updateOrg, type Org } from '@/lib/services/org.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -20,6 +20,8 @@ export default function AdminSettingsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editForm, setEditForm] = useState({ name: '', description: '', email: '', website: '', sportsText: '' })
 
   const { data: orgs, isLoading } = useQuery<Org[]>({
     queryKey: ['orgs'],
@@ -45,6 +47,49 @@ export default function AdminSettingsPage() {
       toast.addToast({ type: 'error', message: getErrorMessage(err) })
     },
   })
+
+  const updateOrgMutation = useMutation({
+    mutationFn: ({ orgId, payload }: { orgId: string; payload: Parameters<typeof updateOrg>[1] }) =>
+      updateOrg(orgId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['orgs'] })
+      toast.addToast({ type: 'success', message: 'Organisation updated' })
+      setIsEditing(false)
+    },
+    onError: (err) => {
+      toast.addToast({ type: 'error', message: getErrorMessage(err) })
+    },
+  })
+
+  const handleEditOpen = () => {
+    if (!org) return
+    setEditForm({
+      name: org.name ?? '',
+      description: org.description ?? '',
+      email: org.email ?? '',
+      website: org.website ?? '',
+      sportsText: org.sports?.join(', ') ?? '',
+    })
+    setIsEditing(true)
+  }
+
+  const handleEditSave = () => {
+    if (!org) return
+    const sports = editForm.sportsText
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+    updateOrgMutation.mutate({
+      orgId: org._id,
+      payload: {
+        name: editForm.name || undefined,
+        description: editForm.description || undefined,
+        email: editForm.email || undefined,
+        website: editForm.website || undefined,
+        sports: sports.length ? sports : undefined,
+      },
+    })
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -156,19 +201,84 @@ export default function AdminSettingsPage() {
             transition={{ delay: 0.05 }}
             className="bg-gaffer-card border border-gaffer-border rounded-2xl p-5 space-y-3"
           >
-            <p className="text-gaffer-muted text-xs font-body uppercase tracking-widest mb-2">Details</p>
-            {[
-              { label: 'Name', value: org.name },
-              { label: 'Handle', value: `@${org.handle}` },
-              { label: 'Sports', value: org.sports?.join(', ') || '—' },
-              { label: 'Status', value: org.lifecycleStatus },
-              { label: 'Verified', value: org.verificationStatus },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="text-gaffer-muted text-sm font-body">{label}</span>
-                <span className="text-white text-sm font-body font-medium capitalize">{value || '—'}</span>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-gaffer-muted text-xs font-body uppercase tracking-widest">Details</p>
+              {!isEditing ? (
+                <button
+                  onClick={handleEditOpen}
+                  className="flex items-center gap-1.5 text-gaffer-orange text-xs font-body font-medium"
+                >
+                  <Pencil size={12} />
+                  Edit
+                </button>
+              ) : (
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex items-center gap-1.5 text-gaffer-muted text-xs font-body font-medium"
+                >
+                  <X size={12} />
+                  Cancel
+                </button>
+              )}
+            </div>
+
+            {isEditing ? (
+              <div className="space-y-3">
+                {[
+                  { label: 'Name', key: 'name' as const, placeholder: 'Organisation name' },
+                  { label: 'Description', key: 'description' as const, placeholder: 'Short description' },
+                  { label: 'Email', key: 'email' as const, placeholder: 'contact@org.com' },
+                  { label: 'Website', key: 'website' as const, placeholder: 'https://...' },
+                  { label: 'Sports', key: 'sportsText' as const, placeholder: 'Football, Basketball' },
+                ].map(({ label, key, placeholder }) => (
+                  <div key={key}>
+                    <label className="text-gaffer-muted text-xs font-body block mb-1">{label}</label>
+                    <input
+                      value={editForm[key]}
+                      onChange={(e) => setEditForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                      placeholder={placeholder}
+                      className="w-full bg-gaffer-surface border border-gaffer-border rounded-xl px-3 py-2.5 text-white text-sm font-body outline-none focus:border-gaffer-orange transition-colors"
+                    />
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-1 text-gaffer-muted text-xs font-body">
+                  <span>Handle</span>
+                  <span className="text-white/50">@{org.handle} (unchangeable)</span>
+                </div>
+                <button
+                  onClick={handleEditSave}
+                  disabled={updateOrgMutation.isPending}
+                  className="mt-2 w-full py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {updateOrgMutation.isPending ? (
+                    <>
+                      <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Check size={15} />
+                      Save Changes
+                    </>
+                  )}
+                </button>
               </div>
-            ))}
+            ) : (
+              <>
+                {[
+                  { label: 'Name', value: org.name },
+                  { label: 'Handle', value: `@${org.handle}` },
+                  { label: 'Sports', value: org.sports?.join(', ') || '—' },
+                  { label: 'Status', value: org.lifecycleStatus },
+                  { label: 'Verified', value: org.verificationStatus },
+                ].map(({ label, value }) => (
+                  <div key={label} className="flex items-center justify-between">
+                    <span className="text-gaffer-muted text-sm font-body">{label}</span>
+                    <span className="text-white text-sm font-body font-medium capitalize">{value || '—'}</span>
+                  </div>
+                ))}
+              </>
+            )}
           </motion.div>
         </div>
       ) : (

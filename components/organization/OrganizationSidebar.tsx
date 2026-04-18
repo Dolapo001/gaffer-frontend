@@ -213,20 +213,22 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
       <div className="space-y-3 pt-6 border-t border-white/10 relative z-10 w-full mb-10">
         <h4 className="text-[10px] font-black tracking-widest text-white/30 uppercase mb-2 px-2">Switch Account</h4>
 
-        <motion.button
-          whileTap={{ scale: 0.96 }}
-          onClick={() => handleRoleSwitch('personal')}
-          className={`w-full py-4 rounded-xl font-black text-sm transition-all border shadow-md relative overflow-hidden group ${
-              currentRole === 'personal'
-              ? 'bg-gradient-to-r from-[#FF8904] to-[#ff4d00] border-transparent text-white'
-              : 'bg-[#1E2032] border-white/5 text-white/60 hover:text-white hover:border-[#ff6b00]/30'
-          }`}
-        >
-          {currentRole === 'personal' && (
-              <div className="absolute inset-x-0 top-0 h-[1px] bg-white/30" />
-          )}
-          Personal Account
-        </motion.button>
+        {user?.isPersonalActive !== false && (
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => handleRoleSwitch('personal')}
+            className={`w-full py-4 rounded-xl font-black text-sm transition-all border shadow-md relative overflow-hidden group ${
+                currentRole === 'personal'
+                ? 'bg-gradient-to-r from-[#FF8904] to-[#ff4d00] border-transparent text-white'
+                : 'bg-[#1E2032] border-white/5 text-white/60 hover:text-white hover:border-[#ff6b00]/30'
+            }`}
+          >
+            {currentRole === 'personal' && (
+                <div className="absolute inset-x-0 top-0 h-[1px] bg-white/30" />
+            )}
+            Personal Account
+          </motion.button>
+        )}
 
         <motion.button
           whileTap={{ scale: 0.96 }}

@@ -55,7 +55,30 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
   const toggleMutation = useMutation({
     mutationFn: async (live: boolean) => {
-      if (live) return startMatch(id)
+      if (live) {
+        const localHomeCount = Object.values(homeLineup).filter(Boolean).length
+        const localAwayCount = Object.values(awayLineup).filter(Boolean).length
+        const savedHomeCount = Array.isArray(existingLineups)
+          ? existingLineups.filter((l: any) => {
+              const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
+              return tid === homeId
+            }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
+          : 0
+        const savedAwayCount = Array.isArray(existingLineups)
+          ? existingLineups.filter((l: any) => {
+              const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
+              return tid === awayId
+            }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
+          : 0
+
+        if (localHomeCount === 0 || localAwayCount === 0) {
+          throw new Error("Both team lineups must be assigned before going live")
+        }
+        if (savedHomeCount === 0 || savedAwayCount === 0) {
+          throw new Error("Save both lineups before going live")
+        }
+        return startMatch(id)
+      }
       return cancelLive(id)
     },
     onSuccess: (_, live) => {

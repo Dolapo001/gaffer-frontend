@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { refreshToken } from '@/lib/services/auth.service'
 import { useAuthStore } from '@/store/authStore'
+import { tokenStore } from '@/lib/api'
 
 /**
  * On every app mount, silently restores the session via the rt HttpOnly cookie.
@@ -47,12 +48,17 @@ export function useAuthListener() {
       .catch(() => {
         if (cancelled) return
         // rt cookie missing or expired — session is dead, clear local state.
-        // IMPORTANT: only clear if the user hasn't authenticated through another
-        // path (e.g. login form) while this startup refresh was in-flight.
-        // If we clear unconditionally, a fresh login gets immediately reverted
-        // when this stale 401 response lands — causing a permanent loading deadlock.
-        const { isAuthenticated: alreadyAuthed } = useAuthStore.getState()
-        if (!alreadyAuthed) {
+        // Guard: only clear if no concurrent login set a fresh in-memory token
+        // while this refresh was in-flight. accessToken is NOT persisted to
+        // localStorage, so it is null on every cold start and only becomes
+        // non-null when a real login/refresh succeeds. Using isAuthenticated
+        // (the old guard) was wrong because it IS persisted — it is always true
+        // on cold start, which prevented setUser(null) from ever running when
+        // the rt cookie was expired, leaving the user in a zombie authenticated
+        // state until the first API call forced an eject.
+        const { accessToken: freshToken } = useAuthStore.getState()
+        if (!freshToken) {
+          tokenStore.clear()
           setUser(null)
         }
       })
