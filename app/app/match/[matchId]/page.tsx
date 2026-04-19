@@ -275,9 +275,12 @@ export default function MatchCenterPage() {
                        <div className="w-8 h-8 border-2 border-white/10 border-t-gaffer-orange rounded-full animate-spin" />
                     </div>
                   ) : events && events.length > 0 ? (
-                    [...events].reverse().map((event: MatchEvent, i: number) => (
-                      <CommentaryCard key={event._id || i} event={event} />
-                    ))
+                    [...events]
+                      .filter((e: MatchEvent) => e.description || e.commentaryText || e.notes)
+                      .sort((a: MatchEvent, b: MatchEvent) => (b.minute ?? 0) - (a.minute ?? 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((event: MatchEvent, i: number) => (
+                        <CommentaryCard key={event._id || i} event={event} />
+                      ))
                   ) : (
                     <div className="flex flex-col items-center justify-center py-20 opacity-20">
                        <p className="text-[10px] font-black uppercase tracking-widest font-mono">Commentary will appear as the game unfolds</p>
@@ -292,29 +295,39 @@ export default function MatchCenterPage() {
 }
 
 function CommentaryCard({ event }: { event: MatchEvent }) {
-   const eventType = event.type || 'event';
-   
-   const isMainEvent = ['fulltime', 'goal', 'goal_long', 'goal_info', 'substitution', 'corner', 'penalty_scored'].includes(eventType);
-   const isYellow = eventType === 'yellow_card' || eventType === 'yellow';
-   
-   const bgColor = isMainEvent ? 'bg-[#8E103E]' : isYellow ? 'bg-[#5C92C1]' : 'bg-[#5C92C1]';
-   
-   const content = event.commentaryText || '';
+   const rawType = (event as any).rawType || event.type || 'event'
+
+   const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(rawType)
+   const isSub = rawType === 'substitution'
+   const isYellow = rawType === 'yellow_card'
+   const isRed = rawType === 'red_card'
+   const isFulltime = rawType === 'fulltime'
+   const isCorner = rawType === 'corner'
+
+   const bgColor = isGoal || isFulltime ? 'bg-[#8E103E]' : 'bg-[#1C1F2D]'
+   const content = event.description || event.commentaryText || event.notes || ''
 
    return (
-      <div className={`${bgColor} rounded-[18px] p-4 flex items-center gap-4 transition-all hover:scale-[1.01] shadow-lg`}>
+      <div className={`${bgColor} rounded-[18px] p-4 flex items-center gap-4 transition-all hover:scale-[1.01] shadow-lg border border-white/5`}>
          <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-            {eventType === 'substitution' && <RefreshCcw size={18} className="text-white" />}
-            {eventType.includes('goal') && <Goal size={20} className="text-white" />}
-            {eventType === 'corner' && <CornerDownRight size={18} className="text-white" />}
-            {isYellow && <div className="w-4 h-6 bg-yellow-400 rounded-sm" />}
-            {eventType === 'fulltime' && <Goal size={18} className="text-white opacity-50" />}
-            {eventType === 'attempt' && <div className="w-2 h-2 rounded-full bg-white/40" />}
+            {isGoal && <Goal size={20} className="text-white" />}
+            {isSub && <RefreshCcw size={18} className="text-white/60" />}
+            {isCorner && <CornerDownRight size={18} className="text-white/60" />}
+            {isYellow && <div className="w-[10px] h-[14px] bg-yellow-400 rounded-[2px]" />}
+            {isRed && <div className="w-[10px] h-[14px] bg-red-500 rounded-[2px]" />}
+            {isFulltime && <Goal size={18} className="text-white opacity-40" />}
+            {!isGoal && !isSub && !isCorner && !isYellow && !isRed && !isFulltime && (
+               <div className="w-2 h-2 rounded-full bg-white/20" />
+            )}
          </div>
-         
-         <p className="text-white text-[12px] font-bold leading-tight tracking-tight whitespace-pre-line">
-            {content}
-         </p>
+         <div className="flex-1 min-w-0">
+            <p className="text-white text-[12px] font-bold leading-tight tracking-tight whitespace-pre-line">
+               {content}
+            </p>
+         </div>
+         {event.minute != null && (
+            <span className="shrink-0 text-[10px] font-bold text-white/30 uppercase tracking-widest">{event.minute}&apos;</span>
+         )}
       </div>
    )
 }

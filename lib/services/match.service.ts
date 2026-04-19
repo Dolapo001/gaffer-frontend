@@ -36,7 +36,10 @@ export interface MatchEvent {
   assistPlayerId?: string
   playerInId?: string
   playerOutId?: string
+  rawType?: string
+  description?: string
   commentaryText?: string
+  notes?: string
   scoreSnapshot?: { home: number; away: number }
   metadata?: Record<string, unknown>
   clientEventId?: string

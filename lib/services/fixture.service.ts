@@ -53,7 +53,12 @@ export interface Fixture {
 export interface FixtureEvent {
   _id: string
   fixtureId: string
+  /** Mapped category returned by listEvents: 'goal' | 'card' | 'sub' | 'general' */
   type: string
+  /** Original DB type: 'goal' | 'yellow_card' | 'red_card' | 'substitution' | 'fulltime' | etc. */
+  rawType?: string
+  /** Always-populated human-readable summary generated server-side */
+  description?: string
   minute: number
   teamId: string | { name: string; shortName?: string }
   playerId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
@@ -62,6 +67,7 @@ export interface FixtureEvent {
   playerOutId?: string | { _id: string; firstName: string; jerseyNumber?: number; position?: string }
   commentaryText?: string
   notes?: string
+  playerName?: string
   createdAt: string
 }
 

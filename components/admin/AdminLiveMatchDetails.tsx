@@ -876,9 +876,13 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     <p className="text-[11px] font-inter font-bold uppercase tracking-widest mt-1">Tap + to log the first event</p>
                   </div>
                 )}
-                {[...events].reverse().map((event: FixtureEvent) => (
-                  <EventCard key={event._id} event={event} />
-                ))}
+                {/* Sort by minute ascending; filter events with no displayable content */}
+                {[...events]
+                  .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                  .filter(e => e.description || e.commentaryText || e.notes || e.playerName)
+                  .map((event: FixtureEvent) => (
+                    <EventCard key={event._id} event={event} />
+                  ))}
               </div>
 
                {/* Step Overlay */}
@@ -926,36 +930,45 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     >
                         {commentaryStep === 'menu' && (
                         <div className="flex flex-col items-end gap-3 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-10 pr-1">
-                          {actionTypes.slice().reverse().map((action, idx) => (
-                            <motion.button
-                              key={action.label}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.05 }}
-                              onClick={() => {
-                                setSelectedAction(action.label)
-                                if (NEEDS_TEAM_PLAYER.includes(action.label || '') || NEEDS_TEXT.includes(action.label || '')) {
-                                  setCommentaryStep('minute')
-                                } else {
-                                  recordEventMutation.mutate({
-                                    type: ACTION_TYPE_MAP[action.label] || 'custom',
-                                    minute: 0,
-                                    teamId: homeId || '',
-                                  })
-                                }
-                              }}
-                              className="flex items-center gap-3 px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl active:scale-95 transition-all text-left"
-                            >
-                              <div className="w-[18px] h-[18px] flex items-center justify-center">
-                                {action.icon ? (
-                                  <img src={action.icon} alt="" className="w-full h-full object-contain" />
-                                ) : (
-                                  <div className="w-[14px] h-[18px] rounded-[2px]" style={{ backgroundColor: action.color }} />
-                                )}
-                              </div>
-                              <span className="font-inter font-bold text-[12px] uppercase tracking-wider">{action.label}</span>
-                            </motion.button>
-                          ))}
+                          {actionTypes.slice().reverse().map((action, idx) => {
+                            // Disable FULLTIME once the match is completed/finalized
+                            const isFulltime = action.label === 'FULLTIME'
+                            const isDisabled = isFulltime && fixture?.status === 'completed'
+                            return (
+                              <motion.button
+                                key={action.label}
+                                initial={{ opacity: 0, x: 20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ delay: idx * 0.05 }}
+                                disabled={isDisabled}
+                                onClick={() => {
+                                  if (isDisabled) return
+                                  setSelectedAction(action.label)
+                                  if (NEEDS_TEAM_PLAYER.includes(action.label || '') || NEEDS_TEXT.includes(action.label || '')) {
+                                    setCommentaryStep('minute')
+                                  } else {
+                                    recordEventMutation.mutate({
+                                      type: ACTION_TYPE_MAP[action.label] || 'custom',
+                                      minute: 0,
+                                      teamId: homeId || '',
+                                    })
+                                  }
+                                }}
+                                className={`flex items-center gap-3 px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl transition-all text-left ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
+                              >
+                                <div className="w-[18px] h-[18px] flex items-center justify-center">
+                                  {action.icon ? (
+                                    <img src={action.icon} alt="" className="w-full h-full object-contain" />
+                                  ) : (
+                                    <div className="w-[14px] h-[18px] rounded-[2px]" style={{ backgroundColor: action.color }} />
+                                  )}
+                                </div>
+                                <span className="font-inter font-bold text-[12px] uppercase tracking-wider">
+                                  {isDisabled ? 'MATCH ENDED' : action.label}
+                                </span>
+                              </motion.button>
+                            )
+                          })}
                         </div>
                       )}
 
@@ -1175,14 +1188,15 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 }
 
 function EventCard({ event }: { event: FixtureEvent }) {
-  const type = event.type
-  const teamName = typeof event.teamId === 'object' ? (event.teamId as any).name : 'Team'
-  const playerName = (event.playerId && typeof event.playerId === 'object') ? `${(event.playerId as any).firstName}` : 'Player'
-  const assistPlayerName = (event.assistPlayerId && typeof event.assistPlayerId === 'object') ? `${(event.assistPlayerId as any).firstName}` : null
-  const playerInName = (event.playerInId && typeof event.playerInId === 'object') ? `${(event.playerInId as any).firstName}` : null
-  const playerOutName = (event.playerOutId && typeof event.playerOutId === 'object') ? `${(event.playerOutId as any).firstName}` : null
+  const rawType = event.rawType || event.type
+  const text = event.description || event.commentaryText || event.notes || ''
 
-  if (type === 'goal' || type === 'own_goal') {
+  const isGoal = rawType === 'goal' || rawType === 'own_goal' || rawType === 'penalty_scored'
+  const isSub = rawType === 'substitution'
+  const isYellow = rawType === 'yellow_card'
+  const isRed = rawType === 'red_card'
+
+  if (isGoal) {
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
@@ -1195,22 +1209,16 @@ function EventCard({ event }: { event: FixtureEvent }) {
               <img src="/icons/Live Game/Commentary/emojione-monotone_goal-net.svg" className="w-4 h-4" alt="" />
             </div>
             <p className="font-inter font-bold text-[13px] uppercase text-white tracking-tight">
-              {type === 'own_goal' ? 'OWN GOAL' : 'GOAL'}. {playerName} ({teamName})
+              {text || (rawType === 'own_goal' ? 'OWN GOAL' : rawType === 'penalty_scored' ? 'PENALTY SCORED' : 'GOAL')}
             </p>
           </div>
           <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
         </div>
-        {assistPlayerName && (
-          <div className="flex items-center gap-3 ml-11">
-             <div className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
-             <p className="font-inter font-bold text-[11px] uppercase text-white/50 tracking-widest leading-none">ASSIST. {assistPlayerName}</p>
-          </div>
-        )}
       </motion.div>
     )
   }
 
-  if (type === 'substitution') {
+  if (isSub) {
     return (
       <div className="bg-[#1C1F2D] rounded-[20px] px-5 py-3.5 flex flex-col gap-2 border border-white/5 relative group">
         <div className="flex items-center justify-between">
@@ -1218,20 +1226,31 @@ function EventCard({ event }: { event: FixtureEvent }) {
               <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 shrink-0">
                 <img src="/icons/Live Game/Commentary/Vector.svg" className="w-3.5 h-2.5" alt="" />
               </div>
-              <p className="font-inter font-bold text-[13px] uppercase text-white/90 tracking-tight">Substitution. {teamName}</p>
+              <p className="font-inter font-bold text-[13px] uppercase text-white/90 tracking-tight pr-10">
+                {text || 'Substitution'}
+              </p>
            </div>
            <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
         </div>
-        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 ml-11">
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0" />
-              <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">Out. {playerOutName || playerName}</span>
-           </div>
-           <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 shrink-0" />
-              <span className="text-[10px] font-bold text-white/30 uppercase tracking-wider whitespace-nowrap">In. {playerInName || 'Player'}</span>
-           </div>
+      </div>
+    )
+  }
+
+  if (isYellow || isRed) {
+    return (
+      <div className="bg-[#1C1F2D] rounded-[20px] px-5 py-3.5 flex items-center justify-between border border-white/5 relative">
+        <div className="flex items-center gap-3 shrink min-w-0">
+          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 shrink-0">
+            <div
+              className="w-[10px] h-[14px] rounded-[2px]"
+              style={{ backgroundColor: isRed ? '#EF4444' : '#EAB308' }}
+            />
+          </div>
+          <p className="font-inter font-bold text-[11px] leading-relaxed uppercase py-0.5 text-white/80 tracking-tight pr-10">
+            {text || (isRed ? 'Red Card' : 'Yellow Card')}
+          </p>
         </div>
+        <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
       </div>
     )
   }
@@ -1243,8 +1262,7 @@ function EventCard({ event }: { event: FixtureEvent }) {
             <MessageSquare size={14} className="text-white/20" />
           </div>
           <p className="font-inter font-bold text-[11px] leading-relaxed uppercase py-0.5 text-white/60 tracking-tight pr-10">
-            {type === 'custom' ? '' : `${type.replace('_', ' ')}. `}
-            {event.commentaryText || event.notes || teamName}
+            {text}
           </p>
        </div>
        <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
