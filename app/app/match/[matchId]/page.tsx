@@ -226,11 +226,21 @@ export default function MatchCenterPage() {
                      const teamId = lineupTeam === 'home'
                         ? (fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string)
                         : (fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string)
-                     const teamLineup = Array.isArray(lineupsData) ? lineupsData.find((l: any) => {
-                       const lid = (typeof l.teamId === 'object' && l.teamId !== null) ? l.teamId._id : l.teamId
-                       return lid === teamId
-                     }) : undefined
-                     const formation = lineupTeam === 'home' ? (fixture.formation || '4-3-3') : (fixture.awayFormation || '4-3-3')
+                     
+                     // Handle both structured { homeTeam, awayTeam } and legacy array formats
+                     let teamLineup = undefined
+                     if (lineupsData && !Array.isArray(lineupsData)) {
+                        teamLineup = lineupTeam === 'home' ? lineupsData.homeTeam : lineupsData.awayTeam
+                     } else if (Array.isArray(lineupsData)) {
+                        teamLineup = lineupsData.find((l: any) => {
+                           const lid = (typeof l.teamId === 'object' && l.teamId !== null) ? l.teamId._id : l.teamId
+                           return lid === teamId
+                        })
+                     }
+
+                     const formation = lineupTeam === 'home' 
+                        ? (teamLineup?.formation || fixture.homeFormation || '4-3-3') 
+                        : (teamLineup?.formation || fixture.awayFormation || '4-3-3')
                      return (
                         <div className="relative">
                            <div className="flex items-center justify-between px-3 mb-4">
@@ -246,7 +256,7 @@ export default function MatchCenterPage() {
                               <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{formation}</span>
                            </div>
                            <div className="relative">
-                              <Pitch starters={teamLineup?.starters as any[]} formation={formation} />
+                               <Pitch teamLineup={teamLineup} formation={formation} />
                            </div>
                         </div>
                      )
@@ -310,69 +320,122 @@ function CommentaryCard({ event }: { event: MatchEvent }) {
 }
 
 function playerLabel(p: any): { name: string; initial: string } {
-   if (!p || typeof p === 'string') return { name: '—', initial: '?' }
-   const jersey = p.jerseyNumber != null ? String(p.jerseyNumber) : null
-   const last = p.lastName || p.firstName || null
+   if (!p) return { name: '—', initial: '?' }
+   // Handle different object structures
+   const player = p.playerId && typeof p.playerId === 'object' ? p.playerId : p
+   const last = player.lastName || player.firstName || p.playerName || '—'
+   const jersey = player.jerseyNumber || p.jerseyNumber || null
+   
    return {
-      name: last || (jersey ? `#${jersey}` : '—'),
-      initial: jersey ?? last?.[0]?.toUpperCase() ?? '?',
+      name: last.length > 8 ? last.substring(0, 8) + '.' : last,
+      initial: jersey ? String(jersey) : (last[0]?.toUpperCase() || '?'),
    }
 }
 
-function Pitch({ starters, formation }: { starters?: any[]; formation?: string }) {
-   // starters is an ordered array from GET /fixtures/:id/lineups — position 0 = GK,
-   // then DEF rows, MID rows, ATT rows in formation order.
-   const players = (starters ?? []).filter(Boolean)
+function Pitch({ teamLineup, formation }: { teamLineup?: any; formation?: string }) {
+   // Use explicit SLOTS if available, otherwise fall back to sequential starters
+   const slots = teamLineup?.slots || []
+   const starters = teamLineup?.players || (Array.isArray(teamLineup) ? teamLineup : [])
    const [defN, midN, attN] = (formation || '4-3-3').split('-').map(Number)
-   let idx = 0
-   const gk    = players[idx++]
-   const defs  = players.slice(idx, (idx += defN || 4))
-   const mids  = players.slice(idx, (idx += midN || 3))
-   const atts  = players.slice(idx, (idx += attN || 3))
+
+   // 4-3-3 formations normally have 11 slots (0-10)
+   // We'll use the same formations mapping logic as the admin side for consistency
+   const formationDots = {
+      '4-4-2': [
+         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
+         { t: 45, l: 15 }, { t: 45, l: 38 }, { t: 45, l: 62 }, { t: 45, l: 85 },
+         { t: 18, l: 35 }, { t: 18, l: 65 }
+      ],
+      '4-3-3': [
+         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
+         { t: 45, l: 25 }, { t: 45, l: 50 }, { t: 45, l: 75 },
+         { t: 18, l: 15 }, { t: 18, l: 50 }, { t: 18, l: 85 }
+      ],
+      '3-5-2': [
+         { t: 88, l: 50 }, { t: 72, l: 25 }, { t: 72, l: 50 }, { t: 72, l: 75 },
+         { t: 45, l: 10 }, { t: 45, l: 30 }, { t: 45, l: 50 }, { t: 45, l: 70 }, { t: 45, l: 90 },
+         { t: 18, l: 35 }, { t: 18, l: 65 }
+      ]
+   }
+
+   const activeFormation = formationDots[formation as keyof typeof formationDots] || formationDots['4-3-3']
+   
+   // Map players to their designated slots
+   const mappedPlayers: Record<number, any> = {}
+   
+   if (slots.length > 0) {
+      slots.forEach((s: any) => {
+         mappedPlayers[s.positionIndex] = s
+      })
+   } else {
+      // Fallback: fill sequentially
+      starters.forEach((p: any, i: number) => {
+         if (i < activeFormation.length) mappedPlayers[i] = p
+      })
+   }
 
    return (
-      <div className="w-full aspect-[1/1.8] bg-[#1e212f] border-[1.5px] border-white/10 rounded-[28px] relative overflow-hidden shadow-2xl">
-         <div className="absolute inset-x-12 top-[-1px] h-16 border-x border-b border-white opacity-40" />
-         <div className="absolute inset-x-20 top-[-1px] h-6 border-x border-b border-white opacity-40" />
-         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[2px] bg-white/20" />
-         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-32 h-32 border-2 border-white/20 rounded-full" />
-         <div className="absolute inset-x-12 bottom-[-1px] h-16 border-x border-t border-white opacity-40" />
-         <div className="absolute inset-x-20 bottom-[-1px] h-6 border-x border-t border-white opacity-40" />
+      <div className="w-full aspect-[1/1.5] bg-[#1e212f] border-[1.5px] border-white/10 rounded-[28px] relative overflow-hidden shadow-2xl">
+         {/* Pitch Markings */}
+         <div className="absolute inset-x-12 top-[-1px] h-16 border-x border-b border-white opacity-10" />
+         <div className="absolute inset-x-20 top-[-1px] h-6 border-x border-b border-white opacity-10" />
+         <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[1px] bg-white/10" />
+         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 border border-white/10 rounded-full" />
+         <div className="absolute inset-x-12 bottom-[-1px] h-16 border-x border-t border-white opacity-10" />
+         <div className="absolute inset-x-20 bottom-[-1px] h-6 border-x border-t border-white opacity-10" />
 
-         <div className="flex flex-col justify-between h-full w-full py-6 z-10">
-            {players.length > 0 ? (
-               <div className="w-full h-full flex flex-col justify-between py-6">
-                  <div className="flex justify-center">
-                     {(() => { const d = playerLabel(gk); return <PlayerPos name={d.name} initial={d.initial} color="bg-[#5C5020]" /> })()}
+         <div className="absolute inset-0 z-10 p-4">
+            {activeFormation.map((pos, i) => {
+               const player = mappedPlayers[i]
+               const d = playerLabel(player)
+               // Convert top-down (admin) to public view positioning
+               // Basically, we show it centered
+               const top = pos.t
+               const left = pos.l
+
+               return (
+                  <div 
+                     key={i} 
+                     className="absolute -translate-x-1/2 -translate-y-1/2 transition-all duration-500"
+                     style={{ top: `${top}%`, left: `${left}%` }}
+                  >
+                     {player ? (
+                        <PlayerPos 
+                           name={d.name} 
+                           initial={d.initial} 
+                           color={top > 60 ? 'bg-blue-600' : top > 30 ? 'bg-green-700' : 'bg-orange-600'} 
+                        />
+                     ) : (
+                        <div className="w-8 h-8 rounded-full border border-white/5 bg-white/5 flex items-center justify-center">
+                           <div className="w-1 h-1 rounded-full bg-white/10" />
+                        </div>
+                     )}
                   </div>
-                  <div className="flex justify-around">
-                     {defs.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#1D3E64]" /> })}
-                  </div>
-                  <div className="flex justify-around">
-                     {mids.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#0D4429]" /> })}
-                  </div>
-                  <div className="flex justify-around">
-                     {atts.map((p, i) => { const d = playerLabel(p); return <PlayerPos key={i} name={d.name} initial={d.initial} color="bg-[#5C5020]" /> })}
-                  </div>
-               </div>
-            ) : (
-               <div className="w-full h-full flex items-center justify-center opacity-20">
-                  <p className="text-[10px] font-black uppercase tracking-widest">Lineup not announced</p>
-               </div>
-            )}
+               )
+            })}
          </div>
+
+         {(slots.length === 0 && starters.length === 0) && (
+            <div className="absolute inset-0 flex items-center justify-center opacity-20 z-20">
+               <p className="text-[10px] font-black uppercase tracking-widest">Lineup not announced</p>
+            </div>
+         )}
       </div>
    )
 }
 
 function PlayerPos({ name, initial, color }: { name: string, initial: string, color: string }) {
    return (
-      <div className="flex flex-col items-center gap-1.5 min-w-[50px]">
-         <div className={`w-10 h-10 rounded-full ${color} border border-white/10 flex items-center justify-center shadow-lg`}>
-            <span className="text-white text-[12px] font-black">{initial?.toUpperCase()}</span>
-         </div>
-         <div className="bg-[#10111d] rounded-[4px] px-2 py-0.5 border border-white/[0.03]">
-            <span className="text-[8px] text-white/70 font-black uppercase tracking-wider">{name}</span>
+      <div className="flex flex-col items-center gap-1 min-w-[60px]">
+         <motion.div 
+            initial={{ scale: 0 }} 
+            animate={{ scale: 1 }}
+            className={`w-9 h-9 rounded-full ${color} border border-white/20 flex items-center justify-center shadow-lg`}
+         >
+            <span className="text-white text-[11px] font-black">{initial}</span>
+         </motion.div>
+         <div className="bg-[#10111d]/80 backdrop-blur-sm rounded-[4px] px-1.5 py-0.5 border border-white/10">
+            <span className="text-[8px] text-white/90 font-black uppercase tracking-wider">{name}</span>
          </div>
       </div>
    )

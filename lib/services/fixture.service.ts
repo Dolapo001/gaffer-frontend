@@ -215,7 +215,7 @@ export async function listEvents(fixtureId: string): Promise<FixtureEvent[]> {
 // POST /fixtures/:fixtureId/lineups
 export async function submitLineup(
   fixtureId: string,
-  payload: { teamId: string; starters: string[]; bench?: string[] },
+  payload: { teamId: string; starters: string[]; bench?: string[]; slots?: any[] },
 ): Promise<Lineup> {
   const data = await api.post<{ lineup: Lineup }>(`/fixtures/${fixtureId}/lineups`, payload)
   return data.lineup
@@ -228,8 +228,15 @@ export async function approveLineup(fixtureId: string, teamId: string): Promise<
 }
 
 // GET /fixtures/:fixtureId/lineups — PUBLIC
-export async function listLineups(fixtureId: string): Promise<Lineup[]> {
+export async function listLineups(fixtureId: string): Promise<any> {
   const data = await api.get<any>(`/fixtures/${fixtureId}/lineups`, { public: true })
   const raw = data?.lineups ?? data
+
+  // Backend returns { homeTeam: {...}, awayTeam: {...} } structure
+  if (raw?.homeTeam || raw?.awayTeam) {
+    return raw // Return the structured response as-is
+  }
+
+  // Fallback: if it's an array (legacy format), return as-is
   return Array.isArray(raw) ? raw : []
 }

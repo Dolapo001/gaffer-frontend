@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Menu, Plus, Mail, Trash2, ShieldCheck, UserCheck, Clock, X,
-  RefreshCw, CheckCircle2, Copy, Check,
+  RefreshCw, CheckCircle2, Copy, Check, Pencil,
 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -47,6 +47,7 @@ export default function CollaboratorsPage() {
   const [inviteRole, setInviteRole] = useState<OrgRole>('viewer')
   const [sentEmail, setSentEmail] = useState<string | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null)
   const { hideNavbar, showNavbar } = useUIStore()
 
   useEffect(() => {
@@ -125,14 +126,17 @@ export default function CollaboratorsPage() {
   return (
     <BrowserProtection>
       <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4">
-        {/* Header */}
-        <div className="flex items-center px-6 pt-12 pb-4 border-b border-white/10 shrink-0">
-          <Menu size={24} className="mr-4 text-white/60" />
-          <h1 className="text-lg font-semibold tracking-tight">Collaborators</h1>
-        </div>
-
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 pt-6 space-y-8 pb-32 [&::-webkit-scrollbar]:hidden">
+        <div className="flex-1 overflow-y-auto pb-32 [&::-webkit-scrollbar]:hidden">
+          {/* Header moved inside scrollable area */}
+          <div 
+            className="flex items-center px-4 md:px-6 pb-6 border-b border-white/5"
+            style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+          >
+            <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Collaborators</h1>
+          </div>
+
+          <div className="px-6 pt-6 space-y-8">
 
           {/* Email sent confirmation banner */}
           <AnimatePresence>
@@ -176,16 +180,56 @@ export default function CollaboratorsPage() {
                       </div>
                     </div>
 
-                    {/* Cycle role button */}
-                    <button
-                      onClick={() => {
-                        const nextRole = ROLES[(ROLES.indexOf(member.role) + 1) % ROLES.length]
-                        updateRoleMutation.mutate({ userId: member.userId._id, role: nextRole })
-                      }}
-                      className="px-3 py-1 bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-full text-gaffer-orange text-[11px] font-black uppercase tracking-tighter hover:bg-gaffer-orange/20 transition-colors shrink-0"
-                    >
-                      {member.role}
-                    </button>
+                    {/* Edit role dropdown */}
+                    <div className="flex items-center gap-1.5 shrink-0 relative">
+                      <span className="px-3 py-1 bg-gaffer-orange/10 border border-gaffer-orange/20 rounded-full text-gaffer-orange text-[11px] font-black uppercase tracking-tighter">
+                        {member.role}
+                      </span>
+                      <button 
+                        onClick={() => setOpenDropdownId(openDropdownId === member.userId._id ? null : member.userId._id)}
+                        className="w-7 h-7 rounded-full border border-white/10 bg-white/5 flex items-center justify-center hover:bg-white/10 transition-colors relative z-10"
+                      >
+                         <Pencil size={12} className="text-white/60" />
+                      </button>
+
+                      <AnimatePresence>
+                        {openDropdownId === member.userId._id && (
+                           <>
+                             {/* Transparent backdrop to click-off and close */}
+                             <div 
+                               className="fixed inset-0 z-40" 
+                               onClick={() => setOpenDropdownId(null)}
+                             />
+                             <motion.div
+                               initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                               animate={{ opacity: 1, scale: 1, y: 0 }}
+                               exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                               className="absolute top-10 right-0 w-[180px] bg-[#11121C] border border-white/10 rounded-2xl shadow-[-10px_10px_30px_rgba(0,0,0,0.5)] z-50 overflow-hidden flex flex-col py-1"
+                             >
+                               {ROLES.map(r => (
+                                 <button
+                                   key={r}
+                                   onClick={() => {
+                                      updateRoleMutation.mutate({ userId: member.userId._id, role: r })
+                                      setOpenDropdownId(null)
+                                   }}
+                                   className={`px-4 py-3 text-left transition-colors flex flex-col gap-0.5 ${
+                                     member.role === r ? 'bg-gaffer-orange/10 border-l-2 border-gaffer-orange' : 'hover:bg-white/5 border-l-2 border-transparent'
+                                   }`}
+                                 >
+                                   <span className={`text-[12px] font-black tracking-widest uppercase ${member.role === r ? 'text-gaffer-orange' : 'text-white'}`}>
+                                     {r}
+                                   </span>
+                                   <span className="text-[9px] text-white/40 leading-tight">
+                                     {ROLE_DESCRIPTIONS[r]}
+                                   </span>
+                                 </button>
+                               ))}
+                             </motion.div>
+                           </>
+                        )}
+                      </AnimatePresence>
+                    </div>
                   </div>
 
                   <div className="text-[11px] text-white/20 font-bold uppercase tracking-widest pl-1">
@@ -371,6 +415,7 @@ export default function CollaboratorsPage() {
             </>
           )}
         </AnimatePresence>
+        </div>
       </div>
     </BrowserProtection>
   )

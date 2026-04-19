@@ -84,7 +84,34 @@ export const useFantasyStore = create<FantasyState>()(
       apiTeamId: null,
       totalPoints: 0,
 
-      setCompetitionId: (id) => set({ competitionId: id }),
+      setCompetitionId: (id) => {
+        const state = get()
+        if (state.competitionId && state.competitionId !== id) {
+          // If switching to a completely new competition, fully reset the store's
+          // game state and onboarding flow so the user can start fresh for this league.
+          set({
+            competitionId: id,
+            players: [],
+            selectedPlayerId: null,
+            substitutingOutId: null,
+            selectedBoost: null,
+            budget: 100,
+            isSaved: false,
+            isSaving: false,
+            hasSeenWelcome: false,
+            hasCreatedTeam: false,
+            hasOrganizedBench: false,
+            hasNamedTeam: false,
+            teamName: '',
+            apiTeamId: null,
+            totalPoints: 0,
+            saveError: null,
+            substituteError: null,
+          })
+        } else {
+          set({ competitionId: id })
+        }
+      },
 
       selectPlayer: (id) =>
         set((state) => ({

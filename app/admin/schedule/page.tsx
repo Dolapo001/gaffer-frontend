@@ -164,18 +164,15 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] pb-32 flex flex-col pt-12 overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#181928] pb-32 flex flex-col overflow-x-hidden relative">
       {/* Header */}
       {!showScheduleForm && (
-        <div className="flex flex-col gap-4 px-6 mb-8 shrink-0">
+        <div 
+          className="flex flex-col gap-4 px-4 md:px-6 mb-8 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <button 
-                onClick={() => addToast('Menu coming soon', 'info')}
-                className="text-white/60"
-              >
-                <Menu size={24} />
-              </button>
               <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Your Schedule</h1>
             </div>
           </div>

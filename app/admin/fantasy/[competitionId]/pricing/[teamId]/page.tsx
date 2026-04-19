@@ -29,6 +29,15 @@ const TIER_COLORS: Record<string, { bg: string, text: string, border: string }> 
 }
 
 const PRICE_STEP = 0.5
+const PRICE_MIN = 4.0
+const PRICE_MAX = 12.5
+
+function tierFromPrice(price: number): 'marquee' | 'elite' | 'standard' | 'budget' {
+  if (price >= 10.5) return 'marquee'
+  if (price >= 8.0)  return 'elite'
+  if (price >= 6.0)  return 'standard'
+  return 'budget'
+}
 
 export default function TeamPricingPage() {
   const router = useRouter()
@@ -48,7 +57,7 @@ export default function TeamPricingPage() {
 
   const updatePriceMutation = useMutation({
     mutationFn: ({ playerId, price }: { playerId: string; price: number }) =>
-      setPlayerPrice(competitionId, teamId, playerId, 'standard', price),
+      setPlayerPrice(competitionId, teamId, playerId, tierFromPrice(price), price),
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['player-pricing', competitionId, teamId] })
       // auto-check after saving
@@ -77,7 +86,7 @@ export default function TeamPricingPage() {
   }
 
   const adjustPrice = (playerId: string, currentPrice: number, delta: number) => {
-    const newPrice = Math.max(0.5, Math.round((currentPrice + delta) * 10) / 10)
+    const newPrice = Math.min(PRICE_MAX, Math.max(PRICE_MIN, Math.round((currentPrice + delta) * 10) / 10))
     setPendingPrices(prev => ({ ...prev, [playerId]: newPrice }))
   }
 
@@ -112,9 +121,9 @@ export default function TeamPricingPage() {
   const saveModalPrice = () => {
     if (!editingPlayerId) return
     const numeric = parseFloat(priceInputValue)
-    if (!isNaN(numeric) && numeric >= 0.5) {
-      const rounded = Math.round(numeric * 10) / 10
-      setPendingPrices(prev => ({ ...prev, [editingPlayerId]: rounded }))
+    if (!isNaN(numeric)) {
+      const clamped = Math.min(PRICE_MAX, Math.max(PRICE_MIN, Math.round(numeric * 10) / 10))
+      setPendingPrices(prev => ({ ...prev, [editingPlayerId]: clamped }))
     }
     setEditingPlayerId(null)
   }
@@ -161,6 +170,8 @@ export default function TeamPricingPage() {
           const price = getPrice(p)
           const isChecked = checkedPlayers.has(p._id) || !!p.price
           const positionColor = POSITION_COLORS[p.position] || '#9CA3AF'
+          const tier = tierFromPrice(price)
+          const tierStyle = TIER_COLORS[tier]
 
           return (
             <motion.div
@@ -204,11 +215,9 @@ export default function TeamPricingPage() {
                        <span className="text-[9px] font-black uppercase tracking-widest">{p.squadStatus || 'Active'}</span>
                     </div>
 
-                    {p.tier && (
-                      <div className={`px-2 py-0.5 rounded border ${TIER_COLORS[p.tier]?.bg} ${TIER_COLORS[p.tier]?.border} ${TIER_COLORS[p.tier]?.text}`}>
-                         <span className="text-[9px] font-black uppercase tracking-widest italic">{p.tier}</span>
-                      </div>
-                    )}
+                    <div className={`px-2 py-0.5 rounded border ${tierStyle?.bg} ${tierStyle?.border} ${tierStyle?.text}`}>
+                      <span className="text-[9px] font-black uppercase tracking-widest italic">{tier}</span>
+                    </div>
                  </div>
               </div>
 
@@ -291,7 +300,7 @@ export default function TeamPricingPage() {
              >
                 <div className="text-center space-y-1">
                    <h3 className="font-chakra font-black text-white text-lg uppercase">Set Player Price</h3>
-                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Base value for fantasy draft</p>
+                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Budget £4–5.5 · Standard £6–7.5 · Elite £8–10 · Marquee £10.5–12.5</p>
                 </div>
 
                 <div className="flex items-center gap-3 bg-black/20 p-4 rounded-2xl border border-white/5">

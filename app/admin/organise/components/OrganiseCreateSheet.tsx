@@ -119,32 +119,39 @@ export function OrganiseCreateSheet({
         animate={{ y: 0 }}
         exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300, mass: 0.8 }}
-        className="fixed bottom-0 left-0 right-0 z-[999] max-h-[90vh] h-auto flex flex-col px-8 pt-6 pb-10 overflow-hidden bg-[#1E2032] backdrop-blur-[20px] rounded-t-[40px] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] text-center pointer-events-auto"
+        drag="y"
+        dragConstraints={{ top: 0 }}
+        dragElastic={0.4}
+        onDragEnd={(_, info) => {
+          if (info.offset.y > 100) {
+            onClose();
+          }
+        }}
+        className="fixed bottom-0 left-0 right-0 z-[999] max-h-[95vh] h-auto flex flex-col px-8 pt-6 pb-10 overflow-hidden bg-[#1E2032] backdrop-blur-[20px] rounded-t-[40px] border-t border-white/10 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] text-center pointer-events-auto touch-none"
       >
         <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-4 shrink-0 relative z-10" />
 
-        <h2 className="text-white text-center text-lg font-bold mb-0.5 relative z-10 shrink-0">
-          {activeTab === 'Teams' ? 'Create Team' : 'Create Group'}
-        </h2>
 
-        <div className="text-center px-4 mb-4 flex-shrink-0 relative z-10">
-          <h3 className="text-gray-400 text-base font-semibold">
-            {activeTab === 'Teams' ? 'Add New Team' : 'Add New Group'}
-          </h3>
-          <p className="text-gray-500 text-[13px] leading-tight mt-0.5">
-            Manage your schedule for matches, ceremonies. Schedule now and for later.
-          </p>
-          {selectedCompetitionId && (
-            <div className="mt-2 py-1 px-3 bg-white/5 rounded-full inline-block border border-white/10">
-              <span className="text-[10px] uppercase font-bold text-[#FF4D00]">
-                 {enrolledTeamsCount} / {competitionTeamLimit} Teams enrolled
-              </span>
-            </div>
-          )}
-        </div>
+
+
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto no-scrollbar space-y-6 pb-24 relative z-10">
+          <div className="text-center px-4 mb-4">
+            <h3 className="text-white text-base font-semibold">
+              {activeTab === 'Teams' ? 'Add New Team' : 'Add New Group'}
+            </h3>
+            <p className="text-white/50 text-[13px] leading-tight mt-0.5">
+              Manage your schedule for matches, ceremonies. Schedule now and for later.
+            </p>
+            {selectedCompetitionId && (
+              <div className="mt-2 py-1 px-3 bg-white/5 rounded-full inline-block border border-white/10">
+                <span className="text-[10px] uppercase font-bold text-[#FF4D00]">
+                   {enrolledTeamsCount} / {competitionTeamLimit} Teams enrolled
+                </span>
+              </div>
+            )}
+          </div>
           {activeTab === 'Groups' ? (
             <div className="flex flex-col items-center mb-4 shrink-0 w-full px-2">
               <label className="text-gray-400 text-[10px] font-bold mb-2 uppercase tracking-widest opacity-80">

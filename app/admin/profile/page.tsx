@@ -127,14 +127,17 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gaffer-bg">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-4">
+      <div 
+        className="flex items-center gap-3 px-4 md:px-6 pb-4"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+      >
         <button
           onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
         >
           <ChevronLeft size={18} />
         </button>
-        <h1 className="font-display font-bold text-white text-base flex-1">Owner Profile</h1>
+        <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter flex-1">Owner Profile</h1>
         {!editing && (
           <button
             onClick={() => setEditing(true)}

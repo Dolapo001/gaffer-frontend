@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ChevronLeft, Info, Plus, MessageSquare, Clock, BarChart2,
@@ -19,6 +19,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const { addToast } = useToast()
   const { hideNavbar, showNavbar } = useUIStore()
   const queryClient = useQueryClient()
+  const hasHydrated = useRef(false)
 
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('lineup')
   const [commentaryStep, setCommentaryStep] = useState<'idle' | 'menu' | 'minute' | 'team' | 'scorer' | 'assist' | 'custom'>('idle')
@@ -128,20 +129,38 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
         awayFormation 
       }))
 
-      // 2. Save Lineups (only if there are actual players)
+      const getLineupSlots = (lineup: Record<number, any>) => {
+        return Object.entries(lineup)
+          .filter(([_, p]) => p?._id || p?.id)
+          .map(([idx, p]) => {
+            const jNum = parseInt(String(p.jerseyNumber))
+            return {
+              playerId: p._id || p.id,
+              positionIndex: Number(idx),
+              playerName: `${p.firstName} ${p.lastName}`,
+              position: p.position || 'PLAYER',
+              jerseyNumber: isNaN(jNum) ? 0 : jNum
+            }
+          })
+      }
+
       const homeStarters = homeId ? getLineupArray(homeLineup, homeFormation) : []
       const awayStarters = awayId ? getLineupArray(awayLineup, awayFormation) : []
+      const homeSlots = homeId ? getLineupSlots(homeLineup) : []
+      const awaySlots = awayId ? getLineupSlots(awayLineup) : []
 
-      if (homeId && homeStarters.length > 0) {
+      if (homeId) {
         saves.push(submitLineup(id, { 
           teamId: homeId, 
-          starters: homeStarters 
+          starters: homeStarters,
+          slots: homeSlots
         }))
       }
-      if (awayId && awayStarters.length > 0) {
+      if (awayId) {
         saves.push(submitLineup(id, { 
           teamId: awayId, 
-          starters: awayStarters 
+          starters: awayStarters,
+          slots: awaySlots
         }))
       }
       return Promise.all(saves)
@@ -149,7 +168,6 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lineups', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
-      addToast("Changes saved successfully", "success")
     },
     onError: (err: any) => addToast(err?.message || "Failed to save changes", "error")
   })
@@ -238,47 +256,56 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
   // Populate slot state from server lineup when the page first loads
   useEffect(() => {
-    if (!existingLineups || !homeId || !awayId || isSquadLoading) return
+    if (!existingLineups || !homeId || !awayId || isSquadLoading || hasHydrated.current) return
 
-    const hydrateLineup = (serverPlayers: any[], squad: any[]) => {
+    const hydrateLineup = (serverData: any, squad: any[]) => {
       const mapped: Record<number, any> = {}
-      if (!Array.isArray(serverPlayers)) return mapped
-      serverPlayers.forEach((p: any, i: number) => {
-        if (!p) return
-        
-        // Get the player ID regardless of format
-        const pid = typeof p === 'string' ? p : (p?._id || p?.id)
-        if (!pid) return
+      if (!serverData) return mapped
+      
+      const slots = serverData.slots || []
+      const players = serverData.players || (Array.isArray(serverData) ? serverData : [])
 
-        // Try to find full details from the squad roster
-        const fromRoster = squad.find(s => s._id === pid || s._id === String(pid))
-        if (fromRoster) {
-          mapped[i] = fromRoster
-        } else if (typeof p === 'object' && (p.lastName || p.firstName)) {
-          // Server returned a populated object — use it directly
-          mapped[i] = p
-        }
-      })
+      // Prioritize SLOTS for exact positioning
+      if (slots.length > 0) {
+        slots.forEach((slot: any) => {
+          if (!slot) return
+          const pid = slot.playerId?._id || slot.playerId
+          const found = squad.find(s => String(s._id) === String(pid))
+          if (found) {
+            mapped[slot.positionIndex] = found
+          }
+        })
+        return mapped
+      }
+
+      // Fallback to sequential players if slots aren't available
+      if (players.length > 0) {
+        players.forEach((p: any, i: number) => {
+          if (!p) return
+          const pid = typeof p === 'string' ? p : (p?._id || p?.id)
+          const found = squad.find(s => String(s._id) === String(pid))
+          if (found) mapped[i] = found
+        })
+      }
       return mapped
     }
 
-    // Handle structured response: { homeTeam: { players: [...] }, awayTeam: { players: [...] } }
+    // Handle structured response: { homeTeam: { players: [...], slots: [...] }, awayTeam: { ... } }
     if (existingLineups?.homeTeam || existingLineups?.awayTeam) {
-      const homeServerPlayers = existingLineups.homeTeam?.players || []
-      const awayServerPlayers = existingLineups.awayTeam?.players || []
-
-      if (homeServerPlayers.length > 0 && Object.keys(homeLineup).length === 0) {
-        const mapped = hydrateLineup(homeServerPlayers, flattenedHomeSquad)
+      if (Object.keys(homeLineup).length === 0) {
+        const mapped = hydrateLineup(existingLineups.homeTeam || {}, flattenedHomeSquad)
         if (Object.keys(mapped).length) setHomeLineup(mapped)
       }
-      if (awayServerPlayers.length > 0 && Object.keys(awayLineup).length === 0) {
-        const mapped = hydrateLineup(awayServerPlayers, flattenedAwaySquad)
+      if (Object.keys(awayLineup).length === 0) {
+        const mapped = hydrateLineup(existingLineups.awayTeam || {}, flattenedAwaySquad)
         if (Object.keys(mapped).length) setAwayLineup(mapped)
       }
 
       // Also restore formations from the response if available
       if (existingLineups.homeTeam?.formation) setHomeFormation(existingLineups.homeTeam.formation as any)
       if (existingLineups.awayTeam?.formation) setAwayFormation(existingLineups.awayTeam.formation as any)
+      
+      hasHydrated.current = true
       return
     }
 
@@ -301,6 +328,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
         const mapped = hydrateLineup(awayServerLineup.starters, flattenedAwaySquad)
         if (Object.keys(mapped).length) setAwayLineup(mapped)
       }
+      hasHydrated.current = true
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [existingLineups, homeId, awayId, isSquadLoading])
@@ -353,16 +381,31 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const persistLineup = async (team: 'home' | 'away', lineup: Record<number, any>) => {
     const teamId = team === 'home' ? homeId : awayId
     if (!teamId) return
+    
     const starters = Object.values(lineup)
       .filter(Boolean)
       .map((p: any) => p._id || p.id)
-      .filter(Boolean)
+      .filter((id): id is string => !!id)
+
+    const slots = Object.entries(lineup)
+      .filter(([_, p]) => p?._id || p?.id)
+      .map(([idx, p]) => {
+        const jNum = parseInt(String(p.jerseyNumber))
+        return {
+          playerId: p._id || p.id,
+          positionIndex: Number(idx),
+          playerName: `${p.firstName} ${p.lastName}`,
+          position: p.position || 'PLAYER',
+          jerseyNumber: isNaN(jNum) ? 0 : jNum
+        }
+      })
+
     setSavingTeam(team)
     try {
-      await submitLineup(id, { teamId, starters })
+      await submitLineup(id, { teamId, starters, slots })
       queryClient.invalidateQueries({ queryKey: ['lineups', id] })
     } catch (err: any) {
-      addToast(err?.message || 'Failed to save lineup', 'error')
+      addToast(err?.message || 'Failed to auto-save lineup', 'error')
     } finally {
       setSavingTeam(null)
     }
@@ -582,8 +625,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'away' ? 'animate-pulse opacity-70' : ''}`}>
+                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'away' ? 'animate-pulse opacity-70' : ''}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
+                          {player && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-white rounded-full border border-blue-400 flex items-center justify-center"><Edit2 size={5} className="text-blue-500" /></span>}
                         </div>
                         {player && (
                           <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
@@ -605,8 +649,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'home' ? 'animate-pulse opacity-70' : ''}`}>
+                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'home' ? 'animate-pulse opacity-70' : ''}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
+                          {player && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-white rounded-full border border-orange-400 flex items-center justify-center"><Edit2 size={5} className="text-orange-500" /></span>}
                         </div>
                         {player && (
                           <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
@@ -636,7 +681,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                    loading={saveLineupMutation.isPending}
                    className="h-14 w-full rounded-xl font-inter font-bold text-lg uppercase tracking-wider"
                  >
-                   Save Squad
+                   {saveLineupMutation.isPending ? 'Saving...' : 'Squad Saved'}
                  </GradientButton>
               </div>
 

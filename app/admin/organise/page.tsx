@@ -523,9 +523,11 @@ export default function OrganizePage() {
   if (!orgId && !isLoadingOrgs) {
     return (
       <div className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden">
-        <div className="flex items-center px-6 pt-12 pb-4 border-b border-white/10 shrink-0">
-          <Menu size={24} className="mr-4 text-white/60" />
-          <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
+        <div 
+          className="flex items-center px-4 md:px-6 pb-4 border-b border-white/10 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        >
+          <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Organize</h1>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-8">
           <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
@@ -553,19 +555,7 @@ export default function OrganizePage() {
       className="fixed inset-0 bg-[#181928] text-white flex flex-col font-inter overflow-hidden pb-4"
       data-nav-hidden={isCreateOpen ? 'true' : undefined}
     >
-        {/* Header - Hidden in details view to avoid duplication with the team's own back button and title */}
-        {view !== 'details' && (
-          <div className="flex items-center px-6 pt-12 pb-4 text-white border-b border-white/10 shrink-0">
-            <button
-              aria-label="Toggle menu"
-              onClick={() => (view !== 'list' ? setView('list') : undefined)}
-              className="mr-4 hover:opacity-70 transition-opacity"
-            >
-              <Menu size={24} />
-            </button>
-            <h1 className="text-lg font-semibold tracking-tight">Organize</h1>
-          </div>
-        )}
+
 
         <div className="flex-1 relative">
           <AnimatePresence mode="wait">

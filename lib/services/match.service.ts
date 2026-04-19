@@ -13,7 +13,7 @@ export interface MatchState {
     venue?: string
     startedAt?: string
     completedAt?: string
-    formation?: string
+    homeFormation?: string
     awayFormation?: string
     lineup?: Array<{
       playerId: { _id: string; firstName: string; lastName: string; photoUrl?: string }

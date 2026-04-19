@@ -33,6 +33,7 @@ export function FantasyTeamScreen() {
   const selectPlayer = useFantasyStore((s) => s.selectPlayer)
   const setBoost = useFantasyStore((s) => s.setBoost)
   const saveTeam = useFantasyStore((s) => s.saveTeam)
+  const saveTeamToApi = useFantasyStore((s) => s.saveTeamToApi)
   const setPlayers = useFantasyStore((s) => s.setPlayers)
 
   // Load team from API on mount
@@ -82,10 +83,16 @@ export function FantasyTeamScreen() {
     [selectPlayer]
   )
 
-  const handleSave = () => {
-    saveTeam()
-    setSavedAnim(true)
-    setTimeout(() => setSavedAnim(false), 2200)
+  const isSaving = useFantasyStore((s) => s.isSaving)
+
+  const handleSave = async () => {
+    try {
+      await saveTeamToApi()
+      setSavedAnim(true)
+      setTimeout(() => setSavedAnim(false), 2200)
+    } catch (err) {
+      // Error is already handled/toasted in the store action
+    }
   }
 
   return (

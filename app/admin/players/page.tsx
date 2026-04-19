@@ -150,58 +150,62 @@ export default function PlayersPage() {
   return (
     <div className="min-h-screen bg-gaffer-bg">
       {/* Header */}
-      <div className="sticky top-0 z-10 bg-gaffer-bg/95 backdrop-blur-md border-b border-gaffer-border/50">
-        <div className="flex items-center justify-between px-4 pt-12 pb-3">
-          <div>
-            <h1 className="font-display font-bold text-xl text-white">Players</h1>
-            <p className="text-gaffer-muted text-xs font-body mt-0.5">
-              {players?.length ?? 0} registered
-              {pendingCount > 0 && <span className="ml-2 text-gaffer-orange">{pendingCount} invite{pendingCount > 1 ? 's' : ''} pending</span>}
-            </p>
+
+
+      <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden">
+        {/* Header moved inside scrollable area */}
+        <div className="border-b border-gaffer-border/50 mb-4">
+          <div 
+            className="flex items-center justify-between px-4 md:px-6 pb-3"
+            style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+          >
+            <div>
+              <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Players</h1>
+              <p className="text-gaffer-muted text-xs font-body mt-0.5">
+                {players?.length ?? 0} registered
+                {pendingCount > 0 && <span className="ml-2 text-gaffer-orange">{pendingCount} invite{pendingCount > 1 ? 's' : ''} pending</span>}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setSheetMode('invite'); setGeneratedLink(null) }}
+                disabled={!activeTeamId}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-gaffer-border text-white/60 font-display font-bold text-sm disabled:opacity-40"
+              >
+                <Link2 size={15} />
+              </button>
+              <button
+                onClick={() => setSheetMode('add')}
+                disabled={!activeTeamId}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow disabled:opacity-40"
+              >
+                <Plus size={16} />
+                Add
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            {/* Invite button */}
-            <button
-              onClick={() => { setSheetMode('invite'); setGeneratedLink(null) }}
-              disabled={!activeTeamId}
-              title="Invite via link"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-gaffer-border text-white/60 font-display font-bold text-sm disabled:opacity-40"
-            >
-              <Link2 size={15} />
-            </button>
-            {/* Add button */}
-            <button
-              onClick={() => setSheetMode('add')}
-              disabled={!activeTeamId}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow disabled:opacity-40"
-            >
-              <Plus size={16} />
-              Add
-            </button>
-          </div>
+
+          {/* Team selector */}
+          {teams && teams.length > 1 && (
+            <div className="px-4 md:px-6 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
+              {teams.map((t: Team) => (
+                <button
+                  key={t._id}
+                  onClick={() => setSelectedTeamId(t._id)}
+                  className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-body font-medium border transition-all ${
+                    t._id === activeTeamId
+                      ? 'bg-gaffer-orange/10 border-gaffer-orange/50 text-gaffer-orange'
+                      : 'bg-gaffer-card border-gaffer-border text-gaffer-muted'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
-        {/* Team selector */}
-        {teams && teams.length > 1 && (
-          <div className="px-4 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
-            {teams.map((t: Team) => (
-              <button
-                key={t._id}
-                onClick={() => setSelectedTeamId(t._id)}
-                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-body font-medium border transition-all ${
-                  t._id === activeTeamId
-                    ? 'bg-gaffer-orange/10 border-gaffer-orange/50 text-gaffer-orange'
-                    : 'bg-gaffer-card border-gaffer-border text-gaffer-muted'
-                }`}
-              >
-                {t.name}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 py-4 pb-28 space-y-4">
+        <div className="px-4 md:px-6 py-4 pb-28 space-y-4">
         {/* Search */}
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gaffer-subtle" />
@@ -495,6 +499,7 @@ export default function PlayersPage() {
         onConfirm={() => revokeTarget && revokeMutation.mutate(revokeTarget)}
         onCancel={() => setRevokeTarget(null)}
       />
+      </div>
     </div>
   )
 }

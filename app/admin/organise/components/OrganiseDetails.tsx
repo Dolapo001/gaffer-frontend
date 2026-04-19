@@ -257,7 +257,7 @@ export function OrganiseDetails({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-44 no-scrollbar space-y-2.5">
+      <div className="flex-1 overflow-y-auto px-4 pb-6 no-scrollbar space-y-2.5">
         {selectedTeam && (
           <div className="space-y-2">
             {/* Owner / Staff Row */}
@@ -342,24 +342,33 @@ export function OrganiseDetails({
               )}
             </AnimatePresence>
 
-            {/* Edit Team + Register Row */}
+            {/* Edit Team + Register + Delete Row */}
             <div className="flex gap-2">
               {onUpdateTeam && (
                 <button
                   onClick={() => { setEditTeamName(selectedTeam?.name || ''); setShowEditTeam(true) }}
-                  className="flex-1 flex items-center justify-center gap-2 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-white hover:border-white/10 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-white hover:border-white/10 transition-all"
                 >
-                  <Pencil size={13} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">Edit Team</span>
+                  <Pencil size={12} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">Edit</span>
                 </button>
               )}
               {onRegisterTeam && competitions.length > 0 && (
                 <button
                   onClick={() => onRegisterTeam(competitions[0]._id)}
-                  className="flex-1 flex items-center justify-center gap-2 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-gaffer-orange hover:border-gaffer-orange/20 transition-all"
+                  className="flex-1 flex items-center justify-center gap-1.5 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-gaffer-orange hover:border-gaffer-orange/20 transition-all"
                 >
-                  <Trophy size={13} />
+                  <Trophy size={12} />
                   <span className="text-[9px] font-black uppercase tracking-widest">Register</span>
+                </button>
+              )}
+              {selectedTeam && (
+                <button
+                  onClick={() => setShowDeleteTeamConfirm(true)}
+                  className="flex-[0.5] max-w-[80px] flex items-center justify-center gap-1.5 h-10 bg-[#1C1E2B] border border-red-500/10 rounded-xl text-red-500/60 hover:text-red-500 hover:bg-red-500/5 hover:border-red-500/20 transition-all"
+                  title="Delete Team"
+                >
+                  <Trash2 size={13} />
                 </button>
               )}
             </div>
@@ -500,7 +509,14 @@ export function OrganiseDetails({
         )}
 
         {selectedGroup && !selectedTeam && (
-           <div className="bg-[#1C1E2B] border border-white/5 rounded-2xl p-6 space-y-4">
+           <div className="bg-[#1C1E2B] border border-white/5 rounded-2xl p-6 space-y-4 relative">
+              <button 
+                onClick={() => setShowDeleteGroupConfirm(true)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center hover:bg-red-500/20 transition-colors"
+                title="Delete Group"
+              >
+                 <Trash2 size={13} />
+              </button>
               <div className="flex items-center gap-3">
                 <div className="w-4 h-4 rounded-full" style={{ backgroundColor: selectedGroup.color }} />
                 <h4 className="font-bold text-white uppercase tracking-wider">{selectedGroup.name}</h4>
@@ -516,34 +532,6 @@ export function OrganiseDetails({
                 ))}
               </div>
            </div>
-        )}
-      </div>
-
-      {/* ── Action Bar ── */}
-      <div className="px-6 pt-6 pb-[140px] shrink-0 border-t border-white/[0.05] bg-[#11121C] space-y-3">
-        <button
-          onClick={onBack}
-          className="w-full h-15 bg-gradient-to-r from-[#FF8A00] to-[#FF2D20] text-white font-black text-[15px] py-4 rounded-[14px] shadow-[0_8px_30px_rgb(255,45,32,0.3)] active:scale-[0.98] transition-all uppercase tracking-[0.15em]"
-        >
-          Save
-        </button>
-
-        {selectedTeam && (
-          <button
-            onClick={() => setShowDeleteTeamConfirm(true)}
-            className="w-full py-3 rounded-xl border border-red-500/20 text-red-500/60 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/5 transition-all"
-          >
-            Delete Team
-          </button>
-        )}
-
-        {selectedGroup && !selectedTeam && (
-          <button
-            onClick={() => setShowDeleteGroupConfirm(true)}
-            className="w-full py-3 rounded-xl border border-red-500/20 text-red-500/60 font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-500/5 transition-all"
-          >
-            Delete Group
-          </button>
         )}
       </div>
 
@@ -643,7 +631,7 @@ export function OrganiseDetails({
                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                animate={{ scale: 1, opacity: 1, y: 0 }} 
                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-               className="relative w-full max-w-[340px] bg-[#1C1D2B] border border-white/10 rounded-[40px] overflow-hidden shadow-2xl"
+               className="relative w-full max-w-[340px] max-h-[90dvh] flex flex-col bg-[#1C1D2B] border border-white/10 rounded-[40px] overflow-hidden shadow-2xl"
              >
                 {/* Hidden file input */}
                 <input
@@ -687,9 +675,9 @@ export function OrganiseDetails({
                    <p className="text-gaffer-orange font-black text-[10px] uppercase tracking-[0.4em]">{editingPlayer.position}</p>
                 </div>
 
-                <div className="p-8 space-y-6">
+                <div className="p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar">
                   {editingPlayer.role !== 'coach' ? (
-                     <div className="grid grid-cols-2 gap-4">
+                     <div className="flex flex-col gap-4">
                         <div className="space-y-2">
                            <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Role</label>
                            <select 
@@ -769,7 +757,7 @@ export function OrganiseDetails({
                initial={{ scale: 0.9, opacity: 0, y: 20 }} 
                animate={{ scale: 1, opacity: 1, y: 0 }} 
                exit={{ scale: 0.9, opacity: 0, y: 20 }}
-               className="relative w-full max-w-[380px] bg-[#1C1D2B] border border-white/10 rounded-[40px] overflow-hidden shadow-2xl"
+               className="relative w-full max-w-[380px] max-h-[90dvh] flex flex-col bg-[#1C1D2B] border border-white/10 rounded-[40px] overflow-hidden shadow-2xl"
              >
                 {/* Hidden file input for new player photo */}
                 <input
@@ -810,8 +798,8 @@ export function OrganiseDetails({
                    <p className="text-[9px] text-white/30 uppercase tracking-[0.3em] mt-1 font-black">Direct Registration</p>
                 </div>
 
-                <div className="p-8 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <div className="p-6 md:p-8 space-y-4 overflow-y-auto no-scrollbar">
+                  <div className="flex flex-col gap-4">
                     <div className="space-y-2">
                       <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">First Name</label>
                       <input 
@@ -853,7 +841,7 @@ export function OrganiseDetails({
 
                   {newPlayer.role !== 'coach' && (
                     <>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-4">
                         <div className="space-y-2">
                           <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Position</label>
                           <select 

@@ -100,18 +100,34 @@ export async function login(email: string, password: string): Promise<AuthRespon
 }
 
 // POST /auth/refresh — reads rt cookie, no body needed
-export async function refreshToken(): Promise<RefreshResponse> {
-  const raw = await api.post<unknown>('/auth/refresh', undefined, {
-    public: true,     // skip Authorization header injection (we have no access token yet)
-    skipRefresh: true, // prevent recursive refresh loop if this call itself gets a 401
-  })
-  const normalized = normalizeAuthResponse(raw)
-  if (!normalized) {
-    throw new Error('Refresh succeeded but returned an invalid auth payload.')
-  }
+//
+// Deduplicated: concurrent callers (React Strict Mode fires useEffect twice,
+// PWAProvider may call this too) share the same in-flight Promise so the
+// backend only receives ONE request. Token rotation means a second request
+// with the already-rotated cookie would get a 401 INVALID_REFRESH.
+let _refreshInFlight: Promise<RefreshResponse> | null = null
 
-  tokenStore.set(normalized.accessToken)
-  return normalized
+export async function refreshToken(): Promise<RefreshResponse> {
+  if (_refreshInFlight) return _refreshInFlight
+
+  _refreshInFlight = api
+    .post<unknown>('/auth/refresh', undefined, {
+      public: true,      // skip Authorization header (no access token yet)
+      skipRefresh: true, // prevent recursive refresh loop on 401
+    })
+    .then((raw) => {
+      const normalized = normalizeAuthResponse(raw)
+      if (!normalized) {
+        throw new Error('Refresh succeeded but returned an invalid auth payload.')
+      }
+      tokenStore.set(normalized.accessToken)
+      return normalized
+    })
+    .finally(() => {
+      _refreshInFlight = null
+    })
+
+  return _refreshInFlight
 }
 
 // POST /auth/forgot-password

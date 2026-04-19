@@ -71,7 +71,10 @@ export default function AdminNotificationsPage() {
   return (
     <div className="min-h-screen bg-gaffer-bg flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 px-4 pt-12 pb-3 border-b border-gaffer-border">
+      <div 
+        className="flex items-center gap-3 px-4 md:px-6 pb-3 border-b border-gaffer-border"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+      >
         <button
           onClick={goBack}
           className="w-9 h-9 flex items-center justify-center rounded-full bg-gaffer-card border border-gaffer-border text-white"
@@ -79,7 +82,7 @@ export default function AdminNotificationsPage() {
           <ChevronLeft size={18} />
         </button>
         <div className="flex-1">
-          <h1 className="font-display font-bold text-white text-base">Notifications</h1>
+          <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Notifications</h1>
           {unreadCount > 0 && (
             <p className="text-gaffer-orange text-xs font-body">{unreadCount} unread</p>
           )}

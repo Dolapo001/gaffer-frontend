@@ -38,27 +38,36 @@ export function OrganiseList({
       key="list"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="absolute inset-0 flex flex-col space-y-4 px-6 pt-2"
+      className="absolute inset-0 flex flex-col pt-2"
     >
-      {/* Tab Switcher */}
-      <div className="bg-white/5 p-1.5 rounded-xl flex border border-white/5">
-        {(['Teams', 'Groups'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => onTabChange(tab)}
-            className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex flex-col items-center justify-center relative ${
-              activeTab === tab ? 'bg-[#2F3342] text-white shadow-lg' : 'text-gray-500'
-            }`}
-          >
-            {tab}
-            {activeTab === tab && (
-              <div className="w-4 h-0.5 bg-orange-500 rounded-full mt-1" />
-            )}
-          </button>
-        ))}
-      </div>
-
       <div className="flex-1 overflow-y-auto pb-40 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {/* Header moved inside scrollable area */}
+        <div 
+          className="flex items-center px-6 pb-2 text-white"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
+        >
+          <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Organize</h1>
+        </div>
+
+        <div className="px-6 space-y-4">
+          {/* Tab Switcher */}
+          <div className="bg-white/5 p-1.5 rounded-xl flex border border-white/5">
+          {(['Teams', 'Groups'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => onTabChange(tab)}
+              className={`flex-1 py-2.5 rounded-lg font-semibold text-sm transition-all flex flex-col items-center justify-center relative ${
+                activeTab === tab ? 'bg-[#2F3342] text-white shadow-lg' : 'text-gray-500'
+              }`}
+            >
+              {tab}
+              {activeTab === tab && (
+                <div className="w-4 h-0.5 bg-orange-500 rounded-full mt-1" />
+              )}
+            </button>
+          ))}
+        </div>
+
         <AnimatePresence mode="wait">
           {activeTab === 'Teams' ? (
             <motion.div
@@ -213,7 +222,8 @@ export function OrganiseList({
               )}
             </motion.div>
           )}
-        </AnimatePresence>
+          </AnimatePresence>
+        </div>
       </div>
     </motion.div>
   )
