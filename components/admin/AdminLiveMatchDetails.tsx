@@ -29,6 +29,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const [selectedScorer, setSelectedScorer] = useState<any | null>(null)
   const [matchMinute, setMatchMinute] = useState<string>('')
   const [commentaryText, setCommentaryText] = useState('')
+  const [showFulltimeConfirm, setShowFulltimeConfirm] = useState(false)
 
   const [homeFormation, setHomeFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
   const [awayFormation, setAwayFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
@@ -337,6 +338,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['events', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
+      queryClient.invalidateQueries({ queryKey: ['fixtures'] })
       addToast('Event recorded', 'success')
       resetCommentary()
     },
@@ -352,7 +354,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     'HALFTIME':       'halftime',
     'FULLTIME':       'fulltime',
     'START':          'start',
-    'PENALTY':        'penalty',
+    'PENALTY':        'penalty_scored',
     'CUSTOM':         'custom',
   }
 
@@ -541,34 +543,74 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
           </div>
 
           <div className="grid grid-cols-2 w-full gap-8 px-8 mt-2">
+            {/* Home goals + red cards */}
             <div className="flex flex-col gap-0.5 items-start">
               {events
-                .filter(e => e.type === 'goal' && (typeof e.teamId === 'string' ? e.teamId === homeId : (e.teamId as any)?._id === homeId))
+                .filter(e => {
+                  const raw = (e as any).rawType || e.type
+                  const tid = typeof e.teamId === 'string' ? e.teamId : (e.teamId as any)?._id
+                  return (raw === 'goal' || raw === 'own_goal' || raw === 'penalty_scored') && tid === homeId
+                })
                 .map(s => (
                   <span key={(s as any)._id} className="text-[11px] font-inter font-bold text-white whitespace-nowrap">
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || s.playerId.firstName) : 'Player'} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
+                  </span>
+                ))}
+              {events
+                .filter(e => {
+                  const raw = (e as any).rawType || e.type
+                  const tid = typeof e.teamId === 'string' ? e.teamId : (e.teamId as any)?._id
+                  return raw === 'red_card' && tid === homeId
+                })
+                .map(s => (
+                  <span key={`rc-${(s as any)._id}`} className="text-[11px] font-inter font-bold text-red-400 whitespace-nowrap flex items-center gap-1">
+                    <span className="inline-block w-2 h-3 bg-red-500 rounded-[1px]" />
+                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || ''} {s.minute}&apos;
                   </span>
                 ))}
             </div>
+            {/* Away goals + red cards */}
             <div className="flex flex-col gap-0.5 items-end text-right">
               {events
-                .filter(e => e.type === 'goal' && (typeof e.teamId === 'string' ? e.teamId === awayId : (e.teamId as any)?._id === awayId))
+                .filter(e => {
+                  const raw = (e as any).rawType || e.type
+                  const tid = typeof e.teamId === 'string' ? e.teamId : (e.teamId as any)?._id
+                  return (raw === 'goal' || raw === 'own_goal' || raw === 'penalty_scored') && tid === awayId
+                })
                 .map(s => (
                   <span key={(s as any)._id} className="text-[11px] font-inter font-bold text-white whitespace-nowrap">
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || s.playerId.firstName) : 'Player'} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
+                  </span>
+                ))}
+              {events
+                .filter(e => {
+                  const raw = (e as any).rawType || e.type
+                  const tid = typeof e.teamId === 'string' ? e.teamId : (e.teamId as any)?._id
+                  return raw === 'red_card' && tid === awayId
+                })
+                .map(s => (
+                  <span key={`rc-${(s as any)._id}`} className="text-[11px] font-inter font-bold text-red-400 whitespace-nowrap flex items-center justify-end gap-1">
+                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || ''} {s.minute}&apos;
+                    <span className="inline-block w-2 h-3 bg-red-500 rounded-[1px]" />
                   </span>
                 ))}
             </div>
           </div>
 
           <div className="flex flex-col items-center gap-2 pt-2">
-            <label className="relative inline-flex items-center cursor-pointer scale-100">
-              <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => toggleMutation.mutate(e.target.checked)} disabled={toggleMutation.isPending} />
-              <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22C55E]"></div>
-            </label>
-            <span className={`text-[10px] font-inter font-bold uppercase tracking-widest mt-1 ${isLive ? 'text-[#22C55E]' : 'text-[#FF5C00]'}`}>
-               {toggleMutation.isPending ? 'Updating...' : isLive ? 'Live' : 'Go Live'}
-            </span>
+            {fixture?.status === 'completed' ? (
+              <span className="text-[10px] font-inter font-bold uppercase tracking-widest text-white/30">Match Ended</span>
+            ) : (
+              <>
+                <label className={`relative inline-flex items-center scale-100 ${toggleMutation.isPending ? 'opacity-50' : 'cursor-pointer'}`}>
+                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => toggleMutation.mutate(e.target.checked)} disabled={toggleMutation.isPending} />
+                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22C55E]"></div>
+                </label>
+                <span className={`text-[10px] font-inter font-bold uppercase tracking-widest mt-1 ${isLive ? 'text-[#22C55E]' : 'text-[#FF5C00]'}`}>
+                  {toggleMutation.isPending ? 'Updating...' : isLive ? 'Live' : 'Go Live'}
+                </span>
+              </>
+            )}
           </div>
         </section>
 
@@ -944,12 +986,17 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                 onClick={() => {
                                   if (isDisabled) return
                                   setSelectedAction(action.label)
+                                  if (action.label === 'FULLTIME') {
+                                    setShowFulltimeConfirm(true)
+                                    setCommentaryStep('idle')
+                                    return
+                                  }
                                   if (NEEDS_TEAM_PLAYER.includes(action.label || '') || NEEDS_TEXT.includes(action.label || '')) {
                                     setCommentaryStep('minute')
                                   } else {
                                     recordEventMutation.mutate({
                                       type: ACTION_TYPE_MAP[action.label] || 'custom',
-                                      minute: 0,
+                                      minute: action.label === 'HALFTIME' ? 45 : 0,
                                       teamId: homeId || '',
                                     })
                                   }
@@ -1183,6 +1230,58 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
           )}
         </AnimatePresence>
       </main>
+
+      {/* Fulltime Confirmation Modal */}
+      <AnimatePresence>
+        {showFulltimeConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center px-6"
+          >
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" onClick={() => setShowFulltimeConfirm(false)} />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative bg-[#1C1F2D] w-full max-w-[300px] rounded-[28px] border border-white/10 overflow-hidden shadow-2xl z-10"
+            >
+              <div className="p-6 flex flex-col items-center gap-4">
+                <div className="w-14 h-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center">
+                  <img src="/icons/Live Game/Commentary/mdi_whistle-outline.svg" className="w-7 h-7 opacity-70" alt="" />
+                </div>
+                <div className="text-center">
+                  <h3 className="font-inter font-bold text-white text-base uppercase tracking-widest">End Match?</h3>
+                  <p className="text-[11px] font-inter font-bold text-white/40 uppercase tracking-wider mt-1">This will finalize the score and turn off live. Cannot be undone.</p>
+                </div>
+                <div className="flex gap-3 w-full pt-2">
+                  <button
+                    onClick={() => setShowFulltimeConfirm(false)}
+                    className="flex-1 py-3 rounded-2xl bg-white/5 border border-white/10 font-inter font-bold text-xs uppercase text-white/60"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={recordEventMutation.isPending}
+                    onClick={() => {
+                      setShowFulltimeConfirm(false)
+                      recordEventMutation.mutate({
+                        type: 'fulltime',
+                        minute: 90,
+                        teamId: homeId || '',
+                      })
+                    }}
+                    className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-red-600 to-red-500 font-inter font-bold text-xs uppercase text-white disabled:opacity-50"
+                  >
+                    {recordEventMutation.isPending ? 'Ending...' : 'End Match'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
