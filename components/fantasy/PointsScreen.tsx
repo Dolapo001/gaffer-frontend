@@ -1,16 +1,17 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { ChevronLeft, ChevronRight, Info, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { SQUAD, GAMEWEEK_INFO } from '@/lib/fantasyMockData'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
-import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { FantasyHeroWave } from './FantasyHeroWave'
+import { useQuery } from '@tanstack/react-query'
+import { getMyFantasyTeam, getFantasyStats } from '@/lib/services/fantasy.service'
+import { mapApiTeamToSquad } from '@/lib/converters'
 
 export function PointsScreen() {
   const router = useRouter()
@@ -18,6 +19,30 @@ export function PointsScreen() {
   const players = useFantasyStore((s) => s.players)
   const selectPlayer = useFantasyStore((s) => s.selectPlayer)
   const selectedPlayerId = useFantasyStore((s) => s.selectedPlayerId)
+  const setPlayers = useFantasyStore((s) => s.setPlayers)
+  const budget = useFantasyStore((s) => s.budget)
+  const competitionId = useFantasyStore((s) => s.competitionId)
+
+  const { data: myTeam } = useQuery({
+    queryKey: ['fantasy-team-me', competitionId],
+    queryFn: () => getMyFantasyTeam(competitionId!),
+    enabled: !!competitionId && players.length === 0,
+  })
+
+  const { data: seasonStats } = useQuery({
+    queryKey: ['fantasy-stats', competitionId],
+    queryFn: () => getFantasyStats(competitionId!),
+    enabled: !!competitionId,
+  })
+
+  useEffect(() => {
+    if (myTeam && players.length === 0) {
+      const mapped = mapApiTeamToSquad(myTeam, [])
+      if (mapped.length > 0) setPlayers(mapped)
+    }
+  }, [myTeam, players.length, setPlayers])
+
+  const highestSC = seasonStats?.highestSC ?? 0
   
   const pitchPlayers = players.filter(p => p.isOnPitch)
   const benchPlayers = players.filter(p => !p.isOnPitch)
@@ -99,7 +124,7 @@ export function PointsScreen() {
               </div>
 
               <div className="flex flex-col items-center flex-1">
-                <span className="text-2xl md:text-3xl font-medium text-white">132</span>
+                <span className="text-2xl md:text-3xl font-medium text-white">{highestSC}</span>
                 <div className="flex items-center gap-1 cursor-pointer group mt-1">
                   <span className="text-[10px] md:text-xs text-gray-300 tracking-wider uppercase">Highest</span>
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-gray-300 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -125,7 +150,7 @@ export function PointsScreen() {
           <div className="flex justify-end pr-4 mb-2 relative z-20">
             <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-lg">
               <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
-              <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ100.0m</span>
+              <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}m</span>
             </div>
           </div>
 

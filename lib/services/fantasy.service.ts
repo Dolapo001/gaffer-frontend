@@ -201,12 +201,30 @@ export async function createFantasyTeam(
 // GET /fantasy/:competitionId/team/me
 export async function getMyFantasyTeam(competitionId: string): Promise<FantasyTeam | null> {
   try {
-    return await api.get<FantasyTeam>(`/fantasy/${competitionId}/team/me`)
+    const res = await api.get<FantasyTeam | { data: FantasyTeam }>(`/fantasy/${competitionId}/team/me`)
+    return (res && 'data' in res && res.data) ? (res as any).data as FantasyTeam : res as FantasyTeam
   } catch (error: any) {
     if (error.code === 'TEAM_NOT_FOUND') {
       return null
     }
     throw error
+  }
+}
+
+export interface FantasySeasonStats {
+  yourSC: number
+  averageSC: number
+  highestSC: number
+}
+
+// GET /fantasy/:competitionId/stats
+export async function getFantasyStats(competitionId: string): Promise<FantasySeasonStats> {
+  try {
+    const res = await api.get<FantasySeasonStats | { data: FantasySeasonStats }>(`/fantasy/${competitionId}/stats`)
+    const stats = (res && 'data' in res && res.data) ? (res as any).data : res
+    return stats ?? { yourSC: 0, averageSC: 0, highestSC: 0 }
+  } catch {
+    return { yourSC: 0, averageSC: 0, highestSC: 0 }
   }
 }
 

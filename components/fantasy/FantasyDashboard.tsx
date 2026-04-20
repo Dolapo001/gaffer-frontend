@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { useToast } from '@/store/toastStore'
 import { useFantasyStore } from '@/store/fantasyStore'
-import { getMyFantasyTeam, listGameweeks } from '@/lib/services/fantasy.service'
+import { getMyFantasyTeam, listGameweeks, getFantasyStats } from '@/lib/services/fantasy.service'
 import { getWallet } from '@/lib/services/payment.service'
 import { Sparkles } from 'lucide-react'
 import { FantasyHeroWave } from './FantasyHeroWave'
@@ -28,8 +28,16 @@ const FantasyDashboard: React.FC = () => {
     enabled: !!competitionId,
   })
 
+  const { data: seasonStats } = useQuery({
+    queryKey: ['fantasy-stats', competitionId],
+    queryFn: () => getFantasyStats(competitionId!),
+    enabled: !!competitionId,
+  })
+
   const currentGW = gameweeks?.[0]
   const displayPoints = myTeam?.totalPoints ?? totalPoints
+  const averageSC = seasonStats?.averageSC ?? 0
+  const highestSC = seasonStats?.highestSC ?? 0
 
   const handleNav = (label: string, path: string) => {
     if (path === '/app/fantasy/transfers') {
@@ -101,7 +109,7 @@ const FantasyDashboard: React.FC = () => {
 
           <div className="flex justify-around w-full px-4 relative z-10">
             <div className="flex flex-col items-center">
-              <span className="text-white text-[24px] font-bold leading-none mb-1">42.0</span>
+              <span className="text-white text-[24px] font-bold leading-none mb-1">{averageSC.toFixed(1)}</span>
               <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest text-center mt-2">Average SC</span>
             </div>
  
@@ -113,7 +121,7 @@ const FantasyDashboard: React.FC = () => {
             </div>
  
             <div className="flex flex-col items-center">
-              <span className="text-white text-[24px] font-bold leading-none mb-1">242</span>
+              <span className="text-white text-[24px] font-bold leading-none mb-1">{highestSC}</span>
               <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest text-center mt-2">Highest SC</span>
             </div>
           </div>

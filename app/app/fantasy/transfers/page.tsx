@@ -47,8 +47,12 @@ export default function TransfersPage() {
     enabled: !!competitionId,
   })
 
+  const squad: FantasyPlayer[] = myTeam
+    ? [...((myTeam as any).startingXI ?? []), ...((myTeam as any).bench ?? [])]
+    : []
+
   // When a player is selected to go out, filter pool by their position
-  const playerOut = myTeam?.squad?.find((p: FantasyPlayer) => p._id === playerOutId)
+  const playerOut = squad.find((p: FantasyPlayer) => p._id === playerOutId)
   const filterPosition = playerOut
     ? playerOut.position
     : positionFilter ?? undefined
@@ -80,8 +84,6 @@ export default function TransfersPage() {
       toast.addToast(getErrorMessage(err), 'error')
     },
   })
-
-  const squad: FantasyPlayer[] = (myTeam?.squad as any[]) ?? []
 
   const playerName = (p: FantasyPlayer) => {
     const pid = p.playerId as any
