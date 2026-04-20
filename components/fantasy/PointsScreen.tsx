@@ -23,12 +23,6 @@ export function PointsScreen() {
   const budget = useFantasyStore((s) => s.budget)
   const competitionId = useFantasyStore((s) => s.competitionId)
 
-  const { data: myTeam } = useQuery({
-    queryKey: ['fantasy-team-me', competitionId],
-    queryFn: () => getMyFantasyTeam(competitionId!),
-    enabled: !!competitionId && players.length === 0,
-  })
-
   const { data: seasonStats } = useQuery({
     queryKey: ['fantasy-stats', competitionId],
     queryFn: () => getFantasyStats(competitionId!),
@@ -36,11 +30,13 @@ export function PointsScreen() {
   })
 
   useEffect(() => {
-    if (myTeam && players.length === 0) {
-      const mapped = mapApiTeamToSquad(myTeam, [])
+    if (!competitionId) return
+    getMyFantasyTeam(competitionId).then((team) => {
+      if (!team) return
+      const mapped = mapApiTeamToSquad(team, [])
       if (mapped.length > 0) setPlayers(mapped)
-    }
-  }, [myTeam, players.length, setPlayers])
+    }).catch(() => {})
+  }, [competitionId, setPlayers])
 
   const highestSC = seasonStats?.highestSC ?? 0
   
