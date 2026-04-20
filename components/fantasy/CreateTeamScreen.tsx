@@ -201,15 +201,16 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     setTimeout(() => setTeamMaxToast(false), 2500);
   };
 
-  // Count players per team
+  // Count players per real team (use teamId._id for accuracy)
   const teamCounts: Record<string, number> = {};
   draftPlayers.forEach(p => {
-    teamCounts[p.teamName] = (teamCounts[p.teamName] || 0) + 1;
+    const key = (p as any).teamIdRef || p.teamName;
+    teamCounts[key] = (teamCounts[key] || 0) + 1;
   });
 
   const { data: playerResponse, isLoading } = useQuery({
     queryKey: ['fantasy-market-players', competitionId, position],
-    queryFn: () => listFantasyPlayers(competitionId, { position }),
+    queryFn: () => listFantasyPlayers(competitionId, { position, pageSize: 500 }),
     enabled: !!competitionId
   });
 
@@ -238,10 +239,11 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   });
 
   const mappedPlayers = apiPlayers.map(p => {
-    const teamName = p.teamId?.name || '';
+    const teamIdKey = (p.teamId as any)?._id || p.teamId?.name || '';
     return {
       ...mapApiPlayer(p, [], [], null, null, fixtures || []),
-      isTeamMaxed: (teamCounts[teamName] ?? 0) >= 3,
+      teamIdRef: teamIdKey,
+      isTeamMaxed: (teamCounts[teamIdKey] ?? 0) >= 3,
     };
   });
 

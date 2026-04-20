@@ -128,7 +128,7 @@ export function OrganiseDetails({
   const [tempPrice, setTempPrice] = useState('')
   const [showRecruitment, setShowRecruitment] = useState(false)
   const [isAddingPlayer, setIsAddingPlayer] = useState(false)
-  const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', position: 'Forward', role: 'player', price: '7.5', jerseyNumber: '' })
+  const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', position: 'Forward', role: 'player', jerseyNumber: '' })
 
   // ── Photo state for "Add Player" modal ──────────────────────────────────────
   const [newPlayerPhoto, setNewPlayerPhoto] = useState<File | null>(null)
@@ -155,14 +155,13 @@ export function OrganiseDetails({
       return
     }
 
-    onAddPlayerManual?.({ 
-      ...newPlayer, 
-      price: parseFloat(newPlayer.price) || 0,
+    onAddPlayerManual?.({
+      ...newPlayer,
       jerseyNumber: newPlayer.jerseyNumber ? parseInt(newPlayer.jerseyNumber.toString()) : undefined,
-      _photoFile: newPlayerPhoto ?? undefined 
+      _photoFile: newPlayerPhoto ?? undefined
     })
     setIsAddingPlayer(false)
-    setNewPlayer({ firstName: '', lastName: '', position: 'Forward', role: 'player', price: '7.5', jerseyNumber: '' })
+    setNewPlayer({ firstName: '', lastName: '', position: 'Forward', role: 'player', jerseyNumber: '' })
     setNewPlayerPhoto(null)
     setNewPlayerPhotoPreview(null)
   }
@@ -180,7 +179,7 @@ export function OrganiseDetails({
 
   const handleEditClick = (player: Player) => {
     setEditingPlayer(player)
-    setTempPrice(player.price.replace('M', ''))
+    setTempPrice(String(player.price ?? '').replace('M', ''))
   }
 
   // Handle photo pick for the "new player" modal
@@ -199,7 +198,6 @@ export function OrganiseDetails({
     const payload: any = {
       role: editingPlayer.role,
       squadStatus: editingPlayer.status,
-      price: parseFloat(tempPrice) || 7.5,
       jerseyNumber: editingPlayer.jerseyNumber ? parseInt(editingPlayer.jerseyNumber.toString()) : undefined
     }
 
@@ -471,25 +469,6 @@ export function OrganiseDetails({
                       </div>
                     </div>
                     
-                    {player.role !== 'coach' && (
-                      <div className="flex flex-col items-center gap-0.5 shrink-0 px-2 group">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onPriceChange(player.id, true) }} 
-                          className="text-white/10 hover:text-white transition-colors"
-                        >
-                           <ChevronUp size={12} strokeWidth={4} />
-                        </button>
-                        <span className="text-[12px] font-black text-white tabular-nums leading-none min-w-[36px] text-center tracking-tight">
-                           {player.price}
-                        </span>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); onPriceChange(player.id, false) }} 
-                          className="text-white/10 hover:text-white transition-colors"
-                        >
-                           <ChevronDown size={12} strokeWidth={4} />
-                        </button>
-                      </div>
-                    )}
                   </div>
 
                   <button
@@ -871,16 +850,6 @@ export function OrganiseDetails({
                         </div>
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Market Price (M)</label>
-                        <input 
-                          type="number"
-                          step="0.1"
-                          value={newPlayer.price}
-                          onChange={e => setNewPlayer({...newPlayer, price: e.target.value})}
-                          className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[12px] text-white outline-none focus:border-gaffer-orange/30 transition-all font-black"
-                        />
-                      </div>
                     </>
                   )}
 

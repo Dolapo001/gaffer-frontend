@@ -326,8 +326,7 @@ export default function OrganizePage() {
           sport: 'Football',
           logoUrl,
           maxPlayers: parseInt(maxPlayers) || 11,
-          homeJersey: jerseyConfig.home,
-          awayJersey: jerseyConfig.away,
+          jersey: jerseyConfig.home,
         })
 
         // If a competition is selected, auto-register the team

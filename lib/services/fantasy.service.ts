@@ -32,14 +32,16 @@ export interface FantasyPlayer {
   teamId: {
     _id: string
     name: string
+    shortName?: string
     handle: string
     logoUrl?: string
-    homeJersey?: {
+    // Backend populates as `jersey` (home kit). homeJersey kept for backwards-compat.
+    jersey?: {
       primaryColor: string
       secondaryColor: string
       jerseyPattern: JerseyPattern
     }
-    awayJersey?: {
+    homeJersey?: {
       primaryColor: string
       secondaryColor: string
       jerseyPattern: JerseyPattern

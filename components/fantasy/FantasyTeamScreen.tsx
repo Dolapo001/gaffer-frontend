@@ -10,14 +10,13 @@ import {
   useFantasyStore,
 } from '@/store/fantasyStore'
 import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
+import { mapApiTeamToSquad } from '@/lib/converters'
 
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { BoostSelector } from './BoostSelector'
 import { FantasyHeroWave } from './FantasyHeroWave'
-
-const PITCH_ROW: Record<string, number> = { GK: 0, DEF: 1, MID: 2, FWD: 3 }
 
 export function FantasyTeamScreen() {
   const router = useRouter()
@@ -40,34 +39,9 @@ export function FantasyTeamScreen() {
   useEffect(() => {
     if (!competitionId) return
     getMyFantasyTeam(competitionId).then((team) => {
-      if (!team || !team.squad?.length) return
-      const mapped: FantasySquadPlayer[] = team.squad.map((p) => {
-        const pid = (p.playerId && typeof p.playerId === 'object') ? p.playerId : null
-        const tid = (p.teamId && typeof p.teamId === 'object') ? p.teamId : null
-        return {
-          id: p._id,
-          name: pid ? `${pid.firstName} ${pid.lastName}` : 'Unknown',
-          shortName: pid ? `${pid.firstName?.[0] ?? '?'}. ${pid.lastName}` : '?',
-          teamName: tid?.name ?? '',
-          teamCode: tid?.handle ?? '',
-          teamColor: tid?.homeJersey?.primaryColor ?? '#888888',
-          jersey: tid?.homeJersey ?? undefined,
-          position: p.position,
-          points: p.totalPoints ?? 0,
-          price: p.price,
-          pitchRow: PITCH_ROW[p.position] ?? 1,
-          isOnPitch: team.startingXI.includes(p._id),
-          isCaptain: team.captainId === p._id,
-          isViceCaptain: team.viceCaptainId === p._id,
-          goals: 0,
-          assists: 0,
-          form: 0,
-          gwHistory: [],
-          nextFixtures: [],
-          teamLogoUrl: tid?.logoUrl ?? undefined,
-        }
-      })
-      setPlayers(mapped)
+      if (!team) return
+      const mapped = mapApiTeamToSquad(team as any)
+      if (mapped.length > 0) setPlayers(mapped)
     }).catch(() => {/* no team yet – keep existing store state */})
   }, [competitionId, setPlayers])
 
