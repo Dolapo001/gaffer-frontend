@@ -334,6 +334,13 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
           </button>
         </div>
 
+        {/* DEBUG — remove after diagnosis */}
+        {(playerResponse?.data?.length ?? 0) > 0 && (
+          <div className="text-[9px] text-yellow-400/70 px-2 mb-2 font-mono break-all">
+            total:{playerResponse!.data.length} pos:{position} matched:{positionMatchedPlayers.length} | raw positions: {Array.from(new Set(playerResponse!.data.map(p => p.position))).join(', ')}
+          </div>
+        )}
+
         {/* Table Header */}
         <div className="flex items-center text-white/40 text-[10px] uppercase font-bold tracking-widest px-2 mb-4">
           <div className="flex-1">Player in</div>
