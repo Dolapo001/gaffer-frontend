@@ -224,9 +224,6 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     enabled: !!competitionId
   });
 
-  // Get unique teams for filter
-  const allTeams = Array.from(new Set((playerResponse?.data || []).map(p => p.teamId?.name))).filter(Boolean);
-
   const { data: fixtures } = useQuery({
     queryKey: ['fantasy-fixtures', competitionId],
     queryFn: () => listFixtures(competitionId),
@@ -234,15 +231,20 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   });
 
   const POS_NORMALIZE: Record<string, string> = {
-    goalkeeper: 'GK', defender: 'DEF', midfielder: 'MID', forward: 'FWD',
-    'center-back': 'DEF', 'full-back': 'DEF', 'centre-back': 'DEF',
+    goalkeeper: 'GK', gk: 'GK',
+    defender: 'DEF', def: 'DEF', 'center-back': 'DEF', 'centre-back': 'DEF', 'full-back': 'DEF', cb: 'DEF', rb: 'DEF', lb: 'DEF',
+    midfielder: 'MID', mid: 'MID', mf: 'MID', cm: 'MID', dm: 'MID', am: 'MID',
+    forward: 'FWD', fwd: 'FWD', fw: 'FWD', st: 'FWD', cf: 'FWD', lw: 'FWD', rw: 'FWD',
   };
-  const normalizePos = (p: string) => POS_NORMALIZE[p?.toLowerCase()] || p?.toUpperCase() || '';
+  const normalizePos = (p: string) => POS_NORMALIZE[p?.trim().toLowerCase()] || p?.trim().toUpperCase() || '';
+
+  const positionMatchedPlayers = (playerResponse?.data || []).filter(p =>
+    normalizePos(p.position) === position
+  );
 
   const excludeIds = draftPlayers.map(p => p.id);
-  const apiPlayers = (playerResponse?.data || []).filter(p => {
+  const apiPlayers = positionMatchedPlayers.filter(p => {
     if (excludeIds.includes(p._id)) return false;
-    if (normalizePos(p.position) !== position) return false;
     const teamName = p.teamId?.name || '';
     if (selectedTeam !== 'all' && teamName !== selectedTeam) return false;
     if (p.price > maxPrice) return false;
@@ -259,6 +261,9 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     };
   });
 
+  // Only show teams that have players for the current position
+  const allTeams = Array.from(new Set(positionMatchedPlayers.map(p => p.teamId?.name))).filter(Boolean);
+
   const filteredPlayers = mappedPlayers.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesSearch;
@@ -270,13 +275,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     setMaxPrice(20);
   };
 
-  console.log('Market Players Debug:', {
-    competitionId,
-    position,
-    rawCount: apiPlayers.length,
-    mappedCount: mappedPlayers.length,
-    firstPlayer: mappedPlayers[0]
-  });
+
 
   return (
     <motion.div
