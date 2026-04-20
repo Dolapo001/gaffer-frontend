@@ -209,14 +209,14 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   });
 
   const { data: playerResponse, isLoading } = useQuery({
-    queryKey: ['fantasy-market-players', competitionId, position],
+    queryKey: ['fantasy-market-players', competitionId],
     queryFn: async () => {
-      const first = await listFantasyPlayers(competitionId, { position, pageSize: 100, page: 1 });
+      const first = await listFantasyPlayers(competitionId, { pageSize: 100, page: 1 });
       const totalPages = Math.ceil(first.total / 100);
       if (totalPages <= 1) return first;
       const rest = await Promise.all(
         Array.from({ length: totalPages - 1 }, (_, i) =>
-          listFantasyPlayers(competitionId, { position, pageSize: 100, page: i + 2 })
+          listFantasyPlayers(competitionId, { pageSize: 100, page: i + 2 })
         )
       );
       return { ...first, data: [...first.data, ...rest.flatMap(r => r.data)] };
@@ -233,25 +233,27 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     enabled: !!competitionId
   });
 
+  const POS_NORMALIZE: Record<string, string> = {
+    goalkeeper: 'GK', defender: 'DEF', midfielder: 'MID', forward: 'FWD',
+    'center-back': 'DEF', 'full-back': 'DEF', 'centre-back': 'DEF',
+  };
+  const normalizePos = (p: string) => POS_NORMALIZE[p?.toLowerCase()] || p?.toUpperCase() || '';
+
   const excludeIds = draftPlayers.map(p => p.id);
   const apiPlayers = (playerResponse?.data || []).filter(p => {
-    // Exclude if already in squad
     if (excludeIds.includes(p._id)) return false;
-
-    // Team filter
+    if (normalizePos(p.position) !== position) return false;
     const teamName = p.teamId?.name || '';
     if (selectedTeam !== 'all' && teamName !== selectedTeam) return false;
-
-    // Price filter
     if (p.price > maxPrice) return false;
-
     return true;
   });
 
   const mappedPlayers = apiPlayers.map(p => {
     const teamIdKey = (p.teamId as any)?._id || p.teamId?.name || '';
+    const normalized = { ...p, position: normalizePos(p.position) as FantasyPlayer['position'] };
     return {
-      ...mapApiPlayer(p, [], [], null, null, fixtures || []),
+      ...mapApiPlayer(normalized, [], [], null, null, fixtures || []),
       teamIdRef: teamIdKey,
       isTeamMaxed: (teamCounts[teamIdKey] ?? 0) >= 3,
     };

@@ -128,7 +128,7 @@ export function OrganiseDetails({
   const [tempPrice, setTempPrice] = useState('')
   const [showRecruitment, setShowRecruitment] = useState(false)
   const [isAddingPlayer, setIsAddingPlayer] = useState(false)
-  const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', position: 'Forward', role: 'player', jerseyNumber: '' })
+  const [newPlayer, setNewPlayer] = useState({ firstName: '', lastName: '', position: 'FWD', role: 'player', jerseyNumber: '' })
 
   // ── Photo state for "Add Player" modal ──────────────────────────────────────
   const [newPlayerPhoto, setNewPlayerPhoto] = useState<File | null>(null)
@@ -161,7 +161,7 @@ export function OrganiseDetails({
       _photoFile: newPlayerPhoto ?? undefined
     })
     setIsAddingPlayer(false)
-    setNewPlayer({ firstName: '', lastName: '', position: 'Forward', role: 'player', jerseyNumber: '' })
+    setNewPlayer({ firstName: '', lastName: '', position: 'FWD', role: 'player', jerseyNumber: '' })
     setNewPlayerPhoto(null)
     setNewPlayerPhotoPreview(null)
   }
@@ -828,12 +828,12 @@ export function OrganiseDetails({
                             onChange={e => setNewPlayer({...newPlayer, position: e.target.value})}
                             className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[11px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 cursor-pointer"
                           >
-                            <option>Goalkeeper</option>
-                            <option>Defender</option>
-                            <option>Midfielder</option>
-                            <option>Forward</option>
-                            <option>Center-Back</option>
-                            <option>Full-Back</option>
+                            <option value="GK">Goalkeeper</option>
+                            <option value="DEF">Defender</option>
+                            <option value="MID">Midfielder</option>
+                            <option value="FWD">Forward</option>
+                            <option value="DEF">Center-Back</option>
+                            <option value="DEF">Full-Back</option>
                           </select>
                         </div>
                         <div className="space-y-2">
