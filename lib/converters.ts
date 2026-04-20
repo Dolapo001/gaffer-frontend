@@ -125,6 +125,25 @@ export function mapApiPlayer(
  * Maps full API FantasyTeam to an array of FantasySquadPlayer
  */
 export function mapApiTeamToSquad(team: FantasyTeam, fixtures: Fixture[] = []): FantasySquadPlayer[] {
-  const allPlayers = team.squad || []
-  return allPlayers.map(p => mapApiPlayer(p, team.startingXI, team.bench, team.captainId, team.viceCaptainId, fixtures))
+  // Backend returns populated objects in startingXI/bench, not a squad array
+  const rawStarting: any[] = (team as any).startingXI || []
+  const rawBench: any[]    = (team as any).bench || []
+
+  // squad may be pre-built, or we combine startingXI + bench
+  const allPlayers: any[] = (team.squad && team.squad.length > 0)
+    ? team.squad
+    : [...rawStarting, ...rawBench]
+
+  if (allPlayers.length === 0) return []
+
+  // Extract IDs whether the entries are populated objects or plain strings
+  const toId = (v: any): string => (v && typeof v === 'object' ? v._id || v.id : v) ?? ''
+  const startingIds = rawStarting.map(toId)
+  const benchIds    = rawBench.map(toId)
+  const captainId   = toId((team as any).captainId)
+  const viceCaptainId = toId((team as any).viceCaptainId)
+
+  return allPlayers.map(p =>
+    mapApiPlayer(p, startingIds, benchIds, captainId, viceCaptainId, fixtures)
+  )
 }
