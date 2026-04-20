@@ -210,7 +210,17 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
 
   const { data: playerResponse, isLoading } = useQuery({
     queryKey: ['fantasy-market-players', competitionId, position],
-    queryFn: () => listFantasyPlayers(competitionId, { position, pageSize: 500 }),
+    queryFn: async () => {
+      const first = await listFantasyPlayers(competitionId, { position, pageSize: 100, page: 1 });
+      const totalPages = Math.ceil(first.total / 100);
+      if (totalPages <= 1) return first;
+      const rest = await Promise.all(
+        Array.from({ length: totalPages - 1 }, (_, i) =>
+          listFantasyPlayers(competitionId, { position, pageSize: 100, page: i + 2 })
+        )
+      );
+      return { ...first, data: [...first.data, ...rest.flatMap(r => r.data)] };
+    },
     enabled: !!competitionId
   });
 
