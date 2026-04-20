@@ -29,13 +29,13 @@ const TIER_COLORS: Record<string, { bg: string, text: string, border: string }> 
 }
 
 const PRICE_STEP = 0.5
-const PRICE_MIN = 4.0
-const PRICE_MAX = 12.5
+const PRICE_MIN = 3.5
+const PRICE_MAX = 14.0
 
 function tierFromPrice(price: number): 'marquee' | 'elite' | 'standard' | 'budget' {
-  if (price >= 10.5) return 'marquee'
-  if (price >= 8.0)  return 'elite'
-  if (price >= 6.0)  return 'standard'
+  if (price >= 9.5) return 'marquee'
+  if (price >= 6.5) return 'elite'
+  if (price >= 4.5) return 'standard'
   return 'budget'
 }
 
@@ -80,9 +80,17 @@ export default function TeamPricingPage() {
   const players: any[] = (pricing as any)?.data?.players || (pricing as any)?.players || []
   const team: any = (pricing as any)?.data?.team || (pricing as any)?.team || {}
 
+  const defaultPriceForPosition = (pos: string) => {
+    if (pos === 'GK')  return 4.5
+    if (pos === 'DEF') return 4.5
+    if (pos === 'MID') return 5.0
+    if (pos === 'FWD') return 5.5
+    return 4.5
+  }
+
   const getPrice = (p: any) => {
     if (pendingPrices[p._id] !== undefined) return pendingPrices[p._id]
-    return p.price ?? 7.5
+    return p.price ?? defaultPriceForPosition(p.position)
   }
 
   const adjustPrice = (playerId: string, currentPrice: number, delta: number) => {
@@ -300,7 +308,7 @@ export default function TeamPricingPage() {
              >
                 <div className="text-center space-y-1">
                    <h3 className="font-chakra font-black text-white text-lg uppercase">Set Player Price</h3>
-                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Budget £4–5.5 · Standard £6–7.5 · Elite £8–10 · Marquee £10.5–12.5</p>
+                   <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">Budget £3.5–4.5 · Standard £4.5–6 · Elite £6.5–9 · Marquee £9.5–14</p>
                 </div>
 
                 <div className="flex items-center gap-3 bg-black/20 p-4 rounded-2xl border border-white/5">
