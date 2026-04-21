@@ -188,11 +188,22 @@ function FantasyPageContent() {
     )
   }
 
-  if (!hasOrganizedBench) {
+  // ?repick=1 forces PickTeamOnboarding even when all flags are true (e.g. user
+  // wants to re-arrange an existing squad). This avoids the flag-restoration race
+  // where the myTeam useEffect immediately overrides resetTeam() calls.
+  const forceRepick = searchParams.get('repick') === '1'
+
+  if (!hasOrganizedBench || forceRepick) {
     return (
-      <PickTeamOnboarding 
-        onBack={() => setHasNamedTeam(false)}
-        onComplete={() => setHasOrganizedBench(true)} 
+      <PickTeamOnboarding
+        onBack={() => {
+          if (forceRepick) router.push('/app/fantasy')
+          else setHasNamedTeam(false)
+        }}
+        onComplete={() => {
+          setHasOrganizedBench(true)
+          router.replace('/app/fantasy')
+        }}
       />
     )
   }
