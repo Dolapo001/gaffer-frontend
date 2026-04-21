@@ -22,6 +22,8 @@ export function FantasyTeamScreen() {
   const router = useRouter()
   const [savedAnim, setSavedAnim] = useState(false)
   const [gameweek, setGameweek] = useState(5)
+  const [loadingTeam, setLoadingTeam] = useState(true)
+  const [teamError, setTeamError] = useState<string | null>(null)
 
   // Zustand state
   const competitionId = useFantasyStore((s) => s.competitionId)
@@ -35,14 +37,26 @@ export function FantasyTeamScreen() {
   const saveTeamToApi = useFantasyStore((s) => s.saveTeamToApi)
   const setPlayers = useFantasyStore((s) => s.setPlayers)
 
-  // Load team from API on mount
+  // Load team from API on mount — always re-fetches to stay fresh
   useEffect(() => {
-    if (!competitionId) return
-    getMyFantasyTeam(competitionId).then((team) => {
-      if (!team) return
-      const mapped = mapApiTeamToSquad(team as any)
-      if (mapped.length > 0) setPlayers(mapped)
-    }).catch(() => {/* no team yet – keep existing store state */})
+    if (!competitionId) {
+      setLoadingTeam(false)
+      return
+    }
+    setLoadingTeam(true)
+    setTeamError(null)
+    getMyFantasyTeam(competitionId)
+      .then((team) => {
+        if (team) {
+          const mapped = mapApiTeamToSquad(team as any)
+          if (mapped.length > 0) setPlayers(mapped)
+        }
+      })
+      .catch((err) => {
+        console.error('[PickTeam] Failed to load team:', err)
+        setTeamError('Could not load your squad. Please try again.')
+      })
+      .finally(() => setLoadingTeam(false))
   }, [competitionId, setPlayers])
 
   const pitchPlayers = players.filter((p) => p.isOnPitch)
@@ -121,7 +135,7 @@ export function FantasyTeamScreen() {
 
         {/* Pitch Area */}
         <div className="px-2 mt-4 relative">
-          {/* Budget Overlay Pill - Positioned outside/behind the pitch line */}
+          {/* Budget Overlay Pill */}
           <div className="flex justify-end pr-4 mb-2 relative z-20">
             <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-4 py-1.5 flex items-center gap-2 border border-white/10 shadow-lg">
               <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
@@ -129,23 +143,57 @@ export function FantasyTeamScreen() {
             </div>
           </div>
 
-          <PitchLayout 
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={handleSelectPlayer}
-          />
+          {loadingTeam ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+              </div>
+            </div>
+          ) : teamError ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b2b40] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 px-6 text-center">
+                <span className="text-white/60 text-sm">{teamError}</span>
+                <button
+                  onClick={() => {
+                    setTeamError(null)
+                    setLoadingTeam(true)
+                    getMyFantasyTeam(competitionId!).then((team) => {
+                      if (team) {
+                        const mapped = mapApiTeamToSquad(team as any)
+                        if (mapped.length > 0) setPlayers(mapped)
+                      }
+                    }).catch((err) => {
+                      console.error('[PickTeam] Retry failed:', err)
+                      setTeamError('Could not load your squad. Please try again.')
+                    }).finally(() => setLoadingTeam(false))
+                  }}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2"
+                >
+                  Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={handleSelectPlayer}
+            />
+          )}
         </div>
 
         {/* Substitute Section */}
-        {/* mt-6: clean gap below pitch — no longer needs negative pull */}
-        <div className="mt-6 px-2 pb-10">
-          <SubstituteBench
-            benchPlayers={benchPlayers}
-            selectedId={selectedPlayerId}
-            onSelectPlayer={handleSelectPlayer}
-          />
-        </div>
+        {!loadingTeam && !teamError && (
+          <div className="mt-6 px-2 pb-10">
+            <SubstituteBench
+              benchPlayers={benchPlayers}
+              selectedId={selectedPlayerId}
+              onSelectPlayer={handleSelectPlayer}
+            />
+          </div>
+        )}
 
         {/* Save Button */}
         <div className="flex justify-center pb-20">

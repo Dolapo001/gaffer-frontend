@@ -17,6 +17,11 @@ export function mapApiPlayer(
   if (!p || !p.playerId || typeof p.playerId !== 'object') {
     const fallbackTeamObj = (p?.teamId && typeof p.teamId === 'object') ? (p.teamId as any) : null
     const fallbackJersey = fallbackTeamObj?.homeJersey || fallbackTeamObj?.jersey || undefined
+    const fallbackPos = (p?.position as Position) || 'FWD'
+    const fallbackPosMap: Record<string, number> = { GK: 3, DEF: 2, MID: 1, FWD: 0 }
+    const fallbackIsOnPitch = p?._id ? startingXIIds.includes(p._id) : false
+    const fallbackIsCaptain = p?._id ? captainId === p._id : false
+    const fallbackIsViceCaptain = p?._id ? viceCaptainId === p._id : false
     return {
       id: p?._id || '',
       name: 'Unknown Player',
@@ -25,13 +30,13 @@ export function mapApiPlayer(
       teamCode: (p?.teamId as any)?.handle || 'unk',
       teamColor: fallbackJersey?.primaryColor || '#4a5568',
       jersey: fallbackJersey,
-      position: (p?.position as Position) || 'FWD',
+      position: fallbackPos,
       points: 0,
       price: p?.price || 0,
-      pitchRow: 1,
-      isOnPitch: false,
-      isCaptain: false,
-      isViceCaptain: false,
+      pitchRow: fallbackPosMap[fallbackPos] ?? 1,
+      isOnPitch: fallbackIsOnPitch,
+      isCaptain: fallbackIsCaptain,
+      isViceCaptain: fallbackIsViceCaptain,
       goals: 0,
       assists: 0,
       form: 0,

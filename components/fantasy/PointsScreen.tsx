@@ -29,13 +29,23 @@ export function PointsScreen() {
     enabled: !!competitionId,
   })
 
+  const [loadingTeam, setLoadingTeam] = useState(true)
+
   useEffect(() => {
-    if (!competitionId) return
-    getMyFantasyTeam(competitionId).then((team) => {
-      if (!team) return
-      const mapped = mapApiTeamToSquad(team, [])
-      if (mapped.length > 0) setPlayers(mapped)
-    }).catch(() => {})
+    if (!competitionId) {
+      setLoadingTeam(false)
+      return
+    }
+    setLoadingTeam(true)
+    getMyFantasyTeam(competitionId)
+      .then((team) => {
+        if (team) {
+          const mapped = mapApiTeamToSquad(team, [])
+          if (mapped.length > 0) setPlayers(mapped)
+        }
+      })
+      .catch((err) => console.error('[PointsScreen] Failed to load team:', err))
+      .finally(() => setLoadingTeam(false))
   }, [competitionId, setPlayers])
 
   const highestSC = seasonStats?.highestSC ?? 0
@@ -150,22 +160,33 @@ export function PointsScreen() {
             </div>
           </div>
 
-          <PitchLayout 
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={100}
-            onSelectPlayer={selectPlayer}
-          />
+          {loadingTeam ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+              </div>
+            </div>
+          ) : (
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={selectPlayer}
+            />
+          )}
         </div>
 
         {/* Substitute Section */}
-        <div className="mt-[-40px] px-2 pb-10">
-          <SubstituteBench
-            benchPlayers={benchPlayers}
-            selectedId={selectedPlayerId}
-            onSelectPlayer={selectPlayer}
-          />
-        </div>
+        {!loadingTeam && (
+          <div className="mt-[-40px] px-2 pb-10">
+            <SubstituteBench
+              benchPlayers={benchPlayers}
+              selectedId={selectedPlayerId}
+              onSelectPlayer={selectPlayer}
+            />
+          </div>
+        )}
       </main>
 
       {/* Player Detail Drawer */}
