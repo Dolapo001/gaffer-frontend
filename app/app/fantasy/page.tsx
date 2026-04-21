@@ -35,6 +35,11 @@ function FantasyPageContent() {
     setPlayers
   } = (useFantasyStore as any)()
 
+  // ?repick=1 — user wants to re-pick their squad from scratch.
+  // Declared early so the useEffect below can skip flag/player restoration
+  // while in this mode (otherwise myTeam immediately overrides the reset).
+  const forceRepick = searchParams.get('repick') === '1'
+
   // If the user arrived via the in-competition Fantasy tab, auto-select that competition
   const urlCompetitionId = searchParams.get('competitionId')
   useEffect(() => {
@@ -62,27 +67,28 @@ function FantasyPageContent() {
   })
 
   useEffect(() => {
-    if (myTeam) {
-      const hasSquad = ((myTeam as any).startingXI?.length ?? 0) > 0
+    // In repick mode the user is starting fresh — don't restore any flags or
+    // players from the backend, or the flag-reset done before navigation gets
+    // immediately overridden and the user ends up back at the dashboard.
+    if (!myTeam || forceRepick) return
 
-      // Only bypass the full onboarding if the squad is actually saved to the backend.
-      // If the team record exists but startingXI is empty, the user still needs to
-      // pick and save their squad — do not skip PickTeamOnboarding.
-      if (hasSquad) {
-        if (!hasCreatedTeam) setHasCreatedTeam(true)
-        if (!hasOrganizedBench) setHasOrganizedBench(true)
-      }
-      // Always restore the name step — team name was already committed to the DB
-      if (!hasNamedTeam) setHasNamedTeam(true)
+    const hasSquad = ((myTeam as any).startingXI?.length ?? 0) > 0
 
-      const mappedSquad = mapApiTeamToSquad(myTeam, fixtures || [])
-      if (mappedSquad.length > 0) setPlayers(mappedSquad)
-
-      if (myTeam.teamName !== useFantasyStore.getState().teamName) {
-        setTeamName(myTeam.teamName)
-      }
+    // Only bypass the full onboarding if the squad is actually saved to the backend.
+    if (hasSquad) {
+      if (!hasCreatedTeam) setHasCreatedTeam(true)
+      if (!hasOrganizedBench) setHasOrganizedBench(true)
     }
-  }, [myTeam, fixtures, hasCreatedTeam, hasOrganizedBench, hasNamedTeam, setHasCreatedTeam, setHasOrganizedBench, setHasNamedTeam, setTeamName, setPlayers])
+    // Always restore the name step — team name was already committed to the DB
+    if (!hasNamedTeam) setHasNamedTeam(true)
+
+    const mappedSquad = mapApiTeamToSquad(myTeam, fixtures || [])
+    if (mappedSquad.length > 0) setPlayers(mappedSquad)
+
+    if (myTeam.teamName !== useFantasyStore.getState().teamName) {
+      setTeamName(myTeam.teamName)
+    }
+  }, [myTeam, fixtures, forceRepick, hasCreatedTeam, hasOrganizedBench, hasNamedTeam, setHasCreatedTeam, setHasOrganizedBench, setHasNamedTeam, setTeamName, setPlayers])
 
   // 1. Show Welcome first for every first-time user
   if (!hasSeenWelcome) {
@@ -173,33 +179,42 @@ function FantasyPageContent() {
     )
   }
 
+  // ?repick=1 — show CreateTeamScreen → PickTeamOnboarding without touching
+  // the normal flag flow (flags were cleared before navigating here).
+  if (forceRepick) {
+    if (!hasCreatedTeam) {
+      return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
+    }
+    return (
+      <PickTeamOnboarding
+        onBack={() => setHasCreatedTeam(false)}
+        onComplete={() => {
+          setHasOrganizedBench(true)
+          router.replace('/app/fantasy')
+        }}
+      />
+    )
+  }
+
   if (!hasCreatedTeam) {
     return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
   }
 
   if (!hasNamedTeam) {
     return (
-      <TeamNamingScreen 
+      <TeamNamingScreen
         onComplete={(name: string) => {
           setTeamName(name)
           setHasNamedTeam(true)
-        }} 
+        }}
       />
     )
   }
 
-  // ?repick=1 forces PickTeamOnboarding even when all flags are true (e.g. user
-  // wants to re-arrange an existing squad). This avoids the flag-restoration race
-  // where the myTeam useEffect immediately overrides resetTeam() calls.
-  const forceRepick = searchParams.get('repick') === '1'
-
-  if (!hasOrganizedBench || forceRepick) {
+  if (!hasOrganizedBench) {
     return (
       <PickTeamOnboarding
-        onBack={() => {
-          if (forceRepick) router.push('/app/fantasy')
-          else setHasNamedTeam(false)
-        }}
+        onBack={() => setHasNamedTeam(false)}
         onComplete={() => {
           setHasOrganizedBench(true)
           router.replace('/app/fantasy')

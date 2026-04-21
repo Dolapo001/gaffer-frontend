@@ -36,6 +36,7 @@ export function FantasyTeamScreen() {
   const saveTeam = useFantasyStore((s) => s.saveTeam)
   const saveTeamToApi = useFantasyStore((s) => s.saveTeamToApi)
   const setPlayers = useFantasyStore((s) => s.setPlayers)
+  const setHasCreatedTeam = useFantasyStore((s) => s.setHasCreatedTeam)
 
   // Load team from API on mount — always re-fetches to stay fresh
   useEffect(() => {
@@ -185,7 +186,11 @@ export function FantasyTeamScreen() {
                 <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
                 <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
                 <button
-                  onClick={() => router.push('/app/fantasy?repick=1')}
+                  onClick={() => {
+                    setPlayers([])
+                    setHasCreatedTeam(false)
+                    router.push('/app/fantasy?repick=1')
+                  }}
                   className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2"
                 >
                   Pick Squad
