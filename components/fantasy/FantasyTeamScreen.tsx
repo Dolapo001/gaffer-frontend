@@ -70,7 +70,7 @@ export function FantasyTeamScreen() {
   }
 
   return (
-    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-0">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col justify-between font-sans overflow-hidden z-0">
       {/* Background */}
       <div className="absolute inset-0 z-0 opacity-80 bg-cover bg-center pointer-events-none"
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} />
@@ -81,80 +81,79 @@ export function FantasyTeamScreen() {
         <FantasyHeroWave position="top" className="w-full h-full" opacity={0.92} />
       </div>
 
-      {/* Header */}
-      <header className="px-4 pt-10 pb-1 flex items-center justify-between relative z-20 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()}
-            className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white">
-            <ChevronLeft size={22} />
-          </button>
-          <h1 className="text-white text-xl font-bold tracking-tight">Pick Team</h1>
-        </div>
-        <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-2 border border-white/10">
-          <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
-          <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}m</span>
-        </div>
-      </header>
+      {/* Top group: header + pitch */}
+      <div className="relative z-10">
+        <header className="px-4 pt-10 pb-1 flex items-center justify-between relative z-20">
+          <div className="flex items-center gap-3">
+            <button onClick={() => router.back()}
+              className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center text-white">
+              <ChevronLeft size={22} />
+            </button>
+            <h1 className="text-white text-xl font-bold tracking-tight">Pick Team</h1>
+          </div>
+          <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-2 border border-white/10">
+            <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Budget</span>
+            <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}m</span>
+          </div>
+        </header>
 
-      {/* Pitch — px-8 narrows pitch so aspect-[4/5] height stays within screen */}
-      <div className="flex-1 min-h-0 px-8 pt-1 relative z-10 overflow-hidden">
-        {loadingTeam ? (
-          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
-              <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+        <div className="px-8 pt-1">
+          {loadingTeam ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+              </div>
             </div>
-          </div>
-        ) : teamError ? (
-          <div className="w-full h-full rounded-xl bg-[#2b2b40] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4 px-6 text-center">
-              <span className="text-white/60 text-sm">{teamError}</span>
-              <button onClick={retry}
-                className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2">
-                Retry
-              </button>
+          ) : teamError ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b2b40] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 px-6 text-center">
+                <span className="text-white/60 text-sm">{teamError}</span>
+                <button onClick={retry}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2">
+                  Retry
+                </button>
+              </div>
             </div>
-          </div>
-        ) : pitchPlayers.length === 0 ? (
-          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3 px-6 text-center">
-              <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
-              <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
-              <button
-                onClick={() => { setPlayers([]); setHasCreatedTeam(false); router.push('/app/fantasy?repick=1') }}
-                className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2">
-                Pick Squad
-              </button>
+          ) : pitchPlayers.length === 0 ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3 px-6 text-center">
+                <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
+                <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
+                <button
+                  onClick={() => { setPlayers([]); setHasCreatedTeam(false); router.push('/app/fantasy?repick=1') }}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2">
+                  Pick Squad
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <PitchLayout
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={handleSelectPlayer}
-          />
-        )}
+          ) : (
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={handleSelectPlayer}
+            />
+          )}
+        </div>
       </div>
 
-      {/* Bench */}
-      {!loadingTeam && !teamError && (
-        <div className="flex-shrink-0 relative z-10">
+      {/* Bottom group: bench + save + nav — pinned to bottom */}
+      <div className="relative z-10">
+        {!loadingTeam && !teamError && (
           <SubstituteBench
             benchPlayers={benchPlayers}
             selectedId={selectedPlayerId}
             onSelectPlayer={handleSelectPlayer}
             compact
           />
+        )}
+        <div className="flex justify-center py-2">
+          <button onClick={handleSave} disabled={isSaving}
+            className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
+            {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
+          </button>
         </div>
-      )}
-
-      {/* Save Button */}
-      <div className="flex-shrink-0 flex justify-center py-2 relative z-10">
-        <button onClick={handleSave} disabled={isSaving}
-          className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
-          {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
-        </button>
       </div>
 
       {/* Bottom Nav */}
