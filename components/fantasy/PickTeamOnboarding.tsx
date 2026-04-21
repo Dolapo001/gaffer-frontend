@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { useFantasyStore, selectPitchPlayers, selectBenchPlayers } from '@/store/fantasyStore';
+import { useToastStore } from '@/store/toastStore';
 import { BoostSelector } from './BoostSelector';
 import { PitchLayout } from './PitchLayout';
 import { SubstituteBench } from './SubstituteBench';
@@ -15,23 +16,27 @@ interface PickTeamOnboardingProps {
 }
 
 export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, onComplete }) => {
-  const { 
-    budget, 
-    selectedPlayerId, 
-    selectPlayer, 
-    selectedBoost, 
+  const {
+    budget,
+    selectedPlayerId,
+    selectPlayer,
+    selectedBoost,
     setBoost,
     players,
     saveTeamToApi,
-    isSaving
+    isSaving,
+    saveError,
   } = useFantasyStore();
+  const toast = useToastStore();
 
   const handleSave = async () => {
     try {
       await saveTeamToApi();
       onComplete();
-    } catch (err) {
-      console.error('Squad save failed:', err);
+    } catch (err: any) {
+      const msg = err?.message ?? 'Failed to save squad. Please try again.'
+      console.error('Squad save failed:', err)
+      toast.addToast(msg, 'error')
     }
   };
 

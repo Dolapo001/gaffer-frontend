@@ -195,11 +195,27 @@ export const useFantasyStore = create<FantasyState>()(
         try {
           const pitchPlayers = state.players.filter((p) => p.isOnPitch)
           const benchPlayers = state.players.filter((p) => !p.isOnPitch)
-          const captain = state.players.find((p) => p.isCaptain)
-          const viceCaptain = state.players.find((p) => p.isViceCaptain)
+          let captain = state.players.find((p) => p.isCaptain)
+          let viceCaptain = state.players.find((p) => p.isViceCaptain)
+
+          // Auto-assign captain and vice-captain by price if not set
+          if (!captain || !viceCaptain) {
+            const sorted = [...pitchPlayers].sort((a, b) => (b.price ?? 0) - (a.price ?? 0))
+            captain = captain ?? sorted[0]
+            viceCaptain = viceCaptain ?? sorted.find((p) => p.id !== captain?.id)
+            if (captain || viceCaptain) {
+              set({
+                players: state.players.map((p) => ({
+                  ...p,
+                  isCaptain: p.id === captain?.id,
+                  isViceCaptain: p.id === viceCaptain?.id,
+                })),
+              })
+            }
+          }
 
           if (!captain || !viceCaptain) {
-            throw new Error('Please select a captain and vice-captain before saving')
+            throw new Error('Not enough players on pitch to assign captain and vice-captain')
           }
 
           await setSquad(state.competitionId, {
