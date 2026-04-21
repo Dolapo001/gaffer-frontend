@@ -218,9 +218,15 @@ export const useFantasyStore = create<FantasyState>()(
             throw new Error('Not enough players on pitch to assign captain and vice-captain')
           }
 
+          // Backend requires GK at bench slot index 3 — sort outfield first, GK last
+          const benchSorted = [
+            ...benchPlayers.filter((p) => p.position !== 'GK'),
+            ...benchPlayers.filter((p) => p.position === 'GK'),
+          ]
+
           await setSquad(state.competitionId, {
             startingXI: pitchPlayers.map((p) => p.id),
-            bench: benchPlayers.map((p) => p.id),
+            bench: benchSorted.map((p) => p.id),
             captainId: captain.id,
             viceCaptainId: viceCaptain.id,
           })
