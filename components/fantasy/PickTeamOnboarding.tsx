@@ -65,14 +65,13 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         </div>
       </header>
 
-      {/* Pitch — flex-1 fills remaining space; h-full overrides the default aspect-[4/5] */}
-      <div className="flex-1 min-h-0 px-4 pt-1 relative z-10">
+      {/* Pitch — px-8 narrows pitch so aspect-[4/5] height fits on screen */}
+      <div className="flex-1 min-h-0 px-8 pt-1 relative z-10 overflow-hidden">
         <PitchLayout
           pitchPlayers={pitchPlayers}
           selectedId={selectedPlayerId}
           budget={budget}
           onSelectPlayer={selectPlayer}
-          className="relative w-full h-full"
         />
       </div>
 

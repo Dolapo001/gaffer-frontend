@@ -96,10 +96,10 @@ export function FantasyTeamScreen() {
         </div>
       </header>
 
-      {/* Pitch — flex-1 fills all remaining space between header and bench */}
-      <div className="flex-1 min-h-0 px-3 pt-1 relative z-10">
+      {/* Pitch — px-8 narrows pitch so aspect-[4/5] height stays within screen */}
+      <div className="flex-1 min-h-0 px-8 pt-1 relative z-10 overflow-hidden">
         {loadingTeam ? (
-          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
               <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
@@ -133,7 +133,6 @@ export function FantasyTeamScreen() {
             selectedId={selectedPlayerId}
             budget={budget}
             onSelectPlayer={handleSelectPlayer}
-            className="relative w-full h-full"
           />
         )}
       </div>
