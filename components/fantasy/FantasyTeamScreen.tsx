@@ -47,9 +47,14 @@ export function FantasyTeamScreen() {
     setTeamError(null)
     getMyFantasyTeam(competitionId)
       .then((team) => {
+        console.log('[PickTeam] team from API:', team)
         if (team) {
+          console.log('[PickTeam] startingXI length:', (team as any).startingXI?.length, 'bench length:', (team as any).bench?.length)
           const mapped = mapApiTeamToSquad(team as any)
+          console.log('[PickTeam] mapped players:', mapped.length, 'onPitch:', mapped.filter(p => p.isOnPitch).length)
           if (mapped.length > 0) setPlayers(mapped)
+        } else {
+          console.log('[PickTeam] team is null — no team found for this competition')
         }
       })
       .catch((err) => {
@@ -171,6 +176,23 @@ export function FantasyTeamScreen() {
                   className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2"
                 >
                   Retry
+                </button>
+              </div>
+            </div>
+          ) : pitchPlayers.length === 0 ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3 px-6 text-center">
+                <span className="text-white/60 text-sm">No squad loaded.</span>
+                <span className="text-white/40 text-xs">
+                  {players.length > 0
+                    ? `${players.length} players in store but none on pitch`
+                    : 'Store is empty — squad may not be saved to server'}
+                </span>
+                <button
+                  onClick={() => router.push('/app/fantasy')}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2"
+                >
+                  Set Up Squad
                 </button>
               </div>
             </div>
