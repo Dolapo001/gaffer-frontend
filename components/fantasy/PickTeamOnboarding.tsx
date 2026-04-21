@@ -65,13 +65,14 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         </div>
       </header>
 
-      {/* Pitch — flex-1 fills remaining space; overflow-hidden prevents aspect-ratio overflow on small screens */}
-      <div className="flex-1 min-h-0 px-4 pt-1 relative z-10 overflow-hidden">
+      {/* Pitch — flex-1 fills remaining space; h-full overrides the default aspect-[4/5] */}
+      <div className="flex-1 min-h-0 px-4 pt-1 relative z-10">
         <PitchLayout
           pitchPlayers={pitchPlayers}
           selectedId={selectedPlayerId}
           budget={budget}
           onSelectPlayer={selectPlayer}
+          className="relative w-full h-full"
         />
       </div>
 
@@ -81,11 +82,12 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
           benchPlayers={benchPlayers}
           selectedId={selectedPlayerId}
           onSelectPlayer={selectPlayer}
+          compact
         />
       </div>
 
       {/* Save Button */}
-      <div className="flex-shrink-0 flex justify-center py-3 relative z-10">
+      <div className="flex-shrink-0 flex justify-center py-2 relative z-10">
         <button
           onClick={handleSave}
           disabled={isSaving}

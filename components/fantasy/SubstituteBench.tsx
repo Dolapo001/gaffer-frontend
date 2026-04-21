@@ -30,27 +30,16 @@ interface SubstituteBenchProps {
   substitutingOutId?: string | null
   onSelectPlayer: (id: string) => void
   players?: FantasySquadPlayer[]
+  compact?: boolean
 }
 
-/**
- * SubstituteBench — clean bench area below the pitch.
- *
- * Design decisions:
- *   • No heavy glassmorphism card — the section header and a subtle dark
- *     background strip are enough to visually separate bench from pitch.
- *   • "SUBSTITUTES" divider sits at the TOP (not hidden at bottom).
- *   • Player tiles use the same PitchPlayerCard as the pitch — consistent
- *     jersey-first visual language across the whole builder.
- *   • Sub-order number (1–4) sits above each tile as a small label.
- *   • Sub-in targets get the green glow from highlightMode; invalid targets
- *     fade + greyscale via className opacity/filter utilities.
- */
 export function SubstituteBench({
   benchPlayers,
   selectedId,
   substitutingOutId,
   onSelectPlayer,
   players = [],
+  compact = false,
 }: SubstituteBenchProps) {
   const pOut = substitutingOutId
     ? players.find((p) => p.id === substitutingOutId)
@@ -60,7 +49,7 @@ export function SubstituteBench({
     <div className="relative z-10 w-full px-2">
 
       {/* ── Section divider ──────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-2 mb-4">
+      <div className={`flex items-center gap-3 px-2 ${compact ? 'mb-1' : 'mb-4'}`}>
         <div className="h-px flex-1 bg-white/12" />
         <span
           className="text-white/45 font-bold uppercase tracking-[0.20em]"
@@ -77,7 +66,7 @@ export function SubstituteBench({
         visual territory without a heavy card border or blur effect.
       */}
       <div
-        className="w-full flex justify-center gap-3 rounded-2xl py-4 px-2"
+        className={`w-full flex justify-center gap-3 rounded-2xl px-2 ${compact ? 'py-2' : 'py-4'}`}
         style={{ background: 'rgba(0,0,0,0.22)' }}
       >
         {benchPlayers.map((player, idx) => {

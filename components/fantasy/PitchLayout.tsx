@@ -119,6 +119,7 @@ interface PitchLayoutProps {
   budget: number
   onSelectPlayer: (id: string) => void
   selectionMode?: boolean
+  className?: string
 }
 
 export function PitchLayout({
@@ -128,6 +129,7 @@ export function PitchLayout({
   budget,
   onSelectPlayer,
   selectionMode = false,
+  className,
 }: PitchLayoutProps) {
   // Define fixed slots for selection mode
   // Row 3: GK (2 slots)
@@ -153,7 +155,7 @@ export function PitchLayout({
   })
 
   return (
-    <div className="relative w-full aspect-[4/5]">
+    <div className={className ?? "relative w-full aspect-[4/5]"}>
       <PitchMarkings />
 
       {/* Player rows */}
