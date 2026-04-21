@@ -1,10 +1,12 @@
 'use client'
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { ChevronLeft } from 'lucide-react';
 import { useFantasyStore, selectPitchPlayers, selectBenchPlayers } from '@/store/fantasyStore';
 import { useToastStore } from '@/store/toastStore';
+import { getMyFantasyTeam } from '@/lib/services/fantasy.service';
+import { mapApiTeamToSquad } from '@/lib/converters';
 import { BoostSelector } from './BoostSelector';
 import { PitchLayout } from './PitchLayout';
 import { SubstituteBench } from './SubstituteBench';
@@ -17,17 +19,36 @@ interface PickTeamOnboardingProps {
 
 export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, onComplete }) => {
   const {
+    competitionId,
     budget,
     selectedPlayerId,
     selectPlayer,
     selectedBoost,
     setBoost,
     players,
+    setPlayers,
     saveTeamToApi,
     isSaving,
     saveError,
   } = useFantasyStore();
   const toast = useToastStore();
+  const [loadingSquad, setLoadingSquad] = useState(false)
+
+  // If the store has no players (e.g. navigated here via ?repick=1 with a cleared store),
+  // fetch the existing squad from the API so the pitch is pre-filled.
+  useEffect(() => {
+    if (players.length > 0 || !competitionId) return
+    setLoadingSquad(true)
+    getMyFantasyTeam(competitionId)
+      .then((team) => {
+        if (team) {
+          const mapped = mapApiTeamToSquad(team as any)
+          if (mapped.length > 0) setPlayers(mapped)
+        }
+      })
+      .catch(() => {}) // silently ignore — user can pick from scratch
+      .finally(() => setLoadingSquad(false))
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSave = async () => {
     try {
@@ -82,13 +103,22 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
               <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}M</span>
             </div>
           </div>
-          
-          <PitchLayout 
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={selectPlayer}
-          />
+
+          {loadingSquad ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+              </div>
+            </div>
+          ) : (
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={selectPlayer}
+            />
+          )}
         </div>
 
         {/* Substitutes */}
