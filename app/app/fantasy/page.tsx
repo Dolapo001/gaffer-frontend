@@ -63,12 +63,20 @@ function FantasyPageContent() {
 
   useEffect(() => {
     if (myTeam) {
-      if (!hasCreatedTeam) setHasCreatedTeam(true)
-      if (!hasOrganizedBench) setHasOrganizedBench(true)
+      const hasSquad = ((myTeam as any).startingXI?.length ?? 0) > 0
+
+      // Only bypass the full onboarding if the squad is actually saved to the backend.
+      // If the team record exists but startingXI is empty, the user still needs to
+      // pick and save their squad — do not skip PickTeamOnboarding.
+      if (hasSquad) {
+        if (!hasCreatedTeam) setHasCreatedTeam(true)
+        if (!hasOrganizedBench) setHasOrganizedBench(true)
+      }
+      // Always restore the name step — team name was already committed to the DB
       if (!hasNamedTeam) setHasNamedTeam(true)
-      
+
       const mappedSquad = mapApiTeamToSquad(myTeam, fixtures || [])
-      setPlayers(mappedSquad)
+      if (mappedSquad.length > 0) setPlayers(mappedSquad)
 
       if (myTeam.teamName !== useFantasyStore.getState().teamName) {
         setTeamName(myTeam.teamName)
