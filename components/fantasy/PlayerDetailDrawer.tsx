@@ -2,9 +2,10 @@
 
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, CornerUpLeft, ArrowRightLeft } from 'lucide-react'
+import { CornerUpLeft, ArrowRightLeft } from 'lucide-react'
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
 import { useFantasyStore } from '@/store/fantasyStore'
+import { useUIStore } from '@/store/uiStore'
 
 // ─── Position badge colors ────────────────────────────────────────────────────
 
@@ -86,25 +87,16 @@ interface PlayerDetailDrawerProps {
 }
 
 export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps) {
+  const { hideNavbar, showNavbar } = useUIStore()
+
   useEffect(() => {
-    const navWrap = document.getElementById('global-nav-bar')
-    const navInner = navWrap?.querySelector('nav')
-
-    if (player && navWrap && navInner) {
-      navWrap.style.opacity = '0'
-      navInner.style.pointerEvents = 'none'
-    } else if (navWrap && navInner) {
-      navWrap.style.opacity = '1'
-      navInner.style.pointerEvents = 'auto'
+    if (player) {
+      hideNavbar()
+    } else {
+      showNavbar()
     }
-
-    return () => {
-      if (navWrap && navInner) {
-        navWrap.style.opacity = '1'
-        navInner.style.pointerEvents = 'auto'
-      }
-    }
-  }, [player])
+    return () => { showNavbar() }
+  }, [player, hideNavbar, showNavbar])
 
   const hasForm = !!(player?.gwHistory && player.gwHistory.length > 0)
   const uniqueFixtures = React.useMemo(() => {
@@ -127,7 +119,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-end"
+            className="fixed inset-0 z-[200] flex items-end"
             onClick={onClose}
           >
             <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
@@ -139,7 +131,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[100] mt-auto overflow-y-auto"
+              className="relative w-full bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[200] mt-auto overflow-y-auto"
               style={{ maxHeight: '88dvh' }}
             >
               {/* Handle — sticks to top while scrolling */}

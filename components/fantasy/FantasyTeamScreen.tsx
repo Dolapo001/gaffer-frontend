@@ -157,8 +157,8 @@ export function FantasyTeamScreen() {
         </div>
       )}
 
-      {/* Save */}
-      <div className="flex-shrink-0 flex justify-center py-2 relative z-10">
+      {/* Save — pb-20 clears the absolute h-20 bottom nav */}
+      <div className="flex-shrink-0 flex justify-center py-2 pb-24 relative z-10">
         <button onClick={handleSave} disabled={isSaving}
           className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
           {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
