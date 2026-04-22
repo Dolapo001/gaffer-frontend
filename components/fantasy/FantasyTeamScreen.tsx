@@ -73,7 +73,7 @@ export function FantasyTeamScreen() {
   }
 
   return (
-    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-0">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col font-sans z-0">
       {/* Background */}
       <div className="absolute inset-0 z-0 opacity-80 bg-cover bg-center pointer-events-none"
         style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} />
@@ -99,71 +99,71 @@ export function FantasyTeamScreen() {
         </div>
       </header>
 
-      {/* Boosts */}
-      <div className="flex-shrink-0 px-4 pb-1 relative z-10">
-        <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
-      </div>
+      {/* Scrollable body — pb-20 clears the bottom nav */}
+      <div className="flex-1 overflow-y-auto relative z-10 pb-24">
+        {/* Boosts */}
+        <div className="px-4 pb-2">
+          <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
+        </div>
 
-      {/* Pitch + glass bench — takes all remaining space above save/nav */}
-      <div className="flex-1 relative min-h-0 px-4 z-10">
-        {loadingTeam ? (
-          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
-              <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+        {/* Pitch */}
+        <div className="px-4">
+          {loadingTeam ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
+                <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
+              </div>
             </div>
-          </div>
-        ) : teamError ? (
-          <div className="w-full h-full rounded-xl bg-[#2b2b40] flex items-center justify-center">
-            <div className="flex flex-col items-center gap-4 px-6 text-center">
-              <span className="text-white/60 text-sm">{teamError}</span>
-              <button onClick={retry}
-                className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2">
-                Retry
-              </button>
+          ) : teamError ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b2b40] flex items-center justify-center">
+              <div className="flex flex-col items-center gap-4 px-6 text-center">
+                <span className="text-white/60 text-sm">{teamError}</span>
+                <button onClick={retry}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2">
+                  Retry
+                </button>
+              </div>
             </div>
-          </div>
-        ) : pitchPlayers.length === 0 ? (
-          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
-            <div className="flex flex-col items-center gap-3 px-6 text-center">
-              <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
-              <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
-              <button
-                onClick={() => { setPlayers([]); setHasCreatedTeam(false); router.push('/app/fantasy?repick=1') }}
-                className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2">
-                Pick Squad
-              </button>
+          ) : pitchPlayers.length === 0 ? (
+            <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3 px-6 text-center">
+                <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
+                <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
+                <button
+                  onClick={() => { setPlayers([]); setHasCreatedTeam(false); router.push('/app/fantasy?repick=1') }}
+                  className="text-[#ff6b00] font-bold text-sm uppercase tracking-wide border border-[#ff6b00]/40 rounded-lg px-4 py-2 mt-2">
+                  Pick Squad
+                </button>
+              </div>
             </div>
-          </div>
-        ) : (
-          <>
+          ) : (
             <PitchLayout
               pitchPlayers={pitchPlayers}
               selectedId={selectedPlayerId}
               budget={budget}
               onSelectPlayer={handleSelectPlayer}
-              className="w-full h-full"
             />
+          )}
+        </div>
 
-            {/* Glass bench overlay at pitch bottom */}
-            <div className="absolute bottom-0 inset-x-0 z-20 backdrop-blur-xl bg-black/55 border-t border-white/15 rounded-b-xl overflow-hidden">
-              <SubstituteBench
-                benchPlayers={benchPlayers}
-                selectedId={selectedPlayerId}
-                onSelectPlayer={handleSelectPlayer}
-                compact
-              />
-            </div>
-          </>
+        {/* Bench */}
+        {!loadingTeam && !teamError && (
+          <SubstituteBench
+            benchPlayers={benchPlayers}
+            selectedId={selectedPlayerId}
+            onSelectPlayer={handleSelectPlayer}
+            compact
+          />
         )}
-      </div>
 
-      {/* Save — sits above the absolute bottom nav */}
-      <div className="flex-shrink-0 flex justify-center pt-2 pb-[84px] relative z-10">
-        <button onClick={handleSave} disabled={isSaving}
-          className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
-          {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
-        </button>
+        {/* Save */}
+        <div className="flex justify-center pt-3">
+          <button onClick={handleSave} disabled={isSaving}
+            className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
+            {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
+          </button>
+        </div>
       </div>
 
       {/* Bottom Nav */}

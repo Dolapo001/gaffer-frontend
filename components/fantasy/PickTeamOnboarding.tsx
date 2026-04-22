@@ -1,17 +1,17 @@
 'use client'
 
-import React from 'react';
-import { ChevronLeft } from 'lucide-react';
-import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore';
-import { useToastStore } from '@/store/toastStore';
-import { PitchLayout } from './PitchLayout';
-import { SubstituteBench } from './SubstituteBench';
-import { PlayerDetailDrawer } from './PlayerDetailDrawer';
-import { BoostSelector } from './BoostSelector';
+import React from 'react'
+import { ChevronLeft } from 'lucide-react'
+import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore'
+import { useToastStore } from '@/store/toastStore'
+import { PitchLayout } from './PitchLayout'
+import { SubstituteBench } from './SubstituteBench'
+import { PlayerDetailDrawer } from './PlayerDetailDrawer'
+import { BoostSelector } from './BoostSelector'
 
 interface PickTeamOnboardingProps {
-  onBack: () => void;
-  onComplete: () => void;
+  onBack: () => void
+  onComplete: () => void
 }
 
 export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, onComplete }) => {
@@ -23,26 +23,26 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
     players,
     saveTeamToApi,
     isSaving,
-  } = useFantasyStore();
-  const budget = useFantasyStore(selectRemainingBudget);
-  const toast = useToastStore();
+  } = useFantasyStore()
+  const budget = useFantasyStore(selectRemainingBudget)
+  const toast = useToastStore()
 
   const handleSave = async () => {
     try {
-      await saveTeamToApi();
-      onComplete();
+      await saveTeamToApi()
+      onComplete()
     } catch (err: any) {
       const msg = err?.message ?? 'Failed to save squad. Please try again.'
       toast.addToast(msg, 'error')
     }
-  };
+  }
 
-  const pitchPlayers = players.filter(p => p.isOnPitch);
-  const benchPlayers = players.filter(p => !p.isOnPitch);
-  const selectedPlayer = players.find(p => p.id === selectedPlayerId) || null;
+  const pitchPlayers = players.filter(p => p.isOnPitch)
+  const benchPlayers = players.filter(p => !p.isOnPitch)
+  const selectedPlayer = players.find(p => p.id === selectedPlayerId) || null
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-20">
+    <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#222232] flex flex-col font-sans z-20">
       {/* Background */}
       <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
@@ -66,41 +66,41 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         </div>
       </header>
 
-      {/* Boosts */}
-      <div className="flex-shrink-0 px-4 pb-1 relative z-10">
-        <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
-      </div>
+      {/* Scrollable body */}
+      <div className="flex-1 overflow-y-auto relative z-10 pb-6">
+        {/* Boosts */}
+        <div className="px-4 pb-2">
+          <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
+        </div>
 
-      {/* Pitch + glass bench — takes all remaining vertical space */}
-      <div className="flex-1 relative min-h-0 px-4 z-10">
-        <PitchLayout
-          pitchPlayers={pitchPlayers}
-          selectedId={selectedPlayerId}
-          budget={budget}
-          onSelectPlayer={selectPlayer}
-          className="w-full h-full"
-        />
-
-        {/* Glass bench overlay at pitch bottom */}
-        <div className="absolute bottom-0 inset-x-0 z-20 backdrop-blur-xl bg-black/55 border-t border-white/15 rounded-b-xl overflow-hidden">
-          <SubstituteBench
-            benchPlayers={benchPlayers}
+        {/* Pitch */}
+        <div className="px-4">
+          <PitchLayout
+            pitchPlayers={pitchPlayers}
             selectedId={selectedPlayerId}
+            budget={budget}
             onSelectPlayer={selectPlayer}
-            compact
           />
         </div>
-      </div>
 
-      {/* Save */}
-      <div className="flex-shrink-0 flex justify-center py-3 relative z-10">
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="text-[#ff6b00] font-black text-2xl uppercase tracking-wider underline decoration-4 underline-offset-8 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-        >
-          {isSaving ? 'Saving...' : 'Save Team'}
-        </button>
+        {/* Bench */}
+        <SubstituteBench
+          benchPlayers={benchPlayers}
+          selectedId={selectedPlayerId}
+          onSelectPlayer={selectPlayer}
+          compact
+        />
+
+        {/* Save */}
+        <div className="flex justify-center pt-3">
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="text-[#ff6b00] font-black text-2xl uppercase tracking-wider underline decoration-4 underline-offset-8 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : 'Save Team'}
+          </button>
+        </div>
       </div>
 
       <PlayerDetailDrawer
@@ -108,5 +108,5 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         onClose={() => selectPlayer(null)}
       />
     </div>
-  );
-};
+  )
+}
