@@ -1,33 +1,65 @@
 'use client'
 
-import React from 'react'
-import { motion } from 'framer-motion'
-import { BOOST_OPTIONS, type BoostType } from '@/lib/fantasyMockData'
+import React from 'react';
+import { motion } from 'framer-motion';
+import { BOOST_OPTIONS, type BoostType } from '@/lib/fantasyMockData';
 
 interface BoostSelectorProps {
-  active: BoostType
-  onToggle: (boost: BoostType) => void
-  deadlineLabel?: string
-  deadlineValue?: string
-  compact?: boolean
+  active: BoostType;
+  onToggle: (boost: BoostType) => void;
+  deadlineLabel?: string;
+  deadlineValue?: string;
+  compact?: boolean;
 }
 
-// x positions (px) of each chip in the 327-wide SVG viewBox
-const CHIP_X = [9, 87, 166, 244]
-const CHIP_W = 74
-const SVG_W = 327
+function TimerIcon({ active = false }: { active?: boolean }) {
+  return (
+    <svg
+      width="28"
+      height="28"
+      viewBox="0 0 28 28"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      aria-hidden="true"
+      className="shrink-0"
+    >
+      <path
+        d="M12.833 5.83325H15.1663"
+        stroke="#FF7A00"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M14.0007 12.8333L15.7507 11.0833"
+        stroke="#FF7A00"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="14.0003"
+        cy="14.0001"
+        r="7"
+        stroke="#FF7A00"
+        strokeWidth="1.6"
+      />
+    </svg>
+  );
+}
 
 export function BoostSelector({
   active,
   onToggle,
-  deadlineLabel = 'Gameweek 1 Transfer Deadline:',
-  deadlineValue = 'Sat 14 Feb, 14:30',
+  deadlineLabel = "Gameweek 1 Transfer Deadline:",
+  deadlineValue = "Sat 14 Feb, 14:30",
   compact = false,
 }: BoostSelectorProps) {
   return (
-    <section className={`w-full bg-[#1a1b23]/90 backdrop-blur-xl text-white rounded-2xl border border-white/10 shadow-2xl ${compact ? 'px-2 py-2' : 'px-4 py-5'}`}>
+    <section className="w-full bg-[#1a1b23]/90 backdrop-blur-xl px-[16px] py-[20px] text-white flex flex-col items-center rounded-2xl border border-white/10 shadow-2xl">
+      {/* Deadline Header */}
       {!compact && (
-        <div className="text-center mb-4">
+        <div className="text-center mb-5">
           <h2 className="text-[14px] font-bold leading-[20px] tracking-tight text-white/90">
             {deadlineLabel}
           </h2>
@@ -37,47 +69,57 @@ export function BoostSelector({
         </div>
       )}
 
-      {/*
-        SVG chip design with transparent interactive overlays.
+      {/* Boost Cards Row */}
+      <div className="flex items-start justify-center gap-[8px] w-full">
+        {BOOST_OPTIONS.map((boost) => {
+          const isActive = active === boost.id;
 
-        Compact mode: crops to the card area only (y=61–156 of the 327×156 SVG)
-        using the padding-top aspect-ratio trick so height = (95/327)*containerWidth.
-        The image is pinned to bottom-0 so its card section fills the visible area.
+          let outerBgClass = 'bg-[#40424d]';
+          let iconBgClass = 'bg-[#3b2b28]';
+          let containerRadius = 'rounded-[12px]';
+          let label = boost.label;
 
-        Full mode: renders the whole SVG at natural height.
-      */}
-      <div
-        className="relative w-full overflow-hidden"
-        style={compact ? { paddingTop: `${(95 / SVG_W) * 100}%` } : {}}
-      >
-        <img
-          src="/images/upper.svg"
-          alt="Boost chips"
-          draggable={false}
-          className={compact ? 'absolute bottom-0 left-0 w-full' : 'w-full h-auto block'}
-        />
-
-        {BOOST_OPTIONS.map((boost, idx) => {
-          const isActive = active === boost.id
-          const leftPct = (CHIP_X[idx] / SVG_W) * 100
-          const widthPct = (CHIP_W / SVG_W) * 100
+          if (boost.id === 'wildcard') label = 'Wilcard';
+          else if (boost.id === 'freePlay') label = 'Free';
 
           return (
-            <motion.button
+            <motion.div
               key={boost.id}
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.98 }}
               onClick={() => onToggle(isActive ? null : boost.id)}
-              aria-pressed={isActive}
-              aria-label={boost.label}
               className={[
-                'absolute top-0 bottom-0 rounded-[14px] transition-all',
-                isActive ? 'ring-2 ring-[#ff6b00] bg-[#ff6b00]/15' : 'hover:bg-white/5',
-              ].join(' ')}
-              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
-            />
-          )
+                "relative flex h-[105px] w-full min-w-[70px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm",
+                outerBgClass,
+                containerRadius,
+                isActive ? "ring-2 ring-[#ff6b00] z-10" : "border border-white/5"
+              ].join(" ")}
+            >
+              <div
+                className={[
+                  "mt-[11px] flex h-[38px] w-[38px] items-center justify-center rounded-[10px]",
+                  iconBgClass
+                ].join(" ")}
+              >
+                <TimerIcon active={isActive} />
+              </div>
+
+              <div className="mt-[6px] px-1 text-center text-[10px] font-semibold leading-[12px] text-white/80">
+                {label}
+              </div>
+
+              <button
+                type="button"
+                className={[
+                  "mt-auto mb-[10px] h-[20px] w-[85%] rounded-[6px] border border-white bg-transparent text-[10px] font-bold leading-none text-white transition hover:bg-white/10",
+                  isActive ? "bg-white/20" : ""
+                ].join(" ")}
+              >
+                Play
+              </button>
+            </motion.div>
+          );
         })}
       </div>
     </section>
-  )
+  );
 }
