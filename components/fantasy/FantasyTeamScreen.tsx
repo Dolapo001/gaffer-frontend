@@ -100,21 +100,21 @@ export function FantasyTeamScreen() {
       </header>
 
       {/* Boosts */}
-      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+      <div className="flex-shrink-0 px-4 pb-1 relative z-10">
         <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
       </div>
 
-      {/* Pitch */}
-      <div className="flex-shrink-0 px-6 pt-1 relative z-10">
+      {/* Pitch + glass bench — takes all remaining space above save/nav */}
+      <div className="flex-1 relative min-h-0 px-4 z-10">
         {loadingTeam ? (
-          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
               <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
             </div>
           </div>
         ) : teamError ? (
-          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b2b40] flex items-center justify-center">
+          <div className="w-full h-full rounded-xl bg-[#2b2b40] flex items-center justify-center">
             <div className="flex flex-col items-center gap-4 px-6 text-center">
               <span className="text-white/60 text-sm">{teamError}</span>
               <button onClick={retry}
@@ -124,7 +124,7 @@ export function FantasyTeamScreen() {
             </div>
           </div>
         ) : pitchPlayers.length === 0 ? (
-          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3 px-6 text-center">
               <span className="text-white/60 text-sm font-bold uppercase tracking-wide">No squad set up yet</span>
               <span className="text-white/40 text-xs">Pick your 15 players and save your team to get started.</span>
@@ -136,36 +136,37 @@ export function FantasyTeamScreen() {
             </div>
           </div>
         ) : (
-          <PitchLayout
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={handleSelectPlayer}
-          />
+          <>
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={handleSelectPlayer}
+              className="w-full h-full"
+            />
+
+            {/* Glass bench overlay at pitch bottom */}
+            <div className="absolute bottom-0 inset-x-0 z-20 backdrop-blur-xl bg-black/55 border-t border-white/15 rounded-b-xl overflow-hidden">
+              <SubstituteBench
+                benchPlayers={benchPlayers}
+                selectedId={selectedPlayerId}
+                onSelectPlayer={handleSelectPlayer}
+                compact
+              />
+            </div>
+          </>
         )}
       </div>
 
-      {/* Bench — immediately below pitch, no gap */}
-      {!loadingTeam && !teamError && (
-        <div className="flex-shrink-0 relative z-10">
-          <SubstituteBench
-            benchPlayers={benchPlayers}
-            selectedId={selectedPlayerId}
-            onSelectPlayer={handleSelectPlayer}
-            compact
-          />
-        </div>
-      )}
-
-      {/* Save — pb-20 clears the absolute h-20 bottom nav */}
-      <div className="flex-shrink-0 flex justify-center py-2 pb-24 relative z-10">
+      {/* Save — sits above the absolute bottom nav */}
+      <div className="flex-shrink-0 flex justify-center pt-2 pb-[84px] relative z-10">
         <button onClick={handleSave} disabled={isSaving}
           className="text-[#ff6b00] font-extrabold text-xl uppercase tracking-tighter border-b-2 border-[#ff6b00] hover:opacity-80 transition-opacity disabled:opacity-50">
           {isSaving ? 'Saving...' : savedAnim ? 'Team Saved!' : 'Save Team'}
         </button>
       </div>
 
-      {/* Bottom Nav — absolute so it doesn't push content up */}
+      {/* Bottom Nav */}
       <nav className="absolute bottom-0 left-0 right-0 h-20 bg-[#1b1c28]/95 backdrop-blur-xl border-t border-white/5 flex items-center justify-around px-6 z-30 rounded-t-[2rem] shadow-2xl">
         <button className="flex flex-col items-center gap-1 text-white/40 hover:text-white transition-colors" onClick={() => router.push('/app/dashboard')}>
           <Home size={20} /><span className="text-[10px] font-bold">Home</span>

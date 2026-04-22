@@ -117,36 +117,36 @@ export function PointsScreen() {
         </div>
       </div>
 
-      {/* Pitch */}
-      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+      {/* Pitch + glass bench — fills all remaining space */}
+      <div className="flex-1 relative min-h-0 px-4 pt-1 z-10">
         {loadingTeam ? (
-          <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
+          <div className="w-full h-full rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">
               <div className="w-8 h-8 rounded-full border-2 border-[#ff6b00] border-t-transparent animate-spin" />
               <span className="text-white/50 text-xs font-bold uppercase tracking-widest">Loading Squad</span>
             </div>
           </div>
         ) : (
-          <PitchLayout
-            pitchPlayers={pitchPlayers}
-            selectedId={selectedPlayerId}
-            budget={budget}
-            onSelectPlayer={selectPlayer}
-          />
+          <>
+            <PitchLayout
+              pitchPlayers={pitchPlayers}
+              selectedId={selectedPlayerId}
+              budget={budget}
+              onSelectPlayer={selectPlayer}
+              className="w-full h-full"
+            />
+            {/* Glass bench overlay */}
+            <div className="absolute bottom-0 inset-x-0 z-20 backdrop-blur-xl bg-black/55 border-t border-white/15 rounded-b-xl overflow-hidden">
+              <SubstituteBench
+                benchPlayers={benchPlayers}
+                selectedId={selectedPlayerId}
+                onSelectPlayer={selectPlayer}
+                compact
+              />
+            </div>
+          </>
         )}
       </div>
-
-      {/* Bench */}
-      {!loadingTeam && (
-        <div className="flex-shrink-0 relative z-10">
-          <SubstituteBench
-            benchPlayers={benchPlayers}
-            selectedId={selectedPlayerId}
-            onSelectPlayer={selectPlayer}
-            compact
-          />
-        </div>
-      )}
 
       <PlayerDetailDrawer
         player={selectedPlayer}

@@ -67,32 +67,33 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
       </header>
 
       {/* Boosts */}
-      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+      <div className="flex-shrink-0 px-4 pb-1 relative z-10">
         <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
       </div>
 
-      {/* Pitch — shrink-0 so it takes natural aspect-ratio height */}
-      <div className="flex-shrink-0 px-6 pt-1 relative z-10">
+      {/* Pitch + glass bench — takes all remaining vertical space */}
+      <div className="flex-1 relative min-h-0 px-4 z-10">
         <PitchLayout
           pitchPlayers={pitchPlayers}
           selectedId={selectedPlayerId}
           budget={budget}
           onSelectPlayer={selectPlayer}
+          className="w-full h-full"
         />
-      </div>
 
-      {/* Bench — immediately below pitch */}
-      <div className="flex-shrink-0 relative z-10">
-        <SubstituteBench
-          benchPlayers={benchPlayers}
-          selectedId={selectedPlayerId}
-          onSelectPlayer={selectPlayer}
-          compact
-        />
+        {/* Glass bench overlay at pitch bottom */}
+        <div className="absolute bottom-0 inset-x-0 z-20 backdrop-blur-xl bg-black/55 border-t border-white/15 rounded-b-xl overflow-hidden">
+          <SubstituteBench
+            benchPlayers={benchPlayers}
+            selectedId={selectedPlayerId}
+            onSelectPlayer={selectPlayer}
+            compact
+          />
+        </div>
       </div>
 
       {/* Save */}
-      <div className="flex-shrink-0 flex justify-center py-2 relative z-10">
+      <div className="flex-shrink-0 flex justify-center py-3 relative z-10">
         <button
           onClick={handleSave}
           disabled={isSaving}
