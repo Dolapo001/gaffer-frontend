@@ -51,7 +51,7 @@ export function PointsScreen() {
   const totalPoints = pitchPlayers.reduce((sum, p) => sum + p.points, 0)
 
   return (
-    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#2e2d39] flex flex-col font-sans z-0">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#2e2d39] flex flex-col font-sans overflow-hidden z-0">
       {/* Background */}
       <div
         className="absolute inset-0 z-0 opacity-80 bg-cover bg-center pointer-events-none"
@@ -76,7 +76,7 @@ export function PointsScreen() {
       </header>
 
       {/* Scrollable body */}
-      <div className="flex-1 overflow-y-auto relative z-10 pb-6">
+      <div className="flex-1 overflow-y-auto relative z-10 pb-24">
         {/* Gameweek stats bar */}
         <div className="px-4 pt-1 pb-2">
           <div className="w-full bg-[#2e2d39] rounded-2xl border border-white/10 px-3 py-2 flex flex-col gap-1">
