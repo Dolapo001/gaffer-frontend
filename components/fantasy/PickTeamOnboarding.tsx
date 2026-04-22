@@ -72,7 +72,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
       </div>
 
       {/* Pitch — shrink-0 so it takes natural aspect-ratio height */}
-      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+      <div className="flex-shrink-0 px-6 pt-1 relative z-10">
         <PitchLayout
           pitchPlayers={pitchPlayers}
           selectedId={selectedPlayerId}

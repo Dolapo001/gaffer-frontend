@@ -105,7 +105,7 @@ export function FantasyTeamScreen() {
       </div>
 
       {/* Pitch */}
-      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+      <div className="flex-shrink-0 px-6 pt-1 relative z-10">
         {loadingTeam ? (
           <div className="w-full aspect-[4/5] rounded-xl bg-[#2b3520]/60 flex items-center justify-center">
             <div className="flex flex-col items-center gap-3">

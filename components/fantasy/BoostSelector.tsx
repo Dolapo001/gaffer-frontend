@@ -37,13 +37,24 @@ export function BoostSelector({
         </div>
       )}
 
-      {/* SVG chip design with transparent interactive overlays */}
-      <div className="relative w-full">
+      {/*
+        SVG chip design with transparent interactive overlays.
+
+        Compact mode: crops to the card area only (y=61–156 of the 327×156 SVG)
+        using the padding-top aspect-ratio trick so height = (95/327)*containerWidth.
+        The image is pinned to bottom-0 so its card section fills the visible area.
+
+        Full mode: renders the whole SVG at natural height.
+      */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={compact ? { paddingTop: `${(95 / SVG_W) * 100}%` } : {}}
+      >
         <img
           src="/images/upper.svg"
           alt="Boost chips"
-          className="w-full h-auto block"
           draggable={false}
+          className={compact ? 'absolute bottom-0 left-0 w-full' : 'w-full h-auto block'}
         />
 
         {BOOST_OPTIONS.map((boost, idx) => {
@@ -60,14 +71,9 @@ export function BoostSelector({
               aria-label={boost.label}
               className={[
                 'absolute top-0 bottom-0 rounded-[14px] transition-all',
-                isActive
-                  ? 'ring-2 ring-[#ff6b00] bg-[#ff6b00]/15'
-                  : 'hover:bg-white/5',
+                isActive ? 'ring-2 ring-[#ff6b00] bg-[#ff6b00]/15' : 'hover:bg-white/5',
               ].join(' ')}
-              style={{
-                left: `${leftPct}%`,
-                width: `${widthPct}%`,
-              }}
+              style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
             />
           )
         })}

@@ -139,15 +139,16 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full flex flex-col bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[100] mt-auto max-h-[88vh]"
+              className="relative w-full bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[100] mt-auto overflow-y-auto"
+              style={{ maxHeight: '88dvh' }}
             >
-              {/* Handle */}
-              <div className="w-full flex-shrink-0 pt-2 pb-2 flex justify-center">
+              {/* Handle — sticks to top while scrolling */}
+              <div className="sticky top-0 z-10 w-full pt-2 pb-2 flex justify-center bg-[#2b2d3c]">
                 <div className="w-12 h-1.5 rounded-full bg-gray-500/30" />
               </div>
 
               {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto px-6 pt-2 min-h-0">
+              <div className="px-6 pt-2">
                 {/* Player header */}
                 <div className="flex items-center gap-5 mb-6">
                   <div className="relative">
@@ -214,8 +215,8 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
                 )}
               </div>
 
-              {/* Action buttons — always visible, outside scroll */}
-              <div className="flex-shrink-0 px-6 pt-3 pb-[max(24px,env(safe-area-inset-bottom))]">
+              {/* Action buttons — sticky at bottom of sheet */}
+              <div className="sticky bottom-0 bg-[#2b2d3c] px-6 pt-3 pb-[max(20px,env(safe-area-inset-bottom))]">
                 <div className="flex justify-around items-center">
                   {[
                     { label: 'Make Captain', icon: <span className="font-bold text-[32px] text-white">C</span>, onClick: () => {} },
