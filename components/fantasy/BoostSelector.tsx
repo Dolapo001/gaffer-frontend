@@ -1,29 +1,33 @@
 'use client'
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { BOOST_OPTIONS, type BoostType } from '@/lib/fantasyMockData';
+import React from 'react'
+import { motion } from 'framer-motion'
+import { BOOST_OPTIONS, type BoostType } from '@/lib/fantasyMockData'
 
 interface BoostSelectorProps {
-  active: BoostType;
-  onToggle: (boost: BoostType) => void;
-  deadlineLabel?: string;
-  deadlineValue?: string;
-  compact?: boolean;
+  active: BoostType
+  onToggle: (boost: BoostType) => void
+  deadlineLabel?: string
+  deadlineValue?: string
+  compact?: boolean
 }
+
+// x positions (px) of each chip in the 327-wide SVG viewBox
+const CHIP_X = [9, 87, 166, 244]
+const CHIP_W = 74
+const SVG_W = 327
 
 export function BoostSelector({
   active,
   onToggle,
-  deadlineLabel = "Gameweek 1 Transfer Deadline:",
-  deadlineValue = "Sat 14 Feb, 14:30",
+  deadlineLabel = 'Gameweek 1 Transfer Deadline:',
+  deadlineValue = 'Sat 14 Feb, 14:30',
   compact = false,
 }: BoostSelectorProps) {
   return (
-    <section className={`w-full bg-[#1a1b23]/90 backdrop-blur-xl px-[16px] text-white flex flex-col items-center rounded-2xl border border-white/10 shadow-2xl ${compact ? 'py-[8px]' : 'py-[20px]'}`}>
-      {/* Deadline Header — hidden in compact mode */}
+    <section className={`w-full bg-[#1a1b23]/90 backdrop-blur-xl text-white rounded-2xl border border-white/10 shadow-2xl ${compact ? 'px-2 py-2' : 'px-4 py-5'}`}>
       {!compact && (
-        <div className="text-center mb-5">
+        <div className="text-center mb-4">
           <h2 className="text-[14px] font-bold leading-[20px] tracking-tight text-white/90">
             {deadlineLabel}
           </h2>
@@ -33,67 +37,41 @@ export function BoostSelector({
         </div>
       )}
 
-      {/* Boost Cards Row */}
-      <div className="flex items-start justify-center gap-[8px] w-full">
-        {BOOST_OPTIONS.map((boost) => {
-          const isActive = active === boost.id;
+      {/* SVG chip design with transparent interactive overlays */}
+      <div className="relative w-full">
+        <img
+          src="/images/upper.svg"
+          alt="Boost chips"
+          className="w-full h-auto block"
+          draggable={false}
+        />
 
-          let outerBgClass = 'bg-[#40424d]';
-          let iconBgClass = 'bg-[#3b2b28]';
-          let containerRadius = 'rounded-[12px]';
-          let label = boost.label;
-
-          if (boost.id === 'wildcard') label = 'Wilcard';
-          else if (boost.id === 'freePlay') label = 'Free';
-
-          const cardHeight = compact ? 'h-[68px]' : 'h-[105px]';
+        {BOOST_OPTIONS.map((boost, idx) => {
+          const isActive = active === boost.id
+          const leftPct = (CHIP_X[idx] / SVG_W) * 100
+          const widthPct = (CHIP_W / SVG_W) * 100
 
           return (
-            <motion.div
+            <motion.button
               key={boost.id}
-              whileTap={{ scale: 0.98 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => onToggle(isActive ? null : boost.id)}
+              aria-pressed={isActive}
+              aria-label={boost.label}
               className={[
-                `relative flex ${cardHeight} w-full min-w-[60px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm`,
-                outerBgClass,
-                containerRadius,
-                isActive ? "ring-2 ring-[#ff6b00] z-10" : "border border-white/5"
-              ].join(" ")}
-            >
-              <div
-                className={[
-                  `${compact ? 'mt-[8px]' : 'mt-[11px]'} flex items-center justify-center rounded-[8px] overflow-hidden`,
-                  compact ? 'h-[24px] w-full px-2' : 'h-[38px] w-[38px]',
-                  iconBgClass
-                ].join(" ")}
-              >
-                <img
-                  src="/images/upper.svg"
-                  alt=""
-                  aria-hidden="true"
-                  className="w-full h-full object-contain"
-                />
-              </div>
-
-              <div className="mt-[4px] px-1 text-center text-[9px] font-semibold leading-[11px] text-white/80">
-                {label}
-              </div>
-
-              {!compact && (
-                <button
-                  type="button"
-                  className={[
-                    "mt-auto mb-[10px] h-[20px] w-[85%] rounded-[6px] border border-white bg-transparent text-[10px] font-bold leading-none text-white transition hover:bg-white/10",
-                    isActive ? "bg-white/20" : ""
-                  ].join(" ")}
-                >
-                  Play
-                </button>
-              )}
-            </motion.div>
-          );
+                'absolute top-0 bottom-0 rounded-[14px] transition-all',
+                isActive
+                  ? 'ring-2 ring-[#ff6b00] bg-[#ff6b00]/15'
+                  : 'hover:bg-white/5',
+              ].join(' ')}
+              style={{
+                left: `${leftPct}%`,
+                width: `${widthPct}%`,
+              }}
+            />
+          )
         })}
       </div>
     </section>
-  );
+  )
 }
