@@ -12,42 +12,6 @@ interface BoostSelectorProps {
   compact?: boolean;
 }
 
-function TimerIcon({ active = false }: { active?: boolean }) {
-  return (
-    <svg
-      width="28"
-      height="28"
-      viewBox="0 0 28 28"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      className="shrink-0"
-    >
-      <path
-        d="M12.833 5.83325H15.1663"
-        stroke="#FF7A00"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M14.0007 12.8333L15.7507 11.0833"
-        stroke="#FF7A00"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle
-        cx="14.0003"
-        cy="14.0001"
-        r="7"
-        stroke="#FF7A00"
-        strokeWidth="1.6"
-      />
-    </svg>
-  );
-}
-
 export function BoostSelector({
   active,
   onToggle,
@@ -98,11 +62,17 @@ export function BoostSelector({
             >
               <div
                 className={[
-                  `${compact ? 'mt-[8px]' : 'mt-[11px]'} flex h-[28px] w-[28px] items-center justify-center rounded-[8px]`,
+                  `${compact ? 'mt-[8px]' : 'mt-[11px]'} flex items-center justify-center rounded-[8px] overflow-hidden`,
+                  compact ? 'h-[24px] w-full px-2' : 'h-[38px] w-[38px]',
                   iconBgClass
                 ].join(" ")}
               >
-                <TimerIcon active={isActive} />
+                <img
+                  src="/images/upper.svg"
+                  alt=""
+                  aria-hidden="true"
+                  className="w-full h-full object-contain"
+                />
               </div>
 
               <div className="mt-[4px] px-1 text-center text-[9px] font-semibold leading-[11px] text-white/80">

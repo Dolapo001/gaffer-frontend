@@ -88,8 +88,9 @@ const FantasyDashboard: React.FC = () => {
         )}
 
         {/* Points Card */}
-        <div
-          className="absolute backdrop-blur-lg border border-white/5 shadow-2xl overflow-hidden flex flex-col items-center py-5"
+        <button
+          onClick={() => router.push('/app/fantasy/points')}
+          className="absolute backdrop-blur-lg border border-white/5 shadow-2xl overflow-hidden flex flex-col items-center py-5 cursor-pointer active:opacity-75 transition-opacity"
           style={{
             width: '342px',
             height: '160px',
@@ -125,7 +126,7 @@ const FantasyDashboard: React.FC = () => {
               <span className="text-white/70 text-[10px] font-bold uppercase tracking-widest text-center mt-2">Highest SC</span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* Navigation Menu */}
         <div className="absolute w-full px-4" style={{ top: '0', left: '0' }}>

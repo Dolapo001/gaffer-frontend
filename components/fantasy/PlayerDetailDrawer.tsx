@@ -89,7 +89,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
   useEffect(() => {
     const navWrap = document.getElementById('global-nav-bar')
     const navInner = navWrap?.querySelector('nav')
-    
+
     if (player && navWrap && navInner) {
       navWrap.style.opacity = '0'
       navInner.style.pointerEvents = 'none'
@@ -97,7 +97,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
       navWrap.style.opacity = '1'
       navInner.style.pointerEvents = 'auto'
     }
-    
+
     return () => {
       if (navWrap && navInner) {
         navWrap.style.opacity = '1'
@@ -106,19 +106,31 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
     }
   }, [player])
 
+  const hasForm = !!(player?.gwHistory && player.gwHistory.length > 0)
+  const uniqueFixtures = React.useMemo(() => {
+    if (!player) return []
+    const seen = new Set<string>()
+    return (player.nextFixtures ?? []).filter((f) => {
+      const key = `${f.homeCode}-${f.awayCode}`
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    }).slice(0, 1)
+  }, [player])
+  const hasNextMatch = uniqueFixtures.length > 0
+
   return (
     <AnimatePresence>
       {player && (
-        <motion.div
-          key="drawer-backdrop"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-end"
-          onClick={onClose}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <motion.div
+            key="drawer-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-end"
+            onClick={onClose}
+          >
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
             <motion.div
               key="drawer-panel"
@@ -127,148 +139,116 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full flex flex-col bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-50 mt-auto"
+              className="relative w-full flex flex-col bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[100] mt-auto max-h-[88vh]"
             >
-              {/* Handle Area */}
-              <div className="w-full flex-shrink-0 pt-2 pb-2 flex justify-center z-10">
+              {/* Handle */}
+              <div className="w-full flex-shrink-0 pt-2 pb-2 flex justify-center">
                 <div className="w-12 h-1.5 rounded-full bg-gray-500/30" />
               </div>
 
-              {/* Main Content */}
-              <div className="px-6 pb-6 pt-2">
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto px-6 pt-2 min-h-0">
                 {/* Player header */}
                 <div className="flex items-center gap-5 mb-6">
-              {/* Avatar */}
-              <div className="relative">
-                <div
-                  className="w-[82px] h-[82px] rounded-full overflow-hidden flex items-center justify-center bg-[#25283c] border-[3px] border-white/10 shadow-xl"
-                >
-                  {player.avatarUrl ? (
-                    <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <img 
-                      src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} 
-                      alt={player.name} 
-                      className="w-full h-full object-cover" 
-                    />
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <h3 className="text-white font-bold text-[24px] leading-tight tracking-tight">
-                  {player.name}
-                </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">#{player.price}M</span>
-                  <span className="text-[#a1a1aa] text-[13px]">•</span>
-                  <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">
-                    {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Form section */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-white text-sm font-medium tracking-wide">Form</span>
-                <span className="text-white text-sm font-medium tracking-wide pl-2">Points</span>
-              </div>
-
-              <div className="space-y-2.5">
-                {player.gwHistory.map(({ gw, pts, opponent, result }) => (
-                  <div key={gw} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-white text-[13px] font-normal tracking-wide">
-                        GW-{gw}
-                      </span>
-                      <span className="text-white text-[13px] font-normal tracking-wide w-4">
-                        vs
-                      </span>
-                      <span className="text-white text-[13px] font-normal tracking-wide">
-                        {opponent}
-                      </span>
-                      {/* Result dot */}
-                      <div
-                        className={`w-3.5 h-3.5 ml-1 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm ${
-                          result === 'W'
-                            ? 'bg-[#16A34A]'
-                            : result === 'D'
-                            ? 'bg-[#71717a]'
-                            : 'bg-[#ef4444]'
-                        }`}
-                      >
-                        {result.toUpperCase()}
-                      </div>
+                  <div className="relative">
+                    <div className="w-[82px] h-[82px] rounded-full overflow-hidden flex items-center justify-center bg-[#25283c] border-[3px] border-white/10 shadow-xl">
+                      {player.avatarUrl ? (
+                        <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt={player.name} className="w-full h-full object-cover" />
+                      )}
                     </div>
-                    <span className="text-white font-bold text-[14px]">
-                      {pts}
-                    </span>
                   </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Next Match section */}
-            <div className="mb-4 mt-4 border-t border-white/5 pt-4">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-white text-[13px] font-bold tracking-wide">
-                  Next Match
-                </span>
-                <span className="text-[#e95a0c] text-[11px] font-medium tracking-wide">
-                  Gameweek {player.nextFixtures[0]?.gameweek ?? 4}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {player.nextFixtures.slice(0, 2).map((fixture, i) => (
-                  <FixtureRow key={i} fixture={fixture} />
-                ))}
-              </div>
-            </div>
-
-            {/* Captain action buttons */}
-            <div className="flex justify-around items-center pt-2 mb-2">
-              {[
-                { label: 'Make Captain', icon: <span className="font-bold text-[32px] text-white">C</span>, onClick: () => {} },
-                { 
-                  label: player.isOnPitch ? 'Sub Out' : 'Sub In', 
-                  icon: <CornerUpLeft size={34} className={player.isOnPitch ? "text-white" : "text-white"} strokeWidth={2.5} />, 
-                  onClick: () => {
-                    useFantasyStore.getState().setSubstitutingOutId(player.id)
-                    onClose()
-                    window.location.href = '/app/fantasy/substitution'
-                  }
-                },
-                { 
-                  label: 'Transfer', 
-                  icon: (
-                    <div className="flex flex-col items-center justify-center">
-                       <ArrowRightLeft size={30} className="text-white" strokeWidth={2.5} />
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h3 className="text-white font-bold text-[24px] leading-tight tracking-tight">{player.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">#{player.price}M</span>
+                      <span className="text-[#a1a1aa] text-[13px]">•</span>
+                      <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">
+                        {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}
+                      </span>
                     </div>
-                  ), 
-                  onClick: () => {} 
-                }
-              ].map((action, i) => (
-                <div key={i} className="flex flex-col items-center gap-3 w-24">
-                  <motion.button
-                    whileTap={{ scale: 0.92 }}
-                    onClick={action.onClick}
-                    className="w-[82px] h-[82px] rounded-full bg-[#0d4a25] text-white flex items-center justify-center shadow-2xl active:bg-[#0a3a1d] transition-colors border-2 border-white/5"
-                  >
-                    {action.icon}
-                  </motion.button>
-                  <span className="text-white text-[13px] font-bold tracking-tight text-center leading-tight">
-                    {action.label}
-                  </span>
+                  </div>
                 </div>
-              ))}
-            </div>
-            
+
+                {/* Form section — only if history exists */}
+                {hasForm && (
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-white text-sm font-medium tracking-wide">Form</span>
+                      <span className="text-white text-sm font-medium tracking-wide pl-2">Points</span>
+                    </div>
+                    <div className="space-y-2.5">
+                      {player.gwHistory.map(({ gw, pts, opponent, result }) => (
+                        <div key={gw} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-white text-[13px] font-normal tracking-wide">GW-{gw}</span>
+                            <span className="text-white text-[13px] font-normal tracking-wide w-4">vs</span>
+                            <span className="text-white text-[13px] font-normal tracking-wide">{opponent}</span>
+                            <div className={`w-3.5 h-3.5 ml-1 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm ${result === 'W' ? 'bg-[#16A34A]' : result === 'D' ? 'bg-[#71717a]' : 'bg-[#ef4444]'}`}>
+                              {result.toUpperCase()}
+                            </div>
+                          </div>
+                          <span className="text-white font-bold text-[14px]">{pts}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Next Match — only if fixture exists */}
+                {hasNextMatch && (
+                  <div className="mb-4 mt-4 border-t border-white/5 pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white text-[13px] font-bold tracking-wide">Next Match</span>
+                      <span className="text-[#e95a0c] text-[11px] font-medium tracking-wide">
+                        Gameweek {uniqueFixtures[0]?.gameweek ?? '–'}
+                      </span>
+                    </div>
+                    <div className="space-y-3">
+                      {uniqueFixtures.map((fixture, i) => (
+                        <FixtureRow key={i} fixture={fixture} />
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
+
+              {/* Action buttons — always visible, outside scroll */}
+              <div className="flex-shrink-0 px-6 pt-3 pb-[max(24px,env(safe-area-inset-bottom))]">
+                <div className="flex justify-around items-center">
+                  {[
+                    { label: 'Make Captain', icon: <span className="font-bold text-[32px] text-white">C</span>, onClick: () => {} },
+                    {
+                      label: player.isOnPitch ? 'Sub Out' : 'Sub In',
+                      icon: <CornerUpLeft size={34} className="text-white" strokeWidth={2.5} />,
+                      onClick: () => {
+                        useFantasyStore.getState().setSubstitutingOutId(player.id)
+                        onClose()
+                        window.location.href = '/app/fantasy/substitution'
+                      }
+                    },
+                    {
+                      label: 'Transfer',
+                      icon: <ArrowRightLeft size={30} className="text-white" strokeWidth={2.5} />,
+                      onClick: () => {}
+                    }
+                  ].map((action, i) => (
+                    <div key={i} className="flex flex-col items-center gap-3 w-24">
+                      <motion.button
+                        whileTap={{ scale: 0.92 }}
+                        onClick={action.onClick}
+                        className="w-[72px] h-[72px] rounded-full bg-[#0d4a25] text-white flex items-center justify-center shadow-2xl active:bg-[#0a3a1d] transition-colors border-2 border-white/5"
+                      >
+                        {action.icon}
+                      </motion.button>
+                      <span className="text-white text-[12px] font-bold tracking-tight text-center leading-tight">{action.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
-        </motion.div>
       )}
     </AnimatePresence>
   )

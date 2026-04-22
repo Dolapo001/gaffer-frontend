@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ChevronLeft } from 'lucide-react';
-import { useFantasyStore } from '@/store/fantasyStore';
+import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore';
 import { useToastStore } from '@/store/toastStore';
 import { PitchLayout } from './PitchLayout';
 import { SubstituteBench } from './SubstituteBench';
@@ -16,7 +16,6 @@ interface PickTeamOnboardingProps {
 
 export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, onComplete }) => {
   const {
-    budget,
     selectedPlayerId,
     selectPlayer,
     selectedBoost,
@@ -25,6 +24,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
     saveTeamToApi,
     isSaving,
   } = useFantasyStore();
+  const budget = useFantasyStore(selectRemainingBudget);
   const toast = useToastStore();
 
   const handleSave = async () => {

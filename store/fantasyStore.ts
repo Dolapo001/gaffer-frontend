@@ -321,6 +321,9 @@ export const selectBenchPlayers = (state: FantasyState) =>
 export const selectPlayerById = (id: string | null) => (state: FantasyState) =>
   id ? state.players.find((p) => p.id === id) ?? null : null
 
+export const selectRemainingBudget = (state: FantasyState) =>
+  Math.max(0, 100 - state.players.reduce((s, p) => s + (p.price ?? 0), 0))
+
 // ─── Memoised hooks (shallow-compare array results to prevent extra renders) ──
 
 export const usePitchPlayers = () =>

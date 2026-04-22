@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
-import { useFantasyStore } from '@/store/fantasyStore'
+import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore'
 import { FantasyHeroWave } from './FantasyHeroWave'
 import { useQuery } from '@tanstack/react-query'
 import { getMyFantasyTeam, getFantasyStats } from '@/lib/services/fantasy.service'
@@ -14,12 +14,12 @@ import { mapApiTeamToSquad } from '@/lib/converters'
 
 export function PointsScreen() {
   const router = useRouter()
-  const [gameweek, setGameweek] = useState(5)
+  const [gameweek, setGameweek] = useState(1)
   const players = useFantasyStore((s) => s.players)
   const selectPlayer = useFantasyStore((s) => s.selectPlayer)
   const selectedPlayerId = useFantasyStore((s) => s.selectedPlayerId)
   const setPlayers = useFantasyStore((s) => s.setPlayers)
-  const budget = useFantasyStore((s) => s.budget)
+  const budget = useFantasyStore(selectRemainingBudget)
   const competitionId = useFantasyStore((s) => s.competitionId)
 
   const { data: seasonStats } = useQuery({
@@ -51,7 +51,7 @@ export function PointsScreen() {
   const totalPoints = pitchPlayers.reduce((sum, p) => sum + p.points, 0)
 
   return (
-    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-0">
+    <div className="fixed inset-0 w-full max-w-sm mx-auto bg-[#2e2d39] flex flex-col font-sans overflow-hidden z-0">
       {/* Background */}
       <div
         className="absolute inset-0 z-0 opacity-80 bg-cover bg-center pointer-events-none"
@@ -77,7 +77,7 @@ export function PointsScreen() {
 
       {/* Gameweek stats bar */}
       <div className="flex-shrink-0 px-4 pt-1 relative z-10">
-        <div className="w-full bg-[#1a1b23]/90 backdrop-blur-xl rounded-2xl border border-white/10 px-3 py-2 flex flex-col gap-1">
+        <div className="w-full bg-[#2e2d39] backdrop-blur-xl rounded-2xl border border-white/10 px-3 py-2 flex flex-col gap-1">
           {/* Gameweek nav */}
           <div className="flex items-center justify-between">
             <button

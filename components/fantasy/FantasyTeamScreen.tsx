@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { ChevronLeft, RefreshCw, Home, Trophy, FileText } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-import { useFantasyStore } from '@/store/fantasyStore'
+import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore'
 import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
 import { mapApiTeamToSquad } from '@/lib/converters'
 
@@ -22,7 +22,7 @@ export function FantasyTeamScreen() {
 
   const competitionId = useFantasyStore((s) => s.competitionId)
   const selectedPlayerId = useFantasyStore((s) => s.selectedPlayerId)
-  const budget = useFantasyStore((s) => s.budget)
+  const budget = useFantasyStore(selectRemainingBudget)
   const players = useFantasyStore((s) => s.players)
   const selectPlayer = useFantasyStore((s) => s.selectPlayer)
   const saveTeamToApi = useFantasyStore((s) => s.saveTeamToApi)
