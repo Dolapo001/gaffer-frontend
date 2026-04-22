@@ -12,6 +12,7 @@ import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { FantasyHeroWave } from './FantasyHeroWave'
+import { BoostSelector } from './BoostSelector'
 
 export function FantasyTeamScreen() {
   const router = useRouter()
@@ -28,6 +29,8 @@ export function FantasyTeamScreen() {
   const setPlayers = useFantasyStore((s) => s.setPlayers)
   const setHasCreatedTeam = useFantasyStore((s) => s.setHasCreatedTeam)
   const isSaving = useFantasyStore((s) => s.isSaving)
+  const selectedBoost = useFantasyStore((s) => s.selectedBoost)
+  const setBoost = useFantasyStore((s) => s.setBoost)
 
   useEffect(() => {
     if (!competitionId) { setLoadingTeam(false); return }
@@ -95,6 +98,11 @@ export function FantasyTeamScreen() {
           <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}m</span>
         </div>
       </header>
+
+      {/* Boosts */}
+      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+        <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
+      </div>
 
       {/* Pitch */}
       <div className="flex-shrink-0 px-4 pt-1 relative z-10">

@@ -9,6 +9,7 @@ interface BoostSelectorProps {
   onToggle: (boost: BoostType) => void;
   deadlineLabel?: string;
   deadlineValue?: string;
+  compact?: boolean;
 }
 
 function TimerIcon({ active = false }: { active?: boolean }) {
@@ -47,49 +48,41 @@ function TimerIcon({ active = false }: { active?: boolean }) {
   );
 }
 
-export function BoostSelector({ 
-  active, 
-  onToggle, 
+export function BoostSelector({
+  active,
+  onToggle,
   deadlineLabel = "Gameweek 1 Transfer Deadline:",
-  deadlineValue = "Sat 14 Feb, 14:30" 
+  deadlineValue = "Sat 14 Feb, 14:30",
+  compact = false,
 }: BoostSelectorProps) {
   return (
-    <section className="w-full bg-[#1a1b23]/90 backdrop-blur-xl px-[16px] py-[20px] text-white flex flex-col items-center rounded-2xl border border-white/10 shadow-2xl">
-      {/* Deadline Header */}
-      <div className="text-center mb-5">
-        <h2 className="text-[14px] font-bold leading-[20px] tracking-tight text-white/90">
-          {deadlineLabel}
-        </h2>
-        <p className="mt-[2px] text-[18px] font-bold leading-[24px] tracking-tight text-white">
-          {deadlineValue}
-        </p>
-      </div>
+    <section className={`w-full bg-[#1a1b23]/90 backdrop-blur-xl px-[16px] text-white flex flex-col items-center rounded-2xl border border-white/10 shadow-2xl ${compact ? 'py-[8px]' : 'py-[20px]'}`}>
+      {/* Deadline Header — hidden in compact mode */}
+      {!compact && (
+        <div className="text-center mb-5">
+          <h2 className="text-[14px] font-bold leading-[20px] tracking-tight text-white/90">
+            {deadlineLabel}
+          </h2>
+          <p className="mt-[2px] text-[18px] font-bold leading-[24px] tracking-tight text-white">
+            {deadlineValue}
+          </p>
+        </div>
+      )}
 
-      {/* Boost Cards Row - Gap matching desired design */}
+      {/* Boost Cards Row */}
       <div className="flex items-start justify-center gap-[8px] w-full">
         {BOOST_OPTIONS.map((boost) => {
           const isActive = active === boost.id;
-          
-          // Consistency with desired design
+
           let outerBgClass = 'bg-[#40424d]';
           let iconBgClass = 'bg-[#3b2b28]';
-          let containerRadius = 'rounded-[12px]'; 
-          let showButton = true;
+          let containerRadius = 'rounded-[12px]';
           let label = boost.label;
 
-          if (boost.id === 'tripleCaptain') {
-            outerBgClass = 'bg-[#40424d]';
-            iconBgClass = 'bg-[#3b2b28]';
-          } else if (boost.id === 'wildcard') {
-            outerBgClass = 'bg-[#40424d]';
-            iconBgClass = 'bg-[#3b2b28]';
-            label = 'Wilcard';
-          } else if (boost.id === 'freePlay') {
-            outerBgClass = 'bg-[#40424d]';
-            iconBgClass = 'bg-[#3b2b28]';
-            showButton = true;
-            label = 'Free';
-          }
+          if (boost.id === 'wildcard') label = 'Wilcard';
+          else if (boost.id === 'freePlay') label = 'Free';
+
+          const cardHeight = compact ? 'h-[68px]' : 'h-[105px]';
 
           return (
             <motion.div
@@ -97,7 +90,7 @@ export function BoostSelector({
               whileTap={{ scale: 0.98 }}
               onClick={() => onToggle(isActive ? null : boost.id)}
               className={[
-                "relative flex h-[105px] w-full min-w-[70px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm",
+                `relative flex ${cardHeight} w-full min-w-[60px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm`,
                 outerBgClass,
                 containerRadius,
                 isActive ? "ring-2 ring-[#ff6b00] z-10" : "border border-white/5"
@@ -105,19 +98,18 @@ export function BoostSelector({
             >
               <div
                 className={[
-                  "mt-[11px] flex h-[38px] w-[38px] items-center justify-center rounded-[10px]",
+                  `${compact ? 'mt-[8px]' : 'mt-[11px]'} flex h-[28px] w-[28px] items-center justify-center rounded-[8px]`,
                   iconBgClass
                 ].join(" ")}
               >
                 <TimerIcon active={isActive} />
               </div>
 
-              {/* Title */}
-              <div className="mt-[6px] px-1 text-center text-[10px] font-semibold leading-[12px] text-white/80">
+              <div className="mt-[4px] px-1 text-center text-[9px] font-semibold leading-[11px] text-white/80">
                 {label}
               </div>
 
-              {showButton && (
+              {!compact && (
                 <button
                   type="button"
                   className={[

@@ -7,6 +7,7 @@ import { useToastStore } from '@/store/toastStore';
 import { PitchLayout } from './PitchLayout';
 import { SubstituteBench } from './SubstituteBench';
 import { PlayerDetailDrawer } from './PlayerDetailDrawer';
+import { BoostSelector } from './BoostSelector';
 
 interface PickTeamOnboardingProps {
   onBack: () => void;
@@ -64,6 +65,11 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
           <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}M</span>
         </div>
       </header>
+
+      {/* Boosts */}
+      <div className="flex-shrink-0 px-4 pt-1 relative z-10">
+        <BoostSelector active={selectedBoost} onToggle={setBoost} compact />
+      </div>
 
       {/* Pitch — shrink-0 so it takes natural aspect-ratio height */}
       <div className="flex-shrink-0 px-4 pt-1 relative z-10">
