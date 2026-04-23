@@ -1,213 +1,113 @@
-# 🏆 THE GAFFER — PWA Sports Management App
+### 🏆 THE GAFFER — Modern PWA Sports Management
+This README now includes the correct environment variable setup for your new **DigitalOcean Backend** and the **Vercel Frontend**.
 
-> Dominate the field. Built with Next.js 14, Firebase, and Framer Motion.
+```markdown
+# 🏆 THE GAFFER — PWA Sports Management
+> **Dominate the field.** A high-performance, premium sports management platform built with **Next.js 14**, **Firebase Auth**, and a dedicated **DigitalOcean Backend**.
 
 ---
 
-## ⚡ Quick Start
+## 🚀 Deployment Status
+| Layer | Environment | URL |
+| :--- | :--- | :--- |
+| **Frontend** | Vercel (PWA) | `https://the-gaffer.com.ng` |
+| **Backend** | DigitalOcean (Node/Express) | `https://api.the-gaffer.com.ng` |
+| **Database** | MongoDB (Self-Hosted) | Private |
+| **Cache** | Redis (Self-Hosted) | Private |
 
+---
+
+## ⚡ Tech Stack
+- **Frontend Framework:** Next.js 14 (App Router)
+- **Styling:** Tailwind CSS + Framer Motion (Micro-animations)
+- **State Management:** Zustand (Immutable Store)
+- **Authentication:** Firebase Auth
+- **Validation:** Zod (Type-safe schemas)
+- **Form Handling:** React Hook Form
+- **PWA:** Custom Service Worker + Manifest.json
+
+---
+
+## 🛠️ Local Development
+
+### 1. Prerequisite Setup
 ```bash
-# 1. Install dependencies
+# Clone the repository
+git clone https://github.com/Adefolabi/The-Gaffer--frontend.git
+cd the-gaffer-frontend
+
+# Install dependencies
 npm install
-
-# 2. Set up Firebase credentials
-cp .env.example .env.local
-# → Edit .env.local with your Firebase config
-
-# 3. Run in development
-npm run dev
-
-# 4. Build for production (generates service worker)
-npm run build && npm start
 ```
 
----
-
-## 🔥 Firebase Setup (Required)
-
-1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Create a new project → **"gaffer-app"**
-3. Enable **Authentication** → Sign-in methods:
-   - ✅ Email/Password
-   - ✅ Google
-4. Go to **Project Settings → Your Apps → Web App**
-5. Copy the config object into your `.env.local`
-
+### 2. Environment Configuration
+Create a `.env.local` file in the root directory:
 ```env
+# Firebase Config (Get from Firebase Console)
 NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
 NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
 NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
 NEXT_PUBLIC_FIREBASE_APP_ID=...
+
+# Backend Connection
+NEXT_PUBLIC_API_URL=http://localhost:4000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+### 3. Run Development Server
+```bash
+npm run dev
 ```
 
 ---
 
-## 📁 Project Structure
+## 🏗️ Project Architecture
 
 ```
 /app
-  /page.tsx                    ← Landing page (browser-only, shows install CTA)
-  /layout.tsx                  ← Root layout with fonts + PWAProvider
-  /globals.css                 ← Global styles + Tailwind
-
-  /onboarding
-    /splash/page.tsx           ← Splash screen (auto-transitions after 2s)
-    /welcome/page.tsx          ← Hero screen ("DOMINATE THE FIELD")
-    /role-select/page.tsx      ← Personal vs Organization card selection
-
-  /auth
-    /login/page.tsx            ← Sign In (email + Google)
-    /signup/page.tsx           ← Sign Up (email + Google + gender)
-    /forgot-password/page.tsx  ← Password reset
-
-  /app
-    /layout.tsx                ← Protected PWA layout + bottom nav
-    /dashboard/page.tsx        ← Personal dashboard
-    /profile/page.tsx          ← User profile
-    /settings/page.tsx         ← App settings
-
-  /admin/page.tsx              ← Organization admin dashboard
-
+  ├── /auth           # Authentication flows (Login, Signup, Recovery)
+  ├── /onboarding     # User entry (Splash, Welcome, Role Selection)
+  ├── /app            # Main PWA Dashboard (Protected)
+  ├── /admin          # Organization/Club management
+  └── layout.tsx      # Global PWA & Font Providers
 /components
-  GafferLogo.tsx               ← Animated orange gradient logo
-  GradientButton.tsx           ← Primary/outline/ghost/google buttons
-  AuthInput.tsx                ← Dark input with password toggle
-  SelectInput.tsx              ← Styled dropdown
-  RoleCard.tsx                 ← Glassmorphism role selection card
-  AuthLayout.tsx               ← Layout wrapper for auth screens
-  AccountInfoModal.tsx         ← Role info bottom sheet modal
-  IOSInstallModal.tsx          ← iOS step-by-step install instructions
-  PWAProvider.tsx              ← SW registration + install prompt capture
-
-/hooks
-  useAuthListener.ts           ← Syncs Firebase auth to Zustand store
-  usePWAInstall.ts             ← PWA install prompt management
-  usePWASetup.ts               ← Service worker registration
-
-/lib
-  firebase.ts                  ← Firebase app init + auth helpers
-  pwa.ts                       ← isStandalone() + install utilities
-  schemas.ts                   ← Zod validation schemas
-
+  ├── /ui             # Premium UI components (GradientButtons, Inputs)
+  ├── PWAProvider.tsx # Service Worker & Installation Logic
+  └── GafferLogo.tsx  # Brand animations
 /store
-  authStore.ts                 ← Zustand auth state + actions
-
-/types
-  index.ts                     ← TypeScript type definitions
-
-/public
-  manifest.json                ← PWA manifest
-  sw.js                        ← Custom service worker
-  /icons                       ← PWA icons (all sizes)
+  └── authStore.ts    # Centralized auth and user profile state
+/lib
+  ├── firebase.ts     # Firebase initialization
+  └── api.ts          # Axios wrapper for backend calls
 ```
 
 ---
 
-## 📱 PWA Architecture
-
-### Standalone Detection
-```typescript
-// lib/pwa.ts
-export const isStandalone = (): boolean => {
-  const css = window.matchMedia('(display-mode: standalone)').matches
-  const ios = (navigator as any).standalone === true
-  const android = document.referrer.includes('android-app://')
-  return css || ios || android
-}
-```
-
-### Guard Pattern (used in every protected page)
-```typescript
-useEffect(() => {
-  if (!isStandalone()) router.replace('/')   // → Landing page
-}, [router])
-```
-
-### User Flow
-```
-Browser Visit
-└── Landing Page (/ )
-    ├── Install CTA → [User installs PWA]
-    └── PWA Opens → /onboarding/splash
-        └── /onboarding/welcome
-            ├── Get Started → /onboarding/role-select
-            │   └── Select Role → /auth/signup → /app/dashboard OR /admin
-            └── Login → /auth/login → /app/dashboard OR /admin
-```
+## 📱 Progressive Web App (PWA) Features
+The GAFFER is designed to be **Installed**, not just visited.
+- **Standalone Mode:** Custom navigation bars and layouts for mobile devices.
+- **Service Worker:** Offline asset caching for instant load times.
+- **Install Flow:** Automatic detection for iOS (Safari) and Android (Chrome) with step-by-step guidance.
 
 ---
 
-## 🎨 Design System
-
-| Token | Value |
-|-------|-------|
-| Background | `#0A0C10` |
-| Surface | `#131720` |
-| Card | `#1A1F2E` |
-| Border | `#252D3D` |
-| Orange | `#FF6B00` |
-| Red | `#E53000` |
-| Gradient | `#FF6B00 → #CC2200` |
-| Font Display | Barlow Condensed (700–900) |
-| Font Body | Barlow (400–600) |
+## 🔒 Security
+- **JWT Authentication:** Secure handshakes between Frontend and Node.js backend.
+- **CSRF Protection:** Secure cookie handling for refresh tokens.
+- **CORS Restricted:** Backend only accepts requests from allowed production domains.
 
 ---
 
-## 🖼️ Required Images
-
-Place these in `/public/images/`:
-
-| File | Usage |
-|------|-------|
-| `hero-bg.jpg` | Welcome screen background (portrait, dark) |
-| `personal-card.jpg` | Personal role card image |
-| `org-card.jpg` | Organization role card image |
-| `personal-preview.jpg` | Personal account modal preview |
-| `org-preview.jpg` | Organization account modal preview |
-
-> **Tip:** Use the provided `WhatsApp_Image_2026-03-14_at_5_48_30_PM.jpeg` as `hero-bg.jpg`
+## 🎨 Brand Identity
+| Element | Hex Code |
+| :--- | :--- |
+| **Primary Orange** | `#FF6B00` |
+| **Deep Red** | `#E53000` |
+| **Dark Onyx** | `#0A0C10` |
+| **Card Surface** | `#1A1F2E` |
 
 ---
 
-## 🚀 Deployment (Vercel)
-
-```bash
-# Install Vercel CLI
-npm i -g vercel
-
-# Deploy
-vercel
-
-# Set environment variables in Vercel Dashboard:
-# Project → Settings → Environment Variables
-# Add all NEXT_PUBLIC_FIREBASE_* vars
-```
-
-> ⚠️ PWA service workers only work in production (`npm run build`).
-> In development (`npm run dev`), the SW is disabled to avoid caching issues.
-
----
-
-## 🔒 Security Notes
-
-- Firebase Auth handles all token management
-- Zustand store persists only `role` to localStorage (not the user object)
-- Firebase SDK reads the session from IndexedDB automatically
-- All protected routes double-check both `isStandalone()` and `isAuthenticated`
-
----
-
-## 🧩 Adding Real Images
-
-```bash
-# Copy the uploaded hero image to public
-cp /path/to/your/image.jpg public/images/hero-bg.jpg
-```
-
-Or update the CSS background-image in `welcome/page.tsx` to use any sports image.
-
----
-
-Built with ❤️ for The GAFFER
+Built with ❤️ for **The GAFFER** by **4orge Tech**
