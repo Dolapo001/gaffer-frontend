@@ -32,7 +32,9 @@ type AddFormData = z.infer<typeof addSchema>
 
 const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
 
-function execCommandCopy(text: string, onSuccess: () => void, toast: { addToast: (msg: string, type: string) => void }) {
+import { type ToastType } from '@/store/toastStore'
+
+function execCommandCopy(text: string, onSuccess: () => void, toast: { addToast: (msg: string, type?: ToastType, duration?: number) => void }) {
   const el = document.createElement('textarea')
   el.value = text
   el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
