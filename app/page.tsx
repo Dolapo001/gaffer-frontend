@@ -30,11 +30,11 @@ export default function LandingPage() {
   useEffect(() => {
     // iOS PWA deep-link recovery: when iOS opens the PWA at root (/) instead
     // of the actual invite URL (a known iOS standalone limitation), the
-    // OnboardingClient stores the full invite URL in sessionStorage. We pick it
-    // up here and send the user where they intended to go.
-    const pendingInvite = sessionStorage.getItem('gaffer-pending-invite-url')
+    // OnboardingClient stores the full invite URL in localStorage. We pick it
+    // up here and send the player where they intended to go — no login needed.
+    const pendingInvite = localStorage.getItem('gaffer-pending-invite-url')
     if (pendingInvite) {
-      sessionStorage.removeItem('gaffer-pending-invite-url')
+      localStorage.removeItem('gaffer-pending-invite-url')
       router.replace(pendingInvite)
       return
     }

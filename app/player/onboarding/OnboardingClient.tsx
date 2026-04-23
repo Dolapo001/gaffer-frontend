@@ -11,6 +11,9 @@ import {
 } from '@/components/invite/InviteStatusScreen'
 import { InviteForm } from '@/components/player/InviteForm'
 
+// localStorage (not sessionStorage) so the URL survives across iOS PWA launches.
+// When iOS opens the installed PWA at its start_url instead of the invite URL,
+// the splash page reads this key and redirects the player to the correct form.
 const INVITE_STORAGE_KEY = 'gaffer-pending-invite-url'
 
 interface OnboardingClientProps {
@@ -23,16 +26,16 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
   const [isDone, setIsDone] = useState(false)
 
   // Store the invite URL so the iOS PWA can recover it if it starts at root
-  // instead of the invite URL (known iOS standalone deep-link limitation).
+  // or splash instead of the invite URL (known iOS standalone deep-link limitation).
   useEffect(() => {
     if (token && typeof window !== 'undefined') {
-      sessionStorage.setItem(INVITE_STORAGE_KEY, window.location.href)
+      localStorage.setItem(INVITE_STORAGE_KEY, window.location.href)
     }
   }, [token])
 
   const handleSuccess = () => {
     setIsDone(true)
-    sessionStorage.removeItem(INVITE_STORAGE_KEY)
+    localStorage.removeItem(INVITE_STORAGE_KEY)
     setTimeout(() => router.replace('/app/dashboard'), 3000)
   }
 

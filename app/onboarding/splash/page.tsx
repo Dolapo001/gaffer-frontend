@@ -12,9 +12,21 @@ export default function SplashPage() {
   const doNavigate = () => {
     if (hasNavigatedRef.current) return
     hasNavigatedRef.current = true
-    // Read state at call-time — not captured in a closure.
-    // We do NOT wait for isLoading here: after 4 s the splash is done regardless
-    // of whether the auth refresh has resolved. The destination page's auth guard
+
+    // A player arriving via an invite link must always reach the onboarding
+    // form — they are not expected to have an account and must not be sent to
+    // the dashboard or welcome screen. Check localStorage first (set by
+    // OnboardingClient when the invite URL was opened in Safari, before iOS
+    // potentially relaunched the PWA at this splash start_url).
+    const pendingInvite = localStorage.getItem('gaffer-pending-invite-url')
+    if (pendingInvite) {
+      localStorage.removeItem('gaffer-pending-invite-url')
+      router.replace(pendingInvite)
+      return
+    }
+
+    // Normal app boot: read auth state at call-time (not captured in a closure).
+    // We do NOT wait for isLoading here — the destination page's own auth guard
     // will validate the session and redirect if needed.
     const { isAuthenticated, role } = useAuthStore.getState()
     if (isAuthenticated) {

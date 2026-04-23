@@ -32,15 +32,12 @@ export function middleware(request: NextRequest) {
   // Recruitment links are fully public — the token is the URL segment itself
   if (pathname.startsWith(RECRUIT_PREFIX)) return NextResponse.next()
 
-  // Invite onboarding routes are public when a token is present.
-  // A logged-out user arriving from an invite email must reach these pages.
+  // Invite onboarding routes are always public — no login required.
+  // Players are not expected to have an account; the token in the URL is the
+  // only credential needed. Token validation and error display happen entirely
+  // client-side in OnboardingClient. Never redirect invite routes to login.
   const isInviteRoute = INVITE_ROUTES.some((r) => pathname.startsWith(r))
-  if (isInviteRoute) {
-    const token = request.nextUrl.searchParams.get('token')
-    // Token present → always allow (validation happens client-side)
-    // Token absent  → fall through to the standard auth checks below
-    if (token) return NextResponse.next()
-  }
+  if (isInviteRoute) return NextResponse.next()
 
   // Read the auth presence cookie (set during login, cleared on logout)
   const authToken = request.cookies.get('gaffer-auth-token')?.value
