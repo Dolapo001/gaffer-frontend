@@ -32,7 +32,7 @@ type AddFormData = z.infer<typeof addSchema>
 
 const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
 
-function execCommandCopy(text: string, onSuccess: () => void, toast: { addToast: (msg: string, type: string) => void }) {
+function execCommandCopy(text: string): boolean {
   const el = document.createElement('textarea')
   el.value = text
   el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
@@ -41,11 +41,7 @@ function execCommandCopy(text: string, onSuccess: () => void, toast: { addToast:
   el.select()
   const ok = document.execCommand('copy')
   document.body.removeChild(el)
-  if (ok) {
-    onSuccess()
-  } else {
-    toast.addToast('Could not copy — please copy the link manually.', 'error')
-  }
+  return ok
 }
 
 function timeUntil(iso: string) {
@@ -156,9 +152,13 @@ export default function PlayersPage() {
     // navigator.clipboard can silently fail in iOS Safari standalone (PWA) mode;
     // fall back to the legacy execCommand approach which works everywhere.
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(link).then(onCopied).catch(() => execCommandCopy(link, onCopied, toast))
+      navigator.clipboard.writeText(link).then(onCopied).catch(() => {
+        if (!execCommandCopy(link)) toast.addToast('Could not copy — please copy the link manually.', 'error')
+        else onCopied()
+      })
     } else {
-      execCommandCopy(link, onCopied, toast)
+      if (!execCommandCopy(link)) toast.addToast('Could not copy — please copy the link manually.', 'error')
+      else onCopied()
     }
   }
 
