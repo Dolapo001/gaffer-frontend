@@ -22,7 +22,7 @@ import {
   createCompetition,
   getCompetition,
   updateCompetition,
-  archiveCompetition,
+  deleteCompetition,
   setFormat,
   setStages,
   publishCompetition,
@@ -129,11 +129,11 @@ describe('updateCompetition()', () => {
 
 // ── archiveCompetition ────────────────────────────────────────────────────────
 
-describe('archiveCompetition()', () => {
+describe('deleteCompetition()', () => {
   it('calls DELETE /competitions/:competitionId', async () => {
     mockApi.delete.mockResolvedValue({ message: 'Competition archived' })
 
-    const result = await archiveCompetition(COMP_ID)
+    const result = await deleteCompetition(COMP_ID)
 
     expect(mockApi.delete).toHaveBeenCalledWith(`/competitions/${COMP_ID}`)
     expect(result.message).toContain('archived')
