@@ -367,7 +367,7 @@ function LeaguePageContent() {
                   </div>
                 ) : searchQuery.length >= 2 && (
                   <div className="text-center py-6">
-                    <p className="text-gaffer-muted text-xs font-medium italic">No public matches for "{searchQuery}"</p>
+                    <p className="text-gaffer-muted text-xs font-medium italic">No public matches for &quot;{searchQuery}&quot;</p>
                     <button
                       onClick={() => setIsJoinModalOpen(true)}
                       className="mt-3 text-gaffer-orange text-[10px] font-black underline uppercase tracking-widest"
