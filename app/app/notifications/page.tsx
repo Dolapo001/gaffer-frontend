@@ -15,9 +15,10 @@ import {
   type InboxNotification,
 } from '@/lib/services/notifications.service'
 import {
-  ChevronLeft, Bell, BellOff, CheckCircle2, Trophy, Flame, AlertCircle,
-  ChevronDown, ChevronUp, BellRing, Inbox, Settings, Trash2, X,
+  ChevronLeft, Bell, BellOff, CheckCircle2, AlertCircle,
+  ChevronDown, ChevronUp, BellRing, Inbox, Settings, Trash2,
 } from 'lucide-react'
+import { NotificationItem } from '@/components/notifications/NotificationItem'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -51,10 +52,11 @@ export default function NotificationsPage() {
   const { isSubscribed, isPending: isPushPending, toggle: togglePush } = usePushNotifications()
 
   // ── Data fetching ──────────────────────────────────────────────────────────
-  const { data: inbox, isLoading: isLoadingInbox } = useQuery({
+  const { data: inbox, isLoading: isLoadingInbox, isError: isInboxError, refetch: refetchInbox } = useQuery({
     queryKey: ['notifications-inbox'],
-    queryFn: () => getInboxNotifications(1),
+    queryFn: () => getInboxNotifications(1, 20),
     enabled: activeTab === 'inbox',
+    staleTime: 30_000,
   })
 
   const { data: prefsData, isLoading: isLoadingPrefs } = useQuery({
@@ -65,10 +67,35 @@ export default function NotificationsPage() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
-  // Mark single notification as read
+  // Mark single notification as read — optimistic
   const readMutation = useMutation({
     mutationFn: (id: string) => markNotificationRead(id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications-inbox'] }),
+    onMutate: async (id) => {
+      await qc.cancelQueries({ queryKey: ['notifications-inbox'] })
+      await qc.cancelQueries({ queryKey: ['notifications-unread-count'] })
+      const prevInbox = qc.getQueryData<typeof inbox>(['notifications-inbox'])
+      const prevCount = qc.getQueryData<number>(['notifications-unread-count'])
+      qc.setQueryData(['notifications-inbox'], (old: typeof inbox) => {
+        if (!old) return old
+        return {
+          ...old,
+          notifications: old.notifications.map((n) =>
+            n._id === id ? { ...n, isRead: true } : n
+          ),
+          unreadCount: Math.max(0, (old.unreadCount ?? 1) - 1),
+        }
+      })
+      qc.setQueryData(['notifications-unread-count'], (old: number = 0) =>
+        Math.max(0, old - 1)
+      )
+      return { prevInbox, prevCount }
+    },
+    onError: (_err, _id, ctx) => {
+      if (ctx?.prevInbox !== undefined)
+        qc.setQueryData(['notifications-inbox'], ctx.prevInbox)
+      if (ctx?.prevCount !== undefined)
+        qc.setQueryData(['notifications-unread-count'], ctx.prevCount)
+    },
   })
 
   // Mark all as read — PATCH /notifications/read-all
@@ -76,6 +103,7 @@ export default function NotificationsPage() {
     mutationFn: markAllRead,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notifications-inbox'] })
+      qc.invalidateQueries({ queryKey: ['notifications-unread-count'] })
       toast.addToast('All notifications marked as read.', 'success')
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
@@ -104,15 +132,6 @@ export default function NotificationsPage() {
     onSuccess: (res) => qc.setQueryData(['notification-preferences'], res),
     onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'match_event': return <Flame className="text-gaffer-orange" size={20} />
-      case 'league':      return <Trophy className="text-yellow-500" size={20} />
-      case 'system':      return <AlertCircle className="text-blue-500" size={20} />
-      default:            return <Bell className="text-white/40" size={20} />
-    }
-  }
 
   const toggleMute = (eventType: string) => {
     const prefs = prefsData?.preferences
@@ -227,47 +246,29 @@ export default function NotificationsPage() {
                     [1, 2, 3].map((i) => (
                       <div key={i} className="h-24 bg-white/5 rounded-[24px] animate-pulse" />
                     ))
-                  ) : notifications.length > 0 ? (
-                    notifications.map((n: InboxNotification) => (
-                      <div
-                        key={n._id}
-                        className={`w-full bg-[#1E2032] border border-white/5 rounded-[24px] p-5 flex items-start gap-4 transition-all relative ${
-                          !n.read ? 'border-l-4 border-l-gaffer-orange bg-gaffer-orange/5' : 'opacity-40'
-                        }`}
+                  ) : isInboxError ? (
+                    <div className="py-16 text-center space-y-4">
+                      <AlertCircle className="text-white/20 mx-auto" size={32} />
+                      <p className="font-chakra font-black uppercase text-white/20 text-xs tracking-widest">
+                        Failed to load notifications
+                      </p>
+                      <button
+                        onClick={() => refetchInbox()}
+                        className="text-[10px] font-chakra font-black uppercase text-gaffer-orange"
                       >
-                        {/* Tap to mark read */}
-                        <button
-                          className="absolute inset-0 rounded-[24px]"
-                          onClick={() => !n.read && readMutation.mutate(n._id)}
-                          aria-label="Mark as read"
+                        Retry
+                      </button>
+                    </div>
+                  ) : notifications.length > 0 ? (
+                    <div className="bg-[#1E2032] border border-white/5 rounded-[24px] overflow-hidden divide-y divide-white/5">
+                      {notifications.map((n: InboxNotification) => (
+                        <NotificationItem
+                          key={n._id}
+                          notification={n}
+                          onRead={(id) => readMutation.mutate(id)}
                         />
-                        <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center shrink-0 relative z-10 pointer-events-none">
-                          {getIcon(n.type)}
-                        </div>
-                        <div className="flex-1 space-y-1 relative z-10 pointer-events-none">
-                          <h4 className="font-chakra font-black text-sm uppercase leading-tight tracking-tight text-white">
-                            {n.title}
-                          </h4>
-                          <p className="text-xs text-white/40 font-medium leading-normal line-clamp-2">
-                            {n.body}
-                          </p>
-                          <span className="text-[9px] text-white/20 font-black uppercase inline-block pt-1">
-                            {new Date(n.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                        {/* Delete single notification — DELETE /notifications/:id */}
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            deleteMutation.mutate(n._id)
-                          }}
-                          className="relative z-10 w-7 h-7 rounded-full bg-white/5 flex items-center justify-center text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all flex-shrink-0"
-                          aria-label="Delete notification"
-                        >
-                          <X size={13} />
-                        </button>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
                     <div className="py-20 text-center space-y-4">
                       <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto">

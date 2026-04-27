@@ -11,11 +11,12 @@ export interface NotificationPreferences {
 export interface InboxNotification {
   _id: string
   title: string
-  body: string
+  message: string
   type: string
-  read: boolean
+  isRead: boolean
   metadata: Record<string, unknown>
   createdAt: string
+  link?: string
 }
 
 // ─── Push subscriptions ───────────────────────────────────────────────────────
@@ -33,9 +34,9 @@ export async function subscribePush(subscription: {
   return api.post('/notifications/push/subscribe', subscription)
 }
 
-// DELETE /notifications/push/subscribe
+// DELETE /notifications/push/unsubscribe
 export async function unsubscribePush(endpoint: string): Promise<{ message: string }> {
-  return api.delete<{ message: string }>('/notifications/push/subscribe', { body: { endpoint } } as any)
+  return api.delete<{ message: string }>('/notifications/push/unsubscribe', { body: { endpoint } } as any)
 }
 
 // ─── Preferences ──────────────────────────────────────────────────────────────
@@ -57,9 +58,16 @@ export async function updatePreferences(payload: {
 
 // GET /notifications — fetch all in-app notifications
 export async function getInboxNotifications(
-  page = 1
+  page = 1,
+  limit = 20
 ): Promise<{ notifications: InboxNotification[]; total: number; page: number; unreadCount: number }> {
-  return api.get(`/notifications?page=${page}`)
+  return api.get(`/notifications?page=${page}&limit=${limit}`)
+}
+
+// GET /notifications/unread-count
+export async function getUnreadCount(): Promise<number> {
+  const res = await api.get<{ data: { count: number } }>('/notifications/unread-count')
+  return res.data.count
 }
 
 // PATCH /notifications/:id/read — mark a single notification as read

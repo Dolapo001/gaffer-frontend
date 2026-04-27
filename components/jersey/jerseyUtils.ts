@@ -1,6 +1,6 @@
 // ─── Jersey Utilities ─────────────────────────────────────────────────────────
 
-export type JerseyPattern = 'solid'
+export type JerseyPattern = 'solid' | 'stripes' | 'split' | 'gradient'
 
 export interface JerseyConfig {
   primaryColor: string
