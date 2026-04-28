@@ -66,6 +66,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
     queryFn: () => getComments(article.id),
     enabled: showComments,
     staleTime: 30_000,
+    meta: { suppressGlobalError: true },
   })
 
   const addCommentMutation = useMutation({
