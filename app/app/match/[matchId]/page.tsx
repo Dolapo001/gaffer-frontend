@@ -299,7 +299,7 @@ export default function MatchCenterPage() {
 
 function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string }) {
    const rawType = (event as any).rawType || event.type || 'event'
-   const { user } = useAuthStore()
+   const { user, role } = useAuthStore()
    const queryClient = useQueryClient()
 
    const deleteMutation = useMutation({
@@ -350,7 +350,7 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
                {content}
             </p>
          </div>
-         {user?.isOrgActive && (
+         {(role === 'organization' || user?.isOrgActive) && (
             <button
                onClick={() => deleteMutation.mutate(undefined)}
                disabled={deleteMutation.isPending}
