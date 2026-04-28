@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getMatchState, getMatchEvents, type MatchEvent } from '@/lib/services/match.service'
+import { getMatchState, getMatchEvents, deleteMatchEvent, type MatchEvent } from '@/lib/services/match.service'
 import { listLineups } from '@/lib/services/fixture.service'
 import {
   followMatch,
@@ -15,6 +15,7 @@ import { ChevronLeft, Bell, BellOff, RefreshCcw, Goal, CornerDownRight } from 'l
 import { getImageUrl, getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
 import { useToastStore } from '@/store/toastStore'
+import { useAuthStore } from '@/store/authStore'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -35,6 +36,8 @@ export default function MatchCenterPage() {
     queryKey: ['match-events', matchId],
     queryFn: () => getMatchEvents(matchId),
     enabled: !!matchId,
+    staleTime: 0,
+    refetchInterval: 15_000,
   })
 
   // Lineups live at GET /fixtures/:id/lineups, not inside the match state
@@ -279,7 +282,7 @@ export default function MatchCenterPage() {
                       .filter((e: MatchEvent) => e.description || e.commentaryText || e.notes)
                       .sort((a: MatchEvent, b: MatchEvent) => (b.minute ?? 0) - (a.minute ?? 0) || new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                       .map((event: MatchEvent, i: number) => (
-                        <CommentaryCard key={event._id || i} event={event} />
+                        <CommentaryCard key={event._id || i} event={event} matchId={matchId} />
                       ))
                   ) : (
                     <div className="flex flex-col items-center justify-center py-20 opacity-20">
@@ -294,8 +297,30 @@ export default function MatchCenterPage() {
   )
 }
 
-function CommentaryCard({ event }: { event: MatchEvent }) {
+function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string }) {
    const rawType = (event as any).rawType || event.type || 'event'
+   const { role } = useAuthStore()
+   const queryClient = useQueryClient()
+
+   const deleteMutation = useMutation({
+      mutationFn: () => deleteMatchEvent(matchId, event._id),
+      meta: { suppressGlobalError: true },
+      onMutate: async () => {
+         await queryClient.cancelQueries({ queryKey: ['match-events', matchId] })
+         const prev = queryClient.getQueryData(['match-events', matchId])
+         queryClient.setQueryData(['match-events', matchId], (old: any) => {
+            if (Array.isArray(old)) return old.filter((e: any) => e._id !== event._id)
+            return old
+         })
+         return { prev }
+      },
+      onError: (_err: unknown, _v: unknown, ctx: any) => {
+         queryClient.setQueryData(['match-events', matchId], ctx?.prev)
+      },
+      onSettled: () => {
+         queryClient.invalidateQueries({ queryKey: ['match-events', matchId] })
+      },
+   })
 
    const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(rawType)
    const isSub = rawType === 'substitution'
@@ -325,6 +350,17 @@ function CommentaryCard({ event }: { event: MatchEvent }) {
                {content}
             </p>
          </div>
+         {role === 'organization' && (
+            <button
+               onClick={() => deleteMutation.mutate()}
+               disabled={deleteMutation.isPending}
+               aria-label="Undo commentary"
+               className="shrink-0 text-[10px] font-bold text-white/40 uppercase tracking-widest hover:text-white/70 transition-colors disabled:opacity-30"
+               style={{ opacity: deleteMutation.isPending ? 0.3 : undefined }}
+            >
+               {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
+            </button>
+         )}
          {event.minute != null && (
             <span className="shrink-0 text-[10px] font-bold text-white/30 uppercase tracking-widest">{event.minute}&apos;</span>
          )}
