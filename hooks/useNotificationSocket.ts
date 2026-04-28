@@ -13,6 +13,12 @@ type InboxCache = {
   unreadCount: number
 }
 
+let socketInstance: ReturnType<typeof io> | null = null
+
+export function getSocket() {
+  return socketInstance
+}
+
 export function useNotificationSocket() {
   const qc = useQueryClient()
 
@@ -25,6 +31,8 @@ export function useNotificationSocket() {
       reconnectionAttempts: 5,
       transports: ['websocket'],
     })
+
+    socketInstance = socket
 
     socket.on('notification:new', (notification: InboxNotification) => {
       // Prepend to inbox cache — no network request
@@ -40,9 +48,26 @@ export function useNotificationSocket() {
       qc.setQueryData<number>(['notifications-unread-count'], (old = 0) => old + 1)
     })
 
+    socket.on('connect', () => {
+      console.info('[socket] reconnected — invalidating stale queries')
+      qc.invalidateQueries({
+        predicate: (q) =>
+          ['match-events', 'league-fixtures', 'match', 'fixtures'].includes(
+            q.queryKey[0] as string
+          ),
+      })
+    })
+
+    socket.on('disconnect', (reason) => {
+      console.info('[socket] disconnected —', reason)
+    })
+
     return () => {
       socket.off('notification:new')
+      socket.off('connect')
+      socket.off('disconnect')
       socket.disconnect()
+      socketInstance = null
     }
   }, [qc])
 }

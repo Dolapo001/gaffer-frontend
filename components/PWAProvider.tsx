@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef, type ReactNode } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { setDeferredPrompt } from '@/lib/pwa'
 import { refreshToken } from '@/lib/services/auth.service'
 import { useAuthStore } from '@/store/authStore'
 import { tokenStore, ApiError } from '@/lib/api'
+import { getSocket } from '@/hooks/useNotificationSocket'
 
 // Minimum gap between proactive refreshes when returning from background.
 // Prevents hammering /auth/refresh on rapid tab switches.
@@ -13,6 +15,7 @@ const VISIBILITY_REFRESH_DEBOUNCE_MS = 5 * 60 * 1000
 export function PWAProvider({ children }: { children: ReactNode }) {
   const { setUser, setRole } = useAuthStore()
   const lastRefreshAtRef = useRef<number>(0)
+  const queryClient = useQueryClient()
 
   useEffect(() => {
     const handleBeforeInstall = (e: Event) => {
@@ -42,6 +45,18 @@ export function PWAProvider({ children }: { children: ReactNode }) {
         const res = await refreshToken()
         if (res.user?.lastRole) setRole(res.user.lastRole as 'personal' | 'organization')
         setUser(res.user, res.accessToken)
+        if (document.visibilityState === 'visible') {
+          queryClient.invalidateQueries({
+            predicate: (query) =>
+              ['match-events', 'league-fixtures', 'match', 'fixtures'].includes(
+                query.queryKey[0] as string
+              ),
+          })
+          const socket = getSocket()
+          if (socket && !socket.connected) {
+            socket.connect()
+          }
+        }
       } catch (err) {
         // Only eject on a definitive auth failure (401). Network errors
         // (offline, timeout) are ignored — the 401 interceptor will retry
@@ -58,12 +73,14 @@ export function PWAProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstall)
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', handleVisibilityChange)
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstall)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleVisibilityChange)
     }
-  }, [setUser, setRole])
+  }, [setUser, setRole, queryClient])
 
   return <>{children}</>
 }

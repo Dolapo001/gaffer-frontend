@@ -57,6 +57,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
       setLikeCount((c) => (liked ? c + 1 : c - 1))
       addToast('Could not update like.', 'error')
     },
+    meta: { suppressGlobalError: true },
   })
 
   // ── Comments ──────────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
     onError: () => {
       addToast('Could not post comment.', 'error')
     },
+    meta: { suppressGlobalError: true },
   })
 
   const comments: FeedComment[] = commentsData?.comments ?? []

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
+import { getSocket } from '@/hooks/useNotificationSocket';
 
 interface Scorer {
   name: string;
@@ -34,6 +36,7 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
   const containerRef = useRef<HTMLDivElement>(null);
   const firstCardRef = useRef<HTMLDivElement | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const queryClient = useQueryClient();
 
   const realMatches: MatchData[] = (fixtures || []).map(f => ({
     id: f._id,
@@ -61,6 +64,45 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
     }, 5000);
     return () => clearInterval(interval);
   }, [displayMatches.length]);
+
+  // Join live match rooms and listen for goal events
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const liveFixtureIds = (fixtures || [])
+      .filter((f) => f.isLive || f.status === 'live' || f.status === 'in_progress')
+      .map((f) => f._id);
+
+    liveFixtureIds.forEach((id) => socket.emit('join:match', id));
+
+    socket.on('live:event', (event: any) => {
+      if (!['goal', 'own_goal', 'penalty_scored', 'event_deleted'].includes(event.type)) return;
+
+      queryClient.setQueriesData(
+        { queryKey: ['fixtures'], exact: false },
+        (old: any) => {
+          if (!old || !Array.isArray(old)) return old;
+          return old.map((f: any) => {
+            if (f._id !== event.fixtureId) return f;
+            if (event.type === 'event_deleted') return f;
+            return {
+              ...f,
+              score: {
+                home: event.homeScore ?? f.score?.home ?? 0,
+                away: event.awayScore ?? f.score?.away ?? 0,
+              },
+            };
+          });
+        }
+      );
+    });
+
+    return () => {
+      liveFixtureIds.forEach((id) => socket.emit('leave:match', id));
+      socket.off('live:event');
+    };
+  }, [fixtures, queryClient]);
 
   // Scroll to the active card using measured card width for accuracy
   useEffect(() => {
