@@ -352,7 +352,7 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
          </div>
          {role === 'organization' && (
             <button
-               onClick={() => deleteMutation.mutate()}
+               onClick={() => deleteMutation.mutate(undefined)}
                disabled={deleteMutation.isPending}
                aria-label="Undo commentary"
                className="shrink-0 text-[10px] font-bold text-white/40 uppercase tracking-widest hover:text-white/70 transition-colors disabled:opacity-30"
