@@ -111,15 +111,15 @@ export async function deletePost(id: string): Promise<void> {
   await api.delete<unknown>(`/feed/posts/${id}`)
 }
 
-// POST /feed/:postId/likes — like a post
+// POST /feed/:postId/like — like a post
 export async function likeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.post<{ message: string }>(`/feed/${id}/likes`)
+  const data = await api.post<{ message: string }>(`/feed/${id}/like`)
   return data
 }
 
-// DELETE /feed/:postId/likes — unlike a post
+// DELETE /feed/:postId/like — unlike a post
 export async function unlikeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.delete<{ message: string }>(`/feed/${id}/likes`)
+  const data = await api.delete<{ message: string }>(`/feed/${id}/like`)
   return data
 }
 
