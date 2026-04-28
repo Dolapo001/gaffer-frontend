@@ -90,8 +90,11 @@ export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
 }
 
 // GET /feed/:id — single post detail
+// Not marked public: the api client attaches the token when present so the
+// backend can resolve isLiked correctly for authenticated users, while
+// unauthenticated requests still work (no token = no Authorization header).
 export async function getFeedItem(id: string): Promise<FeedItem> {
-  const raw = await api.get<unknown>(`/feed/${id}`, { public: true })
+  const raw = await api.get<unknown>(`/feed/${id}`)
   const r = raw as any
   return r?.item ?? r?.post ?? r
 }
