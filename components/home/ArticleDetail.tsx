@@ -47,14 +47,15 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
   // ── Like / Unlike ─────────────────────────────────────────────────────────
   const likeMutation = useMutation({
-    mutationFn: () => (liked ? unlikeFeedItem(article.id) : likeFeedItem(article.id)),
-    onMutate: () => {
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c - 1 : c + 1))
+    mutationFn: (action: 'like' | 'unlike') =>
+      action === 'unlike' ? unlikeFeedItem(article.id) : likeFeedItem(article.id),
+    onMutate: (action) => {
+      setLiked(action === 'like')
+      setLikeCount((c) => (action === 'like' ? c + 1 : c - 1))
     },
-    onError: () => {
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c + 1 : c - 1))
+    onError: (_err, action) => {
+      setLiked(action !== 'like')
+      setLikeCount((c) => (action === 'like' ? c - 1 : c + 1))
       addToast('Could not update like.', 'error')
     },
     meta: { suppressGlobalError: true },
@@ -173,7 +174,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         <div className="flex items-center justify-between px-4 mb-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => likeMutation.mutate()}
+              onClick={() => likeMutation.mutate(liked ? 'unlike' : 'like')}
               className="flex items-center gap-1.5"
             >
               <Flame size={16} className={liked ? 'text-gaffer-orange' : 'text-gaffer-subtle'} />
