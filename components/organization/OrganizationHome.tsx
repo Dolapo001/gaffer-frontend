@@ -89,7 +89,7 @@ export function OrganizationHome() {
             className="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:text-[#ff6b00] hover:bg-[#ff6b00]/10 transition-all active:scale-95 relative outline-none"
           >
             <Bell size={16} />
-            <span className="absolute top-2 right-2.5 w-1.5 h-1.5 bg-[#ff6b00] rounded-full border border-[#181928]" />
+            <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 bg-[#ff6b00] rounded-full border border-[#181928]" />
           </button>
 
           <button

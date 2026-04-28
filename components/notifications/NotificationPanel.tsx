@@ -13,9 +13,10 @@ import { NotificationItem } from './NotificationItem'
 interface NotificationPanelProps {
   open: boolean
   onClose: () => void
+  anchor?: 'top' | 'bottom'
 }
 
-export function NotificationPanel({ open, onClose: _ }: NotificationPanelProps) {
+export function NotificationPanel({ open, onClose: _, anchor = 'top' }: NotificationPanelProps) {
   const qc = useQueryClient()
 
   const {
@@ -82,7 +83,7 @@ export function NotificationPanel({ open, onClose: _ }: NotificationPanelProps) 
     typeof Notification !== 'undefined' && Notification.permission === 'granted'
 
   return (
-    <div className="absolute right-0 top-full mt-2 w-80 bg-[#1E2032] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-50">
+    <div className={`absolute right-0 w-[min(320px,calc(100vw-16px))] bg-[#1E2032] border border-white/10 rounded-2xl shadow-2xl shadow-black/60 overflow-hidden z-[200] ${anchor === 'bottom' ? 'bottom-full mb-2' : 'top-full mt-2'}`}>
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
         <h3 className="text-[11px] font-chakra font-black uppercase tracking-widest text-white">

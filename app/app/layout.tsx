@@ -6,13 +6,11 @@ import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Users } from 'lucide-react'
-import Link from 'next/link'
 import { useUIStore } from '@/store/uiStore'
 
 // useAuthListener is called once at the root via AuthProvider — not here.
 
 import { BottomNavbar } from '@/components/BottomNavbar'
-import { NotificationBell } from '@/components/notifications/NotificationBell'
 
 const DEFAULT_NAV = [
   { href: '/app/dashboard', icon: Home,      label: 'Home'    },
@@ -59,14 +57,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
-        {/* Persistent notification bell — fixed top-right, above all pages */}
-        <div
-          className="fixed right-2 z-[200]"
-          style={{ top: 'calc(env(safe-area-inset-top, 0px) + 6px)' }}
-        >
-          <NotificationBell />
-        </div>
-
         <ErrorBoundary>
           <motion.main
             key={pathname}
