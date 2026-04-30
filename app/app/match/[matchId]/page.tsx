@@ -350,7 +350,7 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
                {content}
             </p>
          </div>
-         {(role === 'organization' || user?.isOrgActive) && (
+         {role === 'organization' && (
             <button
                onClick={() => deleteMutation.mutate(undefined)}
                disabled={deleteMutation.isPending}

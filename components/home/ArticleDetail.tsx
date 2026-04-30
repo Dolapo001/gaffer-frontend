@@ -26,6 +26,7 @@ interface ArticleDetailProps {
     isLiked?: boolean
     /** True for backend system posts — hides the Follow button */
     isSystem?: boolean
+    allowComments?: boolean
     author: {
       name: string
       handle: string
@@ -47,8 +48,12 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
   // ── Like / Unlike ─────────────────────────────────────────────────────────
   const likeMutation = useMutation({
-    mutationFn: (action: 'like' | 'unlike') =>
-      action === 'unlike' ? unlikeFeedItem(article.id) : likeFeedItem(article.id),
+    mutationFn: (action: 'like' | 'unlike') => {
+      if (!article.id) return Promise.reject(new Error('Missing article id'))
+      return action === 'unlike'
+        ? unlikeFeedItem(article.id)
+        : likeFeedItem(article.id)
+    },
     onMutate: (action) => {
       setLiked(action === 'like')
       setLikeCount((c) => (action === 'like' ? c + 1 : c - 1))
@@ -206,6 +211,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         </div>
 
         {/* Comments section */}
+        {article.allowComments !== false && (
         <AnimatePresence>
           {showComments && (
             <motion.div
@@ -285,6 +291,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
     </motion.div>
   )
