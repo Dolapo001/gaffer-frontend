@@ -121,7 +121,7 @@ export function FixturesSection({ fixtures }: FixturesSectionProps) {
           <div className="w-8 h-8 rounded-full border-2 border-white/10" />
         </div>
         <h2 className="text-white text-lg font-black uppercase tracking-tight mb-2">No Fixtures Scheduled</h2>
-        <p className="text-white/30 text-xs font-medium max-w-[200px]">Matches for this competition haven't been generated yet.</p>
+        <p className="text-white/30 text-xs font-medium max-w-[200px]">Matches for this competition haven&apos;t been generated yet.</p>
       </div>
     );
   }

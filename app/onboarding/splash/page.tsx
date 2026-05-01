@@ -99,7 +99,6 @@ export default function SplashPage() {
         muted
         playsInline
         disablePictureInPicture
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore — non-standard WebKit attribute that suppresses AirPlay overlay
         x-webkit-airplay="deny"
         // Prevent browser media session controls (cast button, pip overlay)

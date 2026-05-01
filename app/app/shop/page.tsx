@@ -99,7 +99,7 @@ export default function ShopPage() {
               <div className="w-10 h-10 border-2 border-gaffer-orange border-t-transparent rounded-full animate-spin" />
               <div>
                 <h3 className="font-chakra font-black uppercase text-sm text-gaffer-orange">Verifying Payment</h3>
-                <p className="text-white/40 text-[11px] font-bold uppercase tracking-wider mt-1">Please don't close this page...</p>
+                <p className="text-white/40 text-[11px] font-bold uppercase tracking-wider mt-1">Please don&apos;t close this page...</p>
               </div>
             </motion.div>
           )}
@@ -110,7 +110,7 @@ export default function ShopPage() {
           <div className="relative z-10 space-y-2">
             <div className="flex items-center gap-2 text-white/80">
               <Sparkles size={16} />
-              <span className="text-[10px] font-chakra font-black uppercase tracking-[0.2em]">Collector's Edition</span>
+              <span className="text-[10px] font-chakra font-black uppercase tracking-[0.2em]">Collector&apos;s Edition</span>
             </div>
             <h2 className="text-3xl font-chakra font-black uppercase tracking-tighter leading-none">Get Gaffer Coins</h2>
             <p className="text-white/70 text-sm font-medium leading-tight max-w-[200px]">Unlock legendary chips and premium features.</p>
