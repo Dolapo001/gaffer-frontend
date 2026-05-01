@@ -173,12 +173,10 @@ export default function PlayersPage() {
     // fall back to the legacy execCommand approach which works everywhere.
     if (navigator.clipboard) {
       navigator.clipboard.writeText(link).then(onCopied).catch(() => {
-        if (!execCommandCopy(link)) toast.addToast('Could not copy — please copy the link manually.', 'error')
-        else onCopied()
+        execCommandCopy(link, onCopied, toast)
       })
     } else {
-      if (!execCommandCopy(link)) toast.addToast('Could not copy — please copy the link manually.', 'error')
-      else onCopied()
+      execCommandCopy(link, onCopied, toast)
     }
   }
 
