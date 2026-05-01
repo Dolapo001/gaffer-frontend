@@ -26,6 +26,7 @@ interface ArticleDetailProps {
     isLiked?: boolean
     /** True for backend system posts — hides the Follow button */
     isSystem?: boolean
+    allowComments?: boolean
     author: {
       name: string
       handle: string
@@ -47,16 +48,22 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
   // ── Like / Unlike ─────────────────────────────────────────────────────────
   const likeMutation = useMutation({
-    mutationFn: () => (liked ? unlikeFeedItem(article.id) : likeFeedItem(article.id)),
-    onMutate: () => {
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c - 1 : c + 1))
+    mutationFn: (action: 'like' | 'unlike') => {
+      if (!article.id) return Promise.reject(new Error('Missing article id'))
+      return action === 'unlike'
+        ? unlikeFeedItem(article.id)
+        : likeFeedItem(article.id)
     },
-    onError: () => {
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c + 1 : c - 1))
+    onMutate: (action) => {
+      setLiked(action === 'like')
+      setLikeCount((c) => (action === 'like' ? c + 1 : c - 1))
+    },
+    onError: (_err, action) => {
+      setLiked(action !== 'like')
+      setLikeCount((c) => (action === 'like' ? c - 1 : c + 1))
       addToast('Could not update like.', 'error')
     },
+    meta: { suppressGlobalError: true },
   })
 
   // ── Comments ──────────────────────────────────────────────────────────────
@@ -65,6 +72,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
     queryFn: () => getComments(article.id),
     enabled: showComments,
     staleTime: 30_000,
+    meta: { suppressGlobalError: true },
   })
 
   const addCommentMutation = useMutation({
@@ -76,6 +84,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
     onError: () => {
       addToast('Could not post comment.', 'error')
     },
+    meta: { suppressGlobalError: true },
   })
 
   const comments: FeedComment[] = commentsData?.comments ?? []
@@ -170,7 +179,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         <div className="flex items-center justify-between px-4 mb-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => likeMutation.mutate()}
+              onClick={() => likeMutation.mutate(liked ? 'unlike' : 'like')}
               className="flex items-center gap-1.5"
             >
               <Flame size={16} className={liked ? 'text-gaffer-orange' : 'text-gaffer-subtle'} />
@@ -202,6 +211,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         </div>
 
         {/* Comments section */}
+        {article.allowComments !== false && (
         <AnimatePresence>
           {showComments && (
             <motion.div
@@ -281,6 +291,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
             </motion.div>
           )}
         </AnimatePresence>
+        )}
       </div>
     </motion.div>
   )

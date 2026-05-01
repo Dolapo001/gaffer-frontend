@@ -10,9 +10,12 @@ import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, submitLineup, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
+import { deleteMatchEvent } from '@/lib/services/match.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
+import { useAuthStore } from '@/store/authStore'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export function AdminLiveMatchDetails({ id }: { id: string }) {
   const router = useRouter()
@@ -923,7 +926,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                   .filter(e => e.description || e.commentaryText || e.notes || e.playerName)
                   .map((event: FixtureEvent) => (
-                    <EventCard key={event._id} event={event} />
+                    <EventCard key={event._id} event={event} matchId={id} />
                   ))}
               </div>
 
@@ -1286,7 +1289,32 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   )
 }
 
-function EventCard({ event }: { event: FixtureEvent }) {
+function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string }) {
+  const { role } = useAuthStore()
+  const queryClient = useQueryClient()
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteMatchEvent(matchId, event._id),
+    meta: { suppressGlobalError: true },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['match-events', matchId] })
+      const prev = queryClient.getQueryData(['match-events', matchId])
+      queryClient.setQueryData(['match-events', matchId], (old: any) => {
+        if (Array.isArray(old)) return old.filter((e: any) => e._id !== event._id)
+        return old
+      })
+      return { prev }
+    },
+    onError: (_err: unknown, _v: unknown, ctx: any) => {
+      queryClient.setQueryData(['match-events', matchId], ctx?.prev)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['match-events', matchId] })
+    },
+  })
+
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
   const rawType = event.rawType || event.type
   const text = event.description || event.commentaryText || event.notes || ''
 
@@ -1311,8 +1339,28 @@ function EventCard({ event }: { event: FixtureEvent }) {
               {text || (rawType === 'own_goal' ? 'OWN GOAL' : rawType === 'penalty_scored' ? 'PENALTY SCORED' : 'GOAL')}
             </p>
           </div>
+          {role === 'organization' && (
+            <button
+              onClick={() => setConfirmOpen(true)}
+              disabled={deleteMutation.isPending}
+              aria-label="Undo commentary"
+              className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
+            >
+              {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
+            </button>
+          )}
           <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
         </div>
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Undo Commentary"
+          message="Are you sure you want to remove this commentary event? This cannot be undone."
+          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+          cancelLabel="Cancel"
+          destructive
+          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
+          onCancel={() => setConfirmOpen(false)}
+        />
       </motion.div>
     )
   }
@@ -1329,8 +1377,28 @@ function EventCard({ event }: { event: FixtureEvent }) {
                 {text || 'Substitution'}
               </p>
            </div>
+           {role === 'organization' && (
+             <button
+               onClick={() => setConfirmOpen(true)}
+               disabled={deleteMutation.isPending}
+               aria-label="Undo commentary"
+               className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
+             >
+               {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
+             </button>
+           )}
            <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
         </div>
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Undo Commentary"
+          message="Are you sure you want to remove this commentary event? This cannot be undone."
+          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+          cancelLabel="Cancel"
+          destructive
+          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
+          onCancel={() => setConfirmOpen(false)}
+        />
       </div>
     )
   }
@@ -1349,6 +1417,26 @@ function EventCard({ event }: { event: FixtureEvent }) {
             {text || (isRed ? 'Red Card' : 'Yellow Card')}
           </p>
         </div>
+        {role === 'organization' && (
+          <button
+            onClick={() => setConfirmOpen(true)}
+            disabled={deleteMutation.isPending}
+            aria-label="Undo commentary"
+            className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
+          >
+            {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
+          </button>
+        )}
+        <ConfirmDialog
+          open={confirmOpen}
+          title="Undo Commentary"
+          message="Are you sure you want to remove this commentary event? This cannot be undone."
+          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+          cancelLabel="Cancel"
+          destructive
+          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
+          onCancel={() => setConfirmOpen(false)}
+        />
         <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
       </div>
     )
@@ -1364,6 +1452,26 @@ function EventCard({ event }: { event: FixtureEvent }) {
             {text}
           </p>
        </div>
+       {role === 'organization' && (
+         <button
+           onClick={() => setConfirmOpen(true)}
+           disabled={deleteMutation.isPending}
+           aria-label="Undo commentary"
+           className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
+         >
+           {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
+         </button>
+       )}
+       <ConfirmDialog
+         open={confirmOpen}
+         title="Undo Commentary"
+         message="Are you sure you want to remove this commentary event? This cannot be undone."
+         confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+         cancelLabel="Cancel"
+         destructive
+         onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
+         onCancel={() => setConfirmOpen(false)}
+       />
        <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
     </div>
   )

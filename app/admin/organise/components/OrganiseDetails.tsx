@@ -125,6 +125,7 @@ export function OrganiseDetails({
   const teamPhotoInputRef = useRef<HTMLInputElement>(null)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', position: '', jerseyNumber: '', nationality: '' })
   const [tempPrice, setTempPrice] = useState('')
   const [showRecruitment, setShowRecruitment] = useState(false)
   const [isAddingPlayer, setIsAddingPlayer] = useState(false)
@@ -180,6 +181,16 @@ export function OrganiseDetails({
   const handleEditClick = (player: Player) => {
     setEditingPlayer(player)
     setTempPrice(String(player.price ?? '').replace('M', ''))
+    const parts = player.name.trim().split(' ')
+    const firstName = parts[0] ?? ''
+    const lastName = parts.slice(1).join(' ')
+    setEditForm({
+      firstName,
+      lastName,
+      position: player.position ?? '',
+      jerseyNumber: player.jerseyNumber !== undefined ? String(player.jerseyNumber) : '',
+      nationality: '',
+    })
   }
 
   // Handle photo pick for the "new player" modal
@@ -193,14 +204,16 @@ export function OrganiseDetails({
 
   const handleUpdatePlayer = async () => {
     if (!editingPlayer) return
-    
-    // Construct single payload
     const payload: any = {
       role: editingPlayer.role,
       squadStatus: editingPlayer.status,
-      jerseyNumber: editingPlayer.jerseyNumber ? parseInt(editingPlayer.jerseyNumber.toString()) : undefined
     }
-
+    if (editForm.firstName.trim()) payload.firstName = editForm.firstName.trim()
+    if (editForm.lastName.trim()) payload.lastName = editForm.lastName.trim()
+    if (editForm.position.trim()) payload.position = editForm.position.trim()
+    if (editForm.nationality.trim()) payload.nationality = editForm.nationality.trim()
+    const jn = editForm.jerseyNumber ? parseInt(editForm.jerseyNumber) : undefined
+    if (jn) payload.jerseyNumber = jn
     onUpdatePlayer?.(editingPlayer.id, payload)
     setEditingPlayer(null)
   }
@@ -654,68 +667,110 @@ export function OrganiseDetails({
                    <p className="text-gaffer-orange font-black text-[10px] uppercase tracking-[0.4em]">{editingPlayer.position}</p>
                 </div>
 
-                <div className="p-6 md:p-8 space-y-6 overflow-y-auto no-scrollbar">
-                  {editingPlayer.role !== 'coach' ? (
-                     <div className="flex flex-col gap-4">
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Role</label>
-                           <select 
-                              value={editingPlayer.role}
-                              onChange={e => {
-                                 onRoleChange(editingPlayer.id, e.target.value as any)
-                                 setEditingPlayer({...editingPlayer, role: e.target.value as any})
-                              }}
-                              className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[12px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 transition-all cursor-pointer"
-                           >
-                              <option value="player">Player</option>
-                              <option value="captain">Captain</option>
-                              <option value="coach">Coach</option>
-                           </select>
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Status</label>
-                           <select 
-                              value={editingPlayer.status}
-                              onChange={e => {
-                                 onStatusChange(editingPlayer.id, e.target.value as any)
-                                 setEditingPlayer({...editingPlayer, status: e.target.value as any})
-                              }}
-                              className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[12px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 transition-all cursor-pointer"
-                           >
-                              <option value="active">Active</option>
-                              <option value="injured">Injured</option>
-                              <option value="suspended">Suspended</option>
-                           </select>
-                        </div>
-                     </div>
-                  ) : (
-                     <div className="space-y-6">
-                        <div className="bg-gaffer-orange/[0.05] border border-gaffer-orange/10 rounded-2xl p-5 text-center">
-                           <p className="text-gaffer-orange font-black text-[11px] uppercase tracking-[0.2em]">Coaching Staff</p>
-                           <p className="text-[10px] text-white/30 mt-2 leading-relaxed">Staff members do not have market valuation or on-field positions.</p>
-                        </div>
-                        <div className="space-y-2">
-                           <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Change Position</label>
-                           <select 
-                              value={editingPlayer.role}
-                              onChange={e => {
-                                 onRoleChange(editingPlayer.id, e.target.value as any)
-                                 setEditingPlayer({...editingPlayer, role: e.target.value as any})
-                              }}
-                              className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[12px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 transition-all cursor-pointer"
-                           >
-                              <option value="coach">Coach</option>
-                              <option value="player">Player</option>
-                              <option value="captain">Captain</option>
-                           </select>
-                        </div>
-                     </div>
+                <div className="p-6 md:p-8 space-y-4 overflow-y-auto no-scrollbar">
+                  {/* Name fields */}
+                  <div className="flex gap-3">
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">First Name</label>
+                      <input
+                        value={editForm.firstName}
+                        onChange={e => setEditForm(f => ({ ...f, firstName: e.target.value }))}
+                        placeholder="First"
+                        className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[12px] text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                      />
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Last Name</label>
+                      <input
+                        value={editForm.lastName}
+                        onChange={e => setEditForm(f => ({ ...f, lastName: e.target.value }))}
+                        placeholder="Last"
+                        className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[12px] text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Position + Jersey */}
+                  {editingPlayer.role !== 'coach' && (
+                    <div className="flex gap-3">
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Position</label>
+                        <select
+                          value={editForm.position}
+                          onChange={e => setEditForm(f => ({ ...f, position: e.target.value }))}
+                          className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[11px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 cursor-pointer"
+                        >
+                          <option value="GK">GK</option>
+                          <option value="DEF">DEF</option>
+                          <option value="MID">MID</option>
+                          <option value="FWD">FWD</option>
+                        </select>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Jersey #</label>
+                        <input
+                          type="number"
+                          min={1}
+                          max={99}
+                          value={editForm.jerseyNumber}
+                          onChange={e => setEditForm(f => ({ ...f, jerseyNumber: e.target.value }))}
+                          placeholder="10"
+                          className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[12px] font-black text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                        />
+                      </div>
+                    </div>
                   )}
-                  <button 
-                    onClick={() => setEditingPlayer(null)}
+
+                  {/* Nationality */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Nationality</label>
+                    <input
+                      value={editForm.nationality}
+                      onChange={e => setEditForm(f => ({ ...f, nationality: e.target.value }))}
+                      placeholder="e.g. Nigerian"
+                      className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3 px-4 text-[12px] text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                    />
+                  </div>
+
+                  {/* Role */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Role</label>
+                    <select
+                      value={editingPlayer.role}
+                      onChange={e => {
+                        onRoleChange(editingPlayer.id, e.target.value as any)
+                        setEditingPlayer({ ...editingPlayer, role: e.target.value as any })
+                      }}
+                      className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[12px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 transition-all cursor-pointer"
+                    >
+                      <option value="player">Player</option>
+                      <option value="captain">Captain</option>
+                      <option value="coach">Coach</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Status</label>
+                    <select
+                      value={editingPlayer.status}
+                      onChange={e => {
+                        onStatusChange(editingPlayer.id, e.target.value as any)
+                        setEditingPlayer({ ...editingPlayer, status: e.target.value as any })
+                      }}
+                      className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[12px] font-black uppercase text-white outline-none focus:border-gaffer-orange/30 transition-all cursor-pointer"
+                    >
+                      <option value="active">Active</option>
+                      <option value="injured">Injured</option>
+                      <option value="suspended">Suspended</option>
+                    </select>
+                  </div>
+
+                  <button
+                    onClick={handleUpdatePlayer}
                     className="w-full h-16 rounded-[22px] bg-gradient-to-r from-gaffer-orange to-[#FF4D00] text-white font-black uppercase tracking-[0.25em] shadow-[0_8px_30px_rgba(255,102,0,0.25)] active:scale-95 transition-all text-sm"
                   >
-                    Done
+                    Save Changes
                   </button>
                 </div>
              </motion.div>

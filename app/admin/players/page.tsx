@@ -8,16 +8,16 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Plus, X, Users, Search, ChevronDown, Mail, Link2,
-  Copy, Check, Clock, RefreshCw, Trash2,
+  Copy, Check, Clock, RefreshCw, Trash2, Pencil,
 } from 'lucide-react'
 import { listOrgs } from '@/lib/services/org.service'
 import { listTeams, type Team } from '@/lib/services/team.service'
 import {
-  listPlayers, addPlayer, removePlayer, createPlayerInvite,
+  listPlayers, addPlayer, removePlayer, updatePlayer, createPlayerInvite,
   listPlayerInvites, revokePlayerInvite, type Player, type PlayerInvite,
 } from '@/lib/services/team.service'
 import { buildInviteLink } from '@/lib/routes'
-import { useToastStore } from '@/store/toastStore'
+import { useToastStore, type ToastType } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 
@@ -32,7 +32,7 @@ type AddFormData = z.infer<typeof addSchema>
 
 const POSITIONS = ['goalkeeper', 'defender', 'midfielder', 'forward']
 
-function execCommandCopy(text: string): boolean {
+function execCommandCopy(text: string, onSuccess: () => void, toast: { addToast: (msg: string, type?: ToastType, duration?: number) => void }) {
   const el = document.createElement('textarea')
   el.value = text
   el.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0'
@@ -41,7 +41,11 @@ function execCommandCopy(text: string): boolean {
   el.select()
   const ok = document.execCommand('copy')
   document.body.removeChild(el)
-  return ok
+  if (ok) {
+    onSuccess()
+  } else {
+    toast.addToast('Could not copy — please copy the link manually.', 'error')
+  }
 }
 
 function timeUntil(iso: string) {
@@ -62,6 +66,8 @@ export default function PlayersPage() {
   const [query, setQuery] = useState('')
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
   const [removeTarget, setRemoveTarget] = useState<Player | null>(null)
+  const [editTarget, setEditTarget] = useState<Player | null>(null)
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', position: '', jerseyNumber: '' })
   const [inviteEmail, setInviteEmail] = useState('')
   const [generatedLink, setGeneratedLink] = useState<string | null>(null)
   const [linkCopied, setLinkCopied] = useState(false)
@@ -142,6 +148,20 @@ export default function PlayersPage() {
       setRevokeTarget(null)
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const editMutation = useMutation({
+    mutationFn: (payload: Parameters<typeof updatePlayer>[2]) =>
+      updatePlayer(activeTeamId!, editTarget!._id, payload),
+    onSuccess: () => {
+      setEditTarget(null)
+      qc.invalidateQueries({ queryKey: ['players', activeTeamId] })
+      toast.addToast('Player updated.', 'success')
+    },
+    onError: () => {
+      toast.addToast('Could not update player.', 'error')
+    },
+    meta: { suppressGlobalError: true },
   })
 
   const copyLink = (link: string) => {
@@ -343,6 +363,21 @@ export default function PlayersPage() {
                       : 'text-gaffer-muted bg-gaffer-surface border-gaffer-border'
                   }`}>{p.squadStatus}</span>
                   <button
+                    onClick={() => {
+                      setEditTarget(p)
+                      setEditForm({
+                        firstName: p.firstName,
+                        lastName: p.lastName,
+                        position: p.position ?? '',
+                        jerseyNumber: p.jerseyNumber?.toString() ?? '',
+                      })
+                    }}
+                    className="p-1.5 rounded-lg text-gaffer-muted hover:text-white transition-colors mr-1"
+                    aria-label="Edit player"
+                  >
+                    <Pencil size={15} />
+                  </button>
+                  <button
                     onClick={() => setRemoveTarget(p)}
                     className="w-8 h-8 flex items-center justify-center rounded-full text-gaffer-subtle hover:text-red-400 transition-colors"
                   >
@@ -522,6 +557,75 @@ export default function PlayersPage() {
         onConfirm={() => revokeTarget && revokeMutation.mutate(revokeTarget)}
         onCancel={() => setRevokeTarget(null)}
       />
+
+      <AnimatePresence>
+        {editTarget && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+              onClick={() => setEditTarget(null)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="w-full max-w-sm bg-gaffer-surface border border-gaffer-border rounded-2xl p-6 shadow-2xl">
+                <h2 className="text-white font-display font-bold text-lg mb-4">Edit Player</h2>
+                <div className="flex flex-col gap-3">
+                  <input
+                    className="w-full px-4 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+                    placeholder="First name"
+                    value={editForm.firstName}
+                    onChange={(e) => setEditForm(f => ({ ...f, firstName: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+                    placeholder="Last name"
+                    value={editForm.lastName}
+                    onChange={(e) => setEditForm(f => ({ ...f, lastName: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+                    placeholder="Position (e.g. Midfielder)"
+                    value={editForm.position}
+                    onChange={(e) => setEditForm(f => ({ ...f, position: e.target.value }))}
+                  />
+                  <input
+                    className="w-full px-4 py-3 rounded-xl bg-gaffer-card border border-gaffer-border text-white placeholder:text-gaffer-subtle font-body text-sm focus:outline-none focus:border-gaffer-orange transition-colors"
+                    placeholder="Jersey number"
+                    type="number"
+                    value={editForm.jerseyNumber}
+                    onChange={(e) => setEditForm(f => ({ ...f, jerseyNumber: e.target.value }))}
+                  />
+                </div>
+                <div className="flex gap-3 mt-5">
+                  <button
+                    onClick={() => setEditTarget(null)}
+                    className="flex-1 py-2.5 rounded-xl border border-gaffer-border text-gaffer-muted text-sm font-body"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    disabled={!editForm.firstName.trim() || !editForm.lastName.trim() || editMutation.isPending}
+                    onClick={() => editMutation.mutate({
+                      firstName: editForm.firstName.trim(),
+                      lastName: editForm.lastName.trim(),
+                      position: editForm.position.trim() || undefined,
+                      jerseyNumber: editForm.jerseyNumber ? Number(editForm.jerseyNumber) : undefined,
+                    })}
+                    className="flex-1 py-2.5 rounded-xl bg-orange-gradient-btn text-white text-sm font-body font-semibold disabled:opacity-50"
+                  >
+                    {editMutation.isPending ? 'Saving…' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
       </div>
     </div>
   )

@@ -223,6 +223,7 @@ export default function LeagueHomePage() {
   const { data: fixtures, isLoading: loadingFixtures } = useQuery({
     queryKey: ['fixtures', leagueId],
     queryFn: () => listFixtures(leagueId),
+    refetchInterval: 20_000,
   })
 
   const { data: scorers } = useQuery({

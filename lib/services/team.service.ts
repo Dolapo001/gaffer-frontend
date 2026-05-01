@@ -127,7 +127,16 @@ export async function listPlayers(teamId: string, competitionId?: string): Promi
 export async function updatePlayer(
   teamId: string,
   playerId: string,
-  payload: { role?: 'player' | 'captain' | 'coach'; squadStatus?: string; jerseyNumber?: number; price?: number },
+  payload: {
+    role?: 'player' | 'captain' | 'coach'
+    squadStatus?: string
+    jerseyNumber?: number
+    price?: number
+    firstName?: string
+    lastName?: string
+    position?: string
+    nationality?: string
+  },
 ): Promise<Player> {
   const data = await api.patch<{ player: Player }>(`/teams/${teamId}/players/${playerId}`, payload)
   return data.player

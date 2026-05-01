@@ -90,8 +90,11 @@ export async function getNewsFeed(page: number = 1): Promise<FeedPage> {
 }
 
 // GET /feed/:id — single post detail
+// Not marked public: the api client attaches the token when present so the
+// backend can resolve isLiked correctly for authenticated users, while
+// unauthenticated requests still work (no token = no Authorization header).
 export async function getFeedItem(id: string): Promise<FeedItem> {
-  const raw = await api.get<unknown>(`/feed/${id}`, { public: true })
+  const raw = await api.get<unknown>(`/feed/${id}`)
   const r = raw as any
   return r?.item ?? r?.post ?? r
 }
@@ -111,51 +114,51 @@ export async function deletePost(id: string): Promise<void> {
   await api.delete<unknown>(`/feed/posts/${id}`)
 }
 
-// POST /feed/posts/:postId/likes — like a post
+// POST /feed/:postId/like — like a post
 export async function likeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.post<{ message: string }>(`/feed/posts/${id}/likes`)
+  const data = await api.post<{ message: string }>(`/feed/${id}/like`)
   return data
 }
 
-// DELETE /feed/posts/:postId/likes — unlike a post
+// DELETE /feed/:postId/like — unlike a post
 export async function unlikeFeedItem(id: string): Promise<{ message: string }> {
-  const data = await api.delete<{ message: string }>(`/feed/posts/${id}/likes`)
+  const data = await api.delete<{ message: string }>(`/feed/${id}/like`)
   return data
 }
 
-// GET /feed/posts/:postId/comments — fetch comments (newest first, 20/page)
+// GET /feed/:postId/comments — fetch comments (newest first, 20/page)
 export async function getComments(
   id: string,
   page: number = 1
 ): Promise<{ comments: FeedComment[]; total: number; page: number }> {
   const data = await api.get<{ comments: FeedComment[]; total: number; page: number }>(
-    `/feed/posts/${id}/comments?page=${page}`,
+    `/feed/${id}/comments?page=${page}`,
     { public: true }
   )
   return data
 }
 
-// POST /feed/posts/:postId/comments — add a comment
+// POST /feed/:postId/comments — add a comment
 export async function addComment(id: string, body: string): Promise<FeedComment> {
-  const raw = await api.post<unknown>(`/feed/posts/${id}/comments`, { body })
+  const raw = await api.post<unknown>(`/feed/${id}/comments`, { body })
   const r = raw as any
   return r?.comment ?? r
 }
 
-// PUT /feed/posts/:postId/comments/:commentId — edit a comment
+// PUT /feed/:postId/comments/:commentId — edit a comment
 export async function editComment(
   postId: string,
   commentId: string,
   body: string
 ): Promise<FeedComment> {
-  const raw = await api.put<unknown>(`/feed/posts/${postId}/comments/${commentId}`, { body })
+  const raw = await api.put<unknown>(`/feed/${postId}/comments/${commentId}`, { body })
   const r = raw as any
   return r?.comment ?? r
 }
 
-// DELETE /feed/posts/:postId/comments/:commentId — delete a comment
+// DELETE /feed/:postId/comments/:commentId — delete a comment
 export async function deleteComment(postId: string, commentId: string): Promise<void> {
-  await api.delete<unknown>(`/feed/posts/${postId}/comments/${commentId}`)
+  await api.delete<unknown>(`/feed/${postId}/comments/${commentId}`)
 }
 
 // GET /feed/search — search posts/feed content

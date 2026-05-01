@@ -22,7 +22,7 @@ import {
   listTeams,
   getTeam,
   updateTeam,
-  archiveTeam,
+  deleteTeam,
   addPlayer,
   listPlayers,
   updatePlayer,
@@ -134,11 +134,11 @@ describe('updateTeam()', () => {
 
 // ── archiveTeam ───────────────────────────────────────────────────────────────
 
-describe('archiveTeam()', () => {
+describe('deleteTeam()', () => {
   it('calls DELETE /teams/:teamId', async () => {
     mockApi.delete.mockResolvedValue({ message: 'Team archived' })
 
-    const result = await archiveTeam(TEAM_ID)
+    const result = await deleteTeam(TEAM_ID)
 
     expect(mockApi.delete).toHaveBeenCalledWith(`/teams/${TEAM_ID}`)
     expect(result.message).toContain('archived')
@@ -216,7 +216,7 @@ describe('createPlayerInvite()', () => {
     const result = await createPlayerInvite(TEAM_ID, 'player@test.com')
 
     expect(mockApi.post).toHaveBeenCalledWith(`/teams/${TEAM_ID}/player-invites`, { email: 'player@test.com' })
-    expect(result.invite.inviteLink).toBeTruthy()
+    expect(result.inviteLink).toBeTruthy()
   })
 })
 
