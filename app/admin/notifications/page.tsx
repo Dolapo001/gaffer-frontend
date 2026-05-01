@@ -139,7 +139,7 @@ export default function AdminNotificationsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ delay: i * 0.05 }}
-                    className={`w-full flex items-start gap-3 px-4 py-4 transition-colors ${!notif.read ? 'bg-gaffer-surface/40' : ''}`}
+                    className={`w-full flex items-start gap-3 px-4 py-4 transition-colors ${!notif.isRead ? 'bg-gaffer-surface/40' : ''}`}
                   >
                     {/* Icon */}
                     <div className={`w-10 h-10 rounded-xl ${meta.bg} flex items-center justify-center flex-shrink-0 mt-0.5`}>
@@ -148,19 +148,19 @@ export default function AdminNotificationsPage() {
 
                     {/* Content — tap to mark read */}
                     <button
-                      onClick={() => !notif.read && readMutation.mutate(notif._id)}
+                      onClick={() => !notif.isRead && readMutation.mutate(notif._id)}
                       className="flex-1 min-w-0 text-left"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <p className={`font-body font-semibold text-sm leading-tight ${notif.read ? 'text-white/70' : 'text-white'}`}>
+                        <p className={`font-body font-semibold text-sm leading-tight ${notif.isRead ? 'text-white/70' : 'text-white'}`}>
                           {notif.title}
                         </p>
-                        {!notif.read && (
+                        {!notif.isRead && (
                           <span className="flex-shrink-0 w-2 h-2 rounded-full bg-gaffer-orange mt-1" />
                         )}
                       </div>
                       <p className="text-gaffer-muted text-xs font-body mt-1 leading-relaxed line-clamp-2">
-                        {notif.body}
+                        {notif.message}
                       </p>
                       <p className="text-gaffer-subtle text-[10px] font-body mt-1.5">
                         {new Date(notif.createdAt).toLocaleDateString('en-GB', {

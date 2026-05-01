@@ -4,7 +4,8 @@ import React, { useState, useLayoutEffect, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Share2, Bell, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
+import { Menu, Share2, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
+import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
 import { getWallet } from '@/lib/services/payment.service'
@@ -94,7 +95,7 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Right — wallet, notifications, profile */}
+          {/* Right — wallet, bell, profile */}
           <div className="flex-1 flex items-center justify-end gap-1">
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
@@ -106,12 +107,7 @@ export default function DashboardPage() {
               <span className="text-orange-500 text-sm">💰</span>
               <span className="text-[11px] font-chakra font-black text-white">{walletBalance ?? 0}</span>
             </motion.div>
-            <button
-              onClick={() => router.push('/app/notifications')}
-              className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-            >
-              <Bell size={22} />
-            </button>
+            <NotificationBell />
             <button
               onClick={() => router.push('/app/profile')}
               className="w-10 h-10 flex items-center justify-center text-white/60 hover:text-white transition-colors"

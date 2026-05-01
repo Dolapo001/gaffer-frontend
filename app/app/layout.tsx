@@ -6,7 +6,6 @@ import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Users } from 'lucide-react'
-import Link from 'next/link'
 import { useUIStore } from '@/store/uiStore'
 
 // useAuthListener is called once at the root via AuthProvider — not here.

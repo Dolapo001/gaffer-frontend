@@ -4,6 +4,7 @@ const withPWA = require('@ducanh2912/next-pwa').default({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  customWorkerSrc: 'worker',
   runtimeCaching: [
     // ── Static assets (fonts, images, scripts, styles) ──────────────────────
     // Cache-first: these files are content-hashed, safe to cache indefinitely.

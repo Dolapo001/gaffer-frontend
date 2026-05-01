@@ -84,6 +84,7 @@ function ArticleContent() {
     commentsCount: item.commentCount ?? item.commentsCount,
     isLiked: item.isLiked ?? false,
     isSystem,
+    allowComments: item.allowComments ?? false,
     author: {
       name: authorDisplayName,
       handle: authorHandle,
