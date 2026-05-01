@@ -54,7 +54,7 @@ function toArticleProps(item: FeedItem) {
     isLiked: item.isLiked ?? false,
     isSystemPost: isSystem,
     authorType: item.authorType,
-    allowComments: item.allowComments ?? false,
+    allowComments: item.allowComments ?? true,
     author: {
       name: authorDisplayName,
       handle: isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? ''),

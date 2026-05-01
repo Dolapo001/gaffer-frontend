@@ -16,6 +16,7 @@ import { getImageUrl, getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
 import { useToastStore } from '@/store/toastStore'
 import { useAuthStore } from '@/store/authStore'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -301,6 +302,7 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
    const rawType = (event as any).rawType || event.type || 'event'
    const { user, role } = useAuthStore()
    const queryClient = useQueryClient()
+   const [confirmOpen, setConfirmOpen] = useState(false)
 
    const deleteMutation = useMutation({
       mutationFn: () => deleteMatchEvent(matchId, event._id),
@@ -352,7 +354,7 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
          </div>
          {role === 'organization' && (
             <button
-               onClick={() => deleteMutation.mutate(undefined)}
+               onClick={() => setConfirmOpen(true)}
                disabled={deleteMutation.isPending}
                aria-label="Undo commentary"
                className="shrink-0 text-[10px] font-bold text-white/40 uppercase tracking-widest hover:text-white/70 transition-colors disabled:opacity-30"
@@ -364,6 +366,19 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
          {event.minute != null && (
             <span className="shrink-0 text-[10px] font-bold text-white/30 uppercase tracking-widest">{event.minute}&apos;</span>
          )}
+         <ConfirmDialog
+            open={confirmOpen}
+            title="Undo Commentary"
+            message="Are you sure you want to remove this commentary event? This cannot be undone."
+            confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+            cancelLabel="Cancel"
+            destructive
+            onConfirm={() => {
+               setConfirmOpen(false)
+               deleteMutation.mutate(undefined)
+            }}
+            onCancel={() => setConfirmOpen(false)}
+         />
       </div>
    )
 }
