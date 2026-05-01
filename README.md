@@ -5,7 +5,6 @@ This README now includes the correct environment variable setup for your new **D
 # 🏆 THE GAFFER — PWA Sports Management
 > **Dominate the field.** A high-performance, premium sports management platform built with **Next.js 14**, **Firebase Auth**, and a dedicated **DigitalOcean Backend**.
 
----
 
 ## 🚀 Deployment Status
 | Layer | Environment | URL |
