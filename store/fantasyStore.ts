@@ -2,8 +2,6 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { useShallow } from 'zustand/react/shallow'
 import {
-  SQUAD,
-  GAMEWEEK_INFO,
   type FantasySquadPlayer,
   type BoostType,
 } from '@/lib/fantasyMockData'
@@ -11,10 +9,10 @@ import {
   createFantasyTeam,
   setSquad,
   makeTransfer,
-  activateChip,
   getMyFantasyTeam,
   SQUAD_RULES,
 } from '@/lib/services/fantasy.service'
+import type { ChipType } from '@/lib/services/chip.service'
 
 interface FantasyState {
   // Competition context
@@ -24,8 +22,15 @@ interface FantasyState {
   players: FantasySquadPlayer[]
   selectedPlayerId: string | null
   substitutingOutId: string | null
+  /** @deprecated superseded by real chip.service.ts data — see ChipStoreDrawer/ActiveChipBanner */
   selectedBoost: BoostType
   budget: number
+  /** The single source of truth for the user's available bank balance, provided by the backend. */
+  baseBankBalance: number
+  /** Total squad budget for the active competition (from FantasySeason.squadBudget). Defaults to 100 until loaded. */
+  squadBudget: number
+  /** Chip currently active for the open gameweek, if any — drives the My Team active-chip banner. */
+  activeChipType: ChipType | null
   isSaved: boolean
   isSaving: boolean
   saveError: string | null
@@ -46,7 +51,10 @@ interface FantasyState {
   setCompetitionId: (id: string | null) => void
   selectPlayer: (id: string | null) => void
   setSubstitutingOutId: (id: string | null) => void
+  /** @deprecated superseded by real chip.service.ts data */
   setBoost: (boost: BoostType) => void
+  setSquadBudget: (budget: number) => void
+  setActiveChipType: (chipType: ChipType | null) => void
   toggleCaptain: (id: string) => void
   performSubstitution: (id1: string, id2: string) => void
   saveTeam: () => void
@@ -59,6 +67,7 @@ interface FantasyState {
   setHasNamedTeam: (val: boolean) => void
   setTeamName: (name: string) => void
   setPlayers: (players: FantasySquadPlayer[]) => void
+  setBaseBankBalance: (balance: number) => void
   adjustBudget: (delta: number) => void
   resetTeam: () => void
 }
@@ -72,6 +81,9 @@ export const useFantasyStore = create<FantasyState>()(
       substitutingOutId: null,
       selectedBoost: null,
       budget: 100,
+      baseBankBalance: 100,
+      squadBudget: 100,
+      activeChipType: null,
       isSaved: false,
       isSaving: false,
       saveError: null,
@@ -96,6 +108,9 @@ export const useFantasyStore = create<FantasyState>()(
             substitutingOutId: null,
             selectedBoost: null,
             budget: 100,
+            baseBankBalance: 100,
+            squadBudget: 100,
+            activeChipType: null,
             isSaved: false,
             isSaving: false,
             hasSeenWelcome: false,
@@ -273,12 +288,18 @@ export const useFantasyStore = create<FantasyState>()(
       setHasNamedTeam: (val) => set({ hasNamedTeam: val }),
       setTeamName: (name) => set({ teamName: name }),
       setPlayers: (players) => set({ players }),
+      setBaseBankBalance: (balance) => set({ baseBankBalance: balance }),
       adjustBudget: (delta) => set((state) => ({ budget: Math.max(0, state.budget + delta) })),
+      setSquadBudget: (budget) => set({ squadBudget: budget }),
+      setActiveChipType: (chipType) => set({ activeChipType: chipType }),
 
       resetTeam: () =>
         set({
           players: [],
           budget: 100,
+          baseBankBalance: 100,
+          squadBudget: 100,
+          activeChipType: null,
           isSaved: false,
           hasSeenWelcome: true,
           hasCreatedTeam: false,
@@ -297,6 +318,9 @@ export const useFantasyStore = create<FantasyState>()(
         players: state.players,
         selectedBoost: state.selectedBoost,
         budget: state.budget,
+        baseBankBalance: state.baseBankBalance,
+        squadBudget: state.squadBudget,
+        activeChipType: state.activeChipType,
         substitutingOutId: state.substitutingOutId,
         hasSeenWelcome: state.hasSeenWelcome,
         hasCreatedTeam: state.hasCreatedTeam,
@@ -321,8 +345,17 @@ export const selectBenchPlayers = (state: FantasyState) =>
 export const selectPlayerById = (id: string | null) => (state: FantasyState) =>
   id ? state.players.find((p) => p.id === id) ?? null : null
 
-export const selectRemainingBudget = (state: FantasyState) =>
-  Math.max(0, 100 - state.players.reduce((s, p) => s + (p.price ?? 0), 0))
+export const selectRemainingBudget = (state: FantasyState) => {
+  // If the user has completed onboarding, baseBankBalance is the single source of truth
+  // and already accounts for the squad cost.
+  if (state.apiTeamId || state.hasCreatedTeam) {
+    return state.baseBankBalance ?? 0;
+  }
+
+  // During initial PickTeamOnboarding, we calculate the remaining budget by subtracting 
+  // the cost of the currently selected squad from the starting budget.
+  return Math.max(0, state.squadBudget - state.players.reduce((s, p) => s + (p.purchasePrice ?? p.price ?? 0), 0))
+}
 
 // ─── Memoised hooks (shallow-compare array results to prevent extra renders) ──
 

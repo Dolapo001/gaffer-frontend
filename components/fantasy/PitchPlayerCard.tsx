@@ -21,6 +21,10 @@ interface PitchPlayerCardProps {
   highlightMode?: 'none' | 'sub_out' | 'sub_in_valid'
   status?: 'fit' | 'injured' | 'warning'
   captaincy?: 'C' | 'V' | null
+  /** Points for the currently-viewed gameweek. When present, replaces the fixture text with the score. */
+  points?: number | null
+  /** SofaScore-style match rating (e.g. 7.8, 6.5) */
+  rating?: number | null
 }
 
 export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
@@ -33,6 +37,8 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
   highlightMode = 'none',
   status = 'fit',
   captaincy = null,
+  points = null,
+  rating = null,
 }) => {
   const resolvedJersey = normalizeJerseyConfig(
     jersey ?? { primaryColor: '#4a5568', secondaryColor: '#718096', jerseyPattern: 'solid' }
@@ -73,6 +79,21 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
         }}
       >
+        {/* ── SofaScore Rating Badge Pill (Top-Left corner of card) ── */}
+        {rating != null && !isNaN(rating) && (
+          <div
+            className={`absolute -top-1.5 -left-1.5 z-20 px-1 py-[1px] rounded-md text-[8.5px] font-black leading-none shadow-md border border-black/30 tracking-tight ${
+              rating >= 7.0
+                ? 'bg-[#22c55e] text-white'
+                : rating >= 6.0
+                ? 'bg-[#eab308] text-black'
+                : 'bg-[#ef4444] text-white'
+            }`}
+          >
+            {rating.toFixed(1)}
+          </div>
+        )}
+
         {/* JERSEY CONTAINER — Scaled to 54 width to ensure both sleeves are visible */}
         <div className="absolute" style={{ top: 9.7, left: (51.3 - 44.4) / 2, width: 44.4, height: 58.5, overflow: 'visible' }}>
             <div style={{ filter: jerseyGlow || undefined }} className="w-full h-full flex items-center justify-center">
@@ -99,7 +120,7 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           }}
         >
           {/* Top Half: Player Name */}
-          <div className="w-full bg-white flex items-center justify-center pt-1.5" style={{ height: '52%' }}>
+          <div className="w-full bg-white flex items-center justify-center" style={{ height: '52%' }}>
             <p
               className="w-full text-center truncate font-black leading-none px-1.5"
               style={{ fontSize: 8.2, color: '#310b42' }}
@@ -107,14 +128,23 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
               {playerName || 'Player'}
             </p>
           </div>
-          {/* Bottom Half: Fixture */}
-          <div className="w-full bg-[#f3f0f5] flex items-center justify-center pt-0.5 border-t border-black/5" style={{ height: '48%' }}>
-             <p
-              className="w-full text-center truncate font-bold uppercase leading-none px-1.5"
-              style={{ fontSize: 6.2, color: '#4a0e63', opacity: 0.8 }}
-            >
-              {fixture || 'TBC'}
-            </p>
+          {/* Bottom Half: Points (scored gameweek) or Fixture/Team (upcoming/TOTW) */}
+          <div className="w-full bg-[#f3f0f5] flex items-center justify-center border-t border-black/5" style={{ height: '48%' }}>
+            {points != null ? (
+              <p
+                className="w-full text-center truncate font-black leading-none"
+                style={{ fontSize: 8.5, color: '#ff6b00' }}
+              >
+                {points} pts
+              </p>
+            ) : (
+              <p
+                className="w-full text-center truncate font-extrabold uppercase leading-none px-1"
+                style={{ fontSize: 6.8, color: '#4a0e63', opacity: 0.9 }}
+              >
+                {fixture || 'TBC'}
+              </p>
+            )}
           </div>
         </div>
       </div>

@@ -34,7 +34,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
       <ErrorBoundary>
         <motion.main
-          key={pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}

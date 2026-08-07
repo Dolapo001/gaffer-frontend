@@ -14,9 +14,18 @@ type InboxCache = {
 }
 
 let socketInstance: ReturnType<typeof io> | null = null
+let socketListeners: Array<(s: ReturnType<typeof io>) => void> = []
 
 export function getSocket() {
   return socketInstance
+}
+
+export function onSocketInitialized(cb: (s: ReturnType<typeof io>) => void) {
+  if (socketInstance) {
+    cb(socketInstance)
+  } else {
+    socketListeners.push(cb)
+  }
 }
 
 export function useNotificationSocket() {
@@ -33,6 +42,8 @@ export function useNotificationSocket() {
     })
 
     socketInstance = socket
+    socketListeners.forEach((cb) => cb(socket))
+    socketListeners = []
 
     socket.on('notification:new', (notification: InboxNotification) => {
       // Prepend to inbox cache — no network request

@@ -12,15 +12,12 @@ import { useUIStore } from '@/store/uiStore'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
 
-const DEFAULT_NAV = [
-  { href: '/app/dashboard', icon: Home,      label: 'Home'    },
-  { href: '/app/league',    icon: Trophy,    label: 'League'  },
-  { href: '/app/news',      icon: Newspaper, label: 'News'    },
-]
-
 // Exact paths that mean the user has intentionally left the competition context.
 // Note: '/app/league/:id' is the league home and must NOT clear the context.
-const EXIT_PATHS = ['/app/dashboard', '/app/league']
+// '/app/fantasy' (the bare picker) is included so browsing it after visiting a
+// league/competition correctly resets nav highlighting instead of leaving a
+// stale activeCompetitionId pinned to whatever was last visited.
+const EXIT_PATHS = ['/app/dashboard', '/app/league', '/app/fantasy']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -33,16 +30,23 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (isExiting) clearActiveCompetition()
   }, [pathname])
 
+  // Fantasy is always a primary destination: the picker when no competition
+  // is active, or straight into that competition's fantasy tabs when one is.
   const navItems = activeCompetitionId
     ? [
-        // Home → rich league home dashboard
-        { href: `/app/league/${activeCompetitionId}`,                        icon: Home,      label: 'Home'    },
-        { href: `/app/fantasy?competitionId=${activeCompetitionId}`,         icon: Users,     label: 'Fantasy' },
-        // League → table + fixtures page for this competition
-        { href: `/app/league/${activeCompetitionId}/details`,                icon: Trophy,    label: 'League'  },
-        { href: '/app/news',                                                 icon: Newspaper, label: 'News'    },
+        // Home → league Overview tab
+        { href: `/app/league/${activeCompetitionId}`,           icon: Home,      label: 'Home'    },
+        { href: `/app/fantasy/${activeCompetitionId}`,          icon: Users,     label: 'Fantasy' },
+        // League → league Standings tab (closest match to the old "details" destination)
+        { href: `/app/league/${activeCompetitionId}/standings`, icon: Trophy,    label: 'League'  },
+        { href: '/app/news',                                    icon: Newspaper, label: 'News'    },
       ]
-    : DEFAULT_NAV
+    : [
+        { href: '/app/dashboard', icon: Home,      label: 'Home'    },
+        { href: '/app/fantasy',   icon: Users,     label: 'Fantasy' },
+        { href: '/app/league',    icon: Trophy,    label: 'League'  },
+        { href: '/app/news',      icon: Newspaper, label: 'News'    },
+      ]
 
   if (!isReady) {
     return (
@@ -59,7 +63,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
         <ErrorBoundary>
           <motion.main
-            key={pathname}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}

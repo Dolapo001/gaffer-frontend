@@ -26,10 +26,25 @@ export interface ChipInventory {
   lastUsedGameweekNumber?: number
 }
 
+export interface ActiveChipUsage {
+  _id: string
+  chipType: ChipType
+  gameweekId: string
+  gameweekNumber: number
+}
+
+export interface ListChipsResult {
+  chips: ChipInfo[]
+  activeUsages: ActiveChipUsage[]
+}
+
 // GET /chips?competitionId=...
-export async function listChips(competitionId: string): Promise<ChipInfo[]> {
-  const res = await api.get<{ data: ChipInfo[] }>(`/chips?competitionId=${competitionId}`)
-  return res.data
+export async function listChips(competitionId: string): Promise<ListChipsResult> {
+  const res = await api.get<{ data: ChipInfo[]; activeUsages?: ActiveChipUsage[] }>(`/chips?competitionId=${competitionId}`)
+  if (Array.isArray(res.data)) {
+    return { chips: res.data, activeUsages: (res as any).activeUsages ?? [] }
+  }
+  return { chips: (res.data as any)?.chips ?? [], activeUsages: (res as any).activeUsages ?? [] }
 }
 
 // POST /chips/purchase

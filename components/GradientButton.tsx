@@ -45,11 +45,10 @@ export function GradientButton({
       className={`${base} ${variants[variant]} ${className}`}
       style={style}
     >
-      {loading ? (
+      {loading && (
         <span className="inline-block w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-      ) : (
-        children
       )}
+      {children}
     </motion.button>
   )
 }

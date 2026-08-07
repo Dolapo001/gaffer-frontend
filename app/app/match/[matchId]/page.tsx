@@ -17,6 +17,8 @@ import { useGoBack } from '@/hooks/useGoBack'
 import { useToastStore } from '@/store/toastStore'
 import { useAuthStore } from '@/store/authStore'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { CommentaryIcon } from '@/components/CommentaryIcon'
+import { MatchLineupPitch, type TeamLineupData, type LineupPlayer } from '@/components/match/MatchLineupPitch'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -46,6 +48,8 @@ export default function MatchCenterPage() {
     queryKey: ['lineups', matchId],
     queryFn: () => listLineups(matchId),
     enabled: !!matchId,
+    staleTime: 0,
+    refetchInterval: 5_000,
     throwOnError: false,
   })
 
@@ -211,58 +215,106 @@ export default function MatchCenterPage() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="flex flex-col gap-6 px-1"
+                  className="flex flex-col gap-4 px-1"
                >
-                  {/* HOME / AWAY team toggle */}
-                  <div className="flex gap-2">
-                     {(['home', 'away'] as const).map((side) => (
-                        <button
-                           key={side}
-                           onClick={() => setLineupTeam(side)}
-                           className={`flex-1 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest transition-colors ${lineupTeam === side ? 'bg-gaffer-orange text-white' : 'bg-white/5 text-white/40'}`}
-                        >
-                           {side === 'home' ? (homeTeam.shortName || homeTeam.name) : (awayTeam.shortName || awayTeam.name)}
-                        </button>
-                     ))}
-                  </div>
-
                   {(() => {
-                     const teamId = lineupTeam === 'home'
-                        ? (fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string)
-                        : (fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string)
-                     
-                     // Handle both structured { homeTeam, awayTeam } and legacy array formats
-                     let teamLineup = undefined
+                     // Resolve Home & Away Lineups safely
+                     let homeLineupObj: any = undefined
+                     let awayLineupObj: any = undefined
+
+                     const homeIdStr = fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId._id : fixture.homeTeamId as string
+                     const awayIdStr = fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId._id : fixture.awayTeamId as string
+
                      if (lineupsData && !Array.isArray(lineupsData)) {
-                        teamLineup = lineupTeam === 'home' ? lineupsData.homeTeam : lineupsData.awayTeam
+                        homeLineupObj = lineupsData.homeTeam
+                        awayLineupObj = lineupsData.awayTeam
                      } else if (Array.isArray(lineupsData)) {
-                        teamLineup = lineupsData.find((l: any) => {
-                           const lid = (typeof l.teamId === 'object' && l.teamId !== null) ? l.teamId._id : l.teamId
-                           return lid === teamId
+                        homeLineupObj = lineupsData.find((l: any) => {
+                           const lid = typeof l.teamId === 'object' && l.teamId !== null ? l.teamId._id : l.teamId
+                           return lid === homeIdStr
+                        })
+                        awayLineupObj = lineupsData.find((l: any) => {
+                           const lid = typeof l.teamId === 'object' && l.teamId !== null ? l.teamId._id : l.teamId
+                           return lid === awayIdStr
                         })
                      }
 
-                     const formation = lineupTeam === 'home' 
-                        ? (teamLineup?.formation || fixture.homeFormation || '4-3-3') 
-                        : (teamLineup?.formation || fixture.awayFormation || '4-3-3')
+                     const homeForm = homeLineupObj?.formation || fixture.homeFormation || '4-3-3'
+                     const awayForm = awayLineupObj?.formation || fixture.awayFormation || '4-3-3'
+
+                     // Helper to extract player list from lineup object
+                     const mapPlayers = (rawList: any[] = [], slotsList: any[] = []): LineupPlayer[] => {
+                        const slotMap = new Map<string, any>()
+                        slotsList.forEach((s: any) => {
+                           const spid = typeof s.playerId === 'object' && s.playerId !== null ? s.playerId._id : s.playerId
+                           if (spid) slotMap.set(String(spid), s)
+                        })
+
+                        return rawList.map((item: any, idx: number) => {
+                           const p = (item.playerId && typeof item.playerId === 'object') ? item.playerId : (item.player && typeof item.player === 'object') ? item.player : (typeof item.playerId === 'string' ? { _id: item.playerId, name: item.playerName } : item)
+                           const firstName = p?.firstName || ''
+                           const lastName = p?.lastName || ''
+                           const fullName = (firstName + ' ' + lastName).trim() || item.playerName || p?.name || `Player ${idx + 1}`
+                           const pid = p?._id || p?.id || (typeof item.playerId === 'string' ? item.playerId : null)
+                           const slot = pid ? slotMap.get(String(pid)) : null
+
+                           const isRed = events.some((e: any) => (e.type === 'red_card' || (e.metadata as any)?.isSecondYellow) && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
+                           const isYellow = events.some((e: any) => e.type === 'yellow_card' && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
+                           const isSubbed = events.some((e: any) => e.type === 'substitution' && (e.playerInId === pid || e.playerOutId === pid))
+
+                           const itemRating = slot?.rating != null ? slot.rating : (item.rating != null ? item.rating : (p?.rating != null ? p?.rating : (item.stats?.rating ?? undefined)))
+
+                           return {
+                              id: pid || `p-${idx}`,
+                              name: lastName || firstName || fullName.split(' ')[0],
+                              jerseyNumber: item.jerseyNumber || p?.jerseyNumber || slot?.jerseyNumber || idx + 1,
+                              position: item.position || p?.position || slot?.position || item.role || 'MID',
+                              rating: itemRating,
+                              hasYellowCard: isYellow,
+                              hasRedCard: isRed,
+                              isCaptain: item.isCaptain || p?.isCaptain || false,
+                              isSubstituted: isSubbed,
+                              photoUrl: p?.photoUrl || p?.photo,
+                           }
+                        })
+                     }
+
+                     const homePlayersList = (homeLineupObj?.players && homeLineupObj.players.length > 0) ? homeLineupObj.players : (homeLineupObj?.starters || [])
+                     const awayPlayersList = (awayLineupObj?.players && awayLineupObj.players.length > 0) ? awayLineupObj.players : (awayLineupObj?.starters || [])
+                     const homeSlotsList    = homeLineupObj?.slots || []
+                     const awaySlotsList    = awayLineupObj?.slots || []
+
+                     const homeStarters = mapPlayers(homePlayersList.length ? homePlayersList : homeSlotsList, homeSlotsList)
+                     const homeBench    = mapPlayers(homeLineupObj?.bench || [], homeSlotsList)
+                     const awayStarters = mapPlayers(awayPlayersList.length ? awayPlayersList : awaySlotsList, awaySlotsList)
+                     const awayBench    = mapPlayers(awayLineupObj?.bench || [], awaySlotsList)
+
+                     const homeTeamData: TeamLineupData = {
+                        teamName: homeTeam.name,
+                        shortName: homeTeam.shortName || homeTeam.name,
+                        logoUrl: homeTeam.logoUrl || undefined,
+                        color: '#FF6B00',
+                        formation: homeForm,
+                        starters: homeStarters,
+                        bench: homeBench,
+                     }
+
+                     const awayTeamData: TeamLineupData = {
+                        teamName: awayTeam.name,
+                        shortName: awayTeam.shortName || awayTeam.name,
+                        logoUrl: awayTeam.logoUrl || undefined,
+                        color: '#3b82f6',
+                        formation: awayForm,
+                        starters: awayStarters,
+                        bench: awayBench,
+                     }
+
                      return (
-                        <div className="relative">
-                           <div className="flex items-center justify-between px-3 mb-4">
-                              <div className="flex items-center gap-2">
-                                 {lineupTeam === 'home'
-                                    ? homeTeam.logoUrl && <img src={getImageUrl(homeTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />
-                                    : awayTeam.logoUrl && <img src={getImageUrl(awayTeam.logoUrl)} className="w-4 h-4 object-contain" alt="" />
-                                 }
-                                 <span className="text-white text-[14px] font-black uppercase tracking-wider">
-                                    {lineupTeam === 'home' ? (homeTeam.shortName || homeTeam.name) : (awayTeam.shortName || awayTeam.name)}
-                                 </span>
-                              </div>
-                              <span className="text-white/40 text-[13px] font-black tracking-widest italic leading-none">{formation}</span>
-                           </div>
-                           <div className="relative">
-                               <Pitch teamLineup={teamLineup} formation={formation} />
-                           </div>
-                        </div>
+                        <MatchLineupPitch
+                           homeTeam={homeTeamData}
+                           awayTeam={awayTeamData}
+                           matchEvents={events}
+                        />
                      )
                   })()}
                </motion.div>
@@ -324,28 +376,29 @@ function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string
       },
    })
 
-   const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(rawType)
-   const isSub = rawType === 'substitution'
-   const isYellow = rawType === 'yellow_card'
-   const isRed = rawType === 'red_card'
-   const isFulltime = rawType === 'fulltime'
-   const isCorner = rawType === 'corner'
+   const isSecondYellow = (event as any).metadata?.isSecondYellow || (event.description || event.commentaryText || '').includes('SECOND YELLOW')
+   const displayType = isSecondYellow ? 'second_yellow' : rawType
 
-   const bgColor = isGoal || isFulltime ? 'bg-[#8E103E]' : 'bg-[#1C1F2D]'
+   const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(rawType)
+   const isPenaltyEvent = ['penalty_awarded', 'penalty', 'penalty_saved', 'penalty_missed'].includes(rawType)
+   const isFulltime = rawType === 'fulltime'
+
+   const bgColor = isGoal
+     ? 'bg-[#8E103E] border border-emerald-500/20'
+     : isSecondYellow
+     ? 'bg-[#4C152B] border border-amber-500/30'
+     : isPenaltyEvent
+     ? 'bg-[#4C152B] border border-red-500/20'
+     : isFulltime
+     ? 'bg-[#2E1A47] border border-purple-500/20'
+     : 'bg-[#1C1F2D] border border-white/5'
+
    const content = event.description || event.commentaryText || event.notes || ''
 
    return (
-      <div className={`${bgColor} rounded-[18px] p-4 flex items-center gap-4 transition-all hover:scale-[1.01] shadow-lg border border-white/5`}>
-         <div className="flex-shrink-0 w-8 h-8 flex items-center justify-center">
-            {isGoal && <Goal size={20} className="text-white" />}
-            {isSub && <RefreshCcw size={18} className="text-white/60" />}
-            {isCorner && <CornerDownRight size={18} className="text-white/60" />}
-            {isYellow && <div className="w-[10px] h-[14px] bg-yellow-400 rounded-[2px]" />}
-            {isRed && <div className="w-[10px] h-[14px] bg-red-500 rounded-[2px]" />}
-            {isFulltime && <Goal size={18} className="text-white opacity-40" />}
-            {!isGoal && !isSub && !isCorner && !isYellow && !isRed && !isFulltime && (
-               <div className="w-2 h-2 rounded-full bg-white/20" />
-            )}
+      <div className={`${bgColor} rounded-[18px] p-4 flex items-center gap-4 transition-all hover:scale-[1.01] shadow-lg`}>
+         <div className="flex-shrink-0">
+            <CommentaryIcon type={displayType} />
          </div>
          <div className="flex-1 min-w-0">
             <p className="text-white text-[12px] font-bold leading-tight tracking-tight whitespace-pre-line">

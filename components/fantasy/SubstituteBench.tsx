@@ -16,7 +16,13 @@ function toJersey(player: FantasySquadPlayer): JerseyProps {
   }
 }
 
-function fixtureLabel(player: FantasySquadPlayer): string {
+// Same rule as the main pitch: a gameweek-scoped map is authoritative for
+// "does this team play this round" — only fall back to "next fixture
+// anywhere" when no map was supplied at all.
+function fixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Record<string, string | null>): string {
+  if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
+    return fixtureLabelByTeamId[player.teamId!] ?? 'TBC'
+  }
   const f = player.nextFixtures[0]
   if (!f) return 'TBC'
   const opp = f.awayCode === player.teamCode ? f.homeCode : f.awayCode
@@ -31,6 +37,8 @@ interface SubstituteBenchProps {
   onSelectPlayer: (id: string) => void
   players?: FantasySquadPlayer[]
   compact?: boolean
+  fixtureLabelByTeamId?: Record<string, string | null>
+  pointsByPlayerId?: Record<string, number | null>
 }
 
 export function SubstituteBench({
@@ -40,6 +48,8 @@ export function SubstituteBench({
   onSelectPlayer,
   players = [],
   compact = false,
+  fixtureLabelByTeamId,
+  pointsByPlayerId,
 }: SubstituteBenchProps) {
   const pOut = substitutingOutId
     ? players.find((p) => p.id === substitutingOutId)
@@ -51,12 +61,17 @@ export function SubstituteBench({
       {/* ── Section divider ──────────────────────────────────────────────── */}
       <div className={`flex items-center gap-3 px-2 ${compact ? 'mb-1' : 'mb-4'}`}>
         <div className="h-px flex-1 bg-white/12" />
-        <span
-          className="text-white/45 font-bold uppercase tracking-[0.20em]"
-          style={{ fontSize: 10 }}
-        >
-          Substitutes
-        </span>
+        <div className="flex flex-col items-center text-center">
+          <span
+            className="text-white/45 font-bold uppercase tracking-[0.20em]"
+            style={{ fontSize: 10 }}
+          >
+            Substitutes
+          </span>
+          <span className="text-gaffer-muted/40 uppercase font-black tracking-widest mt-0.5" style={{ fontSize: 7 }}>
+            (Points only count via Bench Boost)
+          </span>
+        </div>
         <div className="h-px flex-1 bg-white/12" />
       </div>
 
@@ -86,7 +101,7 @@ export function SubstituteBench({
 
               <PitchPlayerCard
                 playerName={player.shortName}
-                fixture={fixtureLabel(player)}
+                fixture={fixtureLabel(player, fixtureLabelByTeamId)}
                 jersey={toJersey(player)}
                 selected={selectedId === player.id}
                 highlightMode={
@@ -97,6 +112,7 @@ export function SubstituteBench({
                     : 'none'
                 }
                 onClick={() => onSelectPlayer(player.id)}
+                points={pointsByPlayerId ? pointsByPlayerId[player.id] : null}
                 className={`transition-opacity duration-200 ${
                   substitutingOutId && !isValidTarget
                     ? 'opacity-30 grayscale'

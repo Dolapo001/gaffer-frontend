@@ -3,15 +3,18 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw } from 'lucide-react'
+import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw, CalendarPlus } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { 
-  getFantasySeason, 
-  enableFantasy, 
+import {
+  getFantasySeason,
+  enableFantasy,
   getTeamPricing,
   finalizeAllPricing,
-  syncTournamentPlayers
+  syncTournamentPlayers,
+  listGameweeks,
+  createGameweeks,
 } from '@/lib/services/fantasy.service'
+import { listRounds } from '@/lib/services/fixture.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 
@@ -35,6 +38,18 @@ export function FantasyAdminPanel({ competitionId }: Props) {
     queryKey: ['team-pricing', competitionId],
     queryFn: () => getTeamPricing(competitionId),
     enabled: !!season
+  })
+
+  const { data: rounds } = useQuery({
+    queryKey: ['rounds', competitionId],
+    queryFn: () => listRounds(competitionId),
+    enabled: !!season,
+  })
+
+  const { data: gameweeks } = useQuery({
+    queryKey: ['fantasy-gameweeks', competitionId],
+    queryFn: () => listGameweeks(competitionId),
+    enabled: !!season,
   })
 
   const syncMutation = useMutation({
@@ -66,6 +81,20 @@ export function FantasyAdminPanel({ competitionId }: Props) {
       toast.addToast('Global pricing finalized', 'success')
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error')
+  })
+
+  const generateGameweeksMutation = useMutation({
+    mutationFn: () => createGameweeks(competitionId),
+    onSuccess: (created) => {
+      qc.invalidateQueries({ queryKey: ['fantasy-gameweeks', competitionId] })
+      toast.addToast(
+        created.length > 0
+          ? `${created.length} gameweek${created.length === 1 ? '' : 's'} created — Home and My Team will now show ${created.length === 1 ? 'it' : 'them'}`
+          : 'All rounds already have gameweeks',
+        'success',
+      )
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
   if (isLoadingSeason) return <div className="p-10 text-center animate-pulse text-gaffer-muted">Loading Fantasy...</div>
@@ -146,6 +175,46 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           )}
         </div>
       </div>
+
+      {/* Gameweeks — creating a round/schedule entry does NOT automatically
+          create the matching fantasy gameweek; this is that missing step.
+          Without it, a round's fixtures show up in Fixtures but never in
+          Home or My Team, and scoring has nowhere to go once matches finish. */}
+      {(() => {
+        const roundCount = rounds?.length ?? 0
+        const gameweekCount = gameweeks?.length ?? 0
+        const pendingCount = Math.max(0, roundCount - gameweekCount)
+        if (roundCount === 0) return null
+
+        return (
+          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-2 h-2 rounded-full ${pendingCount === 0 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
+                <h3 className="font-display font-bold text-white uppercase tracking-tight">Gameweeks</h3>
+              </div>
+              <p className="text-gaffer-muted text-xs">
+                {pendingCount === 0
+                  ? `All ${roundCount} round${roundCount === 1 ? '' : 's'} have a fantasy gameweek.`
+                  : `${gameweekCount} of ${roundCount} rounds have a fantasy gameweek — ${pendingCount} round${pendingCount === 1 ? '' : 's'} won't show in Home or My Team until generated.`}
+              </p>
+            </div>
+
+            <button
+              onClick={() => generateGameweeksMutation.mutate()}
+              disabled={pendingCount === 0 || generateGameweeksMutation.isPending}
+              className={`px-6 py-3 rounded-xl font-display font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${
+                pendingCount > 0
+                  ? 'bg-orange-gradient-btn text-white shadow-lg active:scale-95'
+                  : 'bg-gaffer-surface text-gaffer-subtle border border-gaffer-border cursor-not-allowed'
+              }`}
+            >
+              <CalendarPlus size={14} />
+              {generateGameweeksMutation.isPending ? 'Generating...' : pendingCount === 0 ? 'Up to date' : `Generate ${pendingCount} Gameweek${pendingCount === 1 ? '' : 's'}`}
+            </button>
+          </div>
+        )
+      })()}
 
       {teams.length === 0 ? (
         <div className="bg-gaffer-card border border-gaffer-border border-dashed rounded-3xl p-10 text-center space-y-4">

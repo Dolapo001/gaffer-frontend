@@ -41,6 +41,7 @@ const config: Config = {
         },
       },
       fontFamily: {
+        sans: ['var(--font-chakra)', 'Chakra Petch', 'sans-serif'],
         display: ['var(--font-barlow-condensed)', 'Barlow Condensed', 'sans-serif'],
         body: ['var(--font-barlow)', 'Barlow', 'sans-serif'],
         chakra: ['var(--font-chakra)', 'Chakra Petch', 'sans-serif'],

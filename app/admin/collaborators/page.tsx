@@ -105,20 +105,48 @@ export default function CollaboratorsPage() {
   const updateRoleMutation = useMutation({
     mutationFn: ({ userId, role }: { userId: string; role: string }) =>
       updateMemberRole(orgId!, userId, role),
-    onSuccess: () => {
+    onMutate: async ({ userId, role }) => {
+      await queryClient.cancelQueries({ queryKey: ['members', orgId] })
+      const previousMembers = queryClient.getQueryData(['members', orgId])
+      queryClient.setQueryData(['members', orgId], (old: any) => {
+        if (!old) return old
+        return old.map((m: any) => m.userId._id === userId ? { ...m, role } : m)
+      })
+      return { previousMembers }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['members', orgId], context?.previousMembers)
+      addToast(getErrorMessage(err), 'error')
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['members', orgId] })
+    },
+    onSuccess: () => {
       addToast('Role updated', 'success')
     },
-    onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
   const removeMemberMutation = useMutation({
     mutationFn: (userId: string) => removeMember(orgId!, userId),
-    onSuccess: () => {
+    onMutate: async (userId) => {
+      await queryClient.cancelQueries({ queryKey: ['members', orgId] })
+      const previousMembers = queryClient.getQueryData(['members', orgId])
+      queryClient.setQueryData(['members', orgId], (old: any) => {
+        if (!old) return old
+        return old.filter((m: any) => m.userId._id !== userId)
+      })
+      return { previousMembers }
+    },
+    onError: (err, variables, context) => {
+      queryClient.setQueryData(['members', orgId], context?.previousMembers)
+      addToast(getErrorMessage(err), 'error')
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['members', orgId] })
+    },
+    onSuccess: () => {
       addToast('Member removed', 'info')
     },
-    onError: (err) => addToast(getErrorMessage(err), 'error'),
   })
 
   if (!orgId && !isLoadingMembers) return null
@@ -167,7 +195,19 @@ export default function CollaboratorsPage() {
             </div>
 
             <div className="space-y-3">
-              {members?.map((member) => (
+              {isLoadingMembers ? (
+                <>
+                  {[1, 2].map((i) => (
+                    <div key={i} className="bg-[#1C2130] rounded-[24px] p-5 border border-white/5 flex gap-4 animate-pulse">
+                      <div className="w-12 h-12 rounded-full bg-white/10 shrink-0" />
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-white/10 rounded w-1/3" />
+                        <div className="h-3 bg-white/10 rounded w-1/2" />
+                      </div>
+                    </div>
+                  ))}
+                </>
+              ) : members?.map((member) => (
                 <div key={member.userId._id} className="bg-[#1C2130] rounded-[24px] p-5 border border-white/5 flex flex-col gap-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4">

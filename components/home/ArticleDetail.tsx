@@ -36,6 +36,16 @@ interface ArticleDetailProps {
   }
 }
 
+function getInitials(name: string): string {
+  if (!name) return 'N'
+  const cleanName = name.trim()
+  const words = cleanName.split(/\s+/)
+  if (words.length >= 2 && words[0] && words[1]) {
+    return (words[0][0] + words[1][0]).toUpperCase()
+  }
+  return cleanName.substring(0, 2).toUpperCase()
+}
+
 export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
   const qc = useQueryClient()
   const { addToast } = useToast()
@@ -57,6 +67,12 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
     onMutate: (action) => {
       setLiked(action === 'like')
       setLikeCount((c) => (action === 'like' ? c + 1 : c - 1))
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['org-feed'] })
+      qc.invalidateQueries({ queryKey: ['feed'] })
+      qc.invalidateQueries({ queryKey: ['orgFeed'] })
+      qc.invalidateQueries({ queryKey: ['feed-item', article.id] })
     },
     onError: (_err, action) => {
       setLiked(action !== 'like')
@@ -128,8 +144,8 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         <div className="flex items-center justify-between px-4 py-4">
           <div className="flex items-center gap-2.5">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-orange-glow ${article.isSystem ? 'bg-gradient-to-br from-[#FF8904] to-[#E7000B]' : 'bg-gaffer-orange'}`}>
-              <span className="text-white font-display font-black text-base">
-                {article.author.name[0]}
+              <span className="text-white font-display font-black text-base uppercase">
+                {getInitials(article.author.name)}
               </span>
             </div>
             <div>
@@ -167,11 +183,15 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
           {article.title}
         </h1>
 
-        {/* Article image */}
-        <div className="px-4 mb-4">
-          <div className="rounded-2xl overflow-hidden h-52">
+        {/* Expanded Article Image Layout - Fill Container Completely */}
+        <div className="px-4 mb-6">
+          <div className="w-full h-[360px] sm:h-[500px] relative bg-[#181E32] rounded-[16px] overflow-hidden border border-white/5 shadow-xl">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={article.image} alt={article.title} className="w-full h-full object-cover" />
+            <img 
+              src={article.image} 
+              alt={article.title} 
+              className="w-full h-full object-cover object-top" 
+            />
           </div>
         </div>
 

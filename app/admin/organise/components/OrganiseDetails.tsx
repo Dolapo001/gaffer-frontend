@@ -51,7 +51,7 @@ function PlayerAvatar({ photo, size = 'md', jerseyNumber }: { photo?: string | n
     <div className="relative shrink-0">
       <div className={`${dim} rounded-full overflow-hidden bg-[#1a1b2a] border border-white/[0.07] flex items-center justify-center`}>
         {hasRealPhoto ? (
-          <img src={photo} className="w-full h-full object-cover" alt="" />
+          <img src={photo} className="w-full h-full object-cover object-top" alt="" />
         ) : (
           <User size={iconSize} className="text-white/15" />
         )}
@@ -98,6 +98,7 @@ export function OrganiseDetails({
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
   const [showEditTeam, setShowEditTeam] = useState(false)
   const [editTeamName, setEditTeamName] = useState('')
+  const [editMaxPlayers, setEditMaxPlayers] = useState(25)
   const [showPhotos, setShowPhotos] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [isGeneratingLink, setIsGeneratingLink] = useState(false)
@@ -268,7 +269,7 @@ export function OrganiseDetails({
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-6 no-scrollbar space-y-2.5">
+      <div className="flex-1 overflow-y-auto px-4 pb-36 sm:pb-40 no-scrollbar space-y-2.5">
         {selectedTeam && (
           <div className="space-y-2">
             {/* Owner / Staff Row */}
@@ -357,7 +358,11 @@ export function OrganiseDetails({
             <div className="flex gap-2">
               {onUpdateTeam && (
                 <button
-                  onClick={() => { setEditTeamName(selectedTeam?.name || ''); setShowEditTeam(true) }}
+                  onClick={() => {
+                    setEditTeamName(selectedTeam?.name || '')
+                    setEditMaxPlayers(selectedTeamDetail?.maxPlayers || (selectedTeam as any)?.maxPlayers || 25)
+                    setShowEditTeam(true)
+                  }}
                   className="flex-1 flex items-center justify-center gap-1.5 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-white hover:border-white/10 transition-all"
                 >
                   <Pencil size={12} />
@@ -594,10 +599,22 @@ export function OrganiseDetails({
                   className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30 transition-all"
                 />
               </div>
+              <div className="space-y-2">
+                <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Max Players (Squad Capacity)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  value={editMaxPlayers}
+                  onChange={e => setEditMaxPlayers(Math.max(1, parseInt(e.target.value) || 1))}
+                  placeholder="25"
+                  className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30 transition-all"
+                />
+              </div>
               <button
                 onClick={() => {
                   if (!editTeamName.trim()) return
-                  onUpdateTeam?.({ name: editTeamName.trim() })
+                  onUpdateTeam?.({ name: editTeamName.trim(), maxPlayers: editMaxPlayers || 25 })
                   setShowEditTeam(false)
                 }}
                 disabled={!editTeamName.trim()}
@@ -639,7 +656,7 @@ export function OrganiseDetails({
                    <div className="relative w-24 h-24 mx-auto">
                      <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white/5 ring-4 ring-gaffer-orange/10 bg-[#11121C] flex items-center justify-center">
                        {editingPlayer.photo && !editingPlayer.photo.includes('dicebear') ? (
-                         <img src={editingPlayer.photo} className="w-full h-full object-cover" alt="" />
+                         <img src={editingPlayer.photo} className="w-full h-full object-cover object-top" alt="" />
                        ) : (
                          <User size={32} className="text-white/10" />
                        )}

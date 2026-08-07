@@ -135,8 +135,20 @@ export interface PitchPlayerMarker {
   y: number
   /** Single letter or short abbrev shown inside the circle */
   label?: string
+  /** Full player name displayed under the marker */
+  name?: string
   /** Fill colour of the marker circle */
   color?: string
+  /** Live match rating (1.0 - 10.0) */
+  rating?: number
+  hasYellowCard?: boolean
+  hasRedCard?: boolean
+  isCaptain?: boolean
+  isSubstituted?: boolean
+  goalsCount?: number
+  assistsCount?: number
+  isMotm?: boolean
+  photoUrl?: string
   /** Optional click handler */
   onClick?: () => void
 }
@@ -296,34 +308,140 @@ export function PitchView({ players = [], className = '' }: PitchViewProps) {
             Replace the inner <circle>/<text> with a <foreignObject> PlayerCard
             when richer UI is needed — the transform stays the same.
         ════════════════════════════════════════════════════════════════════ */}
-        {players.map((p) => (
-          <g
-            key={p.id}
-            transform={`translate(${p.x}, ${p.y})`}
-            onClick={p.onClick}
-            className={p.onClick ? 'cursor-pointer' : undefined}
-            role={p.onClick ? 'button' : undefined}
-            aria-label={p.label ? `Player ${p.label}` : 'Player marker'}
-          >
-            {/* Outer glow ring — gives the marker depth against the grass */}
-            <circle r={13} fill="black" fillOpacity={0.25} />
-            {/* Main marker disc */}
-            <circle r={11} fill={p.color ?? '#FF6B00'} stroke="white" strokeWidth="1.8" />
-            {/* Player initial / short label */}
-            {p.label && (
-              <text
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize="7.5"
-                fontWeight="bold"
-                fill="white"
-                fontFamily="system-ui, sans-serif"
-              >
-                {p.label}
-              </text>
-            )}
-          </g>
-        ))}
+        {/* ════════════════════════════════════════════════════════════════════
+            LAYER 4 — PLAYER MARKERS  (SofaScore-style with Rating Pills)
+        ════════════════════════════════════════════════════════════════════ */}
+        {players.map((p) => {
+          const rating = p.rating ?? 6.5
+          const isRed = p.hasRedCard || rating < 6.0
+          const isGreen = !p.hasRedCard && rating >= 7.0
+          const badgeBg = isRed ? '#ef4444' : isGreen ? '#22c55e' : '#eab308'
+          const badgeText = isRed || isGreen ? '#ffffff' : '#000000'
+
+          return (
+            <g
+              key={p.id}
+              transform={`translate(${p.x}, ${p.y})`}
+              onClick={p.onClick}
+              className={p.onClick ? 'cursor-pointer active:scale-95 transition-transform' : undefined}
+              role={p.onClick ? 'button' : undefined}
+              aria-label={p.name || `Player ${p.label || ''}`}
+            >
+              {/* Outer shadow */}
+              <circle r={13} fill="black" fillOpacity={0.3} />
+
+              {/* Main player disc */}
+              <circle r={11} fill={p.color ?? '#1c2230'} stroke="white" strokeWidth="1.6" />
+
+              {/* Label inside disc (e.g. jersey number) */}
+              {p.label && (
+                <text
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="7.5"
+                  fontWeight="bold"
+                  fill="white"
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {p.label}
+                </text>
+              )}
+
+              {/* ── MOTM Crown (Top of node) ── */}
+              {p.isMotm && (
+                <g transform="translate(0, -16)">
+                  <circle r="6" fill="#FFD700" stroke="#1c2230" strokeWidth="0.8" />
+                  <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="6">👑</text>
+                </g>
+              )}
+
+              {/* ── Status badges (Top-Left of node) ── */}
+              {p.isCaptain && (
+                <g transform="translate(-14, -12)">
+                  <rect x="0" y="0" width="10" height="9" rx="2" fill="#000000" fillOpacity={0.7} />
+                  <text x="5" y="5.5" textAnchor="middle" dominantBaseline="central" fontSize="6" fontWeight="bold" fill="#FFD700">c</text>
+                </g>
+              )}
+
+              {/* Yellow / Red Card badge (Top-Right of node) */}
+              {p.hasRedCard ? (
+                <rect x="7" y="-13" width="7" height="9" rx="1" fill="#ef4444" stroke="black" strokeWidth="0.5" />
+              ) : p.hasYellowCard ? (
+                <rect x="7" y="-13" width="7" height="9" rx="1" fill="#eab308" stroke="black" strokeWidth="0.5" />
+              ) : null}
+
+              {/* Goal Event Badge (⚽) */}
+              {!!p.goalsCount && p.goalsCount > 0 && (
+                <g transform="translate(10, -11)">
+                  <circle r="5.5" fill="#ffffff" stroke="#1c2230" strokeWidth="0.8" />
+                  <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="6">⚽</text>
+                  {p.goalsCount > 1 && (
+                    <text x="5" y="-3" textAnchor="middle" dominantBaseline="central" fontSize="5" fontWeight="black" fill="#FF5C00">{p.goalsCount}</text>
+                  )}
+                </g>
+              )}
+
+              {/* Assist Event Badge (🅰️) */}
+              {!!p.assistsCount && p.assistsCount > 0 && (
+                <g transform="translate(10, 1)">
+                  <rect x="-4.5" y="-4.5" width="9" height="9" rx="2" fill="#3b82f6" stroke="#ffffff" strokeWidth="0.5" />
+                  <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="5.5" fontWeight="bold" fill="#ffffff">A</text>
+                </g>
+              )}
+
+              {/* Substitution indicator */}
+              {p.isSubstituted && (
+                <g transform="translate(-13, 3)">
+                  <circle r="4.5" fill="#3b82f6" stroke="white" strokeWidth="0.5" />
+                  <text x="0" y="0.5" textAnchor="middle" dominantBaseline="central" fontSize="5" fill="white">⇆</text>
+                </g>
+              )}
+
+              {/* ── SofaScore Rating Pill (Bottom-Center overlay) ── */}
+              <g transform="translate(0, 10)">
+                <rect
+                  x="-11"
+                  y="0"
+                  width="22"
+                  height="10"
+                  rx="3"
+                  fill={badgeBg}
+                  stroke="#1c2230"
+                  strokeWidth="0.8"
+                />
+                <text
+                  x="0"
+                  y="5.5"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="6.5"
+                  fontWeight="bold"
+                  fill={badgeText}
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {rating.toFixed(1)}
+                </text>
+              </g>
+
+              {/* Player short name below marker */}
+              {p.name && (
+                <text
+                  x="0"
+                  y="26"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  fontSize="6.5"
+                  fontWeight="bold"
+                  fill="white"
+                  fillOpacity={0.9}
+                  fontFamily="system-ui, sans-serif"
+                >
+                  {p.name.length > 10 ? p.name.slice(0, 9) + '…' : p.name}
+                </text>
+              )}
+            </g>
+          )
+        })}
       </svg>
     </div>
   )

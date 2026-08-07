@@ -1,5 +1,7 @@
 import { api, ApiError } from '@/lib/api'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+import { mockFantasyTeam, mockPlayers } from '@/lib/testing-mocks/premierLeague'
+// TODO: REMOVE MOCK DATA BEFORE PROD
 
 export interface FantasySeason {
   _id: string
@@ -17,7 +19,34 @@ export interface FantasyGameweek {
   name: string
   deadline: string
   lockStatus: 'open' | 'locked'
-  number: number
+  // Scoring lifecycle — 'completed' is the reliable signal that a gameweek's
+  // points are final. The backend never transitions lockStatus away from
+  // 'open', so don't gate "has this GW been played" on lockStatus.
+  completionStatus: 'pending' | 'scoring' | 'completed'
+  gameweekNumber: number
+  stage?: 'group_stage' | 'round_of_16' | 'quarter_finals' | 'semi_finals' | 'final'
+}
+
+export interface StageRules {
+  name: string
+  freeTransfers: number
+  maxPerRealTeam: number
+  isUnlimitedTransfers: boolean
+}
+
+export function getStageRules(stage?: string): StageRules {
+  switch (stage) {
+    case 'round_of_16':
+      return { name: 'Round of 16', freeTransfers: 99, maxPerRealTeam: 4, isUnlimitedTransfers: true }
+    case 'quarter_finals':
+      return { name: 'Quarter-Finals', freeTransfers: 3, maxPerRealTeam: 5, isUnlimitedTransfers: false }
+    case 'semi_finals':
+      return { name: 'Semi-Finals', freeTransfers: 5, maxPerRealTeam: 6, isUnlimitedTransfers: false }
+    case 'final':
+      return { name: 'Final', freeTransfers: 5, maxPerRealTeam: 8, isUnlimitedTransfers: false }
+    default:
+      return { name: 'Group Stage', freeTransfers: 1, maxPerRealTeam: 3, isUnlimitedTransfers: false }
+  }
 }
 
 export interface FantasyPlayer {
@@ -49,6 +78,7 @@ export interface FantasyPlayer {
   }
   position: 'GK' | 'DEF' | 'MID' | 'FWD'
   price: number
+  sellPrice?: number
   tier?: 'marquee' | 'elite' | 'standard' | 'budget'
   totalPoints?: number
 }
@@ -66,18 +96,47 @@ export interface FantasyTeam {
   totalPoints: number
   formation?: string
   transfersRemaining?: number
+  bankBalance?: number
+  // Optional — only present once the backend ships the coin-based transfer
+  // economy (see BACKEND_CONTRACT.md). Read defensively: when absent, the
+  // transfers UI falls back to today's points-hit model unchanged.
+  freeTransfersRemaining?: number
+  transferCostMode?: 'points' | 'coins'
   createdAt: string
 }
 
-export interface FantasyLeaderboardEntry {
+// Overall (season) and per-gameweek leaderboards come back in genuinely
+// different shapes from the backend — overall entries carry a flat userId +
+// totalPoints (from FantasyTeam), gameweek entries nest userId under
+// fantasyTeamId and use netPoints/grossPoints (from FantasyTeamGameweek).
+// Both are wrapped in { data: [...] }, not { leaderboard: [...] }.
+export interface OverallLeaderboardEntry {
   rank: number
-  userId: { _id: string; email: string; fullName?: string }
+  _id: string
   teamName: string
+  userId: { _id: string; fullName?: string; username?: string; avatarUrl?: string }
   totalPoints: number
+  lastGwPoints?: number
 }
 
-export interface LeaderboardResponse {
-  leaderboard: FantasyLeaderboardEntry[]
+export interface OverallLeaderboardResponse {
+  data: OverallLeaderboardEntry[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export interface GameweekLeaderboardEntry {
+  rank: number
+  _id: string
+  fantasyTeamId: { _id: string; teamName: string; userId: { _id: string; fullName?: string; username?: string } }
+  grossPoints: number
+  netPoints: number
+  benchBoostActive?: boolean
+}
+
+export interface GameweekLeaderboardResponse {
+  data: GameweekLeaderboardEntry[]
   total: number
   page: number
   pageSize: number
@@ -107,24 +166,28 @@ export async function syncTournamentPlayers(
 }
 
 // POST /fantasy/:competitionId/gameweeks
-export async function createGameweeks(
-  competitionId: string,
-): Promise<{ message: string }> {
-  return api.post<{ message: string }>(`/fantasy/${competitionId}/gameweeks`)
+// Backend returns { data: FantasyGameweek[] } — one new gameweek per round
+// that doesn't already have one; rounds that already have a gameweek are
+// silently skipped (safe to call repeatedly as new rounds get added).
+export async function createGameweeks(competitionId: string): Promise<FantasyGameweek[]> {
+  const res = await api.post<{ data: FantasyGameweek[] }>(`/fantasy/${competitionId}/gameweeks`)
+  return res.data
 }
 
 // GET /fantasy/:competitionId/season
 export async function getFantasySeason(competitionId: string): Promise<FantasySeason | null> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return null
   try {
     return await api.get<FantasySeason>(`/fantasy/${competitionId}/season`)
   } catch (err) {
-    if (err instanceof ApiError && err.code === 'FANTASY_SEASON_NOT_FOUND') return null
+    if (err instanceof ApiError && (err.code === 'FANTASY_SEASON_NOT_FOUND' || err.status === 400)) return null
     throw err
   }
 }
 
 // GET /fantasy/:competitionId/gameweeks
 export async function listGameweeks(competitionId: string): Promise<FantasyGameweek[]> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return []
   const res = await api.get<FantasyGameweek[] | { gameweeks: FantasyGameweek[] } | { data: FantasyGameweek[] }>(
     `/fantasy/${competitionId}/gameweeks`,
   )
@@ -137,12 +200,14 @@ export async function listGameweeks(competitionId: string): Promise<FantasyGamew
 // GET /fantasy/:competitionId/players
 export async function listFantasyPlayers(
   competitionId: string,
-  params?: { page?: number; pageSize?: number; position?: string; teamId?: string },
+  params?: { page?: number; pageSize?: number; position?: string; teamId?: string; sortBy?: 'price' | 'totalPoints'; maxPrice?: number },
 ): Promise<{ data: FantasyPlayer[]; total: number; page: number; pageSize: number }> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return { data: [], total: 0, page: 1, pageSize: 100 };
+  
   const qs = params
     ? '?' + new URLSearchParams(
         Object.entries(params)
-          .filter(([, v]) => v !== undefined)
+          .filter(([, v]) => v !== undefined && v !== null)
           .map(([k, v]) => [k, String(v)]),
       ).toString()
     : ''
@@ -151,10 +216,12 @@ export async function listFantasyPlayers(
 
 // Pricing endpoints
 export async function getTeamPricing(competitionId: string): Promise<unknown> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return { teams: [] }
   return api.get(`/fantasy/${competitionId}/pricing/teams`)
 }
 
 export async function getPlayerPricing(competitionId: string, teamId: string): Promise<unknown> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return { players: [] }
   return api.get(`/fantasy/${competitionId}/pricing/teams/${teamId}/players`)
 }
 
@@ -200,8 +267,24 @@ export async function createFantasyTeam(
 
 // GET /fantasy/:competitionId/team/me
 export async function getMyFantasyTeam(competitionId: string): Promise<FantasyTeam | null> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return null;
+
   try {
     const res = await api.get<FantasyTeam | { data: FantasyTeam }>(`/fantasy/${competitionId}/team/me`)
+    return (res && 'data' in res && res.data) ? (res as any).data as FantasyTeam : res as FantasyTeam
+  } catch (error: any) {
+    if (error.code === 'TEAM_NOT_FOUND') {
+      return null
+    }
+    throw error
+  }
+}
+// GET /fantasy/:competitionId/team/me/gameweek/:gameweekId
+export async function getMyFantasyTeamHistory(competitionId: string, gameweekId: string): Promise<FantasyTeam | null> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return null;
+
+  try {
+    const res = await api.get<FantasyTeam | { data: FantasyTeam }>(`/fantasy/${competitionId}/team/me/gameweek/${gameweekId}`)
     return (res && 'data' in res && res.data) ? (res as any).data as FantasyTeam : res as FantasyTeam
   } catch (error: any) {
     if (error.code === 'TEAM_NOT_FOUND') {
@@ -246,7 +329,14 @@ export async function makeTransfer(
   competitionId: string,
   playerInId: string,
   playerOutId: string,
-): Promise<{ message: string; cost: number; type: string }> {
+): Promise<{
+  message: string
+  cost: number
+  type: string
+  // Optional — present only once the backend ships coin-priced transfers.
+  coinCost?: number
+  walletBalance?: number
+}> {
   return api.post(`/fantasy/${competitionId}/team/transfers`, { playerInId, playerOutId })
 }
 
@@ -263,8 +353,8 @@ export async function activateChip(
 export async function getLeaderboard(
   competitionId: string,
   page: number = 1,
-): Promise<LeaderboardResponse> {
-  return api.get<LeaderboardResponse>(`/fantasy/${competitionId}/leaderboard?page=${page}`)
+): Promise<OverallLeaderboardResponse> {
+  return api.get<OverallLeaderboardResponse>(`/fantasy/${competitionId}/leaderboard?page=${page}`)
 }
 
 // GET /fantasy/:competitionId/leaderboard/gameweek/:gameweekId
@@ -272,8 +362,8 @@ export async function getGameweekLeaderboard(
   competitionId: string,
   gameweekId: string,
   page: number = 1,
-): Promise<LeaderboardResponse> {
-  return api.get<LeaderboardResponse>(
+): Promise<GameweekLeaderboardResponse> {
+  return api.get<GameweekLeaderboardResponse>(
     `/fantasy/${competitionId}/leaderboard/gameweek/${gameweekId}?page=${page}`,
   )
 }
@@ -293,6 +383,15 @@ export interface PlayerHistoryEntry {
   redCards: number
   ownGoals: number
   appeared: boolean
+  
+  goalPoints?: number
+  assistPoints?: number
+  yellowCardPoints?: number
+  redCardPoints?: number
+  ownGoalPoints?: number
+  appearancePoints?: number
+  cleanSheetPoints?: number
+  goalsConcededPoints?: number
 }
 
 // GET /fantasy/:competitionId/players/:fantasyPlayerId/history
@@ -302,6 +401,40 @@ export async function getPlayerHistory(
 ): Promise<PlayerHistoryEntry[]> {
   const result = await api.get<{ data: PlayerHistoryEntry[] }>(
     `/fantasy/${competitionId}/players/${fantasyPlayerId}/history`,
+  )
+  return result.data
+}
+
+export interface GameweekTopPlayer {
+  fantasyPlayerId: string
+  position: 'GK' | 'DEF' | 'MID' | 'FWD'
+  totalPoints: number
+  player: {
+    _id: string
+    firstName: string
+    lastName: string
+    picture?: string
+  }
+  team: {
+    _id: string
+    name: string
+    shortName?: string
+    logoUrl?: string
+    jersey?: {
+      primaryColor: string
+      secondaryColor: string
+      jerseyPattern: JerseyPattern
+    }
+  }
+}
+
+// GET /fantasy/:competitionId/gameweeks/:gameweekId/top-players
+export async function getGameweekTopPlayers(
+  competitionId: string,
+  gameweekId: string,
+): Promise<GameweekTopPlayer[]> {
+  const result = await api.get<{ data: GameweekTopPlayer[] }>(
+    `/fantasy/${competitionId}/gameweeks/${gameweekId}/top-players`,
   )
   return result.data
 }

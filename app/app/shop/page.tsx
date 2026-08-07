@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { 
-  listCoinPacks, 
-  getWallet, 
-  initiatePurchase, 
+import {
+  listCoinPacks,
+  initiatePurchase,
   verifyPayment,
   type CoinPack
 } from '@/lib/services/payment.service'
@@ -15,12 +14,15 @@ import { ChevronLeft, ShoppingBag, CreditCard, Sparkles, CheckCircle2, AlertCirc
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
+import { WalletPill } from '@/components/WalletPill'
+import { formatNaira } from '@/lib/format'
 
 export default function ShopPage() {
   const router = useRouter()
   const goBack = useGoBack('/app/dashboard')
   const searchParams = useSearchParams()
   const toast = useToastStore()
+  const qc = useQueryClient()
   const reference = searchParams.get('reference')
   const [isVerifying, setIsVerifying] = useState(false)
 
@@ -28,11 +30,6 @@ export default function ShopPage() {
   const { data: packs, isLoading: isLoadingPacks } = useQuery({
     queryKey: ['coin-packs'],
     queryFn: listCoinPacks
-  })
-
-  const { data: wallet, refetch: refetchWallet } = useQuery({
-    queryKey: ['wallet'],
-    queryFn: getWallet
   })
 
   // 2. Mutations
@@ -53,7 +50,7 @@ export default function ShopPage() {
         try {
           const res = await verifyPayment(reference)
           toast.addToast(`Success! ${res.coinsAdded} coins added to your wallet.`, 'success')
-          refetchWallet()
+          qc.invalidateQueries({ queryKey: ['wallet'] })
           // Clear query params
           router.replace('/app/shop')
         } catch (err) {
@@ -64,7 +61,7 @@ export default function ShopPage() {
       }
       verify()
     }
-  }, [reference, toast, refetchWallet, router])
+  }, [reference, toast, qc, router])
 
   return (
     <div className="min-h-screen bg-[#181928] text-white flex flex-col font-inter">
@@ -78,10 +75,7 @@ export default function ShopPage() {
             <h1 className="text-lg font-chakra font-black uppercase tracking-tight">Coins Store</h1>
             <p className="text-[10px] text-white/30 font-chakra font-bold uppercase tracking-[2px]">Power up your game</p>
           </div>
-          <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-2xl flex items-center gap-2">
-            <span className="text-orange-500 text-sm">💰</span>
-            <span className="text-[14px] font-chakra font-black">{wallet?.balance ?? 0}</span>
-          </div>
+          <WalletPill />
         </div>
       </div>
 
@@ -157,7 +151,7 @@ export default function ShopPage() {
                 
                 <div className="flex flex-col items-end gap-1.5 min-w-[100px]">
                   <div className="w-full py-2.5 bg-white text-black rounded-xl font-chakra font-black text-xs uppercase shadow-white-glow group-hover:bg-gaffer-orange group-hover:text-white transition-all text-center">
-                    {pack.currency || 'NGN'} {(pack.priceAmount ?? 0).toLocaleString()}
+                    {formatNaira(pack.priceAmount ?? 0)}
                   </div>
                   <div className="flex items-center gap-1 text-[8px] text-gaffer-orange font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
                     Purchase &rarr;

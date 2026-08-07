@@ -12,7 +12,8 @@ export function mapApiPlayer(
   benchIds: string[] = [],
   captainId: string | null = null,
   viceCaptainId: string | null = null,
-  fixtures: Fixture[] = []
+  fixtures: Fixture[] = [],
+  purchasePrices: Record<string, number> = {}
 ): FantasySquadPlayer {
   if (!p || !p.playerId || typeof p.playerId !== 'object') {
     const fallbackTeamObj = (p?.teamId && typeof p.teamId === 'object') ? (p.teamId as any) : null
@@ -28,6 +29,7 @@ export function mapApiPlayer(
       shortName: 'Unknown',
       teamName: p?.teamId?.name || 'Unknown',
       teamCode: (p?.teamId as any)?.handle || 'unk',
+      teamId: fallbackTeamObj?._id || '',
       teamColor: fallbackJersey?.primaryColor || '#4a5568',
       jersey: fallbackJersey,
       position: fallbackPos,
@@ -105,13 +107,16 @@ export function mapApiPlayer(
     shortName: lastName || 'Unknown',
     teamName: (p.teamId as any)?.name || 'Unknown',
     teamCode: playerTeamHandle,
+    teamId: playerTeamId,
     // Use team's primary jersey colour for backward-compat teamColor field
     teamColor: teamJersey?.primaryColor || '#4a5568',
     // Pass full jersey config so JerseySvg can render the correct home kit
     jersey: teamJersey,
     position: p.position as Position,
-    points: p.totalPoints || 0,
+    points: (p as any).points ?? p.totalPoints ?? 0,
     price: p.price,
+    purchasePrice: purchasePrices[p._id] ?? p.price,
+    sellPrice: p.sellPrice ?? (purchasePrices[p._id] ?? p.price),
     pitchRow: posMap[p.position] ?? 1,
     isOnPitch,
     isCaptain,
@@ -147,8 +152,9 @@ export function mapApiTeamToSquad(team: FantasyTeam, fixtures: Fixture[] = []): 
   const benchIds    = rawBench.map(toId)
   const captainId   = toId((team as any).captainId)
   const viceCaptainId = toId((team as any).viceCaptainId)
+  const purchasePrices = (team as any).purchasePrices || {}
 
   return allPlayers.map(p =>
-    mapApiPlayer(p, startingIds, benchIds, captainId, viceCaptainId, fixtures)
+    mapApiPlayer(p, startingIds, benchIds, captainId, viceCaptainId, fixtures, purchasePrices)
   )
 }

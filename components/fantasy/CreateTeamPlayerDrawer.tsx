@@ -5,6 +5,7 @@ import { X, Shield, MinusCircle } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useQuery } from '@tanstack/react-query';
 import { getPlayerHistory } from '@/lib/services/fantasy.service';
+import { formatSquadValue } from '@/lib/format';
 
 import { useFantasyStore } from '@/store/fantasyStore';
 
@@ -64,7 +65,7 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
               borderTopLeftRadius: '40px',
               borderTopRightRadius: '40px',
             }}
-            className="relative w-full border-t border-white/5 max-w-md mx-auto shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col p-6 pb-8 overflow-hidden"
+            className="relative w-full border-t border-white/5 max-w-md md:max-w-xl lg:max-w-2xl mx-auto shadow-[0_-20px_60px_rgba(0,0,0,0.5)] flex flex-col p-6 pb-8 overflow-hidden"
           >
             {/* Handle */}
             <div className="absolute top-3 left-1/2 -translate-x-1/2 w-[60px] h-1.5 bg-white/20 rounded-full" />
@@ -77,7 +78,7 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
                     <img 
                       src={player.avatarUrl} 
                       alt={player.name} 
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover object-top"
                     />
                   ) : (
                     <div className="w-full h-full bg-[#ff6b00]/20 flex items-center justify-center text-gaffer-orange text-3xl font-black">
@@ -97,7 +98,7 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
                   {player.name}
                 </h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-white/40 text-[12px] font-bold tracking-tight uppercase">Ǥ{player.price}M</span>
+                  <span className="text-white/40 text-[12px] font-bold tracking-tight uppercase">{formatSquadValue(player.price)}</span>
                   <span className="text-white/20 text-[12px]">•</span>
                   <span className="text-white/40 text-[12px] font-bold uppercase tracking-widest truncate">
                     {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}

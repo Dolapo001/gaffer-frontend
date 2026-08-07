@@ -109,9 +109,9 @@ export async function updatePost(
   return r?.item ?? r?.post ?? r
 }
 
-// DELETE /feed/posts/:postId — delete a post
+// DELETE /feed/:postId — delete a news or feed post
 export async function deletePost(id: string): Promise<void> {
-  await api.delete<unknown>(`/feed/posts/${id}`)
+  await api.delete<unknown>(`/feed/${id}`)
 }
 
 // POST /feed/:postId/like — like a post
@@ -208,9 +208,14 @@ export async function getMatchFeed(fixtureId: string, page: number = 1): Promise
 // POST /feed/news — publish org news article
 export async function publishNews(payload: {
   orgId: string
+  title?: string
   body: string
+  imageUrl?: string
   media?: MediaItem[]
+  targetType?: 'competition' | 'fixture' | 'team' | 'org' | 'user'
+  targetId?: string
   visibility?: 'public' | 'org'
+  isPinned?: boolean
 }): Promise<FeedItem> {
   const raw = await api.post<unknown>('/feed/news', payload)
   const r = raw as any
