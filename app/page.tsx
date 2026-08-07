@@ -104,3 +104,4 @@ export default function LandingPage() {
     </main>
   )
 }
+ // Redirect if already in PWA/Standalone mode
