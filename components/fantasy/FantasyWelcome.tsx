@@ -22,7 +22,7 @@ export const FantasyWelcome: React.FC<FantasyWelcomeProps> = ({ onGetStarted }) 
 
   return (
     <div 
-      className={`fixed inset-0 w-full max-w-md mx-auto bg-[#222232] overflow-hidden flex flex-col z-0 transition-opacity duration-300 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
+      className={`fixed inset-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto bg-[#222232] overflow-hidden flex flex-col z-0 transition-opacity duration-300 ease-out ${isExiting ? 'opacity-0' : 'opacity-100'}`}
       style={{ fontFamily: "'Chakra Petch', sans-serif" }}
     >
       

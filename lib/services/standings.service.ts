@@ -1,4 +1,6 @@
 import { api } from '@/lib/api'
+import { mockStandingsResponse } from '@/lib/testing-mocks/premierLeague'
+// TODO: REMOVE MOCK DATA BEFORE PROD
 
 export interface Standing {
   teamId: {
@@ -30,6 +32,7 @@ export async function getStandings(
   competitionId: string,
   params?: { page?: number; limit?: number },
 ): Promise<StandingsResponse> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return { standings: [], total: 0, page: 1, pageSize: 50 }
   const qs = params
     ? '?' + new URLSearchParams(
         Object.entries(params)

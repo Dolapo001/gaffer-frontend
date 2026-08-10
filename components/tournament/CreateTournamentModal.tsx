@@ -8,7 +8,7 @@ import {
   User, Building2, ChevronDown, Check, Camera, Pencil
 } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
-import { useTournamentStore } from '@/store/tournamentStore'
+
 import { useAuthStore } from '@/store/authStore'
 
 import { createCompetition } from '@/lib/services/competition.service'
@@ -20,7 +20,7 @@ import { useToastStore } from '@/store/toastStore'
 const STEPS = ['Details', 'Format', 'Setup']
 
 const FORMAT_OPTIONS = [
-  { id: 'round_robin', label: 'Round Robbin', subtitle: 'e.g Premier league', icon: Trophy },
+  { id: 'round_robin', label: 'Round Robin', subtitle: 'e.g Premier league', icon: Trophy },
   { id: 'groups', label: 'Groups', subtitle: 'e.g Premier league', icon: LayoutGrid, accent: true },
   { id: 'knockout', label: 'Knockout', subtitle: 'e.g English FA Cup', icon: GitFork, accent: true },
   { id: 'group_knockout', label: 'Group + Knockout', subtitle: 'e.g World Cup', icon: Layers, accent: true },

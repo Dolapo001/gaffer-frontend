@@ -85,6 +85,10 @@ export async function createCompetition(orgId: string, payload: CreateCompetitio
 
 // GET /competitions/:competitionId — PUBLIC
 export async function getCompetition(competitionId: string): Promise<Competition> {
+  const isObjectId = /^[0-9a-fA-F]{24}$/.test(competitionId);
+  if (!isObjectId) {
+    return await getPublicCompetitionBySlug(competitionId);
+  }
   const data = await api.get<{ competition: Competition }>(`/competitions/${competitionId}`, { public: true })
   return data.competition
 }
@@ -126,6 +130,7 @@ export async function publishCompetition(competitionId: string): Promise<Competi
 
 // GET /competitions/:competitionId/teams — PUBLIC
 export async function listCompetitionTeams(competitionId: string): Promise<CompetitionTeam[]> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return [];
   const data = await api.get<{ teams: CompetitionTeam[] }>(`/competitions/${competitionId}/teams`, { public: true })
   return data.teams
 }
@@ -189,9 +194,7 @@ export async function listJoinedCompetitions(): Promise<Competition[]> {
     const data = await api.get<{ competitions: Competition[] }>('/competitions/joined')
     return data.competitions ?? []
   } catch (err) {
-    // 404 = endpoint not yet live OR user has no joined competitions — both map to empty list
     if (err instanceof ApiError && (err.status === 404 || err.status === 501)) {
-      console.warn('[competitions] GET /competitions/joined not available — returning []')
       return []
     }
     throw err

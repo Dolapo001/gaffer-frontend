@@ -20,7 +20,7 @@ import {
 } from '@/lib/services/team.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listGroups, createGroup, updateGroup, deleteGroup, Group as BackendGroup } from '@/lib/services/group.service'
-import { listCompetitions, registerTeams, removeCompetitionTeam, removeCompetitionGroup, assignTeamGroups, Competition } from '@/lib/services/competition.service'
+import { listCompetitions, listCompetitionTeams, registerTeams, removeCompetitionTeam, removeCompetitionGroup, assignTeamGroups, Competition } from '@/lib/services/competition.service'
 import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -38,7 +38,7 @@ export default function OrganizePage() {
 
   // Create form state & filters
   const [teamName, setTeamName] = useState('')
-  const [maxPlayers, setMaxPlayers] = useState('11')
+  const [maxPlayers, setMaxPlayers] = useState('25')
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -79,6 +79,15 @@ export default function OrganizePage() {
     queryFn: () => listTeams(orgId!),
     enabled: !!orgId,
     throwOnError: false,
+  })
+
+  // 2b. Fetch Competition Teams (when inside a tournament folder)
+  const { data: compTeams } = useQuery({
+    queryKey: ['competition-teams', selectedCompetitionId],
+    queryFn: () => listCompetitionTeams(selectedCompetitionId),
+    enabled: !!selectedCompetitionId,
+    throwOnError: false,
+    meta: { suppressGlobalError: true },
   })
 
   // 3a. Fetch full team detail when a team is selected.
@@ -131,6 +140,28 @@ export default function OrganizePage() {
     meta: { suppressGlobalError: true },
   })
 
+  // 5b. Fetch teams count per competition for folder cards
+  const { data: compTeamCounts } = useQuery({
+    queryKey: ['all-comp-teams-counts', competitions?.map(c => c._id)],
+    queryFn: async () => {
+      if (!competitions || competitions.length === 0) return {}
+      const results = await Promise.all(
+        competitions.map(async (c) => {
+          try {
+            const list = await listCompetitionTeams(c._id)
+            return { id: c._id, count: list.length }
+          } catch {
+            return { id: c._id, count: 0 }
+          }
+        })
+      )
+      return Object.fromEntries(results.map(r => [r.id, r.count]))
+    },
+    enabled: !!competitions && competitions.length > 0,
+    throwOnError: false,
+    meta: { suppressGlobalError: true },
+  })
+
   // Mutations
   // Each mutation has its own onError handler so the global mutationCache.onError
   // must NOT also fire — otherwise the user sees the same error toast twice.
@@ -150,6 +181,8 @@ export default function OrganizePage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
       queryClient.invalidateQueries({ queryKey: ['team-detail', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['competition-teams'] })
+      queryClient.invalidateQueries({ queryKey: ['comp-team-counts'] })
       addToast('Team updated!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
@@ -192,9 +225,23 @@ export default function OrganizePage() {
   })
 
   const createTeamMutation = useMutation({
-    mutationFn: (data: any) => createTeam(orgId!, data),
+    mutationFn: async (data: any) => {
+      const created = await createTeam(orgId!, data)
+      if (selectedCompetitionId && created?._id) {
+        try {
+          await registerTeams(selectedCompetitionId, [{ teamId: created._id }])
+        } catch (e) {
+          console.warn('Failed to auto-register team to tournament:', e)
+        }
+      }
+      return created
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['competitions', orgId] })
+      if (selectedCompetitionId) {
+        queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
+      }
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
     meta: { suppressGlobalError: true },
@@ -245,6 +292,30 @@ export default function OrganizePage() {
     meta: { suppressGlobalError: true },
   })
 
+  // Backfill: pushes every org-level group's current team membership onto
+  // the selected competition's CompetitionTeam.groupName, so Standings/Matches
+  // (which only ever read CompetitionTeam.groupName, never the Group model)
+  // reflect what's actually configured in Organize > Groups.
+  const syncGroupsMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedCompetitionId) return
+      const assignments = backendGroups?.flatMap((g: any) =>
+        (g.teams || []).map((t: any) => ({
+          teamId: typeof t === 'string' ? t : t._id,
+          groupName: g.name,
+        })),
+      ) ?? []
+      if (assignments.length === 0) return
+      await assignTeamGroups(selectedCompetitionId, assignments)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
+      addToast('Groups synced to tournament!', 'success')
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
+  })
+
   const [jerseyConfig, setJerseyConfig] = useState<JerseyFormConfig>({
     home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
     away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
@@ -253,14 +324,23 @@ export default function OrganizePage() {
   // ── Mappings ─────────────────────────────────────────────────────────────
 
   // Map backend teams to UI teams
-  const teams: Team[] = backendTeams?.map((t: BackendTeam) => ({
-    id: t._id,
-    name: t.name,
-    handle: t.handle,
-    playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
-    logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
-    competitionId: t.competitionId || (t as any).enrollment?.competitionId, // Check both possibilities
-  })) || []
+  const teams: Team[] = selectedCompetitionId && compTeams && compTeams.length > 0
+    ? compTeams.map((ct: any) => ({
+        id: ct.teamId || ct._id,
+        name: ct.name,
+        handle: ct.handle || ct.name?.toLowerCase().replace(/\s+/g, '-'),
+        playerCount: `${ct.playerCount ?? 0}/${ct.maxPlayers ?? 22}`,
+        logo: ct.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + ct.name,
+        competitionId: selectedCompetitionId,
+      }))
+    : backendTeams?.map((t: BackendTeam) => ({
+        id: t._id,
+        name: t.name,
+        handle: t.handle,
+        playerCount: `${t.playerCount ?? 0}/${t.maxPlayers ?? 22}`,
+        logo: t.logoUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + t.name,
+        competitionId: t.competitionId || (t as any).enrollment?.competitionId,
+      })) || []
 
   // Map backend players to UI players
   const players: Player[] = backendPlayers?.map((p: any) => {
@@ -354,11 +434,13 @@ export default function OrganizePage() {
         addToast('Group created successfully!', 'success')
       }
 
-      // Reset state
+      // Reset state — NOTE: selectedCompetitionId is intentionally NOT reset
+      // here. It doubles as "which tournament are these groups for" context
+      // on the Groups tab (used by the sync-to-tournament action below), so
+      // clearing it after every create would force re-selecting it constantly.
       setView('list')
       setTeamName('')
       setLogoPreview(null)
-      setSelectedCompetitionId('')
       setSelectedTeamsForGroup([])
       setJerseyConfig({
         home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
@@ -438,6 +520,10 @@ export default function OrganizePage() {
     mutationFn: ({ teamId, playerId, payload }: { teamId: string, playerId: string, payload: any }) => updatePlayer(teamId, playerId, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['team-detail', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['competition-teams'] })
+      queryClient.invalidateQueries({ queryKey: ['comp-team-counts'] })
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
     meta: { suppressGlobalError: true },
@@ -462,6 +548,10 @@ export default function OrganizePage() {
         }
       }
       queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['team-detail', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['competition-teams'] })
+      queryClient.invalidateQueries({ queryKey: ['comp-team-counts'] })
       addToast('Player added to squad!', 'success')
     },
     onError: (err) => addToast(getErrorMessage(err), 'error'),
@@ -502,11 +592,20 @@ export default function OrganizePage() {
       ...selectedGroup.teams.map(t => t.id),
       ...newTeams.map(t => t.id)
     ]
-    console.log('Updating group teams:', { groupId: selectedGroup.id, teamIds });
     updateGroupMutation.mutate({
       id: selectedGroup.id,
       payload: { teams: teamIds }
     })
+    // Keep CompetitionTeam.groupName in sync going forward, so newly-added
+    // teams show up in the right Standings group without a manual re-sync.
+    if (selectedCompetitionId && newTeams.length > 0) {
+      assignTeamGroups(selectedCompetitionId, newTeams.map((t) => ({
+        teamId: t.id,
+        groupName: selectedGroup.name,
+      }))).then(() => {
+        queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
+      }).catch((err) => addToast(getErrorMessage(err), 'error'))
+    }
     setView('list')
   }
 
@@ -565,6 +664,11 @@ export default function OrganizePage() {
                 groups={groups}
                 hasOrg={!!orgId}
                 selectedCompetitionId={selectedCompetitionId}
+                competitions={competitions || []}
+                compTeamCounts={compTeamCounts}
+                onCompetitionChange={setSelectedCompetitionId}
+                onSyncGroupsToTournament={() => syncGroupsMutation.mutate()}
+                isSyncingGroups={syncGroupsMutation.isPending}
                 onTabChange={setActiveTab}
                 onTeamClick={(team) => {
                   setSelectedTeam(team)

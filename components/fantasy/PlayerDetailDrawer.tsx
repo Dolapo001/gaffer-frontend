@@ -3,9 +3,13 @@
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CornerUpLeft, ArrowRightLeft } from 'lucide-react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { type FantasySquadPlayer } from '@/lib/fantasyMockData'
-import { useFantasyStore } from '@/store/fantasyStore'
+import { useFantasyStore, selectPitchPlayers, selectBenchPlayers } from '@/store/fantasyStore'
 import { useUIStore } from '@/store/uiStore'
+import { getPlayerHistory, setSquad } from '@/lib/services/fantasy.service'
+import { useToastStore } from '@/store/toastStore'
+import { getErrorMessage } from '@/lib/api'
 
 // ─── Position badge colors ────────────────────────────────────────────────────
 
@@ -79,15 +83,141 @@ function FixtureRow({
   )
 }
 
+// ─── Point History Graph (Bar chart across gameweeks) ─────────────────────────
+
+function PointHistoryGraph({ history }: { history: any[] }) {
+  if (!history || history.length === 0) return null
+  const sorted = [...history].sort((a, b) => (a.gameweekId?.gameweekNumber ?? 0) - (b.gameweekId?.gameweekNumber ?? 0))
+  const maxPts = Math.max(...sorted.map((h) => h.totalPoints ?? 0), 10)
+
+  return (
+    <div className="bg-[#1e2130] rounded-2xl p-4 border border-white/5 space-y-3 mt-4">
+      <div className="flex items-center justify-between">
+        <span className="text-white text-xs font-chakra font-black uppercase tracking-wider">Point History</span>
+        <span className="text-[#a1a1aa] text-[10px] font-chakra uppercase font-bold">Season Trend</span>
+      </div>
+      <div className="flex items-end justify-between gap-2 h-28 pt-4 pb-1 px-1">
+        {sorted.map((h) => {
+          const pts = h.totalPoints ?? 0
+          const heightPct = Math.max((pts / maxPts) * 100, 8)
+          const isHigh = pts >= 10
+          return (
+            <div key={h._id} className="flex-1 flex flex-col items-center gap-1 group relative">
+              <span className="text-[10px] font-chakra font-bold text-white/70 group-hover:text-gaffer-orange transition-colors">
+                {pts}
+              </span>
+              <div className="w-full bg-[#121420] rounded-t-lg h-full flex items-end overflow-hidden">
+                <div
+                  style={{ height: `${heightPct}%` }}
+                  className={`w-full rounded-t-lg transition-all ${
+                    isHigh ? 'bg-orange-gradient-btn' : pts > 0 ? 'bg-white/30' : 'bg-white/10'
+                  }`}
+                />
+              </div>
+              <span className="text-[9px] font-chakra font-bold text-[#a1a1aa] uppercase">
+                GW{h.gameweekId?.gameweekNumber ?? ''}
+              </span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function FormGuidePills({ history }: { history: any[] }) {
+  const recent = [...(history ?? [])]
+    .sort((a, b) => (a.gameweekId?.gameweekNumber ?? 0) - (b.gameweekId?.gameweekNumber ?? 0))
+    .slice(-5)
+
+  if (recent.length === 0) return null
+
+  return (
+    <div className="flex items-center gap-2 mt-2">
+      <span className="text-[#a1a1aa] text-[11px] font-chakra font-bold uppercase tracking-wider">Form (Last 5):</span>
+      <div className="flex items-center gap-1.5">
+        {recent.map((h) => {
+          const pts = h.totalPoints ?? 0
+          const color =
+            pts >= 8
+              ? 'bg-green-500/20 text-green-400 border-green-500/30'
+              : pts >= 3
+                ? 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+                : 'bg-white/10 text-[#a1a1aa] border-white/10'
+          return (
+            <span
+              key={h._id}
+              className={`w-7 h-7 rounded-lg border flex items-center justify-center font-chakra font-black text-xs ${color}`}
+              title={`GW${h.gameweekId?.gameweekNumber}: ${pts} pts`}
+            >
+              {pts}
+            </span>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 // ─── PlayerDetailDrawer ───────────────────────────────────────────────────────
 
 interface PlayerDetailDrawerProps {
   player: FantasySquadPlayer | null
+  gameweekId?: string | null
   onClose: () => void
+  /** Called instead of navigating to a separate route — the host screen opens its own Transfers panel. */
+  onTransfer?: (playerId: string) => void
 }
 
-export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps) {
+export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: PlayerDetailDrawerProps) {
   const { hideNavbar, showNavbar } = useUIStore()
+  const competitionId = useFantasyStore((s) => s.competitionId)
+  const toast = useToastStore()
+  const qc = useQueryClient()
+
+  const captainMutation = useMutation({
+    mutationFn: async (playerId: string) => {
+      const state = useFantasyStore.getState()
+      const pitch = selectPitchPlayers(state)
+      const bench = selectBenchPlayers(state)
+      const benchSorted = [...bench.filter((p) => p.position !== 'GK'), ...bench.filter((p) => p.position === 'GK')]
+      const viceCaptain = pitch.find((p) => p.id !== playerId) ?? pitch[0]
+      return setSquad(competitionId!, {
+        startingXI: pitch.map((p) => p.id),
+        bench: benchSorted.map((p) => p.id),
+        captainId: playerId,
+        viceCaptainId: viceCaptain?.id ?? playerId,
+      })
+    },
+    onMutate: async (newCaptainId: string) => {
+      // Cancel outgoing query updates to prevent race conditions
+      await qc.cancelQueries({ queryKey: ['fantasy-team-me', competitionId] })
+
+      // Snapshot previous team data for rollback
+      const previousTeam = qc.getQueryData(['fantasy-team-me', competitionId])
+
+      // Optimistically update local Zustand store for 0ms UI feedback
+      const state = useFantasyStore.getState()
+      const updatedPlayers = state.players.map((p) => ({
+        ...p,
+        isCaptain: p.id === newCaptainId,
+        isViceCaptain: p.isCaptain && p.id !== newCaptainId ? true : p.isViceCaptain,
+      }))
+      state.setPlayers(updatedPlayers)
+
+      return { previousTeam }
+    },
+    onError: (err, _, context) => {
+      if (context?.previousTeam) {
+        qc.setQueryData(['fantasy-team-me', competitionId], context.previousTeam)
+      }
+      toast.addToast(getErrorMessage(err), 'error')
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['fantasy-team-me', competitionId] })
+      toast.addToast('Captain updated', 'success')
+    },
+  })
 
   useEffect(() => {
     if (player) {
@@ -98,7 +228,17 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
     return () => { showNavbar() }
   }, [player, hideNavbar, showNavbar])
 
-  const hasForm = !!(player?.gwHistory && player.gwHistory.length > 0)
+  // Real per-gameweek scoring breakdown — events are logged by the competition
+  // admin (goals/assists/cards/appearances) and this is the only source of
+  // truth for how a player's points were earned; never derived client-side.
+  const { data: history } = useQuery({
+    queryKey: ['player-history', competitionId, player?.id],
+    queryFn: () => getPlayerHistory(competitionId!, player!.id),
+    enabled: !!competitionId && !!player,
+  })
+  const recentHistory = (history ?? []).slice(-5).reverse()
+  const gwStats = gameweekId ? (history ?? []).find((h) => h.gameweekId?._id === gameweekId) : null
+
   const uniqueFixtures = React.useMemo(() => {
     if (!player) return []
     const seen = new Set<string>()
@@ -131,7 +271,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
-              className="relative w-full bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-sm mx-auto shadow-2xl z-[200] mt-auto overflow-y-auto"
+              className="relative w-full bg-[#2b2d3c] border-t border-white/5 rounded-t-[2.5rem] max-w-md md:max-w-xl lg:max-w-2xl mx-auto shadow-2xl z-[200] mt-auto overflow-y-auto"
               style={{ maxHeight: '88dvh' }}
             >
               {/* Handle — sticks to top while scrolling */}
@@ -146,7 +286,7 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
                   <div className="relative">
                     <div className="w-[82px] h-[82px] rounded-full overflow-hidden flex items-center justify-center bg-[#25283c] border-[3px] border-white/10 shadow-xl">
                       {player.avatarUrl ? (
-                        <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover" />
+                        <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover object-top" />
                       ) : (
                         <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt={player.name} className="w-full h-full object-cover" />
                       )}
@@ -161,36 +301,118 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
                         {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}
                       </span>
                     </div>
+                    {/* Form Guide Pills */}
+                    <FormGuidePills history={history ?? []} />
                   </div>
                 </div>
 
-                {/* Form section — only if history exists */}
-                {hasForm && (
+                {/* Point History Graph */}
+                <PointHistoryGraph history={history ?? []} />
+
+                {/* Condition A: Historical Gameweek View */}
+                {gameweekId && gwStats && (
+                  <div className="mb-4 bg-[#1e2130] rounded-[16px] p-5 shadow-md mt-4">
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-white/5">
+                      <span className="text-white font-bold tracking-wide">Gameweek {gwStats.gameweekId?.gameweekNumber ?? '–'} Stats</span>
+                      <span className="text-gaffer-orange font-bold text-xl">{gwStats.totalPoints} pts</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-y-5 gap-x-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Goals</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.goalsScored} {!!gwStats.goalPoints && <span className="text-gaffer-orange text-[14px] font-semibold ml-1">({gwStats.goalPoints > 0 ? '+' : ''}{gwStats.goalPoints} pts)</span>}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Assists</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.assists} {!!gwStats.assistPoints && <span className="text-gaffer-orange text-[14px] font-semibold ml-1">({gwStats.assistPoints > 0 ? '+' : ''}{gwStats.assistPoints} pts)</span>}
+                        </span>
+                      </div>
+                      
+                      {!!gwStats.cleanSheetPoints && gwStats.cleanSheetPoints > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Clean Sheet</span>
+                          <span className="text-white text-lg font-bold">
+                            Yes <span className="text-gaffer-orange text-[14px] font-semibold ml-1">(+{gwStats.cleanSheetPoints} pts)</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {!!gwStats.goalsConcededPoints && gwStats.goalsConcededPoints < 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Goals Conceded</span>
+                          <span className="text-white text-lg font-bold text-red-400">
+                            {gwStats.goalsConcededPoints} pts
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Yellow Cards</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.yellowCards} {!!gwStats.yellowCardPoints && <span className="text-red-400 text-[14px] font-semibold ml-1">({gwStats.yellowCardPoints} pts)</span>}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Red Cards</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.redCards} {!!gwStats.redCardPoints && <span className="text-red-400 text-[14px] font-semibold ml-1">({gwStats.redCardPoints} pts)</span>}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Own Goals</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.ownGoals} {!!gwStats.ownGoalPoints && <span className="text-red-400 text-[14px] font-semibold ml-1">({gwStats.ownGoalPoints} pts)</span>}
+                        </span>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Appeared</span>
+                        <span className="text-white text-lg font-bold">
+                          {gwStats.appeared ? 'Yes' : 'No'}
+                          {!!gwStats.appearancePoints && <span className="text-gaffer-orange text-[14px] font-semibold ml-1">(+{gwStats.appearancePoints} pts)</span>}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Condition B: Active Squad View (Recent Form & Next Match) */}
+                {!gameweekId && recentHistory.length > 0 && (
                   <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-white text-sm font-medium tracking-wide">Form</span>
+                    <div className="flex items-center justify-between mb-2 mt-4">
+                      <span className="text-white text-sm font-medium tracking-wide">Points breakdown</span>
                       <span className="text-white text-sm font-medium tracking-wide pl-2">Points</span>
                     </div>
                     <div className="space-y-2.5">
-                      {player.gwHistory.map(({ gw, pts, opponent, result }) => (
-                        <div key={gw} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-white text-[13px] font-normal tracking-wide">GW-{gw}</span>
-                            <span className="text-white text-[13px] font-normal tracking-wide w-4">vs</span>
-                            <span className="text-white text-[13px] font-normal tracking-wide">{opponent}</span>
-                            <div className={`w-3.5 h-3.5 ml-1 rounded-full flex items-center justify-center text-[7px] font-bold text-white shadow-sm ${result === 'W' ? 'bg-[#16A34A]' : result === 'D' ? 'bg-[#71717a]' : 'bg-[#ef4444]'}`}>
-                              {result.toUpperCase()}
+                      {recentHistory.map((h) => {
+                        const events = [
+                          h.goalsScored > 0 && `${h.goalsScored} goal${h.goalsScored > 1 ? 's' : ''}`,
+                          h.assists > 0 && `${h.assists} assist${h.assists > 1 ? 's' : ''}`,
+                          h.yellowCards > 0 && `${h.yellowCards} yellow`,
+                          h.redCards > 0 && `${h.redCards} red`,
+                          h.ownGoals > 0 && `${h.ownGoals} OG`,
+                        ].filter(Boolean)
+                        return (
+                          <div key={h._id} className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-white text-[13px] font-normal tracking-wide flex-shrink-0">
+                                GW{h.gameweekId?.gameweekNumber ?? '–'}
+                              </span>
+                              <span className="text-[#a1a1aa] text-[11px] truncate">
+                                {!h.appeared ? 'Did not play' : events.length > 0 ? events.join(', ') : 'Appearance only'}
+                              </span>
                             </div>
+                            <span className="text-white font-bold text-[14px] flex-shrink-0">{h.totalPoints}</span>
                           </div>
-                          <span className="text-white font-bold text-[14px]">{pts}</span>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
 
                 {/* Next Match — only if fixture exists */}
-                {hasNextMatch && (
+                {!gameweekId && hasNextMatch && (
                   <div className="mb-4 mt-4 border-t border-white/5 pt-4">
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-white text-[13px] font-bold tracking-wide">Next Match</span>
@@ -211,20 +433,26 @@ export function PlayerDetailDrawer({ player, onClose }: PlayerDetailDrawerProps)
               <div className="sticky bottom-0 bg-[#2b2d3c] px-6 pt-3 pb-[max(20px,env(safe-area-inset-bottom))]">
                 <div className="flex justify-around items-center">
                   {[
-                    { label: 'Make Captain', icon: <span className="font-bold text-[32px] text-white">C</span>, onClick: () => {} },
+                    {
+                      label: 'Make Captain',
+                      icon: <span className="font-bold text-[32px] text-white">C</span>,
+                      onClick: () => captainMutation.mutate(player.id),
+                    },
                     {
                       label: player.isOnPitch ? 'Sub Out' : 'Sub In',
                       icon: <CornerUpLeft size={34} className="text-white" strokeWidth={2.5} />,
                       onClick: () => {
                         useFantasyStore.getState().setSubstitutingOutId(player.id)
                         onClose()
-                        window.location.href = '/app/fantasy/substitution'
                       }
                     },
                     {
                       label: 'Transfer',
                       icon: <ArrowRightLeft size={30} className="text-white" strokeWidth={2.5} />,
-                      onClick: () => {}
+                      onClick: () => {
+                        onTransfer?.(player.id)
+                        onClose()
+                      }
                     }
                   ].map((action, i) => (
                     <div key={i} className="flex flex-col items-center gap-3 w-24">

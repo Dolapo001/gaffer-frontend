@@ -33,7 +33,7 @@ export const queryClient = new QueryClient({
   }),
   defaultOptions: {
     queries: {
-      staleTime: 30_000,         // 30 seconds — allows refetchOnWindowFocus/Reconnect to fire
+      staleTime: 1000 * 60 * 5,  // 5 minutes
       gcTime:    1000 * 60 * 10, // 10 minutes
       refetchOnWindowFocus: true,
       refetchOnReconnect: true,

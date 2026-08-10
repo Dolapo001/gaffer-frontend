@@ -27,6 +27,8 @@ export interface FantasySquadPlayer {
   shortName: string
   teamName: string
   teamCode: string
+  /** Real team _id — used to look up that team's fixture within a specific gameweek's round. */
+  teamId?: string
   /** Primary team colour – kept for backward compatibility. Use `jersey.primaryColor` when present. */
   teamColor: string
   /** Full jersey config. When absent, teamColor is used as solid primary. */
@@ -38,6 +40,8 @@ export interface FantasySquadPlayer {
   position: Position
   points: number
   price: number
+  purchasePrice?: number
+  sellPrice?: number
   /** 0=GK, 1=DEF, 2=MID, 3=FWD */
   pitchRow: number
   isOnPitch: boolean

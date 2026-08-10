@@ -153,7 +153,7 @@ export default function PlayerRecruitmentForm() {
         </motion.div>
         {photoPreview && (
           <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-gaffer-orange/30 mx-auto mb-6 shadow-xl">
-            <img src={photoPreview} className="w-full h-full object-cover" alt="" />
+            <img src={photoPreview} className="w-full h-full object-cover object-top" alt="" />
           </div>
         )}
         <h1 className="font-chakra font-black text-4xl text-white uppercase tracking-tighter mb-2">You&apos;re In!</h1>
@@ -238,7 +238,7 @@ export default function PlayerRecruitmentForm() {
                   className="w-[72px] h-[72px] rounded-full overflow-hidden bg-[#11121C] border-2 border-dashed border-white/15 hover:border-gaffer-orange/50 transition-colors flex items-center justify-center group"
                 >
                   {photoPreview ? (
-                    <img src={photoPreview} className="w-full h-full object-cover" alt="" />
+                    <img src={photoPreview} className="w-full h-full object-cover object-top" alt="" />
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <Camera size={18} className="text-white/20 group-hover:text-gaffer-orange/60 transition-colors" />

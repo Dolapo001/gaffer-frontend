@@ -1,101 +1,56 @@
 'use client'
 
-import { useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import FantasyDashboard from '@/components/fantasy/FantasyDashboard'
+import { useRouter } from 'next/navigation'
+import { useQuery, useQueries } from '@tanstack/react-query'
+import { Trophy, Gamepad2, Search } from 'lucide-react'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
-import { CreateTeamScreen } from '@/components/fantasy/CreateTeamScreen'
-import { PickTeamOnboarding } from '@/components/fantasy/PickTeamOnboarding'
-import { TeamNamingScreen } from '@/components/fantasy/TeamNamingScreen'
+import { CompetitionFantasyCard } from '@/components/fantasy/CompetitionFantasyCard'
 import { useFantasyStore } from '@/store/fantasyStore'
-import { Trophy, Gamepad2, ChevronRight, Search } from 'lucide-react'
-import { useQuery } from '@tanstack/react-query'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
-import { getMyFantasyTeam } from '@/lib/services/fantasy.service'
+import { getFantasySeason, listGameweeks } from '@/lib/services/fantasy.service'
 import { listFixtures } from '@/lib/services/fixture.service'
-import { GafferLogo } from '@/components/GafferLogo'
-import { mapApiTeamToSquad } from '@/lib/converters'
-import { getImageUrl } from '@/lib/api'
 
-function FantasyPageContent() {
+export default function FantasyPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const {
-    competitionId,
-    setCompetitionId,
-    hasSeenWelcome,
-    hasCreatedTeam,
-    hasOrganizedBench,
-    hasNamedTeam,
-    setHasSeenWelcome,
-    setHasCreatedTeam,
-    setHasOrganizedBench,
-    setHasNamedTeam,
-    setTeamName,
-    setPlayers
-  } = (useFantasyStore as any)()
+  const { hasSeenWelcome, setHasSeenWelcome } = useFantasyStore()
 
-  // ?repick=1 — user wants to re-pick their squad from scratch.
-  // Declared early so the useEffect below can skip flag/player restoration
-  // while in this mode (otherwise myTeam immediately overrides the reset).
-  const forceRepick = searchParams.get('repick') === '1'
-
-  // If the user arrived via the in-competition Fantasy tab, auto-select that competition
-  const urlCompetitionId = searchParams.get('competitionId')
-  useEffect(() => {
-    if (urlCompetitionId && urlCompetitionId !== competitionId) {
-      setCompetitionId(urlCompetitionId)
-    }
-  }, [urlCompetitionId])
-
-  const { data: joinedLeagues, isLoading } = useQuery({
+  const { data: joinedCompetitions, isLoading } = useQuery({
     queryKey: ['joined-competitions'],
-    queryFn: listJoinedCompetitions
+    queryFn: listJoinedCompetitions,
   })
 
-  const { data: myTeam, isLoading: isLoadingTeam } = useQuery({
-    queryKey: ['fantasy-team-me', competitionId],
-    queryFn: () => getMyFantasyTeam(competitionId!),
-    enabled: !!competitionId,
-    retry: false
+  const seasonQueries = useQueries({
+    queries: (joinedCompetitions ?? []).map((c) => ({
+      queryKey: ['fantasy-season', c._id],
+      queryFn: () => getFantasySeason(c._id),
+      enabled: !!joinedCompetitions,
+    })),
   })
 
-  const { data: fixtures } = useQuery({
-    queryKey: ['fantasy-fixtures', competitionId],
-    queryFn: () => listFixtures(competitionId!),
-    enabled: !!competitionId
+  const gameweekQueries = useQueries({
+    queries: (joinedCompetitions ?? []).map((c) => ({
+      queryKey: ['fantasy-gameweeks', c._id],
+      queryFn: () => listGameweeks(c._id),
+      enabled: !!joinedCompetitions,
+    })),
   })
 
-  useEffect(() => {
-    // In repick mode the user is starting fresh — don't restore any flags or
-    // players from the backend, or the flag-reset done before navigation gets
-    // immediately overridden and the user ends up back at the dashboard.
-    if (!myTeam || forceRepick) return
+  const fixtureQueries = useQueries({
+    queries: (joinedCompetitions ?? []).map((c) => ({
+      queryKey: ['fixtures', c._id],
+      queryFn: () => listFixtures(c._id),
+      enabled: !!joinedCompetitions,
+      staleTime: 60_000,
+    })),
+  })
 
-    const hasSquad = ((myTeam as any).startingXI?.length ?? 0) > 0
-
-    // Only bypass the full onboarding if the squad is actually saved to the backend.
-    if (hasSquad) {
-      if (!hasCreatedTeam) setHasCreatedTeam(true)
-      if (!hasOrganizedBench) setHasOrganizedBench(true)
-    }
-    // Always restore the name step — team name was already committed to the DB
-    if (!hasNamedTeam) setHasNamedTeam(true)
-
-    const mappedSquad = mapApiTeamToSquad(myTeam, fixtures || [])
-    if (mappedSquad.length > 0) setPlayers(mappedSquad)
-
-    if (myTeam.teamName !== useFantasyStore.getState().teamName) {
-      setTeamName(myTeam.teamName)
-    }
-  }, [myTeam, fixtures, forceRepick, hasCreatedTeam, hasOrganizedBench, hasNamedTeam, setHasCreatedTeam, setHasOrganizedBench, setHasNamedTeam, setTeamName, setPlayers])
-
-  // 1. Show Welcome first for every first-time user
   if (!hasSeenWelcome) {
     return <FantasyWelcome onGetStarted={() => setHasSeenWelcome(true)} />
   }
 
-  if (isLoading || (!!competitionId && isLoadingTeam)) {
+  const isLoadingSeasons = seasonQueries.some((q) => q.isLoading) || gameweekQueries.some((q) => q.isLoading)
+
+  if (isLoading || (!!joinedCompetitions?.length && isLoadingSeasons)) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center p-6">
         <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
@@ -103,18 +58,17 @@ function FantasyPageContent() {
     )
   }
 
-  // 2. If no league joined, go to discovery
-  if (!joinedLeagues || joinedLeagues.length === 0) {
+  if (!joinedCompetitions || joinedCompetitions.length === 0) {
     return (
       <div className="min-h-screen bg-[#181928] flex flex-col items-center justify-center p-6 text-center">
         <div className="w-20 h-20 rounded-3xl bg-gaffer-card border border-gaffer-border flex items-center justify-center mb-6">
           <Trophy size={40} className="text-gaffer-muted" />
         </div>
         <h1 className="text-2xl font-display font-bold text-white mb-2">No active leagues</h1>
-        <p className="text-gaffer-muted font-body text-sm mb-8 transition-opacity">
+        <p className="text-gaffer-muted font-body text-sm mb-8">
           You need to join a competition before you can play fantasy.
         </p>
-        <button 
+        <button
           onClick={() => router.push('/app/league')}
           className="w-full bg-gaffer-orange text-white py-4 rounded-2xl font-display font-black tracking-widest uppercase shadow-lg shadow-gaffer-orange/20"
         >
@@ -124,116 +78,63 @@ function FantasyPageContent() {
     )
   }
 
-  // 2. If no competitionId selected, handle selection
-  if (!competitionId) {
-    // Select from list (even if only 1, so they can see 'Join New' button)
-    return (
-      <div className="min-h-screen bg-[#181928] p-6 pb-24">
-        <div className="flex items-center gap-3 mb-8 mt-12">
-           <div className="w-10 h-10 rounded-xl bg-gaffer-orange flex items-center justify-center">
-              <Gamepad2 size={24} className="text-[#181928]" fill="currentColor" />
-           </div>
-           <div>
-              <h1 className="text-2xl font-display font-bold text-white leading-none">Fantasy</h1>
-              <p className="text-gaffer-muted text-[10px] font-black uppercase tracking-[3px] mt-1">Select League</p>
-           </div>
-        </div>
+  // Fantasy-enabled competitions only — a competition without a FantasySeason
+  // has no fantasy game to play.
+  const fantasyCompetitions = joinedCompetitions
+    .map((c, i) => ({
+      competition: c,
+      season: seasonQueries[i]?.data,
+      gameweeks: gameweekQueries[i]?.data ?? [],
+      fixtures: fixtureQueries[i]?.data ?? [],
+    }))
+    .filter((entry) => !!entry.season)
 
-        <div className="space-y-4">
-          {joinedLeagues.map((league) => (
-            <button
-              key={league._id}
-              onClick={() => setCompetitionId(league._id)}
-              className="w-full bg-gaffer-card border border-gaffer-border p-4 rounded-2xl flex items-center gap-4 text-left group hover:border-gaffer-orange/50 transition-colors"
-            >
-              <div className="w-14 h-14 rounded-full bg-gaffer-border overflow-hidden flex items-center justify-center flex-shrink-0">
-                {league.bannerUrl ? (
-                  <img src={getImageUrl(league.bannerUrl)} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <Trophy size={20} className="text-gaffer-muted" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                 <p className="text-white font-display font-bold text-[15px] truncate uppercase tracking-wide mb-1">
-                   {league.name}
-                 </p>
-                 <div className="flex items-center gap-2">
-                    <span className="text-[10px] text-gaffer-muted font-black uppercase tracking-widest">Active League</span>
-                 </div>
-              </div>
-              <div className="w-10 h-10 rounded-full border border-white/5 flex items-center justify-center group-hover:bg-gaffer-orange/10 group-hover:border-gaffer-orange/20 transition-colors">
-                <ChevronRight size={18} className="text-white/40 group-hover:text-gaffer-orange" />
-              </div>
-            </button>
-          ))}
-          
+  return (
+    <div className="min-h-screen bg-[#181928] p-6 pb-24">
+      <div className="flex items-center gap-3 mb-8 mt-12">
+        <div className="w-10 h-10 rounded-xl bg-gaffer-orange flex items-center justify-center">
+          <Gamepad2 size={24} className="text-[#181928]" fill="currentColor" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold text-white leading-none">Fantasy</h1>
+          <p className="text-gaffer-muted text-[10px] font-black uppercase tracking-[3px] mt-1">Select League</p>
+        </div>
+      </div>
+
+      {fantasyCompetitions.length === 0 ? (
+        <div className="text-center py-12">
+          <p className="text-gaffer-muted font-body text-sm mb-8">
+            None of your joined competitions have fantasy enabled yet.
+          </p>
           <button
             onClick={() => router.push('/app/league')}
-            className="w-full bg-transparent border-2 border-dashed border-gaffer-border p-4 rounded-2xl flex items-center justify-center gap-3 group hover:border-gaffer-orange/50 hover:bg-gaffer-orange/5 transition-all text-gaffer-muted hover:text-white"
+            className="w-full bg-transparent border-2 border-dashed border-gaffer-border p-4 rounded-2xl flex items-center justify-center gap-3 hover:border-gaffer-orange/50 hover:bg-gaffer-orange/5 transition-all text-gaffer-muted hover:text-white"
           >
             <Search size={18} />
             <span className="font-display font-bold text-[14px] uppercase tracking-wider">Join New League</span>
           </button>
         </div>
-      </div>
-    )
-  }
+      ) : (
+        <div className="space-y-4">
+          {fantasyCompetitions.map(({ competition, gameweeks, fixtures }) => (
+            <CompetitionFantasyCard
+              key={competition._id}
+              competition={competition}
+              gameweeks={gameweeks}
+              fixtures={fixtures}
+              onClick={() => router.push(`/app/fantasy/${competition._id}`)}
+            />
+          ))}
 
-  // ?repick=1 — show CreateTeamScreen → PickTeamOnboarding without touching
-  // the normal flag flow (flags were cleared before navigating here).
-  if (forceRepick) {
-    if (!hasCreatedTeam) {
-      return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
-    }
-    return (
-      <PickTeamOnboarding
-        onBack={() => setHasCreatedTeam(false)}
-        onComplete={() => {
-          setHasOrganizedBench(true)
-          router.replace('/app/fantasy')
-        }}
-      />
-    )
-  }
-
-  if (!hasCreatedTeam) {
-    return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
-  }
-
-  if (!hasNamedTeam) {
-    return (
-      <TeamNamingScreen
-        onComplete={(name: string) => {
-          setTeamName(name)
-          setHasNamedTeam(true)
-        }}
-      />
-    )
-  }
-
-  if (!hasOrganizedBench) {
-    return (
-      <PickTeamOnboarding
-        onBack={() => setHasNamedTeam(false)}
-        onComplete={() => {
-          setHasOrganizedBench(true)
-          router.replace('/app/fantasy')
-        }}
-      />
-    )
-  }
-
-  return <FantasyDashboard />
-}
-
-export default function FantasyPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#181928] flex items-center justify-center">
-        <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
-      </div>
-    }>
-      <FantasyPageContent />
-    </Suspense>
+          <button
+            onClick={() => router.push('/app/league')}
+            className="w-full bg-transparent border-2 border-dashed border-gaffer-border p-4 rounded-2xl flex items-center justify-center gap-3 hover:border-gaffer-orange/50 hover:bg-gaffer-orange/5 transition-all text-gaffer-muted hover:text-white"
+          >
+            <Search size={18} />
+            <span className="font-display font-bold text-[14px] uppercase tracking-wider">Join New League</span>
+          </button>
+        </div>
+      )}
+    </div>
   )
 }

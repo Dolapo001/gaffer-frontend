@@ -8,14 +8,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   ChevronLeft, Trophy, Users, Calendar, MapPin,
   BarChart2, Trash2, Star, Pencil, Check, LayoutGrid, Plus, Copy,
-  RefreshCw, Settings, Share2
+  RefreshCw, Settings, Share2, GitBranch
 } from 'lucide-react'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 import { getCompetition, deleteCompetition, publishCompetition, listCompetitionTeams, registerTeams, type CompetitionTeam } from '@/lib/services/competition.service'
 import { api } from '@/lib/api'
 import { listTeams } from '@/lib/services/team.service'
-import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
+import { listFixtures, listRounds, type Fixture } from '@/lib/services/fixture.service'
 import { getStandings } from '@/lib/services/standings.service'
 import {
   getTeamPricing,
@@ -27,8 +27,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage, getImageUrl } from '@/lib/api'
 import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
+import { TournamentBracket } from '@/components/admin/TournamentBracket'
 import { EditTournamentModal } from '@/components/tournament/EditTournamentModal'
 import { RecordEventModal } from '@/components/admin/RecordEventModal'
+import { GroupedFixturesView } from '@/components/league/GroupedFixturesView'
 
 function teamLabel(side: Fixture['homeTeamId']) {
   if (!side || typeof side === 'string') return 'TBD'
@@ -39,15 +41,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-function formatKickoff(iso: string) {
-  const d = new Date(iso)
-  return {
-    date: d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
-    time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-  }
-}
-
-type Tab = 'overview' | 'schedule' | 'standings' | 'fantasy'
+type Tab = 'overview' | 'schedule' | 'standings' | 'bracket' | 'fantasy'
 
 export default function TournamentDetailPage() {
   const router = useRouter()
@@ -82,29 +76,55 @@ export default function TournamentDetailPage() {
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', id],
     queryFn: () => getCompetition(id),
+    retry: false,
+    meta: { suppressGlobalError: true },
   })
 
+  const realId = competition?._id || id
+
   const { data: fixtures } = useQuery({
-    queryKey: ['fixtures', id],
-    queryFn: () => listFixtures(id),
-    enabled: activeTab === 'schedule',
+    queryKey: ['fixtures', realId],
+    queryFn: () => listFixtures(realId),
+    enabled: activeTab === 'schedule' && !!competition,
+    retry: false,
+    meta: { suppressGlobalError: true },
   })
 
   const { data: standingsData } = useQuery({
-    queryKey: ['standings', id],
-    queryFn: () => getStandings(id),
-    enabled: activeTab === 'standings',
+    queryKey: ['standings', realId],
+    queryFn: () => getStandings(realId),
+    enabled: activeTab === 'standings' && !!competition,
+    retry: false,
+    meta: { suppressGlobalError: true },
   })
 
+  // Rounds — fetched for bracket tab. listRounds is also used inside
+  // TournamentBracket itself via its own useQuery, so this prefetch just
+  // warms the cache when the tab becomes active.
+  const { data: rounds } = useQuery({
+    queryKey: ['rounds', realId],
+    queryFn: () => listRounds(realId),
+    enabled: activeTab === 'bracket' && !!competition,
+    retry: false,
+    meta: { suppressGlobalError: true },
+  })
+  const hasKnockout = (rounds ?? []).some((r) => r.stageType === 'knockout')
+    || (competition?.format ?? '').toLowerCase().includes('knockout')
+
   const { data: teamPricingData } = useQuery({
-    queryKey: ['team-pricing', id],
-    queryFn: () => getTeamPricing(id),
-    enabled: activeTab === 'fantasy',
+    queryKey: ['team-pricing', realId],
+    queryFn: () => getTeamPricing(realId),
+    enabled: activeTab === 'fantasy' && !!competition,
+    retry: false,
+    meta: { suppressGlobalError: true },
   })
 
   const { data: compTeams } = useQuery({
-    queryKey: ['competition-teams', id],
-    queryFn: () => listCompetitionTeams(id),
+    queryKey: ['competition-teams', realId],
+    queryFn: () => listCompetitionTeams(realId),
+    enabled: !!competition,
+    retry: false,
+    meta: { suppressGlobalError: true },
   })
 
   const { data: orgTeams } = useQuery({
@@ -135,7 +155,7 @@ export default function TournamentDetailPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: () => deleteCompetition(id),
+    mutationFn: () => deleteCompetition(competition?._id || id),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['competitions'] })
       toast.addToast('Tournament deleted', 'success')
@@ -207,18 +227,35 @@ export default function TournamentDetailPage() {
   const standings = standingsData?.standings ?? []
   const allFixtures = Array.isArray(fixtures) ? fixtures : []
   const standingsAllZero = standings.length === 0 && (compTeams?.length ?? 0) > 0
-  const standingsRows = standings.length > 0
-    ? standings
-    : standingsAllZero
-      ? [...(compTeams ?? [])]
-          .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''))
-          .map(t => ({
-            teamId: { _id: t.teamId ?? t._id ?? '', name: t.name || 'Team', handle: t.handle ?? '' },
-            played: 0, won: 0, drawn: 0, lost: 0, points: 0,
-          }))
-      : []
-  const completed = allFixtures.filter((f) => f.status === 'completed')
-  const upcoming = allFixtures.filter((f) => f.status !== 'completed')
+
+  // Real group assignments live on CompetitionTeam.groupName — Standing
+  // records carry no group/stage field, so grouping must come from the
+  // team list, joined with each team's stats by teamId.
+  const statsByTeamId = new Map(
+    standings.map((s: any) => [
+      typeof s.teamId === 'object' ? s.teamId?._id : s.teamId,
+      { played: s.played ?? 0, won: s.won ?? 0, drawn: s.drawn ?? 0, lost: s.lost ?? 0, points: s.points ?? 0 },
+    ]),
+  )
+  const standingsGroupsMap: Record<string, any[]> = {}
+  for (const t of compTeams ?? []) {
+    const groupName = t.groupName || 'Ungrouped'
+    if (!standingsGroupsMap[groupName]) standingsGroupsMap[groupName] = []
+    const stats = statsByTeamId.get(t.teamId) ?? { played: 0, won: 0, drawn: 0, lost: 0, points: 0 }
+    standingsGroupsMap[groupName].push({
+      teamId: { _id: t.teamId ?? t._id ?? '', name: t.name || 'Team', handle: t.handle ?? '' },
+      ...stats,
+    })
+  }
+  const standingsGroups = Object.entries(standingsGroupsMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([groupName, rows]) => ({
+      groupName,
+      // Admin-assigned group names may already read "Group A" verbatim, or just "A" — never double-prefix.
+      title: groupName === 'Ungrouped' ? 'Ungrouped' : /^group\b/i.test(groupName) ? groupName : `Group ${groupName}`,
+      rows: [...rows].sort((a, b) => b.points - a.points),
+    }))
+
 
   return (
     <>
@@ -239,13 +276,27 @@ export default function TournamentDetailPage() {
             </button>
           </div>
 
-          {/* Tabs */}
+          {/* Tabs — 'bracket' only shown when rounds contain knockout stages */}
           <div className="flex gap-8 px-6 pb-0 overflow-x-auto no-scrollbar">
-            {(['overview', 'schedule', 'standings', 'fantasy'] as Tab[]).map((tab) => (
+            {(
+              [
+                'overview',
+                'schedule',
+                'standings',
+                ...(hasKnockout ? ['bracket'] : []),
+                'fantasy',
+              ] as Tab[]
+            ).map((tab) => (
               <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`relative py-3 text-[11px] font-display font-bold uppercase tracking-[0.1em] transition-all duration-300 ${activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle hover:text-white/80'
-                  }`}>
-                {tab}
+                className={`relative py-3 text-[11px] font-display font-bold uppercase tracking-[0.1em] transition-all duration-300 whitespace-nowrap ${
+                  activeTab === tab ? 'text-gaffer-orange' : 'text-gaffer-subtle hover:text-white/80'
+                }`}>
+                {tab === 'bracket' ? (
+                  <span className="flex items-center gap-1">
+                    <GitBranch size={10} className="shrink-0" />
+                    Bracket
+                  </span>
+                ) : tab}
                 {activeTab === tab && (
                   <motion.div layoutId="tourney-tab-line"
                     className="absolute bottom-0 inset-x-0 h-0.5 rounded-full bg-gaffer-orange shadow-[0_0_8px_rgba(255,107,0,0.4)]" />
@@ -506,117 +557,63 @@ export default function TournamentDetailPage() {
 
             {/* ── SCHEDULE ── */}
             {activeTab === 'schedule' && (
-              <motion.div key="sc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-                {upcoming.length > 0 && (
-                  <div>
-                    <p className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest mb-2">Upcoming</p>
-                    <div className="space-y-3">
-                      {upcoming.map((f, i) => {
-                        const { date, time } = formatKickoff(f.kickoffAt)
-                        return (
-                          <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                            className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 cursor-pointer hover:border-gaffer-orange/40 transition-all group"
-                            onClick={() => setActiveFixtureForEvent(f)}
-                          >
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="flex-1 text-right">
-                                <p className="text-white font-body font-semibold text-sm truncate">{teamLabel(f.homeTeamId)}</p>
-                              </div>
-                              <div className="px-3 py-1 rounded-xl bg-gaffer-orange/10 border border-gaffer-orange/20">
-                                <p className="font-display font-black text-base leading-none text-center text-gaffer-orange">vs</p>
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-white font-body font-semibold text-sm truncate">{teamLabel(f.awayTeamId)}</p>
-                              </div>
-                            </div>
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-3 text-gaffer-subtle text-[11px] font-body">
-                                <div className="flex items-center gap-1 font-black uppercase tracking-widest"><Calendar size={11} />{date}</div>
-                                <span className="opacity-20">·</span>
-                                <span className="font-black uppercase tracking-widest">{time}</span>
-                              </div>
-                              <span className="text-[10px] text-gaffer-orange font-chakra font-black uppercase tracking-tight opacity-0 group-hover:opacity-100 transition-opacity">Record Event &rarr;</span>
-                            </div>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                {completed.length > 0 && (
-                  <div>
-                    <p className="text-gaffer-muted text-[10px] font-body uppercase tracking-widest mb-2">Results</p>
-                    <div className="space-y-3">
-                      {completed.map((f, i) => (
-                        <motion.div key={f._id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.06 }}
-                          className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex-1 text-right">
-                              <p className="text-white font-body font-semibold text-sm">{teamLabel(f.homeTeamId)}</p>
-                            </div>
-                            <div className="px-3 py-1 rounded-xl bg-gaffer-surface">
-                              <p className="font-display font-black text-base leading-none text-center text-white">
-                                {f.score?.home ?? 0} - {f.score?.away ?? 0}
-                              </p>
-                            </div>
-                            <div className="flex-1">
-                              <p className="text-white font-body font-semibold text-sm">{teamLabel(f.awayTeamId)}</p>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {allFixtures.length === 0 && (
-                  <div className="py-12 text-center">
-                    <p className="text-gaffer-muted text-sm font-body">No fixtures scheduled yet</p>
-                  </div>
-                )}
+              <motion.div key="sc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <GroupedFixturesView
+                  fixtures={allFixtures}
+                  compTeams={compTeams}
+                  onFixtureClick={(fixtureId) => {
+                    const f = allFixtures.find((x) => x._id === fixtureId)
+                    if (f) setActiveFixtureForEvent(f)
+                  }}
+                />
               </motion.div>
             )}
 
             {/* ── STANDINGS ── */}
             {activeTab === 'standings' && (
-              <motion.div key="st" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                {standingsRows.length === 0 ? (
+              <motion.div key="st" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-6">
+                {standingsGroups.length === 0 ? (
                   <div className="py-12 text-center">
                     <p className="text-gaffer-muted text-sm font-body">No standings data yet</p>
                   </div>
                 ) : (
-                  <div className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
-                    {standingsAllZero && (
-                      <p className="text-gaffer-muted text-[10px] font-body text-center py-2">
-                        No matches played yet
-                      </p>
-                    )}
-                    <div className="grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
-                      {['#', 'Team', 'P', 'W', 'D', 'L', 'Pts'].map((h) => (
-                        <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
+                  standingsGroups.map((group) => (
+                    <div key={group.groupName} className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden">
+                      <div className="px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
+                        <span className="text-white text-[11px] font-display font-black uppercase tracking-widest">{group.title}</span>
+                      </div>
+                      {standingsAllZero && (
+                        <p className="text-gaffer-muted text-[10px] font-body text-center py-2">
+                          No matches played yet
+                        </p>
+                      )}
+                      <div className="grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-2.5 border-b border-gaffer-border bg-gaffer-surface">
+                        {['#', 'Team', 'P', 'W', 'D', 'L', 'Pts'].map((h) => (
+                          <span key={h} className="text-gaffer-muted text-[10px] font-body font-semibold uppercase tracking-wide text-center first:text-left">{h}</span>
+                        ))}
+                      </div>
+                      {group.rows.map((row, i) => (
+                        <motion.div key={row.teamId._id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
+                          className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < group.rows.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
+                          <span className={`font-display font-bold text-sm text-center ${i < 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{i + 1}</span>
+                          <span className="text-white font-body font-medium text-sm truncate">{row.teamId.name}</span>
+                          {[row.played, row.won, row.drawn, row.lost, row.points].map((val, j) => (
+                            <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
+                          ))}
+                        </motion.div>
                       ))}
                     </div>
-                    {standingsRows.map((row, i) => {
-                      // teamId may be a plain string (un-populated) or a populated object.
-                      // Guard both cases to prevent a render crash hitting the ErrorBoundary.
-                      const team = typeof row.teamId === 'object' && row.teamId !== null
-                        ? row.teamId
-                        : { _id: String(row.teamId), name: 'Unknown', handle: '' }
-                      return (
-                      <motion.div key={team._id || i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.05 }}
-                        className={`grid grid-cols-[2rem_1fr_repeat(5,2.5rem)] gap-1 px-4 py-3.5 items-center ${i < standingsRows.length - 1 ? 'border-b border-gaffer-border' : ''} ${i === 0 ? 'bg-gaffer-orange/5' : ''}`}>
-                        <span className={`font-display font-bold text-sm text-center ${i < 2 ? 'text-gaffer-orange' : 'text-gaffer-muted'}`}>{i + 1}</span>
-                        <span className="text-white font-body font-medium text-sm truncate">{team.name}</span>
-                        {[row.played ?? 0, row.won ?? 0, row.drawn ?? 0, row.lost ?? 0, row.points ?? 0].map((val, j) => (
-                          <span key={j} className={`font-body text-sm text-center ${j === 4 ? 'text-gaffer-orange font-bold' : 'text-gaffer-muted'}`}>{val}</span>
-                        ))}
-                      </motion.div>
-                    )})}
-                  </div>
+                  ))
                 )}
               </motion.div>
             )}
+            {/* ── BRACKET ── */}
+            {activeTab === 'bracket' && (
+              <motion.div key="br" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <TournamentBracket competitionId={id} />
+              </motion.div>
+            )}
+
             {/* ── FANTASY ── */}
             {activeTab === 'fantasy' && (
               <motion.div key="fy" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

@@ -18,7 +18,7 @@ const FORMAT_OPTIONS = [
   { id: 'round_robin', label: 'Round Robin' },
   { id: 'groups', label: 'Groups' },
   { id: 'knockout', label: 'Knockout' },
-  { id: 'groups_knockout', label: 'Group + Knockout' },
+  { id: 'group_knockout', label: 'Group + Knockout' },
   { id: 'league_knockout', label: 'League + Knockout' },
   { id: 'league_playoff', label: 'League + Playoff' },
   { id: 'custom', label: 'Custom' }

@@ -24,7 +24,7 @@ export const TeamNamingScreen: React.FC<TeamNamingScreenProps> = ({ onComplete }
   };
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#1b1c28] flex flex-col font-sans z-20">
+    <div className="fixed inset-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto bg-[#1b1c28] flex flex-col font-sans z-20">
       <div className="flex-1 overflow-y-auto px-8 pt-24">
         <h1 className="text-white text-[28px] font-bold text-center mb-12 tracking-tight">
           Choose your team&apos;s name

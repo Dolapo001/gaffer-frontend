@@ -169,12 +169,46 @@ async function parseResponse<T>(res: Response): Promise<T> {
   return body as T
 }
 
+// ─── Timeout ──────────────────────────────────────────────────────────────────
+// fetch() has no default timeout — a slow or hung backend response (e.g. a
+// request handler that awaits a downstream call with no timeout of its own,
+// such as notification dispatch) previously left callers (mutation buttons,
+// query loading states) spinning forever with no way out. Every request below
+// is now bounded: if the server hasn't responded within DEFAULT_TIMEOUT_MS,
+// the request is aborted and callers get a normal, catchable ApiError instead
+// of an unresolved promise.
+
+const DEFAULT_TIMEOUT_MS = 20_000
+
+async function fetchWithTimeout(
+  url: string,
+  init: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<Response> {
+  const controller = new AbortController()
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    return await fetch(url, { ...init, signal: controller.signal })
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      throw new ApiError(
+        0,
+        'REQUEST_TIMEOUT',
+        'The request timed out. Please check your connection and try again.',
+      )
+    }
+    throw err
+  } finally {
+    clearTimeout(timeoutId)
+  }
+}
+
 // ─── Refresh (called automatically on 401) ────────────────────────────────────
 
 let _refreshPromise: Promise<string> | null = null
 
 async function doRefresh(): Promise<string> {
-  const res = await fetch(`${API_BASE}/auth/refresh`, {
+  const res = await fetchWithTimeout(`${API_BASE}/auth/refresh`, {
     method: 'POST',
     credentials: 'include', // sends the rt HttpOnly cookie
   })
@@ -224,13 +258,15 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   public?: boolean
   /** Skip automatic 401 refresh retry */
   skipRefresh?: boolean
+  /** Override the default request timeout (ms). Useful for large uploads. */
+  timeoutMs?: number
 }
 
 export async function apiRequest<T = unknown>(
   path: string,
   opts: RequestOptions = {},
 ): Promise<T> {
-  const { body, public: isPublic, skipRefresh, ...fetchOpts } = opts
+  const { body, public: isPublic, skipRefresh, timeoutMs, ...fetchOpts } = opts
 
   // FormData must not have Content-Type set manually — browser sets it with boundary
   const isFormData = body instanceof FormData
@@ -247,24 +283,24 @@ export async function apiRequest<T = unknown>(
     if (token) headers['Authorization'] = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetchWithTimeout(`${API_BASE}${path}`, {
     ...fetchOpts,
     credentials: 'include', // always include cookies for rt cookie
     headers,
     body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-  })
+  }, timeoutMs)
 
   // Automatic token refresh on 401
   if (res.status === 401 && !skipRefresh && !isPublic) {
     try {
       const newToken = await refreshOnce()
       headers['Authorization'] = `Bearer ${newToken}`
-      const retryRes = await fetch(`${API_BASE}${path}`, {
+      const retryRes = await fetchWithTimeout(`${API_BASE}${path}`, {
         ...fetchOpts,
         credentials: 'include',
         headers,
         body: isFormData ? body : body !== undefined ? JSON.stringify(body) : undefined,
-      })
+      }, timeoutMs)
 
       if (retryRes.status === 401) {
         // Even after refresh, the endpoint rejected us. 
@@ -352,7 +388,7 @@ export function getErrorMessage(err: unknown): string {
         const firstField = Object.values(details).find((v: any) => v && Array.isArray(v._errors) && v._errors.length > 0) as any
         if (firstField) return firstField._errors[0]
 
-        // 3. Fallback: search for any array values (old behavior)
+        // 3. Fallback: search for any array values
         const fieldErrors = Object.values(details)
           .flat()
           .filter((v) => typeof v === 'string') as string[]
@@ -362,9 +398,17 @@ export function getErrorMessage(err: unknown): string {
       }
     }
 
+    if (err.message && !['Error', 'HTTP 400', 'HTTP 403', 'HTTP 404', 'HTTP 500'].includes(err.message)) {
+      return err.message
+    }
+
     return translateError(err.code, err.message)
   }
   if (err instanceof Error) return err.message
+  if (typeof err === 'string') return err
+  if (typeof err === 'object' && err && 'message' in err && typeof (err as any).message === 'string') {
+    return (err as any).message
+  }
   return 'An unexpected error occurred'
 }
 

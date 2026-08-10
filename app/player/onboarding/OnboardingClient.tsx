@@ -41,54 +41,7 @@ export function OnboardingClient({ token }: OnboardingClientProps) {
 
   return (
     <>
-      {/* ── Coming Soon Modal ── */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
-        style={{ background: 'rgba(10,11,18,0.85)', backdropFilter: 'blur(12px)' }}
-      >
-        <motion.div
-          initial={{ y: 40, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1, type: 'spring', damping: 28, stiffness: 260 }}
-          className="w-full max-w-sm rounded-[28px] overflow-hidden"
-          style={{ background: 'linear-gradient(160deg, #1a1d2e 0%, #12141f 100%)', border: '1px solid rgba(255,107,0,0.18)' }}
-        >
-          {/* Orange glow top bar */}
-          <div className="h-1 w-full" style={{ background: 'linear-gradient(90deg, #FF6B00, #ff9a00)' }} />
-
-          <div className="px-7 pt-8 pb-9 flex flex-col items-center text-center gap-5">
-            {/* Icon */}
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl"
-              style={{ background: 'rgba(255,107,0,0.12)', border: '1px solid rgba(255,107,0,0.25)' }}>
-              ⚽
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[10px] font-body font-bold uppercase tracking-[0.3em] text-orange-400">
-                Coming Soon
-              </p>
-              <h2 className="font-chakra font-black text-2xl uppercase tracking-tight text-white leading-tight">
-                Player Onboarding
-              </h2>
-              <p className="text-white/50 text-sm font-body leading-relaxed">
-                We&apos;re putting the finishing touches on this feature. Players will be able to join their team directly from an invite link very soon.
-              </p>
-            </div>
-
-            <div className="w-full rounded-2xl px-4 py-3 text-left"
-              style={{ background: 'rgba(255,107,0,0.07)', border: '1px solid rgba(255,107,0,0.15)' }}>
-              <p className="text-[11px] font-body font-bold uppercase tracking-widest text-orange-400/70 mb-1">Your invite is saved</p>
-              <p className="text-white/60 text-xs font-body">
-                Your invite link will work once this feature goes live. Check back soon.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-
-      {/* Underlying page (blurred behind modal) */}
+      {/* Underlying page */}
       <div className="min-h-screen bg-[#0F111A] text-white flex flex-col font-inter">
         <header className="px-6 pt-14 pb-6 shrink-0">
           <div className="flex flex-col gap-1">

@@ -11,6 +11,19 @@ const INVITE_ROUTES = ['/player/onboarding', '/organization/onboarding']
 // Recruitment links are fully public — no token in the URL is needed because
 // the token is the path segment itself (/recruit/:token).
 const RECRUIT_PREFIX = '/recruit'
+// Every reserved top-level segment in the app. Anything NOT starting with one
+// of these is the `/[competition]/[...slug]` public recruitment catch-all
+// route (Next.js route precedence always resolves the reserved folders below
+// over the dynamic catch-all, so this check can't accidentally shadow them).
+const RESERVED_TOP_SEGMENTS = [
+  'auth',
+  'admin',
+  'app',
+  'onboarding',
+  'organization',
+  'player',
+  'recruit',
+]
 
 /**
  * Server-side route protection.
@@ -31,6 +44,14 @@ export function middleware(request: NextRequest) {
 
   // Recruitment links are fully public — the token is the URL segment itself
   if (pathname.startsWith(RECRUIT_PREFIX)) return NextResponse.next()
+
+  // The `/[competition]/[...slug]` public recruitment catch-all route: any
+  // path whose first segment isn't one of the reserved top-level sections
+  // above is this route, and must be reachable without a session.
+  const firstSegment = pathname.split('/').filter(Boolean)[0]
+  if (firstSegment && !RESERVED_TOP_SEGMENTS.includes(firstSegment)) {
+    return NextResponse.next()
+  }
 
   // Invite onboarding routes are always public — no login required.
   // Players are not expected to have an account; the token in the URL is the

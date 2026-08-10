@@ -8,10 +8,10 @@ import { Menu, Share2, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } fr
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
-import { getWallet } from '@/lib/services/payment.service'
 import { getImageUrl } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
+import { useWallet } from '@/hooks/useWallet'
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -19,10 +19,11 @@ export default function DashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
   const [isLoadingNews, setIsLoadingNews] = useState(true)
-  const [walletBalance, setWalletBalance] = useState<number | null>(null)
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
   const hasOrg = (orgs && orgs.length > 0) || user?.isOrgActive
+  const { data: wallet } = useWallet()
+  const walletBalance = wallet?.balance ?? null
 
   useLayoutEffect(() => {
     const handleUpgrade = () => router.push('/onboarding/organization')
@@ -47,16 +48,7 @@ export default function DashboardPage() {
         setIsLoadingNews(false)
       }
     }
-    const fetchWallet = async () => {
-      try {
-        const wallet = await getWallet()
-        setWalletBalance(wallet.balance)
-      } catch (err) {
-        console.error('Failed to fetch wallet:', err)
-      }
-    }
     fetchNews()
-    fetchWallet()
   }, [])
 
   const displayName = profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'

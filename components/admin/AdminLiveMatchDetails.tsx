@@ -16,6 +16,20 @@ import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
 import { useAuthStore } from '@/store/authStore'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { PositionFilterBar, type PositionFilterValue } from '@/components/PositionFilterBar'
+import { CommentaryIcon } from '@/components/CommentaryIcon'
+import { calculatePlayerRating } from '@/lib/ratingsEngine'
+
+const POSITION_NORMALIZE: Record<string, PositionFilterValue> = {
+  goalkeeper: 'GK', gk: 'GK',
+  defender: 'DEF', def: 'DEF', 'center-back': 'DEF', 'centre-back': 'DEF', 'full-back': 'DEF', cb: 'DEF', rb: 'DEF', lb: 'DEF',
+  midfielder: 'MID', mid: 'MID', mf: 'MID', cm: 'MID', dm: 'MID', am: 'MID',
+  forward: 'FWD', fwd: 'FWD', fw: 'FWD', st: 'FWD', cf: 'FWD', lw: 'FWD', rw: 'FWD',
+}
+function normalizeAdminPosition(pos?: string): PositionFilterValue | '' {
+  if (!pos) return ''
+  return POSITION_NORMALIZE[pos.trim().toLowerCase()] || ''
+}
 
 export function AdminLiveMatchDetails({ id }: { id: string }) {
   const router = useRouter()
@@ -25,14 +39,29 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const hasHydrated = useRef(false)
 
   const [activeTab, setActiveTab] = useState<'lineup' | 'commentary'>('lineup')
-  const [commentaryStep, setCommentaryStep] = useState<'idle' | 'menu' | 'minute' | 'team' | 'scorer' | 'assist' | 'custom'>('idle')
-  const [selectedAction, setSelectedAction] = useState<string | null>(null)
-  const [selectedTeam, setSelectedTeam] = useState<'home' | 'away' | null>(null)
-  const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null)
-  const [selectedScorer, setSelectedScorer] = useState<any | null>(null)
-  const [matchMinute, setMatchMinute] = useState<string>('')
-  const [commentaryText, setCommentaryText] = useState('')
   const [showFulltimeConfirm, setShowFulltimeConfirm] = useState(false)
+
+  // Progressive Flow State
+  type FlowStep = 'idle' | 'category' | 'team' | 'scorer' | 'assistYesNo' | 'assist' | 'penaltyPending' | 'penaltyOutcome' | 'penaltyTaker' | 'penaltyGK' | 'cardPlayer' | 'cardType' | 'subOut' | 'subIn' | 'matchStatus' | 'custom' | 'minute'
+  const [flowStep, setFlowStep] = useState<FlowStep>('idle')
+  const [selectedCategory, setSelectedCategory] = useState<'GOAL' | 'PENALTY' | 'CARD' | 'SUBSTITUTION' | 'MATCH_STATUS' | 'CUSTOM' | null>(null)
+  const [selectedTeam, setSelectedTeam] = useState<'home' | 'away' | null>(null)
+  const [selectedPlayer, setSelectedPlayer] = useState<any | null>(null)
+  const [selectedPlayerOut, setSelectedPlayerOut] = useState<any | null>(null)
+  const [penaltyOutcome, setPenaltyOutcome] = useState<'scored' | 'missed' | 'saved' | null>(null)
+  const [matchMinute, setMatchMinute] = useState<string>('')
+  const [customText, setCustomText] = useState('')
+
+  const resetFlow = () => {
+    setFlowStep('idle')
+    setSelectedCategory(null)
+    setSelectedTeam(null)
+    setSelectedPlayer(null)
+    setSelectedPlayerOut(null)
+    setPenaltyOutcome(null)
+    setMatchMinute('')
+    setCustomText('')
+  }
 
   const [homeFormation, setHomeFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
   const [awayFormation, setAwayFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
@@ -40,8 +69,31 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const [homeLineup, setHomeLineup] = useState<Record<number, any>>({})
   const [awayLineup, setAwayLineup] = useState<Record<number, any>>({})
   const [isSelectingPlayer, setIsSelectingPlayer] = useState<{ team: 'home' | 'away', idx: number } | null>(null)
+  const [assignPositionFilter, setAssignPositionFilter] = useState<PositionFilterValue>('ALL')
   const [slotContextMenu, setSlotContextMenu] = useState<{ team: 'home' | 'away', idx: number, player: any } | null>(null)
-  const [savingTeam, setSavingTeam] = useState<'home' | 'away' | null>(null)
+  const [isLineupDirty, setIsLineupDirty] = useState(false)
+  const [ratingInput, setRatingInput] = useState<string>('')
+
+  const updateSlotRating = (team: 'home' | 'away', idx: number, newRating: number) => {
+    const clamped = Math.min(10.0, Math.max(1.0, Number(newRating.toFixed(1))))
+    if (team === 'home') {
+      setHomeLineup((prev) => ({
+        ...prev,
+        [idx]: { ...prev[idx], rating: clamped },
+      }))
+    } else {
+      setAwayLineup((prev) => ({
+        ...prev,
+        [idx]: { ...prev[idx], rating: clamped },
+      }))
+    }
+    setIsLineupDirty(true)
+    addToast(`Rating set to ${clamped}`, 'success')
+    // Automatically persist rating change to database immediately
+    setTimeout(() => {
+      saveLineupMutation.mutate()
+    }, 150)
+  }
 
   // 1. Fetch Fixture
   const { data: fixture, isLoading: isFixtureLoading } = useQuery({
@@ -127,10 +179,13 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
       const saves: Promise<any>[] = []
       
-      // 1. Save Formations to Fixture object
+      // 1. Save Formations to Fixture object (safely handled if live)
       saves.push(updateFixture(id, { 
         homeFormation, 
         awayFormation 
+      }).catch((err) => {
+        console.warn("Formation update non-critical warning:", err?.message)
+        return null
       }))
 
       const getLineupSlots = (lineup: Record<number, any>) => {
@@ -141,9 +196,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
             return {
               playerId: p._id || p.id,
               positionIndex: Number(idx),
-              playerName: `${p.firstName} ${p.lastName}`,
+              playerName: `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.name,
               position: p.position || 'PLAYER',
-              jerseyNumber: isNaN(jNum) ? 0 : jNum
+              jerseyNumber: isNaN(jNum) ? 0 : jNum,
+              rating: p.rating != null ? p.rating : null,
             }
           })
       }
@@ -172,6 +228,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['lineups', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
+      setIsLineupDirty(false)
+      addToast('Squad saved', 'success')
     },
     onError: (err: any) => addToast(err?.message || "Failed to save changes", "error")
   })
@@ -225,12 +283,16 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
 
   // 1.3 Fetch Events (poll every 10s when live)
-  const { data: events = [], isLoading: isEventsLoading } = useQuery({
+  const { data: rawEvents, isLoading: isEventsLoading } = useQuery({
     queryKey: ['events', id],
     queryFn: () => listEvents(id),
     enabled: !!id,
     refetchInterval: isLive ? 10_000 : false,
   })
+  // Defensive: guarantees an array regardless of transient query state (e.g.
+  // a cache slot briefly populated by something else) — this data drives
+  // several `.filter()`/`.length` reads below and must never be non-array.
+  const events = Array.isArray(rawEvents) ? rawEvents : []
 
   const flattenSquad = (squad: any) => {
     const list = Array.isArray(squad) ? squad : (squad?.players || [])
@@ -256,7 +318,51 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const flattenedHomeSquad = flattenSquad(homeSquad)
   const flattenedAwaySquad = flattenSquad(awaySquad)
   const isSquadLoading = isHomeSquadLoading || isAwaySquadLoading
-  const commentarySquad = selectedTeam === 'home' ? flattenedHomeSquad : selectedTeam === 'away' ? flattenedAwaySquad : []
+
+  // Event/commentary pickers must only offer players actually in the match —
+  // the assigned starting lineup plus anyone already subbed on — not the
+  // full ~25-player roster. "On pitch" is derived by applying every
+  // substitution recorded so far (in minute order) to the assigned lineup.
+  const getOnPitch = (team: 'home' | 'away'): any[] => {
+    const lineup = team === 'home' ? homeLineup : awayLineup
+    const squad = team === 'home' ? flattenedHomeSquad : flattenedAwaySquad
+    const teamId = team === 'home' ? homeId : awayId
+
+    const onPitchIds = new Set<string>(
+      Object.values(lineup).filter(Boolean).map((p: any) => String(p._id || p.id))
+    )
+
+    const subs = events
+      .filter((e: any) => {
+        const raw = e.rawType || e.type
+        const tid = typeof e.teamId === 'string' ? e.teamId : e.teamId?._id
+        return raw === 'substitution' && tid === teamId
+      })
+      .sort((a: any, b: any) => (a.minute ?? 0) - (b.minute ?? 0))
+
+    subs.forEach((e: any) => {
+      const outId = typeof e.playerOutId === 'string' ? e.playerOutId : e.playerOutId?._id
+      const inId = typeof e.playerInId === 'string' ? e.playerInId : e.playerInId?._id
+      if (outId) onPitchIds.delete(String(outId))
+      if (inId) onPitchIds.add(String(inId))
+    })
+
+    return squad.filter((p: any) => onPitchIds.has(String(p._id)))
+  }
+
+  // For a substitution's "player in" step: the roster minus whoever is
+  // currently on the pitch. This app doesn't have a separate "named bench"
+  // concept beyond the starting XI + full roster, so this is the closest
+  // faithful equivalent — it still guarantees a currently-playing player
+  // can't be picked to come on for themselves.
+  const getBench = (team: 'home' | 'away'): any[] => {
+    const onPitch = getOnPitch(team)
+    const onPitchIds = new Set(onPitch.map((p: any) => String(p._id)))
+    const squad = team === 'home' ? flattenedHomeSquad : flattenedAwaySquad
+    return squad.filter((p: any) => !onPitchIds.has(String(p._id)))
+  }
+
+
 
   // Populate slot state from server lineup when the page first loads
   useEffect(() => {
@@ -276,7 +382,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
           const pid = slot.playerId?._id || slot.playerId
           const found = squad.find(s => String(s._id) === String(pid))
           if (found) {
-            mapped[slot.positionIndex] = found
+            mapped[slot.positionIndex] = {
+              ...found,
+              rating: slot.rating != null ? slot.rating : (found.rating ?? undefined)
+            }
           }
         })
         return mapped
@@ -288,7 +397,12 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
           if (!p) return
           const pid = typeof p === 'string' ? p : (p?._id || p?.id)
           const found = squad.find(s => String(s._id) === String(pid))
-          if (found) mapped[i] = found
+          if (found) {
+            mapped[i] = {
+              ...found,
+              rating: p?.rating != null ? p.rating : (found.rating ?? undefined)
+            }
+          }
         })
       }
       return mapped
@@ -338,32 +452,21 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   }, [existingLineups, homeId, awayId, isSquadLoading])
   const recordEventMutation = useMutation({
     mutationFn: (payload: any) => recordEvent(id, payload),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['events', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       queryClient.invalidateQueries({ queryKey: ['fixtures'] })
       addToast('Event recorded', 'success')
-      resetCommentary()
+      if (variables.type === 'penalty_awarded') {
+        setFlowStep('penaltyOutcome')
+      } else {
+        resetFlow()
+      }
     },
     onError: (err: any) => addToast(err?.message || 'Failed to record event', 'error')
   })
 
-  const ACTION_TYPE_MAP: Record<string, string> = {
-    'GOAL':           'goal',
-    'YELLOW CARD':    'yellow_card',
-    'RED CARD':       'red_card',
-    'SUBSTITUTION':   'substitution',
-    'ATTEMPT MISSED': 'attempt_missed',
-    'HALFTIME':       'halftime',
-    'FULLTIME':       'fulltime',
-    'START':          'start',
-    'PENALTY':        'penalty_scored',
-    'CUSTOM':         'custom',
-  }
 
-  const NEEDS_TEAM_PLAYER = ['GOAL', 'RED CARD', 'YELLOW CARD', 'SUBSTITUTION', 'ATTEMPT MISSED', 'PENALTY']
-  const NEEDS_SECOND_PLAYER = ['GOAL', 'SUBSTITUTION']
-  const NEEDS_TEXT = ['CUSTOM']
 
   const formations = {
     '4-4-2': [
@@ -383,39 +486,12 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     ]
   }
 
-  const persistLineup = async (team: 'home' | 'away', lineup: Record<number, any>) => {
-    const teamId = team === 'home' ? homeId : awayId
-    if (!teamId) return
-    
-    const starters = Object.values(lineup)
-      .filter(Boolean)
-      .map((p: any) => p._id || p.id)
-      .filter((id): id is string => !!id)
-
-    const slots = Object.entries(lineup)
-      .filter(([_, p]) => p?._id || p?.id)
-      .map(([idx, p]) => {
-        const jNum = parseInt(String(p.jerseyNumber))
-        return {
-          playerId: p._id || p.id,
-          positionIndex: Number(idx),
-          playerName: `${p.firstName} ${p.lastName}`,
-          position: p.position || 'PLAYER',
-          jerseyNumber: isNaN(jNum) ? 0 : jNum
-        }
-      })
-
-    setSavingTeam(team)
-    try {
-      await submitLineup(id, { teamId, starters, slots })
-      queryClient.invalidateQueries({ queryKey: ['lineups', id] })
-    } catch (err: any) {
-      addToast(err?.message || 'Failed to auto-save lineup', 'error')
-    } finally {
-      setSavingTeam(null)
-    }
-  }
-
+  // Slot assignment is local-state-only — no per-tap network request. The
+  // whole lineup (both teams + formations) is persisted in one shot by
+  // saveLineupMutation, triggered from the "Squad Saved" / "Save Squad"
+  // button. This avoids firing a full lineup resubmission on every single
+  // tap when building an XI, which was stalling into a request-timeout toast
+  // even though the individual save had actually succeeded.
   const assignPlayer = (team: 'home' | 'away', idx: number, player: any) => {
     const lineup = team === 'home' ? { ...homeLineup } : { ...awayLineup }
     // If this player is already assigned to another slot, remove them from the old slot
@@ -429,7 +505,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     else setAwayLineup(lineup)
     setIsSelectingPlayer(null)
     setSlotContextMenu(null)
-    persistLineup(team, lineup)
+    setIsLineupDirty(true)
   }
 
   const unassignPlayer = (team: 'home' | 'away', idx: number) => {
@@ -438,7 +514,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     if (team === 'home') setHomeLineup(updated)
     else setAwayLineup(updated)
     setSlotContextMenu(null)
-    persistLineup(team, updated)
+    setIsLineupDirty(true)
   }
 
   const handleSlotClick = (team: 'home' | 'away', idx: number) => {
@@ -449,12 +525,13 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       setSlotContextMenu({ team, idx, player })
     } else {
       // Slot is empty — open player picker directly
+      setAssignPositionFilter('ALL')
       setIsSelectingPlayer({ team, idx })
     }
   }
 
   useEffect(() => {
-    const shouldHide = commentaryStep !== 'idle' || !!isSelectingPlayer || !!isSelectingFormation || !!slotContextMenu
+    const shouldHide = flowStep !== 'idle' || !!isSelectingPlayer || !!isSelectingFormation || !!slotContextMenu
 
     if (shouldHide) {
       document.body.style.overflow = 'hidden'
@@ -467,30 +544,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       document.body.style.overflow = ''
       showNavbar()
     }
-  }, [commentaryStep, isSelectingPlayer, isSelectingFormation, hideNavbar, showNavbar])
-
-  const actionTypes = [
-    { label: 'FULLTIME', icon: "/icons/Live Game/Commentary/mdi_whistle-outline.svg" },
-    { label: 'HALFTIME', icon: "/icons/Live Game/Commentary/mdi_whistle-outline.svg" },
-    { label: 'PENALTY', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg" },
-    { label: 'ATTEMPT MISSED', icon: "/icons/Live Game/Commentary/subway_missing.svg" },
-    { label: 'SUBSTITUTION', icon: "/icons/Live Game/Commentary/Vector.svg" },
-    { label: 'RED CARD', color: '#EF4444' },
-    { label: 'YELLOW CARD', color: '#FACC15' },
-    { label: 'GOAL', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg" },
-    { label: 'START', icon: "/icons/Live Game/Commentary/mdi_whistle-outline.svg" },
-    { label: 'CUSTOM', icon: "/icons/Live Game/Commentary/ri_edit-line.svg" },
-  ]
-
-  const resetCommentary = () => {
-    setCommentaryStep('idle')
-    setSelectedAction(null)
-    setSelectedTeam(null)
-    setSelectedTeamId(null)
-    setSelectedScorer(null)
-    setMatchMinute('')
-    setCommentaryText('')
-  }
+  }, [flowStep, isSelectingPlayer, isSelectingFormation, slotContextMenu, hideNavbar, showNavbar])
 
   if (isFixtureLoading) return <div className="min-h-screen bg-[#0F111A] flex items-center justify-center text-white">Loading...</div>
   if (!fixture) return <div className="min-h-screen bg-[#0F111A] flex items-center justify-center text-white">Fixture not found</div>
@@ -663,6 +717,20 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   {(formations[awayFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
                     const player = awayLineup[idx]
                     const pitchT = ((100 - t) / 100) * 47 + 2
+                    const pId = player?._id || player?.id
+                    const pEvts = events.filter((e) =>
+                      (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
+                    )
+                    const r = calculatePlayerRating(player?.position || 'MID', pEvts, player?.rating)
+                    const goalsCount = pEvts.filter((e) => {
+                      const type = (e.type || e.rawType || '').toLowerCase()
+                      return type === 'goal' || type === 'penalty_scored'
+                    }).length
+                    const assistsCount = pEvts.filter((e) => {
+                      const type = (e.type || e.rawType || '').toLowerCase()
+                      return type === 'assist'
+                    }).length
+
                     return (
                       <button
                         key={`ap-${idx}`}
@@ -670,14 +738,37 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'away' ? 'animate-pulse opacity-70' : ''}`}>
+                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-blue-500 border-blue-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
                           {player && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-white rounded-full border border-blue-400 flex items-center justify-center"><Edit2 size={5} className="text-blue-500" /></span>}
+                          {goalsCount > 0 && (
+                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border border-black/40 flex items-center justify-center text-[8px] shadow-md">
+                              ⚽
+                            </span>
+                          )}
+                          {assistsCount > 0 && (
+                            <span className="absolute -bottom-1 -left-1 px-1 bg-blue-600 rounded text-white font-extrabold text-[7px] leading-none shadow border border-white">
+                              A
+                            </span>
+                          )}
                         </div>
                         {player && (
-                          <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
-                            {player.lastName || player.firstName}
-                          </span>
+                          <div className="flex flex-col items-center gap-[1px]">
+                            <span
+                              className={`px-1 py-[0.5px] rounded font-extrabold text-[7.5px] leading-none shadow border border-black/30 ${
+                                r >= 7.0
+                                  ? 'bg-[#22c55e] text-white'
+                                  : r >= 6.0
+                                  ? 'bg-[#eab308] text-black'
+                                  : 'bg-[#ef4444] text-white'
+                              }`}
+                            >
+                              {r.toFixed(1)}
+                            </span>
+                            <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
+                              {player.lastName || player.firstName}
+                            </span>
+                          </div>
                         )}
                       </button>
                     )
@@ -687,6 +778,20 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   {(formations[homeFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
                     const player = homeLineup[idx]
                     const pitchT = 51 + (t / 100) * 47
+                    const pId = player?._id || player?.id
+                    const pEvts = events.filter((e) =>
+                      (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
+                    )
+                    const r = calculatePlayerRating(player?.position || 'MID', pEvts, player?.rating)
+                    const goalsCount = pEvts.filter((e) => {
+                      const type = (e.type || e.rawType || '').toLowerCase()
+                      return type === 'goal' || type === 'penalty_scored'
+                    }).length
+                    const assistsCount = pEvts.filter((e) => {
+                      const type = (e.type || e.rawType || '').toLowerCase()
+                      return type === 'assist'
+                    }).length
+
                     return (
                       <button
                         key={`hp-${idx}`}
@@ -694,14 +799,37 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         style={{ position: 'absolute', top: `${pitchT}%`, left: `${l}%`, transform: 'translate(-50%, -50%)', zIndex: 10 }}
                         className="flex flex-col items-center gap-0.5 active:scale-95 transition-transform"
                       >
-                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'} ${savingTeam === 'home' ? 'animate-pulse opacity-70' : ''}`}>
+                        <div className={`relative w-7 h-7 rounded-full border-2 flex items-center justify-center font-inter font-bold text-[9px] shadow-lg ${player ? 'bg-[#FF5C00] border-orange-300 text-white' : 'bg-black/50 border-white/30 text-white/40'}`}>
                           {player ? (player.jerseyNumber || '?') : <Plus size={10} />}
                           {player && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-white rounded-full border border-orange-400 flex items-center justify-center"><Edit2 size={5} className="text-orange-500" /></span>}
+                          {goalsCount > 0 && (
+                            <span className="absolute -top-1.5 -left-1.5 w-4 h-4 bg-white rounded-full border border-black/40 flex items-center justify-center text-[8px] shadow-md">
+                              ⚽
+                            </span>
+                          )}
+                          {assistsCount > 0 && (
+                            <span className="absolute -bottom-1 -left-1 px-1 bg-blue-600 rounded text-white font-extrabold text-[7px] leading-none shadow border border-white">
+                              A
+                            </span>
+                          )}
                         </div>
                         {player && (
-                          <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
-                            {player.lastName || player.firstName}
-                          </span>
+                          <div className="flex flex-col items-center gap-[1px]">
+                            <span
+                              className={`px-1 py-[0.5px] rounded font-extrabold text-[7.5px] leading-none shadow border border-black/30 ${
+                                r >= 7.0
+                                  ? 'bg-[#22c55e] text-white'
+                                  : r >= 6.0
+                                  ? 'bg-[#eab308] text-black'
+                                  : 'bg-[#ef4444] text-white'
+                              }`}
+                            >
+                              {r.toFixed(1)}
+                            </span>
+                            <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
+                              {player.lastName || player.firstName}
+                            </span>
+                          </div>
                         )}
                       </button>
                     )
@@ -724,9 +852,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                  <GradientButton
                    onClick={() => saveLineupMutation.mutate()}
                    loading={saveLineupMutation.isPending}
+                   disabled={saveLineupMutation.isPending || !isLineupDirty}
                    className="h-14 w-full rounded-xl font-inter font-bold text-lg uppercase tracking-wider"
                  >
-                   {saveLineupMutation.isPending ? 'Saving...' : 'Squad Saved'}
+                   {saveLineupMutation.isPending ? 'Saving...' : isLineupDirty ? 'Save Squad' : 'Squad Saved'}
                  </GradientButton>
               </div>
 
@@ -749,6 +878,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                          </div>
                          <button onClick={() => setIsSelectingPlayer(null)} className="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 text-white/40"><X size={20} /></button>
                       </div>
+                      <div className="px-6 pt-4">
+                        <PositionFilterBar value={assignPositionFilter} onChange={setAssignPositionFilter} />
+                      </div>
                       <div className="flex-1 overflow-y-auto p-6 space-y-3 no-scrollbar min-h-[400px]">
                         {isSquadLoading ? (
                           <div className="flex flex-col items-center justify-center py-20 text-white/20">
@@ -758,7 +890,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         ) : (
                           <>
                             {(isSelectingPlayer.team === 'home' ? flattenedHomeSquad : flattenedAwaySquad)
-                              ?.map((player: any) => {
+                              ?.filter((player: any) => assignPositionFilter === 'ALL' || normalizeAdminPosition(player.position) === assignPositionFilter)
+                              .map((player: any) => {
                               const lineup = isSelectingPlayer.team === 'home' ? homeLineup : awayLineup
                               const assignedSlot = Object.entries(lineup).find(([, p]: [string, any]) => p?._id && p?._id === player?._id)
                               const isInCurrentSlot = assignedSlot && Number(assignedSlot[0]) === isSelectingPlayer.idx
@@ -832,9 +965,77 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         </button>
                       </div>
                       {/* Actions */}
-                      <div className="p-4 space-y-2">
+                      <div className="p-4 space-y-3">
+                        {/* Player Rating Adjuster */}
+                        {(() => {
+                          const pId = slotContextMenu.player?._id || slotContextMenu.player?.id
+                          const pEvts = events.filter((e) =>
+                            (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
+                          )
+                          const curRating = calculatePlayerRating(slotContextMenu.player.position || 'MID', pEvts, slotContextMenu.player.rating)
+
+                          return (
+                            <div className="bg-white/5 p-3 rounded-2xl border border-white/5 space-y-2">
+                              <div className="flex items-center justify-between text-xs font-inter font-bold">
+                                <span className="text-white/60 uppercase tracking-wider">Player Rating</span>
+                                <span className="text-emerald-400 font-extrabold text-sm">
+                                  {curRating.toFixed(1)}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => {
+                                    const next = Math.max(1.0, Number((curRating - 0.5).toFixed(1)))
+                                    updateSlotRating(slotContextMenu.team, slotContextMenu.idx, next)
+                                    setSlotContextMenu((prev) => prev ? { ...prev, player: { ...prev.player, rating: next } } : null)
+                                  }}
+                                  className="flex-1 py-2 bg-red-500/20 border border-red-500/30 text-red-400 font-inter font-bold text-xs rounded-xl hover:bg-red-500/30 transition-colors"
+                                >
+                                  - 0.5
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const next = Math.min(10.0, Number((curRating + 0.5).toFixed(1)))
+                                    updateSlotRating(slotContextMenu.team, slotContextMenu.idx, next)
+                                    setSlotContextMenu((prev) => prev ? { ...prev, player: { ...prev.player, rating: next } } : null)
+                                  }}
+                                  className="flex-1 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 font-inter font-bold text-xs rounded-xl hover:bg-emerald-500/30 transition-colors"
+                                >
+                                  + 0.5
+                                </button>
+                              </div>
+                              <div className="flex items-center gap-2 pt-1">
+                                <input
+                                  type="number"
+                                  step="0.1"
+                                  min="1.0"
+                                  max="10.0"
+                                  placeholder="e.g. 7.8"
+                                  value={ratingInput}
+                                  onChange={(e) => setRatingInput(e.target.value)}
+                                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-1.5 text-white font-inter font-bold text-xs text-center outline-none focus:border-[#FF5C00]"
+                                />
+                                <button
+                                  onClick={() => {
+                                    const val = parseFloat(ratingInput)
+                                    if (!isNaN(val)) {
+                                      updateSlotRating(slotContextMenu.team, slotContextMenu.idx, val)
+                                      setSlotContextMenu((prev) => prev ? { ...prev, player: { ...prev.player, rating: val } } : null)
+                                      setRatingInput('')
+                                    }
+                                  }}
+                                  className="px-3 py-1.5 bg-gradient-to-r from-[#FF5C00] to-[#FF2D20] text-white font-inter font-bold text-xs rounded-xl hover:opacity-90 transition-opacity"
+                                >
+                                  Set
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })()}
+
                         <button
                           onClick={() => {
+                            setAssignPositionFilter('ALL')
                             setIsSelectingPlayer({ team: slotContextMenu.team, idx: slotContextMenu.idx })
                             setSlotContextMenu(null)
                           }}
@@ -883,6 +1084,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                 if (isSelectingFormation === 'home') setHomeFormation(form as any)
                                 else setAwayFormation(form as any)
                                 setIsSelectingFormation(null)
+                                setIsLineupDirty(true)
                               }}
                               className={`w-full py-4 rounded-2xl font-inter font-bold text-sm uppercase transition-all mb-1 last:mb-0 ${
                                 (isSelectingFormation === 'home' ? homeFormation : awayFormation) === form
@@ -908,7 +1110,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
               className="flex-1 flex flex-col"
             >
               {/* Commentary Feed */}
-              <div className={`space-y-4 pt-4 pb-32 no-scrollbar transition-all duration-300 ${commentaryStep !== 'idle' ? 'opacity-10 blur-md pointer-events-none' : ''}`}>
+              <div className={`space-y-4 pt-4 pb-32 no-scrollbar transition-all duration-300 ${flowStep !== 'idle' ? 'opacity-10 blur-md pointer-events-none' : ''}`}>
                 {isEventsLoading && (
                   <div className="flex items-center justify-center py-16 text-white/30">
                     <p className="font-inter font-bold text-xs uppercase animate-pulse">Loading events...</p>
@@ -929,10 +1131,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     <EventCard key={event._id} event={event} matchId={id} />
                   ))}
               </div>
-
-               {/* Step Overlay */}
-               <AnimatePresence>
-                {commentaryStep !== 'idle' && (
+              {/* Step Overlay */}
+              <AnimatePresence>
+                {flowStep !== 'idle' && (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -941,22 +1142,23 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   >
                     <div
                       className="absolute inset-0 bg-black/90 backdrop-blur-[6px] -z-10"
-                      onClick={resetCommentary}
+                      onClick={resetFlow}
                     />
 
-                    {commentaryStep === 'team' && selectedAction && ['GOAL', 'RED CARD', 'YELLOW CARD', 'SUBSTITUTION', 'ATTEMPT MISSED'].includes(selectedAction) && (
+                    {/* Step Visualizer */}
+                    {(selectedCategory === 'GOAL' || selectedCategory === 'SUBSTITUTION' || selectedCategory === 'PENALTY') && flowStep !== 'category' && (
                       <div className="absolute inset-0 flex flex-col items-center justify-center -mt-56 pointer-events-none">
                          <motion.div
                            initial={{ scale: 0.6, opacity: 0 }}
                            animate={{ scale: 0.8, opacity: 1 }}
                            className="flex flex-col items-center"
                          >
-                            {selectedAction === 'GOAL' ? (
+                            {selectedCategory === 'GOAL' ? (
                                <div className="flex flex-col items-center">
                                   <img src="/images/commentary/goal.png" className="w-[280px] h-[280px] object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]" alt="Goal" />
                                   <h2 className="text-4xl font-inter font-bold uppercase italic mt-4" style={{ color: '#FFF', textShadow: '0 4px 0 #EA580C, 0 8px 30px rgba(0,0,0,0.5)' }}>GOAL</h2>
                                </div>
-                            ) : selectedAction === 'SUBSTITUTION' ? (
+                            ) : selectedCategory === 'SUBSTITUTION' ? (
                                <div className="flex flex-col items-center">
                                   <div className="relative w-[300px] h-[360px]">
                                      <img src="/images/commentary/substitution.png" className="w-full h-full object-contain" alt="Sub" />
@@ -973,38 +1175,29 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                       animate={{ y: 0, opacity: 1 }}
                       className="w-full flex flex-col items-end gap-3"
                     >
-                        {commentaryStep === 'menu' && (
+                      {/* Step: CATEGORY */}
+                      {flowStep === 'category' && (
                         <div className="flex flex-col items-end gap-3 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-10 pr-1">
-                          {actionTypes.slice().reverse().map((action, idx) => {
-                            // Disable FULLTIME once the match is completed/finalized
-                            const isFulltime = action.label === 'FULLTIME'
-                            const isDisabled = isFulltime && fixture?.status === 'completed'
+                          {[
+                            { label: 'MATCH STATUS', icon: "/icons/Live Game/Commentary/mdi_whistle-outline.svg", category: 'MATCH_STATUS' },
+                            { label: 'CUSTOM NOTE', icon: "/icons/Live Game/Commentary/ri_edit-line.svg", category: 'CUSTOM' },
+                            { label: 'SUBSTITUTION', icon: "/icons/Live Game/Commentary/Vector.svg", category: 'SUBSTITUTION' },
+                            { label: 'CARD', color: '#FACC15', category: 'CARD' },
+                            { label: 'PENALTY', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg", category: 'PENALTY' },
+                            { label: 'GOAL', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg", category: 'GOAL' },
+                          ].map((action, idx) => {
                             return (
                               <motion.button
-                                key={action.label}
+                                key={action.category}
                                 initial={{ opacity: 0, x: 20 }}
                                 animate={{ opacity: 1, x: 0 }}
                                 transition={{ delay: idx * 0.05 }}
-                                disabled={isDisabled}
                                 onClick={() => {
-                                  if (isDisabled) return
-                                  setSelectedAction(action.label)
-                                  if (action.label === 'FULLTIME') {
-                                    setShowFulltimeConfirm(true)
-                                    setCommentaryStep('idle')
-                                    return
-                                  }
-                                  if (NEEDS_TEAM_PLAYER.includes(action.label || '') || NEEDS_TEXT.includes(action.label || '')) {
-                                    setCommentaryStep('minute')
-                                  } else {
-                                    recordEventMutation.mutate({
-                                      type: ACTION_TYPE_MAP[action.label] || 'custom',
-                                      minute: action.label === 'HALFTIME' ? 45 : 0,
-                                      teamId: homeId || '',
-                                    })
-                                  }
+                                  setSelectedCategory(action.category as any)
+                                  if (action.category === 'MATCH_STATUS') setFlowStep('matchStatus')
+                                  else setFlowStep('minute')
                                 }}
-                                className={`flex items-center gap-3 px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl transition-all text-left ${isDisabled ? 'opacity-30 cursor-not-allowed' : 'active:scale-95'}`}
+                                className="flex items-center gap-3 px-4 py-3 bg-[#4A4646] rounded-[14px] border border-white/5 text-white shadow-xl transition-all text-left active:scale-95"
                               >
                                 <div className="w-[18px] h-[18px] flex items-center justify-center">
                                   {action.icon ? (
@@ -1013,8 +1206,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                     <div className="w-[14px] h-[18px] rounded-[2px]" style={{ backgroundColor: action.color }} />
                                   )}
                                 </div>
-                                <span className="font-inter font-bold text-[12px] uppercase tracking-wider">
-                                  {isDisabled ? 'MATCH ENDED' : action.label}
+                                <span className="font-inter font-bold text-sm uppercase tracking-wider">
+                                  {action.label}
                                 </span>
                               </motion.button>
                             )
@@ -1022,12 +1215,38 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         </div>
                       )}
 
-                      {commentaryStep === 'minute' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className="flex flex-col items-end gap-4 w-full max-w-[200px]"
-                        >
+                      {/* Step: MATCH STATUS */}
+                      {flowStep === 'matchStatus' && (
+                         <div className="flex flex-col items-end gap-3 w-full">
+                           <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1">MATCH STATUS</span>
+                           <motion.button
+                             onClick={() => {
+                               recordEventMutation.mutate({ type: 'start', minute: 0, teamId: homeId || '' })
+                             }}
+                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                           >
+                             Kickoff
+                           </motion.button>
+                           <motion.button
+                             onClick={() => {
+                               recordEventMutation.mutate({ type: 'halftime', minute: 45, teamId: homeId || '' })
+                             }}
+                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                           >
+                             Half Time
+                           </motion.button>
+                           <motion.button
+                             onClick={() => setShowFulltimeConfirm(true)}
+                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                           >
+                             Full Time
+                           </motion.button>
+                        </div>
+                      )}
+
+                      {/* Step: MINUTE (For custom note or general minute input if needed) */}
+                      {flowStep === 'minute' && (
+                        <motion.div className="flex flex-col items-end gap-4 w-full max-w-[200px]">
                           <span className="font-inter font-bold text-xs uppercase text-white/40 pr-1">MATCH MINUTE</span>
                           <input
                             type="number"
@@ -1040,11 +1259,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                             autoFocus
                           />
                           <motion.button
-                            whileTap={{ scale: 0.95 }}
                             onClick={() => {
                               if (!matchMinute) return
-                              if (selectedAction === 'CUSTOM') setCommentaryStep('custom')
-                              else setCommentaryStep('team')
+                              if (selectedCategory === 'CUSTOM') setFlowStep('custom')
+                              else setFlowStep('team')
                             }}
                             className="w-full px-4 py-3 bg-gradient-to-r from-[#FF8A00] to-[#FF0000] rounded-2xl font-inter font-bold text-sm uppercase tracking-wider text-white"
                           >
@@ -1053,41 +1271,37 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         </motion.div>
                       )}
 
-                      {commentaryStep === 'custom' && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.95 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          className="flex flex-col items-end gap-4 w-full"
-                        >
+                      {/* Step: CUSTOM NOTE */}
+                      {flowStep === 'custom' && (
+                        <motion.div className="flex flex-col items-end gap-4 w-full">
                           <span className="font-inter font-bold text-xs uppercase text-white/40 pr-1">CUSTOM COMMENTARY</span>
                           <textarea
-                            placeholder="Type here..."
                             rows={4}
-                            value={commentaryText}
-                            onChange={e => setCommentaryText(e.target.value)}
+                            value={customText}
+                            onChange={e => setCustomText(e.target.value)}
                             className="w-full bg-[#1C1F2D] border border-white/10 rounded-2xl px-5 py-4 font-inter font-bold text-sm text-white outline-none focus:border-orange-500 transition-colors resize-none"
                             autoFocus
                           />
                           <motion.button
-                            whileTap={{ scale: 0.95 }}
-                            disabled={!commentaryText || recordEventMutation.isPending}
+                            disabled={!customText || recordEventMutation.isPending}
                             onClick={() => {
                               recordEventMutation.mutate({
                                 type: 'custom',
                                 minute: parseInt(matchMinute) || 0,
                                 teamId: homeId || '',
-                                notes: commentaryText,
-                                commentaryText: commentaryText,
+                                notes: customText,
+                                commentaryText: customText,
                               })
                             }}
-                            className="w-full px-4 py-3 bg-gradient-to-r from-[#00A1D1] to-[#00A1D1]/60 rounded-2xl font-inter font-bold text-sm uppercase tracking-wider text-white disabled:opacity-30"
+                            className="w-full px-4 py-3 bg-gradient-to-r from-[#00A1D1] to-[#00A1D1]/60 rounded-2xl font-inter font-bold text-sm uppercase text-white"
                           >
-                            {recordEventMutation.isPending ? 'Publishing...' : 'Publish to Feed'}
+                            Publish
                           </motion.button>
                         </motion.div>
                       )}
 
-                      {commentaryStep === 'team' && (
+                      {/* Step: TEAM */}
+                      {flowStep === 'team' && (
                         <div className="flex flex-col items-end gap-3 w-full">
                            <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1">PICK TEAM</span>
                           {[
@@ -1096,18 +1310,14 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                           ].map(({ key, team, tid }) => (
                             <motion.button
                               key={key}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
                               onClick={() => {
                                 setSelectedTeam(key)
-                                setSelectedTeamId(tid || null)
-                                if (NEEDS_TEAM_PLAYER.includes(selectedAction || '')) {
-                                  setCommentaryStep('scorer')
-                                } else {
-                                  resetCommentary()
-                                }
+                                if (selectedCategory === 'PENALTY') setFlowStep('penaltyPending')
+                                else if (selectedCategory === 'CARD') setFlowStep('cardPlayer')
+                                else if (selectedCategory === 'SUBSTITUTION') setFlowStep('subOut')
+                                else setFlowStep('scorer') // GOAL
                               }}
-                              className="flex items-center gap-3 w-full max-w-[180px] px-4 py-3 bg-[#1C1F2D] border border-white/10 rounded-2xl group active:scale-95 transition-all text-left shadow-xl"
+                              className="flex items-center gap-3 w-full max-w-[180px] px-4 py-3 bg-[#1C1F2D] border border-white/10 rounded-2xl active:scale-95 text-left shadow-xl"
                             >
                               <div className="w-8 h-8 rounded-full bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center shrink-0">
                                 {team?.logoUrl
@@ -1115,117 +1325,231 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                   : <Trophy size={14} className="text-white/40" />
                                 }
                               </div>
-                              <span className="text-white font-inter font-bold text-xs uppercase tracking-widest group-hover:text-orange-500 transition-colors">{team?.name || (key === 'home' ? 'Home' : 'Away')}</span>
+                              <span className="text-white font-inter font-bold text-xs uppercase tracking-widest">{team?.name || 'Team'}</span>
                             </motion.button>
                           ))}
                         </div>
                       )}
 
-                      {(commentaryStep === 'scorer' || commentaryStep === 'assist') && (
-                        <div className="flex flex-col items-end gap-3 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-10 pr-1">
-                          <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1 text-right">
-                            {selectedAction === 'SUBSTITUTION'
-                              ? (commentaryStep === 'scorer' ? 'PLAYER OUT' : 'PLAYER IN')
-                              : selectedAction?.includes('CARD')
-                                ? 'SELECT PLAYER'
-                                : (commentaryStep === 'scorer' ? 'GOAL SCORER' : 'ASSIST (optional)')
-                            }
-                          </span>
-                          {commentaryStep === 'assist' && (
-                            <motion.button
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              onClick={() => {
-                                recordEventMutation.mutate({
-                                  type: ACTION_TYPE_MAP[selectedAction!] || 'custom',
-                                  minute: parseInt(matchMinute) || 0,
-                                  teamId: selectedTeamId || homeId || '',
-                                  playerId: selectedScorer?._id,
-                                })
-                              }}
-                              className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/10 text-white/40 text-xs font-inter font-bold uppercase"
-                            >
-                              Skip assist
-                            </motion.button>
-                          )}
-                          {(commentarySquad || [])
-                            .filter((p: any) => !p.role || p.role === 'player')
-                            .map((player: any, idx: number) => (
-                            <motion.button
-                              key={`${player._id}-${idx}`}
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: idx * 0.03 }}
-                              onClick={() => {
-                                if (commentaryStep === 'scorer' && NEEDS_SECOND_PLAYER.includes(selectedAction || '')) {
-                                  setSelectedScorer(player)
-                                  setCommentaryStep('assist')
-                                } else if (commentaryStep === 'scorer') {
+                      {/* Generic Player Picker helper */}
+                      {(() => {
+                        const showPicker = ['scorer', 'assist', 'cardPlayer', 'subOut', 'subIn', 'penaltyTaker', 'penaltyGK'].includes(flowStep)
+                        if (!showPicker) return null
+                        
+                        let pickerLabel = 'SELECT PLAYER'
+                        if (flowStep === 'scorer') pickerLabel = 'GOAL SCORER'
+                        if (flowStep === 'assist') pickerLabel = 'WHO ASSISTED?'
+                        if (flowStep === 'subOut') pickerLabel = 'PLAYER OUT'
+                        if (flowStep === 'subIn') pickerLabel = 'PLAYER IN'
+                        if (flowStep === 'penaltyTaker') pickerLabel = 'PENALTY TAKER'
+                        if (flowStep === 'penaltyGK') pickerLabel = 'GOALKEEPER'
+
+                        // Figure out which team roster to show
+                        let targetTeam = selectedTeam
+                        if (flowStep === 'penaltyGK') targetTeam = selectedTeam === 'home' ? 'away' : 'home'
+                        if (!targetTeam) return null
+
+                        const isSubIn = flowStep === 'subIn'
+                        const roster = isSubIn ? getBench(targetTeam) : getOnPitch(targetTeam)
+
+                        return (
+                          <div className="flex flex-col items-end gap-3 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-10 pr-1">
+                            <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1 text-right">{pickerLabel}</span>
+                            
+                            {/* Own Goal option for Goal Scorer */}
+                            {flowStep === 'scorer' && (
+                              <motion.button
+                                onClick={() => {
                                   recordEventMutation.mutate({
-                                    type: ACTION_TYPE_MAP[selectedAction!] || 'custom',
+                                    type: 'own_goal',
                                     minute: parseInt(matchMinute) || 0,
-                                    teamId: selectedTeamId || homeId || '',
-                                    playerId: player._id,
+                                    teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || '')
                                   })
-                                } else {
-                                  const isSub = selectedAction === 'SUBSTITUTION'
-                                  recordEventMutation.mutate({
-                                    type: ACTION_TYPE_MAP[selectedAction!] || 'custom',
-                                    minute: parseInt(matchMinute) || 0,
-                                    teamId: selectedTeamId || homeId || '',
-                                    playerId: isSub ? undefined : selectedScorer?._id,
-                                    playerOutId: isSub ? selectedScorer?._id : undefined,
-                                    playerInId: isSub ? player._id : undefined,
-                                    assistPlayerId: !isSub ? player._id : undefined,
-                                  })
-                                }
-                              }}
-                              className="flex items-center justify-between w-full max-w-[240px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white active:scale-95 transition-all text-left"
-                            >
-                              <div className="flex items-center gap-3">
-                                <div className="w-6 h-6 rounded-full bg-white/10 overflow-hidden flex items-center justify-center">
-                                  {(selectedTeam === 'home' ? teamA : teamB)?.logoUrl
-                                    ? <img src={(selectedTeam === 'home' ? teamA : teamB)?.logoUrl} className="w-full h-full object-contain" alt="" />
-                                    : <Trophy size={10} className="text-white/40" />
+                                }}
+                                className="flex items-center justify-center w-full max-w-[240px] px-4 py-3 bg-[#4A4646] rounded-[14px] border border-white/5 text-white/60 font-inter font-bold text-[13px] uppercase tracking-wider mb-2"
+                              >
+                                OWN GOAL
+                              </motion.button>
+                            )}
+
+                            {roster.map((player: any, idx: number) => (
+                              <motion.button
+                                key={`\${player._id}-\${idx}`}
+                                onClick={() => {
+                                  if (flowStep === 'scorer') {
+                                    setSelectedPlayer(player)
+                                    setFlowStep('assistYesNo')
+                                  } else if (flowStep === 'assist') {
+                                    recordEventMutation.mutate({
+                                      type: 'goal',
+                                      minute: parseInt(matchMinute) || 0,
+                                      teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || ''),
+                                      playerId: selectedPlayer?._id,
+                                      assistPlayerId: player._id
+                                    })
+                                  } else if (flowStep === 'cardPlayer') {
+                                    setSelectedPlayer(player)
+                                    setFlowStep('cardType')
+                                  } else if (flowStep === 'subOut') {
+                                    setSelectedPlayerOut(player)
+                                    setFlowStep('subIn')
+                                  } else if (flowStep === 'subIn') {
+                                    recordEventMutation.mutate({
+                                      type: 'substitution',
+                                      minute: parseInt(matchMinute) || 0,
+                                      teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || ''),
+                                      playerOutId: selectedPlayerOut?._id,
+                                      playerInId: player._id
+                                    })
+                                  } else if (flowStep === 'penaltyTaker') {
+                                    setSelectedPlayer(player)
+                                    setFlowStep('penaltyGK')
+                                  } else if (flowStep === 'penaltyGK') {
+                                    const tid = selectedTeam === 'home' ? homeId : awayId
+                                    let type = 'penalty_scored'
+                                    if (penaltyOutcome === 'missed') type = 'penalty_missed'
+                                    if (penaltyOutcome === 'saved') type = 'penalty_saved'
+                                    
+                                    recordEventMutation.mutate({
+                                      type,
+                                      minute: parseInt(matchMinute) || 0,
+                                      teamId: tid || '',
+                                      playerId: selectedPlayer?._id,
+                                      goalkeeperId: player._id
+                                    })
                                   }
-                                </div>
-                                <span className="font-inter font-bold text-[13px] uppercase tracking-wide">{player.firstName} {player.lastName}</span>
-                              </div>
-                              <span className="text-[10px] font-bold text-white/40 uppercase pl-3 shrink-0">{player.position || 'PLR'}</span>
-                            </motion.button>
-                          ))}
-                          {selectedAction === 'GOAL' && commentaryStep === 'scorer' && (
+                                }}
+                                className="flex items-center justify-between w-full max-w-[240px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white"
+                              >
+                                <span className="font-inter font-bold text-[13px] uppercase">{player.firstName} {player.lastName}</span>
+                                <span className="text-[10px] font-bold text-white/40 uppercase pl-3">{player.position || 'PLR'}</span>
+                              </motion.button>
+                            ))}
+                          </div>
+                        )
+                      })()}
+
+                      {/* Step: GOAL Assist Yes/No */}
+                      {flowStep === 'assistYesNo' && (
+                        <div className="flex flex-col items-end gap-4 w-full max-w-[260px]">
+                          <span className="font-inter font-bold text-xs uppercase text-white/40 pr-1 text-right">WAS THERE AN ASSIST?</span>
+                          <div className="flex gap-3 w-full">
                             <motion.button
-                              initial={{ opacity: 0, x: 20 }}
-                              animate={{ opacity: 1, x: 0 }}
                               onClick={() => {
                                 recordEventMutation.mutate({
-                                  type: 'own_goal',
+                                  type: 'goal',
                                   minute: parseInt(matchMinute) || 0,
-                                  teamId: selectedTeamId || homeId || '',
+                                  teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || ''),
+                                  playerId: selectedPlayer?._id
                                 })
                               }}
-                              className="flex items-center justify-center w-full max-w-[240px] px-4 py-3 bg-[#4A4646] rounded-[14px] border border-white/5 text-white/60 font-inter font-bold text-[13px] uppercase tracking-wider active:scale-95 transition-all mt-2"
+                              className="flex-1 px-4 py-3 bg-white/5 rounded-xl border border-white/10 text-white/70 font-inter font-bold text-sm uppercase"
                             >
-                              OWN GOAL
+                              No
                             </motion.button>
-                          )}
+                            <motion.button
+                              onClick={() => setFlowStep('assist')}
+                              className="flex-1 px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-xl text-white font-inter font-bold text-sm uppercase"
+                            >
+                              Yes
+                            </motion.button>
+                          </div>
                         </div>
                       )}
+
+                      {/* Step: CARD Type */}
+                      {flowStep === 'cardType' && (
+                        <div className="flex flex-col items-end gap-4 w-full max-w-[260px]">
+                          <span className="font-inter font-bold text-xs uppercase text-white/40 pr-1 text-right">WHICH CARD?</span>
+                          <div className="flex gap-3 w-full">
+                            <motion.button
+                              onClick={() => {
+                                recordEventMutation.mutate({
+                                  type: 'yellow_card',
+                                  minute: parseInt(matchMinute) || 0,
+                                  teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || ''),
+                                  playerId: selectedPlayer?._id
+                                })
+                              }}
+                              className="flex-1 px-4 py-4 bg-yellow-400 rounded-xl text-black font-inter font-bold text-sm uppercase"
+                            >
+                              Yellow
+                            </motion.button>
+                            <motion.button
+                              onClick={() => {
+                                recordEventMutation.mutate({
+                                  type: 'red_card',
+                                  minute: parseInt(matchMinute) || 0,
+                                  teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || ''),
+                                  playerId: selectedPlayer?._id
+                                })
+                              }}
+                              className="flex-1 px-4 py-4 bg-red-500 rounded-xl text-white font-inter font-bold text-sm uppercase"
+                            >
+                              Red
+                            </motion.button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Step: PENALTY Phase 1 */}
+                      {flowStep === 'penaltyPending' && (
+                        <div className="flex flex-col items-end gap-4 w-full">
+                           <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1">PENALTY AWARDED</span>
+                           <motion.button
+                             onClick={() => {
+                               // Phase 1: Award penalty
+                               recordEventMutation.mutate({
+                                 type: 'penalty_awarded',
+                                 minute: parseInt(matchMinute) || 0,
+                                 teamId: selectedTeam === 'home' ? (homeId || '') : (awayId || '')
+                               })
+                               setFlowStep('penaltyOutcome')
+                             }}
+                             className="w-full max-w-[240px] px-4 py-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                           >
+                             Announce Penalty
+                           </motion.button>
+                        </div>
+                      )}
+
+                      {/* Step: PENALTY Phase 2 (Outcome) */}
+                      {flowStep === 'penaltyOutcome' && (
+                        <div className="flex flex-col items-end gap-3 w-full max-w-[240px]">
+                          <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1">PENALTY RESULT</span>
+                          {[
+                            { label: 'SCORED', val: 'scored', color: 'bg-green-500' },
+                            { label: 'SAVED', val: 'saved', color: 'bg-orange-500' },
+                            { label: 'MISSED', val: 'missed', color: 'bg-red-500' },
+                          ].map(opt => (
+                            <motion.button
+                              key={opt.val}
+                              onClick={() => {
+                                setPenaltyOutcome(opt.val as any)
+                                setFlowStep('penaltyTaker')
+                              }}
+                              className={`w-full px-4 py-3 rounded-xl text-white font-inter font-bold text-sm uppercase ${opt.color}`}
+                            >
+                              {opt.label}
+                            </motion.button>
+                          ))}
+                        </div>
+                      )}
+
                     </motion.div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Floating Action Button */}
+               {/* Floating Action Button */}
               <button
                 disabled={recordEventMutation.isPending}
                 onClick={(e) => {
                   e.stopPropagation()
-                  if (commentaryStep === 'idle') setCommentaryStep('menu')
-                  else resetCommentary()
+                  if (flowStep === 'idle') setFlowStep('category')
+                  else resetFlow()
                 }}
-                className={`fixed ${commentaryStep !== 'idle' ? 'bottom-8' : 'bottom-32'} right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white z-[120] shadow-2xl active:scale-95 transition-all duration-500 ${commentaryStep !== 'idle' ? 'rotate-45' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
+                className={`fixed ${flowStep !== 'idle' ? 'bottom-8' : 'bottom-32'} right-6 w-14 h-14 rounded-full bg-gradient-to-br from-[#FF8A00] to-[#FF0000] flex items-center justify-center text-white z-[120] shadow-2xl active:scale-95 transition-all duration-500 ${flowStep !== 'idle' ? 'rotate-45' : ''} disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 <Plus size={28} strokeWidth={3} />
               </button>
@@ -1317,162 +1641,60 @@ function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string })
 
   const rawType = event.rawType || event.type
   const text = event.description || event.commentaryText || event.notes || ''
+  const isSecondYellow = (event as any).metadata?.isSecondYellow || text.includes('SECOND YELLOW')
+  const displayType = isSecondYellow ? 'second_yellow' : rawType
 
-  const isGoal = rawType === 'goal' || rawType === 'own_goal' || rawType === 'penalty_scored'
-  const isSub = rawType === 'substitution'
-  const isYellow = rawType === 'yellow_card'
-  const isRed = rawType === 'red_card'
+  const isGoal = ['goal', 'own_goal', 'penalty_scored'].includes(rawType)
+  const isPenaltyEvent = ['penalty_awarded', 'penalty', 'penalty_saved', 'penalty_missed'].includes(rawType)
+  const isFulltime = rawType === 'fulltime'
 
-  if (isGoal) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="px-5 py-4 bg-[#8E103E] rounded-[20px] border border-white/5 flex flex-col gap-2 relative overflow-hidden text-left"
-      >
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3 shrink min-w-0">
-            <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 shrink-0">
-              <img src="/icons/Live Game/Commentary/emojione-monotone_goal-net.svg" className="w-4 h-4" alt="" />
-            </div>
-            <p className="font-inter font-bold text-[13px] uppercase text-white tracking-tight">
-              {text || (rawType === 'own_goal' ? 'OWN GOAL' : rawType === 'penalty_scored' ? 'PENALTY SCORED' : 'GOAL')}
-            </p>
-          </div>
-          {role === 'organization' && (
-            <button
-              onClick={() => setConfirmOpen(true)}
-              disabled={deleteMutation.isPending}
-              aria-label="Undo commentary"
-              className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
-            >
-              {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
-            </button>
-          )}
-          <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
-        </div>
-        <ConfirmDialog
-          open={confirmOpen}
-          title="Undo Commentary"
-          message="Are you sure you want to remove this commentary event? This cannot be undone."
-          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
-          cancelLabel="Cancel"
-          destructive
-          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
-          onCancel={() => setConfirmOpen(false)}
-        />
-      </motion.div>
-    )
-  }
+  const cardStyle = isGoal
+    ? 'bg-[#8E103E] border-emerald-500/20'
+    : isSecondYellow
+    ? 'bg-[#4C152B] border-amber-500/30'
+    : isPenaltyEvent
+    ? 'bg-[#4C152B] border-red-500/20'
+    : isFulltime
+    ? 'bg-[#2E1A47] border-purple-500/20'
+    : 'bg-[#1C1F2D] border-white/5'
 
-  if (isSub) {
-    return (
-      <div className="bg-[#1C1F2D] rounded-[20px] px-5 py-3.5 flex flex-col gap-2 border border-white/5 relative group">
-        <div className="flex items-center justify-between">
-           <div className="flex items-center gap-3 shrink min-w-0">
-              <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 shrink-0">
-                <img src="/icons/Live Game/Commentary/Vector.svg" className="w-3.5 h-2.5" alt="" />
-              </div>
-              <p className="font-inter font-bold text-[13px] uppercase text-white/90 tracking-tight pr-10">
-                {text || 'Substitution'}
-              </p>
-           </div>
-           {role === 'organization' && (
-             <button
-               onClick={() => setConfirmOpen(true)}
-               disabled={deleteMutation.isPending}
-               aria-label="Undo commentary"
-               className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
-             >
-               {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
-             </button>
-           )}
-           <span className="text-[11px] font-bold text-white/40 uppercase tracking-widest shrink-0 ml-3">{event.minute}&apos;</span>
-        </div>
-        <ConfirmDialog
-          open={confirmOpen}
-          title="Undo Commentary"
-          message="Are you sure you want to remove this commentary event? This cannot be undone."
-          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
-          cancelLabel="Cancel"
-          destructive
-          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
-          onCancel={() => setConfirmOpen(false)}
-        />
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className={`rounded-[20px] px-5 py-3.5 flex items-center justify-between border ${cardStyle} relative group shadow-lg`}
+    >
+      <div className="flex items-center gap-3.5 shrink min-w-0">
+        <CommentaryIcon type={displayType} />
+        <p className="font-inter font-bold text-[12px] leading-relaxed uppercase py-0.5 text-white/90 tracking-tight pr-4">
+          {text}
+        </p>
       </div>
-    )
-  }
-
-  if (isYellow || isRed) {
-    return (
-      <div className="bg-[#1C1F2D] rounded-[20px] px-5 py-3.5 flex items-center justify-between border border-white/5 relative">
-        <div className="flex items-center gap-3 shrink min-w-0">
-          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 shrink-0">
-            <div
-              className="w-[10px] h-[14px] rounded-[2px]"
-              style={{ backgroundColor: isRed ? '#EF4444' : '#EAB308' }}
-            />
-          </div>
-          <p className="font-inter font-bold text-[11px] leading-relaxed uppercase py-0.5 text-white/80 tracking-tight pr-10">
-            {text || (isRed ? 'Red Card' : 'Yellow Card')}
-          </p>
-        </div>
+      <div className="flex items-center gap-3 shrink-0">
         {role === 'organization' && (
           <button
             onClick={() => setConfirmOpen(true)}
             disabled={deleteMutation.isPending}
             aria-label="Undo commentary"
-            className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
+            className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/80 transition-colors uppercase tracking-wider"
           >
             {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
           </button>
         )}
-        <ConfirmDialog
-          open={confirmOpen}
-          title="Undo Commentary"
-          message="Are you sure you want to remove this commentary event? This cannot be undone."
-          confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
-          cancelLabel="Cancel"
-          destructive
-          onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
-          onCancel={() => setConfirmOpen(false)}
-        />
-        <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
+        {event.minute != null && (
+          <span className="text-[10px] font-bold text-white/30 whitespace-nowrap uppercase tracking-widest">{event.minute}&apos;</span>
+        )}
       </div>
-    )
-  }
-
-  return (
-    <div className="bg-[#1C1F2D] rounded-[20px] px-5 py-3.5 flex items-center justify-between border border-white/5 relative">
-       <div className="flex items-center gap-4 shrink min-w-0">
-          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 shrink-0">
-            <MessageSquare size={14} className="text-white/20" />
-          </div>
-          <p className="font-inter font-bold text-[11px] leading-relaxed uppercase py-0.5 text-white/60 tracking-tight pr-10">
-            {text}
-          </p>
-       </div>
-       {role === 'organization' && (
-         <button
-           onClick={() => setConfirmOpen(true)}
-           disabled={deleteMutation.isPending}
-           aria-label="Undo commentary"
-           className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/70 transition-colors"
-         >
-           {deleteMutation.isPending ? 'Undoing…' : 'Undo'}
-         </button>
-       )}
-       <ConfirmDialog
-         open={confirmOpen}
-         title="Undo Commentary"
-         message="Are you sure you want to remove this commentary event? This cannot be undone."
-         confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
-         cancelLabel="Cancel"
-         destructive
-         onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
-         onCancel={() => setConfirmOpen(false)}
-       />
-       <span className="absolute top-4 right-5 text-[10px] font-bold text-white/20 whitespace-nowrap">{event.minute}&apos;</span>
-    </div>
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Undo Commentary"
+        message="Are you sure you want to remove this commentary event? This cannot be undone."
+        confirmLabel={deleteMutation.isPending ? 'Removing…' : 'Remove'}
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => { setConfirmOpen(false); deleteMutation.mutate(undefined) }}
+        onCancel={() => setConfirmOpen(false)}
+      />
+    </motion.div>
   )
 }

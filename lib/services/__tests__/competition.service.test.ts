@@ -61,22 +61,29 @@ beforeEach(() => {
 
 // ── listCompetitions ──────────────────────────────────────────────────────────
 
+// listCompetitions() always appends the local "pl-mock-123" test competition
+// (see lib/testing-mocks/premierLeague.ts) alongside whatever the API
+// returns, so the organizer flow can be exercised without real tournament
+// data. TODO: REMOVE MOCK DATA BEFORE PROD — drop the `+ 1` / mock-id checks
+// below once that fallback is removed.
 describe('listCompetitions()', () => {
-  it('calls GET /orgs/:orgId/competitions and returns the array', async () => {
+  it('calls GET /orgs/:orgId/competitions and returns the array plus the mock competition', async () => {
     const comp = makeCompetition()
     mockApi.get.mockResolvedValue({ competitions: [comp] })
 
     const result = await listCompetitions(ORG_ID)
 
     expect(mockApi.get).toHaveBeenCalledWith(`/orgs/${ORG_ID}/competitions`)
-    expect(result).toHaveLength(1)
+    expect(result).toHaveLength(2)
     expect(result[0]._id).toBe(COMP_ID)
+    expect(result[1]._id).toBe('pl-mock-123')
   })
 
-  it('returns an empty array when no competitions exist', async () => {
+  it('returns only the mock competition when no real competitions exist', async () => {
     mockApi.get.mockResolvedValue({ competitions: [] })
     const result = await listCompetitions(ORG_ID)
-    expect(result).toEqual([])
+    expect(result).toHaveLength(1)
+    expect(result[0]._id).toBe('pl-mock-123')
   })
 })
 

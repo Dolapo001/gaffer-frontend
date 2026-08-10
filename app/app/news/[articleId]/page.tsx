@@ -69,10 +69,12 @@ function ArticleContent() {
   const isSystem = item.authorType === 'system'
   const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg'
-  const authorDisplayName = isSystem
-    ? (item.authorName ?? 'GAFFER')
-    : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
-  const authorHandle = isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? '')
+  const authorDisplayName = item.authorName
+    ?? (typeof item.orgId === 'object' ? (item.orgId as any)?.name : null)
+    ?? item.authorId?.name
+    ?? item.authorId?.fullName
+    ?? (isSystem ? 'GAFFER' : 'League Update')
+  const authorHandle = isSystem ? 'gaffer' : (item.authorId?.handle ?? item.authorId?._id?.slice(-6) ?? 'league')
 
   const article = {
     id: item._id,

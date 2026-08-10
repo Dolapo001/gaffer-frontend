@@ -13,10 +13,22 @@ interface UIState {
   clearActiveCompetition: () => void
 }
 
+// hideNavbar/showNavbar are reference-counted rather than a plain toggle:
+// nested callers (e.g. a player drawer opened on top of the onboarding gate)
+// each hide independently, so one closing early doesn't reveal the navbar
+// while an outer caller still wants it hidden.
+let navbarHideCount = 0
+
 export const useUIStore = create<UIState>((set) => ({
   isNavbarHidden: false,
-  hideNavbar: () => set({ isNavbarHidden: true }),
-  showNavbar: () => set({ isNavbarHidden: false }),
+  hideNavbar: () => {
+    navbarHideCount += 1
+    set({ isNavbarHidden: true })
+  },
+  showNavbar: () => {
+    navbarHideCount = Math.max(0, navbarHideCount - 1)
+    set({ isNavbarHidden: navbarHideCount > 0 })
+  },
 
   activeCompetitionId: null,
   activeOrgId: null,

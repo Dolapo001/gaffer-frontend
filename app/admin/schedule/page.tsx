@@ -2,41 +2,38 @@
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Menu, ChevronDown, Calendar, Clock, X, ChevronLeft, Trash2 } from 'lucide-react'
+import { Plus, ChevronDown, ChevronLeft } from 'lucide-react'
 import { GradientButton } from '@/components/GradientButton'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
 
-type Match = {
-  id: string
-  teamA: string
-  teamB: string
-  teamALogo: string
-  teamBLogo: string
-  time: string
-  date: string
-  round: string
-  score?: string
-  isLive: boolean
-}
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { listFixtures, createFixture, deleteFixture, Fixture, listRounds, Round } from '@/lib/services/fixture.service'
+import { listFixtures, createFixture, listRounds, Round } from '@/lib/services/fixture.service'
 import { listCompetitions, Competition, listCompetitionTeams, CompetitionTeam } from '@/lib/services/competition.service'
 import { listOrgs } from '@/lib/services/org.service'
 import { listTeams } from '@/lib/services/team.service' // Added listTeams import
 import { useAuthStore } from '@/store/authStore'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { GroupedFixturesView } from '@/components/league/GroupedFixturesView'
+import { AdminFixtureRow } from '@/components/admin/AdminFixtureRow'
+import { CreateRoundModal } from '@/components/admin/CreateRoundModal'
 
 export default function SchedulePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { user } = useAuthStore()
   const { addToast } = useToast()
   const queryClient = useQueryClient()
   const [showScheduleForm, setShowScheduleForm] = useState(false)
+  const [showCreateRoundModal, setShowCreateRoundModal] = useState(false)
 
   // Schedule form state
-  const [formCompetitionId, setFormCompetitionId] = useState('')
+  // Selected tournament is seeded from the URL (?competitionId=) rather than
+  // always starting blank, and kept in sync back to the URL below — so
+  // navigating into a fixture and hitting back restores your selection
+  // instead of resetting to the auto-picked default every time.
+  const [formCompetitionId, setFormCompetitionId] = useState(() => searchParams.get('competitionId') || '')
   const [formRoundId, setFormRoundId] = useState('')
   const [formHomeTeamId, setFormHomeTeamId] = useState('')
   const [formAwayTeamId, setFormAwayTeamId] = useState('')
@@ -87,6 +84,18 @@ export default function SchedulePage() {
     }
   }, [sortedComps, formCompetitionId])
 
+  // Keep the URL's competitionId in sync with the current selection (replace,
+  // not push, so switching tournaments doesn't spam browser history) — this
+  // is what lets "back" from a fixture restore the tournament you were on.
+  useEffect(() => {
+    if (!formCompetitionId) return
+    if (searchParams.get('competitionId') === formCompetitionId) return
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('competitionId', formCompetitionId)
+    router.replace(`/admin/schedule?${params.toString()}`, { scroll: false })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formCompetitionId])
+
   useEffect(() => {
     if (rounds?.length && !formRoundId) {
        setFormRoundId(rounds[0]._id)
@@ -123,37 +132,7 @@ export default function SchedulePage() {
     enabled: !!formCompetitionId
   })
 
-  // Format mapping
-  const matches: Match[] = backendFixtures
-    ?.filter(f => f.status === 'scheduled' || f.status === 'live' || f.status === 'halftime')
-    .map(f => ({
-      id: f._id,
-      teamA: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name : 'Team A',
-      teamB: (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.name : 'Team B',
-      teamALogo: (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId.logoUrl || '/images/mc_logo.png') : '/images/mc_logo.png',
-      teamBLogo: (f.awayTeamId && typeof f.awayTeamId === 'object') ? (f.awayTeamId.logoUrl || '/images/barca_logo.png') : '/images/barca_logo.png',
-      time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }),
-      round: (f.roundId as any)?.name || 'General Schedule',
-      isLive: f.status === 'live' || f.status === 'halftime'
-    })) || []
-
-  const previousMatches: Match[] = backendFixtures
-    ?.filter(f => f.status === 'completed')
-    .map(f => ({
-      id: f._id,
-      teamA: (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId.name : 'Team A',
-      teamB: (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId.name : 'Team B',
-      teamALogo: (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId.logoUrl || '/images/mc_logo.png') : '/images/mc_logo.png',
-      teamBLogo: (f.awayTeamId && typeof f.awayTeamId === 'object') ? (f.awayTeamId.logoUrl || '/images/barca_logo.png') : '/images/barca_logo.png',
-      time: new Date(f.kickoffAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      date: new Date(f.kickoffAt).toLocaleDateString([], { weekday: 'short' }),
-      round: (f.roundId as any)?.name || 'General Schedule',
-      score: `${f.score?.home ?? 0}:${f.score?.away ?? 0}`,
-      isLive: false
-    })) || []
-
-  const isEmpty = (matches.length === 0 && previousMatches.length === 0) || !competitionId
+  const isEmpty = !backendFixtures?.length || !competitionId
 
   if (isLoadingOrgs || isLoadingComps || isLoadingFixtures) {
     return (
@@ -257,11 +236,22 @@ export default function SchedulePage() {
 
               {/* Dynamic Round Section */}
               <div className="space-y-2">
-                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">
-                  {selectedComp?.format === 'knockout' ? 'Tournament Stage' : 
-                   selectedComp?.format === 'groups' ? 'Group Stage' : 
-                   ['round_robin', 'league_knockout'].includes(selectedComp?.format || '') ? 'Matchday' : 'Round'}
-                </label>
+                <div className="flex items-center justify-between ml-1">
+                  <label className="text-[13px] text-white/50 font-medium uppercase tracking-wider">
+                    {selectedComp?.format === 'knockout' ? 'Tournament Stage' :
+                     selectedComp?.format === 'groups' ? 'Group Stage' :
+                     ['round_robin', 'league_knockout'].includes(selectedComp?.format || '') ? 'Matchday' : 'Round'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setShowCreateRoundModal(true)}
+                    disabled={!formCompetitionId}
+                    className="w-6 h-6 rounded-full bg-orange-500/10 border border-orange-500/30 flex items-center justify-center text-orange-500 hover:bg-orange-500/20 transition-colors disabled:opacity-30"
+                    aria-label="Create new round"
+                  >
+                    <Plus size={14} strokeWidth={3} />
+                  </button>
+                </div>
                 <div className="relative">
                   <select
                     value={formRoundId}
@@ -269,40 +259,9 @@ export default function SchedulePage() {
                     className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium"
                   >
                     <option value="">Select {selectedComp?.format === 'knockout' ? 'Stage' : 'Round'}</option>
-                    
-                    {/* Real Rounds from Backend */}
                     {rounds?.map((r: Round) => (
                       <option key={r._id} value={r._id}>{r.name}</option>
                     ))}
-
-                    {/* Format-aware Suggestions if no rounds exist */}
-                    {!rounds?.length && (
-                      <>
-                        {selectedComp?.format === 'knockout' ? (
-                          <>
-                            <option value="Final">Final</option>
-                            <option value="Semi-final">Semi-final</option>
-                            <option value="Quarter-final">Quarter-final</option>
-                            <option value="Round of 16">Round of 16</option>
-                            <option value="Round of 32">Round of 32</option>
-                          </>
-                        ) : selectedComp?.format === 'groups' ? (
-                          <>
-                            <option value="Group Match 1">Group Match 1</option>
-                            <option value="Group Match 2">Group Match 2</option>
-                            <option value="Group Match 3">Group Match 3</option>
-                          </>
-                        ) : (
-                          <>
-                            <option value="Matchday 1">Matchday 1</option>
-                            <option value="Matchday 2">Matchday 2</option>
-                            <option value="Matchday 3">Matchday 3</option>
-                            <option value="Matchday 4">Matchday 4</option>
-                            <option value="Matchday 5">Matchday 5</option>
-                          </>
-                        )}
-                      </>
-                    )}
                   </select>
                   <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                 </div>
@@ -358,40 +317,17 @@ export default function SchedulePage() {
                       return
                     }
 
-                    const isMongoId = /^[0-9a-fA-F]{24}$/.test(formRoundId);
-                    
-                    const handleSubmission = async (roundId?: string) => {
-                      const round = rounds?.find(r => r._id === roundId)
-                      const payload = {
-                        competitionId: formCompetitionId,
-                        homeTeamId: formHomeTeamId,
-                        awayTeamId: formAwayTeamId,
-                        kickoffAt: new Date(`${formDate}T${formTime}`).toISOString(),
-                        roundId: roundId || undefined,
-                        stageType: round?.stageType || (selectedComp?.format === 'knockout' ? 'knockout' : selectedComp?.format === 'groups' ? 'groups' : 'league'),
-                        venue: 'Main Stadium',
-                      }
-                      console.log('SUBMITTING FIXTURE:', payload)
-                      createFixtureMutation.mutate(payload)
+                    const round = rounds?.find(r => r._id === formRoundId)
+                    const payload = {
+                      competitionId: formCompetitionId,
+                      homeTeamId: formHomeTeamId,
+                      awayTeamId: formAwayTeamId,
+                      kickoffAt: new Date(`${formDate}T${formTime}`).toISOString(),
+                      roundId: formRoundId || undefined,
+                      stageType: round?.stageType || (selectedComp?.format === 'knockout' ? 'knockout' : selectedComp?.format === 'groups' ? 'groups' : 'league'),
+                      venue: 'Main Stadium',
                     }
-
-                    if (formRoundId && !isMongoId) {
-                      // It's a suggestion, create the round first
-                      const { createRound } = await import('@/lib/services/fixture.service')
-                      try {
-                        const newRound = await createRound(formCompetitionId, {
-                          name: formRoundId,
-                          order: (rounds?.length || 0) + 1,
-                          stageType: selectedComp?.format === 'knockout' ? 'knockout' : selectedComp?.format === 'groups' ? 'groups' : 'league'
-                        })
-                        queryClient.invalidateQueries({ queryKey: ['rounds', formCompetitionId] })
-                        handleSubmission(newRound._id)
-                      } catch (err: any) {
-                        addToast('Failed to create suggested round', 'error')
-                      }
-                    } else {
-                      handleSubmission(formRoundId)
-                    }
+                    createFixtureMutation.mutate(payload)
                   }}
                   loading={createFixtureMutation.isPending}
                   className="h-14 w-full rounded-2xl font-chakra font-black text-base uppercase tracking-wider"
@@ -415,32 +351,13 @@ export default function SchedulePage() {
             </p>
           </motion.div>
         ) : (
-          <div className="flex-1 overflow-y-auto px-6 pb-20 space-y-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {/* Next Matches Section */}
-            {matches.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-white text-base font-bold tracking-tight">Next Match</h3>
-                  <span className="text-[#FF4D00] text-[11px] font-black uppercase tracking-widest">{matches[0].round}</span>
-                </div>
-                {matches.map(match => (
-                  <MatchCard key={match.id} match={match} />
-                ))}
-              </div>
-            )}
-
-            {/* Previous Matches Section */}
-            {previousMatches.length > 0 && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-t border-white/5 pt-6">
-                  <h3 className="text-white text-base font-bold tracking-tight">Previous Matches</h3>
-                  <span className="text-[#FF4D00] text-[11px] font-black uppercase tracking-widest">{previousMatches[0].round}</span>
-                </div>
-                {previousMatches.map(match => (
-                  <MatchCard key={match.id} match={match} />
-                ))}
-              </div>
-            )}
+          <div className="flex-1 overflow-y-auto pb-20 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            <GroupedFixturesView
+              fixtures={backendFixtures}
+              compTeams={teams}
+              onFixtureClick={(id) => router.push(`/admin/schedule/${id}`)}
+              renderRow={(fixture, onClick) => <AdminFixtureRow fixture={fixture} onClick={onClick} />}
+            />
           </div>
         )}
       </div>
@@ -458,7 +375,7 @@ export default function SchedulePage() {
       {/* Background Blur Overlay for form */}
       <AnimatePresence>
         {showScheduleForm && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -466,158 +383,22 @@ export default function SchedulePage() {
           />
         )}
       </AnimatePresence>
+
+      {showCreateRoundModal && formCompetitionId && (
+        <CreateRoundModal
+          competitionId={formCompetitionId}
+          format={selectedComp?.format}
+          stages={selectedComp?.stages}
+          existingRounds={rounds || []}
+          onClose={() => setShowCreateRoundModal(false)}
+          onCreated={(round) => {
+            queryClient.invalidateQueries({ queryKey: ['rounds', formCompetitionId] })
+            setFormRoundId(round._id)
+            setShowCreateRoundModal(false)
+            addToast(`${round.name} created`, 'success')
+          }}
+        />
+      )}
     </div>
-  )
-}
-
-
-function MatchCard({ match }: { match: Match }) {
-  const router = useRouter()
-  const { addToast } = useToast()
-  const queryClient = useQueryClient()
-  const [isLive, setIsLive] = useState(match.isLive)
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-
-  useEffect(() => {
-    setIsLive(match.isLive)
-  }, [match.isLive])
-
-  const toggleMutation = useMutation({
-    mutationFn: async (live: boolean) => {
-      const { startMatch, cancelLive } = await import('@/lib/services/fixture.service')
-      if (live) return startMatch(match.id)
-      return cancelLive(match.id)
-    },
-    onSuccess: (_, live) => {
-      queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      addToast(live ? `${match.teamA} vs ${match.teamB} is now LIVE!` : `${match.teamA} vs ${match.teamB} set to scheduled.`, 'success')
-    },
-    onError: (err: any) => {
-      setIsLive(!isLive)
-      addToast(err?.message || 'Failed to update match status', 'error')
-    }
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteFixture(match.id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      addToast('Fixture deleted.', 'success')
-      setShowDeleteConfirm(false)
-    },
-    onError: (err: any) => addToast(err?.message || 'Failed to delete fixture', 'error')
-  })
-
-  const handleToggleLive = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (toggleMutation.isPending) return
-    const nextValue = e.target.checked
-    setIsLive(nextValue)
-    toggleMutation.mutate(nextValue)
-  }
-
-  const handleDeleteClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (match.isLive) {
-      addToast('Cannot delete a live fixture. Turn off live first.', 'error')
-      return
-    }
-    setShowDeleteConfirm(true)
-  }
-
-  return (
-    <>
-      <div
-        onClick={() => router.push(`/admin/schedule/${match.id}`)}
-        className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 relative overflow-hidden group cursor-pointer active:scale-[0.98] transition-all"
-      >
-        {/* Delete button */}
-        <button
-          onClick={handleDeleteClick}
-          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/5 text-white/30 hover:bg-red-500/20 hover:text-red-400 transition-all z-10"
-        >
-          <Trash2 size={14} />
-        </button>
-
-        <div className="flex items-center justify-between">
-          {/* Team A */}
-          <div className="flex flex-col items-center gap-2 w-24">
-            <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
-              <img src={match.teamALogo} className="w-full h-full object-cover" alt="" />
-            </div>
-            <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
-              {match.teamA}
-            </span>
-          </div>
-
-          {/* Center Info */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <span className="text-[11px] text-white/40 font-bold uppercase tracking-tight">
-              {match.date}
-            </span>
-            <div className="bg-[#0F111A] min-w-[100px] h-11 flex items-center justify-center rounded-xl border border-white/5 shadow-inner">
-              <span className="font-chakra font-black text-lg text-white tracking-widest leading-none">
-                {match.score || match.time}
-              </span>
-            </div>
-
-            {!match.score && (
-              <div className="flex flex-col items-center gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
-                <label className={`relative inline-flex items-center scale-90 ${toggleMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
-                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={handleToggleLive} disabled={toggleMutation.isPending} />
-                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-600"></div>
-                </label>
-                <span className="text-[9px] text-[#FF4D00] font-black uppercase tracking-[0.2em] italic leading-none">
-                  {toggleMutation.isPending ? '...' : 'Go Live'}
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Team B */}
-          <div className="flex flex-col items-center gap-2 w-24">
-            <div className="w-14 h-14 rounded-full overflow-hidden bg-[#0F111A] flex items-center justify-center border border-white/10">
-              <img src={match.teamBLogo} className="w-full h-full object-cover" alt="" />
-            </div>
-            <span className="text-[11px] font-chakra font-black text-white uppercase truncate w-full text-center tracking-wider">
-              {match.teamB}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Delete confirmation modal */}
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center px-6"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#1E2032] border border-white/10 rounded-[24px] p-6 w-full max-w-sm space-y-4"
-            >
-              <h3 className="font-chakra font-black text-white text-lg uppercase tracking-tight">Delete Fixture?</h3>
-              <p className="text-white/50 text-sm font-chakra">Are you sure you want to delete <span className="text-white font-bold">{match.teamA} vs {match.teamB}</span>? This action cannot be undone.</p>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-white/10 text-white/60 font-chakra font-bold text-sm uppercase hover:bg-white/5 transition-colors">Cancel</button>
-                <button
-                  onClick={() => deleteMutation.mutate()}
-                  disabled={deleteMutation.isPending}
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-chakra font-bold text-sm uppercase hover:bg-red-500 transition-colors disabled:opacity-50"
-                >
-                  {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
   )
 }

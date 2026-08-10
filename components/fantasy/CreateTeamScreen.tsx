@@ -5,13 +5,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Search, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import { useFantasyStore } from '@/store/fantasyStore';
 import { PitchLayout } from './PitchLayout';
-import { getJerseyUrl, type FantasySquadPlayer, type Position, GAMEWEEK_INFO } from '@/lib/fantasyMockData';
+import { getJerseyUrl, type FantasySquadPlayer, type Position } from '@/lib/fantasyMockData';
 import CreateTeamPlayerDrawer from './CreateTeamPlayerDrawer';
 import { SaveTeamConfirmationModal } from './SaveTeamConfirmationModal';
-import { listFantasyPlayers, type FantasyPlayer } from '@/lib/services/fantasy.service';
+import { listFantasyPlayers, listGameweeks, type FantasyPlayer } from '@/lib/services/fantasy.service';
 import { listFixtures } from '@/lib/services/fixture.service';
+import { PositionFilterBar, type PositionFilterValue } from '@/components/PositionFilterBar';
+import { formatSquadValue } from '@/lib/format';
 
 import { mapApiPlayer } from '@/lib/converters';
 
@@ -37,6 +40,15 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
      resetTeam();
      setDraftPlayers([]);
   }, []);
+
+  // Real gameweek deadline — derived from the tournament's fixture schedule,
+  // never hardcoded. Falls back to "TBA" if no gameweeks exist yet.
+  const { data: gameweeks } = useQuery({
+    queryKey: ['fantasy-gameweeks', competitionId],
+    queryFn: () => listGameweeks(competitionId!),
+    enabled: !!competitionId,
+  });
+  const currentGameweek = gameweeks?.find((gw) => gw.lockStatus === 'open') ?? gameweeks?.[0];
 
   const handleSelectSlot = (id: string) => {
     if (id.startsWith('empty-')) {
@@ -78,7 +90,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-20">
+    <div className="fixed inset-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto bg-[#222232] flex flex-col font-sans overflow-hidden z-20">
       {/* Background Image Overlay */}
       <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
@@ -101,7 +113,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Bank :</span>
-            <span className="text-[#00ffff] text-[14px] font-mono font-bold font-display">Ǥ{budget.toFixed(1)}M</span>
+            <span className="text-[#00ffff] text-[14px] font-mono font-bold font-display">{formatSquadValue(budget)}</span>
           </div>
         </div>
       </header>
@@ -109,7 +121,9 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
       {/* Deadline Bar */}
       <div className="w-full bg-[#1b1c28] py-2 relative z-10 flex justify-center items-center">
         <span className="text-white/40 text-[9px] font-bold uppercase tracking-[0.2em]">
-          Deadline: {GAMEWEEK_INFO.deadlineLabel}
+          {currentGameweek
+            ? `GW${currentGameweek.gameweekNumber} Deadline: ${format(new Date(currentGameweek.deadline), 'EEE d MMM, HH:mm')}`
+            : 'Deadline: TBA'}
         </span>
       </div>
 
@@ -193,6 +207,11 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(20);
+  // Defaults to whichever position slot was tapped, but the filter bar below
+  // lets the user browse other positions from the same overlay — selecting a
+  // player elsewhere doesn't depend on which slot opened it (final pitch
+  // placement is derived from the player's own position at Save time).
+  const [positionFilter, setPositionFilter] = useState<PositionFilterValue>(position);
   const [teamMaxToast, setTeamMaxToast] = useState(false);
   const { budget } = useFantasyStore();
 
@@ -239,7 +258,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   const normalizePos = (p: string) => POS_NORMALIZE[p?.trim().toLowerCase()] || p?.trim().toUpperCase() || '';
 
   const positionMatchedPlayers = (playerResponse?.data || []).filter(p =>
-    normalizePos(p.position) === position
+    positionFilter === 'ALL' || normalizePos(p.position) === positionFilter
   );
 
   const excludeIds = draftPlayers.map(p => p.id);
@@ -273,6 +292,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     setSearchQuery('');
     setSelectedTeam('all');
     setMaxPrice(20);
+    setPositionFilter(position);
   };
 
 
@@ -296,6 +316,9 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
       <Header onClose={onClose} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
       <div className="flex-1 px-6 mt-4 relative z-10 flex flex-col min-h-0 overflow-hidden">
+        {/* Position Filter Bar */}
+        <PositionFilterBar value={positionFilter} onChange={setPositionFilter} className="mb-3" />
+
         {/* Filters Row */}
         <div className="flex gap-2 mb-6">
           <div className="flex-1 relative">
@@ -320,7 +343,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
             >
               <option value={20}>Max Price</option>
               {[15, 12, 10, 8, 6, 4].map(price => (
-                <option key={price} value={price}>Ǥ{price}.0M</option>
+                <option key={price} value={price}>{formatSquadValue(price)}</option>
               ))}
             </select>
             <ChevronLeft className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 -rotate-90 pointer-events-none" size={14} />
@@ -388,10 +411,10 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
             {/* Solid Footer Info Bar - Floating above the Navbar with higher z-index */}
             <div className="absolute bottom-[120px] left-0 right-0 bg-[#3d3f56]/95 backdrop-blur-md px-8 py-3 flex justify-between items-center z-[130] border-t border-white/10 shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
                 <div className="text-white text-[12px] font-medium tracking-tight">
-                    Free Transfer : <span className="text-white opacity-60 ml-2">2</span>
+                    Squad : <span className="text-white opacity-60 ml-2">{draftPlayers.length}/15</span>
                 </div>
                 <div className="text-white text-[12px] font-medium tracking-tight">
-                    Bank : <span className="text-white opacity-60 ml-3">Ǥ{budget.toFixed(1)}M</span>
+                    Bank : <span className="text-white opacity-60 ml-3">{formatSquadValue(budget)}</span>
                 </div>
             </div>
     </motion.div>
@@ -426,7 +449,7 @@ const PlayerRow = ({ player, isTeamMaxed, onClick }: { player: FantasySquadPlaye
       <img
         src={player.avatarUrl || `https://i.pravatar.cc/100?u=${player.id}`}
         alt={player.name}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-cover object-top"
       />
       <div className="absolute bottom-0 left-0 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-[#2a2b3d] p-0.5 shadow-md">
         <div className="w-full h-full bg-[#004170] rounded-full" />
@@ -443,7 +466,7 @@ const PlayerRow = ({ player, isTeamMaxed, onClick }: { player: FantasySquadPlaye
     </div>
 
     <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
-      <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">Ǥ{(player.price ?? 0).toFixed(1)}M</div>
+      <div className="text-right text-white text-[14px] font-black tracking-tighter w-14">{formatSquadValue(player.price ?? 0)}</div>
       <div className="w-[1px] bg-white/10 h-3 mx-1" />
       <div className="text-right text-white text-[14px] font-black w-14">{player.points ?? 0}</div>
     </div>

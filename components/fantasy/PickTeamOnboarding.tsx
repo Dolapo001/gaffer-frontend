@@ -8,6 +8,7 @@ import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
 import { PlayerDetailDrawer } from './PlayerDetailDrawer'
 import { BoostSelector } from './BoostSelector'
+import { formatSquadValue } from '@/lib/format'
 
 interface PickTeamOnboardingProps {
   onBack: () => void
@@ -42,7 +43,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
   const selectedPlayer = players.find(p => p.id === selectedPlayerId) || null
 
   return (
-    <div className="fixed inset-0 w-full max-w-md mx-auto bg-[#222232] flex flex-col font-sans z-20">
+    <div className="fixed inset-0 w-full max-w-md md:max-w-2xl lg:max-w-4xl xl:max-w-5xl mx-auto bg-[#222232] flex flex-col font-sans z-20">
       {/* Background */}
       <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
@@ -62,7 +63,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
         </div>
         <div className="bg-[#1a1f24]/90 backdrop-blur-md rounded-full px-3 py-1 flex items-center gap-2 border border-white/10">
           <span className="text-gray-400 text-[9px] font-bold uppercase tracking-widest">Bank</span>
-          <span className="text-[#00ffff] text-[10px] font-bold font-mono">Ǥ{budget.toFixed(1)}M</span>
+          <span className="text-[#00ffff] text-[10px] font-bold font-mono">{formatSquadValue(budget)}</span>
         </div>
       </header>
 
@@ -90,17 +91,19 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
           onSelectPlayer={selectPlayer}
           compact
         />
+      </div>
 
-        {/* Save */}
-        <div className="flex justify-center pt-3">
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="text-[#ff6b00] font-black text-2xl uppercase tracking-wider underline decoration-4 underline-offset-8 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-          >
-            {isSaving ? 'Saving...' : 'Save Team'}
-          </button>
-        </div>
+      {/* Save — pinned footer, not scroll-dependent, so it's always reachable
+          regardless of content height (was previously the last item in the
+          scrollable body, which could land underneath the bottom nav). */}
+      <div className="flex-shrink-0 relative z-10 flex justify-center py-4 border-t border-white/5 bg-[#222232]/95 backdrop-blur-md">
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          className="text-[#ff6b00] font-black text-2xl uppercase tracking-wider underline decoration-4 underline-offset-8 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : 'Save Team'}
+        </button>
       </div>
 
       <PlayerDetailDrawer

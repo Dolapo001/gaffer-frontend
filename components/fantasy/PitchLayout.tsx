@@ -13,11 +13,29 @@ function toJersey(player: FantasySquadPlayer): JerseyProps {
   return { primaryColor: jc.primaryColor, secondaryColor: jc.secondaryColor, jerseyPattern: jc.jerseyPattern, teamCode: player.teamCode }
 }
 
-// ─── Pitch SVG markings ───────────────────────────────────────────────────────
+/**
+ * When a gameweek-scoped fixture map is supplied, use it — it's authoritative
+ * for "does this team have a fixture in the round being viewed." A null
+ * entry means the team truly has none that round (real TBC). Only falls
+ * back to "this team's next fixture anywhere" when no map was passed at all
+ * (e.g. the squad-builder screen, which isn't scoped to any gameweek).
+ */
+function getFixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Record<string, string | null>): string {
+  if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
+    return fixtureLabelByTeamId[player.teamId!] ?? player.teamCode
+  }
+  const next = player.nextFixtures[0]
+  if (!next) return player.teamCode
+  const oppCode = next.awayCode === player.teamCode ? next.homeCode : next.awayCode
+  const isHome = next.homeCode === player.teamCode
+  return `${oppCode} (${isHome ? 'H' : 'A'})`
+}
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────
 
-function PitchMarkings() {
+// ─── Pitch SVG markings ───────────────────────────────────────────────────────
+
+export function PitchMarkings() {
   return (
     <div className="absolute inset-0 w-full h-full overflow-hidden rounded-xl">
       {/* ── Layer 1: The "Mow Lines" (CSS Grass Texture) ── */}
@@ -120,6 +138,10 @@ interface PitchLayoutProps {
   onSelectPlayer: (id: string) => void
   selectionMode?: boolean
   className?: string
+  /** Points to show on each card for the currently-viewed gameweek, keyed by player id. Omit to hide all badges. */
+  pointsByPlayerId?: Record<string, number | null>
+  /** This gameweek's opponent per team _id (null = no fixture that round = TBC). Omit to fall back to "next fixture anywhere". */
+  fixtureLabelByTeamId?: Record<string, string | null>
 }
 
 export function PitchLayout({
@@ -130,6 +152,8 @@ export function PitchLayout({
   onSelectPlayer,
   selectionMode = false,
   className,
+  pointsByPlayerId,
+  fixtureLabelByTeamId,
 }: PitchLayoutProps) {
   // Define fixed slots for selection mode
   // Row 3: GK (2 slots)
@@ -178,23 +202,22 @@ export function PitchLayout({
                     <PitchPlayerCard
                       key={player.id}
                       playerName={player.shortName}
-                      fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
+                      fixture={getFixtureLabel(player, fixtureLabelByTeamId)}
                       jersey={toJersey(player)}
                       selected={selectedId === player.id}
                       highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                       onClick={() => onSelectPlayer(player.id)}
                       status={player.status || 'fit'}
                       captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
+                      points={pointsByPlayerId?.[player.id] ?? null}
                     />
                   )
                 }
                 return (
-                  <EmptySlotCard 
-                    key={`empty-${rowData.row}-${si}`} 
+                  <EmptySlotCard
+                    key={`empty-${rowData.row}-${si}`}
                     position={rowData.position}
                     onClick={() => {
-                        // We need a way to tell the parent WHICH slot was clicked
-                        // For now, just call onSelectPlayer with a special prefix
                         onSelectPlayer(`empty-${rowData.position}-${si}`)
                     }}
                   />
@@ -206,13 +229,14 @@ export function PitchLayout({
                 <PitchPlayerCard
                   key={player.id}
                   playerName={player.shortName}
-                  fixture={player.nextFixtures[0] ? `${player.nextFixtures[0].awayCode === player.teamCode ? player.nextFixtures[0].homeCode : player.nextFixtures[0].awayCode} (${player.nextFixtures[0].homeCode === player.teamCode ? 'H' : 'A'})` : player.teamCode}
+                  fixture={getFixtureLabel(player, fixtureLabelByTeamId)}
                   jersey={toJersey(player)}
                   selected={selectedId === player.id}
                   highlightMode={substitutingOutId === player.id ? 'sub_out' : 'none'}
                   onClick={() => onSelectPlayer(player.id)}
                   status={player.status || 'fit'}
                   captaincy={player.isCaptain ? 'C' : player.isViceCaptain ? 'V' : null}
+                  points={pointsByPlayerId?.[player.id] ?? null}
                 />
               ))
             )}

@@ -1,5 +1,7 @@
 import { api } from '@/lib/api'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
+import { mockRounds, mockFixtures } from '@/lib/testing-mocks/premierLeague'
+// TODO: REMOVE MOCK DATA BEFORE PROD
 
 // ─── Resolved Kits ────────────────────────────────────────────────────────────
 // Provided by the backend when clash-detection has been applied to a fixture.
@@ -78,6 +80,7 @@ export interface Lineup {
   starters: string[]
   bench: string[]
   status: 'pending' | 'approved'
+  ratings?: Record<string, number>
 }
 
 // POST /competitions/:competitionId/rounds
@@ -98,6 +101,7 @@ export async function createRound(
 
 // GET /competitions/:competitionId/rounds
 export async function listRounds(competitionId: string): Promise<Round[]> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return [];
   const data = await api.get<{ rounds: Round[] }>(`/competitions/${competitionId}/rounds`)
   return data.rounds
 }
@@ -133,6 +137,7 @@ export async function listFixtures(
   competitionId: string,
   params?: { status?: string; roundId?: string },
 ): Promise<Fixture[]> {
+  if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return [];
   const qs = params
     ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]).toString()
     : ''

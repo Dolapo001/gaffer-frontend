@@ -144,10 +144,10 @@ export function OrganiseCreateSheet({
             <p className="text-white/50 text-[13px] leading-tight mt-0.5">
               Manage your schedule for matches, ceremonies. Schedule now and for later.
             </p>
-            {selectedCompetitionId && (
+            {selectedComp && (
               <div className="mt-2 py-1 px-3 bg-white/5 rounded-full inline-block border border-white/10">
                 <span className="text-[10px] uppercase font-bold text-[#FF4D00]">
-                   {enrolledTeamsCount} / {competitionTeamLimit} Teams enrolled
+                   {selectedComp.name} · {enrolledTeamsCount} / {competitionTeamLimit} Teams enrolled
                 </span>
               </div>
             )}
