@@ -257,6 +257,7 @@ export const useFantasyStore = create<FantasyState>()(
 
       // Create team on API — POST /fantasy/:competitionId/team
       createTeamOnApi: async (name: string) => {
+        if (get().isSaving) return
         const state = get()
         if (!state.competitionId) {
           // No competition context — save name locally only

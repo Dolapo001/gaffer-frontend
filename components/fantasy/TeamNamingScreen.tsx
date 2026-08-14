@@ -13,6 +13,7 @@ export const TeamNamingScreen: React.FC<TeamNamingScreenProps> = ({ onComplete }
   const { createTeamOnApi, saveTeamToApi, isSaving, saveError } = useFantasyStore()
 
   const handleConfirm = async () => {
+    if (isSaving) return;
     if (!name.trim()) return;
     try {
       // Create the team record on backend
