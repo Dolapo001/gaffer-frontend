@@ -400,7 +400,7 @@ export default function OrganizePage() {
           logoUrl = result.url
         }
 
-        const team = await createTeamMutation.mutateAsync({
+        await createTeamMutation.mutateAsync({
           name: teamName,
           handle: teamName.toLowerCase().replace(/\s+/g, '-'),
           sport: 'Football',
@@ -409,11 +409,8 @@ export default function OrganizePage() {
           jersey: jerseyConfig.home,
         })
 
-        // If a competition is selected, auto-register the team
-        if (selectedCompetitionId && team?._id) {
-          await registerTeams(selectedCompetitionId, [{ teamId: team._id }])
-          queryClient.invalidateQueries({ queryKey: ['competition-teams', selectedCompetitionId] })
-        }
+        // NOTE: registerTeams is already called inside createTeamMutation.mutationFn
+        // when selectedCompetitionId is set — do NOT call it again here.
 
         addToast('Team created successfully!', 'success')
       } else {
