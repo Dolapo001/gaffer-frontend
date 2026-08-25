@@ -39,3 +39,4 @@ export function useHasMinRole(orgId: string | null | undefined, minRole: OrgRole
   if (!role) return false
   return hasMinRole(role, minRole)
 }
+
