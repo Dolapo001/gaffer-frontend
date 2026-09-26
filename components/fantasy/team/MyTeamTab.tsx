@@ -249,7 +249,7 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
         </div>
         
         <div className="flex items-center justify-between px-2 text-gaffer-muted text-[11px] font-body">
-          <span>Free Transfers: <span className="text-white font-medium">{(myTeam as any)?.freeTransfersRemaining ?? 0}</span></span>
+          <span>Free Transfers: <span className="text-white font-medium">{myTeam?.unlimitedTransfers ? 'Unlimited' : (myTeam?.freeTransfersRemaining ?? 0)}</span></span>
           <span>Squad Value: <span className="text-white font-medium">{formatSquadValue(players.reduce((s, p) => s + (p.price ?? 0), 0))}</span></span>
         </div>
       </div>

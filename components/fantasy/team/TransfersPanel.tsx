@@ -89,7 +89,9 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
 
   // Budget: what the user can spend after selling playerOut
   const bankBalance: number = (myTeam as any)?.bankBalance ?? 0
-  const freeTransfersRemaining: number = (myTeam as any)?.transferState?.freeTransfersAvailable ?? 1
+  // Server-derived for the gameweek the transfer applies to (raw transferState
+  // only resets on the first transfer of a new gameweek, so it goes stale)
+  const freeTransfersRemaining: number = myTeam?.freeTransfersRemaining ?? (myTeam as any)?.transferState?.freeTransfersAvailable ?? 1
   const sellValue: number = (playerOut as any)?.sellPrice ?? playerOut?.price ?? 0
   const maxAffordable = Math.round((bankBalance + sellValue) * 10) / 10
 

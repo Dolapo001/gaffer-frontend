@@ -170,14 +170,12 @@ export function OrganiseDetails({
 
   const { hideNavbar, showNavbar } = useUIStore()
 
+  const shouldHideNavbar = Boolean(isAddingPlayer || editingPlayer || showRecruitment)
   useEffect(() => {
-    if (isAddingPlayer || editingPlayer || showRecruitment) {
-      hideNavbar()
-    } else {
-      showNavbar()
-    }
+    if (!shouldHideNavbar) return
+    hideNavbar()
     return () => showNavbar()
-  }, [isAddingPlayer, editingPlayer, showRecruitment, hideNavbar, showNavbar])
+  }, [shouldHideNavbar, hideNavbar, showNavbar])
 
   const handleEditClick = (player: Player) => {
     setEditingPlayer(player)

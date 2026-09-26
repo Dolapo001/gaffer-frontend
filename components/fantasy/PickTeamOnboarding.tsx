@@ -1,8 +1,9 @@
 'use client'
 
 import React from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft } from 'lucide-react'
-import { useFantasyStore, selectRemainingBudget } from '@/store/fantasyStore'
+import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
 import { PitchLayout } from './PitchLayout'
 import { SubstituteBench } from './SubstituteBench'
@@ -24,13 +25,20 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
     players,
     saveTeamToApi,
     isSaving,
+    squadBudget,
   } = useFantasyStore()
-  const budget = useFantasyStore(selectRemainingBudget)
+  // The squad isn't saved yet during onboarding, so the server bank balance
+  // (what selectRemainingBudget returns once the team is named) doesn't apply.
+  const budget = squadBudget - players.reduce((sum, p) => sum + (p.price ?? 0), 0)
   const toast = useToastStore()
+  const queryClient = useQueryClient()
 
   const handleSave = async () => {
     try {
       await saveTeamToApi()
+      // The layout gate reads isComplete from this query — refresh it so the
+      // just-saved squad replaces the named-but-empty team.
+      await queryClient.invalidateQueries({ queryKey: ['fantasy-team-me'] })
       onComplete()
     } catch (err: any) {
       const msg = err?.message ?? 'Failed to save squad. Please try again.'

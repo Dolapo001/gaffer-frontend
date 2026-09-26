@@ -60,18 +60,14 @@ export default function TournamentDetailPage() {
   const { hideNavbar, showNavbar } = useUIStore() // Added this line
 
   useEffect(() => {
-    if (showEnrollModal) {
-      hideNavbar()
-      document.body.setAttribute('data-nav-hidden', 'true')
-    } else {
-      showNavbar()
-      document.body.removeAttribute('data-nav-hidden')
-    }
+    if (!showEnrollModal) return
+    hideNavbar()
+    document.body.setAttribute('data-nav-hidden', 'true')
     return () => {
       showNavbar()
       document.body.removeAttribute('data-nav-hidden')
     }
-  }, [showEnrollModal, hideNavbar, showNavbar]) // Added this useEffect block
+  }, [showEnrollModal, hideNavbar, showNavbar])
 
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', id],

@@ -94,13 +94,19 @@ export interface FantasyTeam {
   captainId: string
   viceCaptainId: string
   totalPoints: number
+  /** True once a valid 15-player squad has been saved. A named team without a squad is false. */
+  isComplete?: boolean
   formation?: string
   transfersRemaining?: number
   bankBalance?: number
   // Optional — only present once the backend ships the coin-based transfer
   // economy (see BACKEND_CONTRACT.md). Read defensively: when absent, the
   // transfers UI falls back to today's points-hit model unchanged.
-  freeTransfersRemaining?: number
+  freeTransfersRemaining?: number | null
+  /** True before the season's first deadline (or in an unlimited stage) */
+  unlimitedTransfers?: boolean
+  /** The gameweek squad changes and transfers currently apply to */
+  editingGameweekId?: string | null
   transferCostMode?: 'points' | 'coins'
   createdAt: string
 }
@@ -178,7 +184,10 @@ export async function createGameweeks(competitionId: string): Promise<FantasyGam
 export async function getFantasySeason(competitionId: string): Promise<FantasySeason | null> {
   if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return null
   try {
-    return await api.get<FantasySeason>(`/fantasy/${competitionId}/season`)
+    // The backend wraps this in { data } — without unwrapping, squadBudget was
+    // always undefined and every league silently used the 100m default.
+    const res = await api.get<FantasySeason | { data: FantasySeason }>(`/fantasy/${competitionId}/season`)
+    return (res && 'data' in res && res.data) ? (res as any).data as FantasySeason : res as FantasySeason
   } catch (err) {
     if (err instanceof ApiError && (err.code === 'FANTASY_SEASON_NOT_FOUND' || err.status === 400)) return null
     throw err

@@ -219,13 +219,11 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
     },
   })
 
+  // Balanced hide/show: the navbar counter is shared, so only release what we took
   useEffect(() => {
-    if (player) {
-      hideNavbar()
-    } else {
-      showNavbar()
-    }
-    return () => { showNavbar() }
+    if (!player) return
+    hideNavbar()
+    return () => showNavbar()
   }, [player, hideNavbar, showNavbar])
 
   // Real per-gameweek scoring breakdown — events are logged by the competition

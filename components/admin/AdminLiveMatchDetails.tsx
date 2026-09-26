@@ -533,13 +533,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   useEffect(() => {
     const shouldHide = flowStep !== 'idle' || !!isSelectingPlayer || !!isSelectingFormation || !!slotContextMenu
 
-    if (shouldHide) {
-      document.body.style.overflow = 'hidden'
-      hideNavbar()
-    } else {
-      document.body.style.overflow = ''
-      showNavbar()
-    }
+    if (!shouldHide) return
+    document.body.style.overflow = 'hidden'
+    hideNavbar()
     return () => {
       document.body.style.overflow = ''
       showNavbar()
