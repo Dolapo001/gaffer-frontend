@@ -20,6 +20,7 @@ import { buildInviteLink } from '@/lib/routes'
 import { useToastStore, type ToastType } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useHasMinRole } from '@/hooks/useOrgRole'
 
 const addSchema = z.object({
   firstName: z.string().min(2, 'First name too short'),
@@ -59,6 +60,22 @@ function timeUntil(iso: string) {
 
 type SheetMode = 'add' | 'invite' | null
 
+/** Team membership row → the flat player this page renders. */
+function toFlatPlayer(row: Player): Player {
+  const inner = row.playerId && typeof row.playerId === 'object' ? row.playerId : null
+  if (!inner) return row
+  return {
+    ...inner,
+    ...row,
+    _id: String(inner._id),
+    firstName: inner.firstName ?? '',
+    lastName: inner.lastName ?? '',
+    position: inner.position ?? row.position,
+    jerseyNumber: row.jerseyNumber ?? inner.jerseyNumber,
+    playerId: inner,
+  }
+}
+
 export default function PlayersPage() {
   const qc = useQueryClient()
   const toast = useToastStore()
@@ -75,6 +92,8 @@ export default function PlayersPage() {
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
+  // Adding, inviting, editing and removing need manager+ (the API enforces it too)
+  const canManage = useHasMinRole(firstOrg?._id, 'manager', firstOrg?.ownerId)
 
   const { data: teams } = useQuery({
     queryKey: ['teams', firstOrg?._id],
@@ -88,6 +107,10 @@ export default function PlayersPage() {
     queryKey: ['players', activeTeamId],
     queryFn: () => listPlayers(activeTeamId!),
     enabled: !!activeTeamId,
+    // The API returns team memberships with the player nested in `playerId`;
+    // this page reads flat players (it crashed on `p.firstName[0]`), and edit /
+    // remove take the player's id, not the membership's.
+    select: (rows) => rows.map(toFlatPlayer),
   })
 
   const { data: pendingInvites } = useQuery({
@@ -207,7 +230,7 @@ export default function PlayersPage() {
                 {pendingCount > 0 && <span className="ml-2 text-gaffer-orange">{pendingCount} invite{pendingCount > 1 ? 's' : ''} pending</span>}
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            {canManage && <div className="flex items-center gap-2">
               <button
                 onClick={() => { setSheetMode('invite'); setGeneratedLink(null) }}
                 disabled={!activeTeamId}
@@ -223,7 +246,7 @@ export default function PlayersPage() {
                 <Plus size={16} />
                 Add
               </button>
-            </div>
+            </div>}
           </div>
 
           {/* Team selector */}
@@ -322,7 +345,7 @@ export default function PlayersPage() {
                 {query ? 'Try a different search' : `Add or invite players to ${activeTeam?.name ?? 'the roster'}`}
               </p>
             </div>
-            {!query && (
+            {!query && canManage && (
               <div className="flex gap-3">
                 <button onClick={() => setSheetMode('add')} className="flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-gradient-btn text-white font-display font-bold text-sm shadow-orange-glow">
                   <Plus size={16} />Add
@@ -345,7 +368,7 @@ export default function PlayersPage() {
                   className="flex items-center gap-3 bg-gaffer-card border border-gaffer-border rounded-xl px-4 py-3"
                 >
                   <div className="w-9 h-9 rounded-full bg-orange-gradient-btn flex items-center justify-center text-sm text-white font-display font-bold flex-shrink-0">
-                    {p.firstName[0]}
+                    {p.firstName?.[0] ?? "?"}
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-white font-body font-medium text-sm">{p.firstName} {p.lastName}</p>
@@ -360,6 +383,7 @@ export default function PlayersPage() {
                       ? 'text-red-400 bg-red-400/10 border-red-400/30'
                       : 'text-gaffer-muted bg-gaffer-surface border-gaffer-border'
                   }`}>{p.squadStatus}</span>
+                  {canManage && <>
                   <button
                     onClick={() => {
                       setEditTarget(p)
@@ -381,6 +405,7 @@ export default function PlayersPage() {
                   >
                     <X size={15} />
                   </button>
+                  </>}
                 </motion.div>
               ))}
             </div>

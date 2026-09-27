@@ -10,6 +10,7 @@ import { getOrgFeed, publishNews, deletePost, type FeedItem } from '@/lib/servic
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useHasMinRole } from '@/hooks/useOrgRole'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -34,6 +35,8 @@ export default function AdminNewsPage() {
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs })
   const firstOrg = orgs?.[0]
+  // Publishing and deleting news need manager+ (the API enforces it too)
+  const canManage = useHasMinRole(firstOrg?._id, 'manager', firstOrg?.ownerId)
 
   const { data: competitions } = useQuery({
     queryKey: ['competitions', firstOrg?._id],
@@ -122,6 +125,7 @@ export default function AdminNewsPage() {
       <div className="flex-1 overflow-y-auto no-scrollbar pb-40">
         <div className="px-6 pt-12 space-y-8 max-w-2xl mx-auto">
           {/* Header */}
+          {canManage && <>
           <h2 className="font-chakra font-black text-xl text-white tracking-widest uppercase">Post News</h2>
 
           {/* Posting Interface */}
@@ -233,6 +237,7 @@ export default function AdminNewsPage() {
               {postMutation.isPending ? 'Posting...' : 'Post News'}
             </button>
           </div>
+          </>}
 
           {/* Feed Section */}
           <div className="space-y-6">
@@ -305,13 +310,13 @@ export default function AdminNewsPage() {
                           <button className="text-white/40 hover:text-white transition-colors">
                             <Share2 size={18} />
                           </button>
-                          <button
+                          {canManage && <button
                             onClick={() => setDeleteTarget(item)}
                             className="text-white/30 hover:text-red-400 transition-colors"
                             aria-label="Delete post"
                           >
                             <Trash2 size={18} />
-                          </button>
+                          </button>}
                         </div>
                       </div>
                     </div>
