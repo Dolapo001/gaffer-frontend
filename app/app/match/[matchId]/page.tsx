@@ -14,6 +14,7 @@ import {
 import { ChevronLeft, Bell, BellOff, RefreshCcw, Goal, CornerDownRight } from 'lucide-react'
 import { getImageUrl, getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
+import { useLiveMatch } from '@/hooks/useLiveMatch'
 import { useToastStore } from '@/store/toastStore'
 import { useAuthStore } from '@/store/authStore'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -33,7 +34,13 @@ export default function MatchCenterPage() {
   const { data: matchData, isLoading } = useQuery({
     queryKey: ['match', matchId],
     queryFn: () => getMatchState(matchId),
+    // Fallback for viewers without a socket (guests); logged-in users get
+    // pushed updates via useLiveMatch below
+    refetchInterval: (query) => (['live', 'halftime'].includes((query.state.data as any)?.fixture?.status) ? 15_000 : false),
   })
+
+  // Score, status and commentary update live without a reload
+  useLiveMatch(matchId)
 
   const { data: allEvents, isLoading: isEventsLoading } = useQuery({
     queryKey: ['match-events', matchId],
