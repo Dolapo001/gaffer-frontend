@@ -24,7 +24,6 @@ import { ChipStoreDrawer } from './ChipStoreDrawer'
 
 export function MyTeamTab({ competitionId }: { competitionId: string }) {
   const queryClient = useQueryClient()
-  const [teamError, setTeamError] = useState<string | null>(null)
   const currentUserId = useAuthStore((s) => s.user?.id)
 
   const [transfersOpen, setTransfersOpen] = useState(false)
@@ -94,7 +93,7 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
     }
   }, [competitionId, queryClient])
 
-  const { data: myTeam, isLoading: loadingTeam } = useQuery({
+  const { data: myTeam, isLoading: loadingTeam, isError: teamLoadFailed } = useQuery({
     queryKey: ['fantasy-team-me', competitionId, selectedGameweekId],
     queryFn: () => {
       if (!selectedGameweekId) return getMyFantasyTeam(competitionId)
@@ -174,6 +173,10 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
 
   const toast = useToastStore()
 
+  // Only a failed LOAD replaces the pitch; a failed save is a toast so the
+  // user can fix their lineup. React Query clears isError on a successful refetch.
+  const teamError = teamLoadFailed && !myTeam ? 'Could not load your team. Please try again.' : null
+
   useEffect(() => {
     if (substituteError) toast.addToast(substituteError, 'error')
   }, [substituteError])
@@ -204,7 +207,7 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
       setTimeout(() => setSavedAnim(false), 2200)
     } catch (err: any) {
       const msg = err?.message ?? 'Could not save your team. Please try again.'
-      setTeamError(msg)
+      toast.addToast(msg, 'error')
     }
   }
 
