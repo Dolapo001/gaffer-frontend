@@ -22,6 +22,8 @@ export interface Competition {
   }
   createdBy: { fullName: string | null; email: string }
   joinCode?: string
+  /** Stable public URL key; unchanged when the competition is renamed. Older records may lack it. */
+  slug?: string
   createdAt: string
   updatedAt: string
 }

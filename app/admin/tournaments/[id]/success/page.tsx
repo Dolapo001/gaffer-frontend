@@ -41,7 +41,8 @@ export default function TournamentSuccessPage() {
   if (!competition) return null
 
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
-  const tournamentSlug = slugify(competition.name)
+  // Stored slug survives renames; slugify(name) only for records created before slugs existed
+  const tournamentSlug = competition.slug || slugify(competition.name)
   const joinCode = competition.joinCode || 'N/A'
   const shareLink = `${baseUrl}/app/${tournamentSlug}/${joinCode}`
 

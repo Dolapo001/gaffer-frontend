@@ -289,7 +289,7 @@ export function OrganiseDetails({
                 onClick={() => {
                   if (!selectedTeam) return
                   const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-                  const comp = slugify(competitions?.[0]?.name || 'tournament')
+                  const comp = competitions?.[0]?.slug || slugify(competitions?.[0]?.name || 'tournament')
                   const grp = selectedGroup && selectedGroup.name ? slugify(selectedGroup.name) : null
                   const tm = selectedTeam.handle || slugify(selectedTeam.name)
                   const link = grp ? `${origin}/${comp}/${grp}/${tm}` : `${origin}/${comp}/${tm}`
@@ -326,7 +326,7 @@ export function OrganiseDetails({
                         <span className="flex-1 text-[10px] text-white/30 font-bold truncate">
                           {(() => {
                             const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-                            const comp = slugify(competitions?.[0]?.name || 'tournament')
+                            const comp = competitions?.[0]?.slug || slugify(competitions?.[0]?.name || 'tournament')
                             const grp = selectedGroup && selectedGroup.name ? slugify(selectedGroup.name) : null
                             const tm = selectedTeam?.handle || slugify(selectedTeam?.name || '')
                             return grp ? `${origin}/${comp}/${grp}/${tm}` : `${origin}/${comp}/${tm}`
@@ -335,7 +335,7 @@ export function OrganiseDetails({
                         <button 
                           onClick={() => {
                             const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-                            const comp = slugify(competitions?.[0]?.name || 'tournament')
+                            const comp = competitions?.[0]?.slug || slugify(competitions?.[0]?.name || 'tournament')
                             const grp = selectedGroup && selectedGroup.name ? slugify(selectedGroup.name) : null
                             const tm = selectedTeam?.handle || slugify(selectedTeam?.name || '')
                             const link = grp ? `${origin}/${comp}/${grp}/${tm}` : `${origin}/${comp}/${tm}`

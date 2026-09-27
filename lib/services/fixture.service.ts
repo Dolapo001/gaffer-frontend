@@ -238,9 +238,10 @@ export async function approveLineup(fixtureId: string, teamId: string): Promise<
   return data.lineup
 }
 
-// GET /fixtures/:fixtureId/lineups — PUBLIC
+// GET /fixtures/:fixtureId/lineups — public read of APPROVED lineups; the token
+// (sent when logged in) lets org staff also see pending ones in the match console
 export async function listLineups(fixtureId: string): Promise<any> {
-  const data = await api.get<any>(`/fixtures/${fixtureId}/lineups`, { public: true })
+  const data = await api.get<any>(`/fixtures/${fixtureId}/lineups`)
   const raw = data?.lineups ?? data
 
   // Backend returns { homeTeam: {...}, awayTeam: {...} } structure
