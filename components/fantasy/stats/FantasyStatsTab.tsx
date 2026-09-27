@@ -68,7 +68,8 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
   const TABS = [
     { key: 'goals', label: 'Golden Boot ⚽', statKey: 'goals', statLabel: 'Goals', data: scorers },
     { key: 'assists', label: 'Top Assists 🅰️', statKey: 'assists', statLabel: 'Assists', data: assisters },
-    { key: 'cleanSheets', label: 'Clean Sheets 🧤', statKey: 'cleanSheets', statLabel: 'Clean Sheets', data: cleanSheets },
+    // Golden Glove: goalkeepers only (the backend credits keepers who played)
+    { key: 'cleanSheets', label: 'Clean Sheets 🧤', statKey: 'cleanSheets', statLabel: 'GK Clean Sheets', emptyText: 'No goalkeeper clean sheets yet', data: cleanSheets },
     { key: 'discipline', label: 'Discipline 🟨', statKey: 'yellowCards', statLabel: 'Cards', data: discipline },
   ] as const
 
@@ -97,6 +98,7 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
         players={currentTabInfo.data}
         statKey={currentTabInfo.statKey as any}
         statLabel={currentTabInfo.statLabel}
+        emptyText={'emptyText' in currentTabInfo ? currentTabInfo.emptyText : undefined}
         onSelectPlayer={handleSelectPlayer}
       />
 

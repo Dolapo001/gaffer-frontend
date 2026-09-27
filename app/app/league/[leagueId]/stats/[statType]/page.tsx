@@ -20,7 +20,8 @@ function getStatValue(entry: PlayerStatEntry, statType: string): number {
 function getStatTitleAndLabel(statType: string): { title: string; label: string } {
   const norm = statType.toLowerCase()
   if (norm.includes('assist')) return { title: 'Top Assists', label: 'Assists' }
-  if (norm.includes('clean')) return { title: 'Clean Sheets', label: 'Clean Sheets' }
+  // Golden Glove: goalkeepers only
+  if (norm.includes('clean')) return { title: 'Clean Sheets', label: 'GK Clean Sheets' }
   if (norm.includes('card') || norm.includes('discipline')) return { title: 'Discipline', label: 'Cards' }
   return { title: 'Top Scorers', label: 'Goals' }
 }
@@ -78,7 +79,7 @@ export default function StatTypeLeaderboardPage() {
           </div>
         ) : players.length === 0 ? (
           <div className="p-8 text-center text-[#94a3b8] text-[14px]">
-            No player stats recorded yet.
+            {(statType || '').toLowerCase().includes('clean') ? 'No goalkeeper clean sheets recorded yet.' : 'No player stats recorded yet.'}
           </div>
         ) : (
           <>
