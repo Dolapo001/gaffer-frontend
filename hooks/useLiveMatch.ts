@@ -9,8 +9,9 @@ import { onSocketInitialized } from '@/hooks/useNotificationSocket'
  * match state, commentary and lineups whenever the backend broadcasts a
  * `live:event` for it (kickoff, goals, cards, edits, deletions, full time).
  *
- * The socket is only opened for logged-in users (useNotificationSocket); for
- * guests this is a no-op and the page relies on its polling fallback.
+ * The socket is opened for logged-in users by the /app and /admin layouts
+ * (useNotificationSocket); for guests this is a no-op and the page relies on
+ * its polling fallback.
  */
 export function useLiveMatch(fixtureId: string | undefined) {
   const qc = useQueryClient()
@@ -29,7 +30,7 @@ export function useLiveMatch(fixtureId: string | undefined) {
       qc.invalidateQueries({ queryKey: ['lineups', fixtureId] })
     }
 
-    onSocketInitialized((s) => {
+    const unsubscribe = onSocketInitialized((s) => {
       if (cancelled) return
       socket = s
       socket.emit('join:match', fixtureId)
@@ -38,6 +39,7 @@ export function useLiveMatch(fixtureId: string | undefined) {
 
     return () => {
       cancelled = true
+      unsubscribe()
       if (socket) {
         socket.emit('leave:match', fixtureId)
         socket.off('live:event', handler)

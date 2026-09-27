@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useNotificationSocket } from '@/hooks/useNotificationSocket'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, Newspaper, Users } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
@@ -22,6 +23,9 @@ const EXIT_PATHS = ['/app/dashboard', '/app/league', '/app/fantasy']
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { isReady } = useAuthGuard('personal')
+  // Realtime socket for every page in this area (live scores, notifications),
+  // not only pages that happen to render the NotificationBell
+  useNotificationSocket()
   const { activeCompetitionId, clearActiveCompetition } = useUIStore()
 
   // Clear competition context when the user explicitly navigates away

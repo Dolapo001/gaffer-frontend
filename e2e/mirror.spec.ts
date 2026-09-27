@@ -66,13 +66,14 @@ test.describe('admin ↔ fan mirror', () => {
     })
     expect(goal.status).toBe(201)
     const t0 = Date.now()
-    await expect(scores).toHaveText(['1', '0'], { timeout: 35_000 })
+    // Under the 15 s poll interval, so this proves the socket delivered it
+    await expect(scores).toHaveText(['1', '0'], { timeout: 8_000 })
     testInfo.annotations.push({ type: 'live-latency-ms', description: String(Date.now() - t0) })
     await expect(page.getByText(new RegExp(home.players[12].name, 'i')).first()).toBeVisible()
 
     const eventId = (goal.body.event ?? goal.body)._id
     expect((await api('DELETE', `/matches/${fx._id}/events/${eventId}`, s.owner.token)).status).toBe(200)
-    await expect(scores).toHaveText(['0', '0'], { timeout: 35_000 })
+    await expect(scores).toHaveText(['0', '0'], { timeout: 8_000 })
   })
 
   test('a viewer collaborator sees no manager-only actions', async ({ page }) => {
