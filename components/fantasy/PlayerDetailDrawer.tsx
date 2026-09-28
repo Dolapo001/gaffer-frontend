@@ -293,8 +293,12 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <h3 className="text-white font-bold text-[24px] leading-tight tracking-tight">{player.name}</h3>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">#{player.price}M</span>
-                      <span className="text-[#a1a1aa] text-[13px]">•</span>
+                      {Number.isFinite(player.price) && (
+                        <>
+                          <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">#{player.price}M</span>
+                          <span className="text-[#a1a1aa] text-[13px]">•</span>
+                        </>
+                      )}
                       <span className="text-[#a1a1aa] text-[13px] font-medium tracking-wide">
                         {player.position === 'GK' ? 'Goalkeeper' : player.position === 'DEF' ? 'Defender' : player.position === 'MID' ? 'Midfielder' : 'Forward'}
                       </span>

@@ -310,14 +310,13 @@ export interface FantasySeasonStats {
 }
 
 // GET /fantasy/:competitionId/stats
+// Errors propagate (React Query then shows nothing) instead of turning into
+// made-up zeros on screen
 export async function getFantasyStats(competitionId: string): Promise<FantasySeasonStats> {
-  try {
-    const res = await api.get<FantasySeasonStats | { data: FantasySeasonStats }>(`/fantasy/${competitionId}/stats`)
-    const stats = (res && 'data' in res && res.data) ? (res as any).data : res
-    return stats ?? { yourSC: 0, averageSC: 0, highestSC: 0 }
-  } catch {
-    return { yourSC: 0, averageSC: 0, highestSC: 0 }
-  }
+  const res = await api.get<FantasySeasonStats | { data: FantasySeasonStats }>(`/fantasy/${competitionId}/stats`)
+  const stats = (res && 'data' in res && res.data) ? (res as any).data : res
+  if (!stats) throw new Error('No fantasy stats returned')
+  return stats as FantasySeasonStats
 }
 
 // PUT /fantasy/:competitionId/team/squad

@@ -49,7 +49,8 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
       teamColor: '#ff5500',
       position: (pObj.position || rawPlayer.position || 'FWD').toUpperCase() as any,
       points: rawPlayer.totalPoints ?? rawPlayer.points ?? 0,
-      price: rawPlayer.price ?? 5.0,
+      // Stats rows carry no fantasy price: NaN → the drawer hides it (it showed a fake £5.0m)
+      price: typeof rawPlayer.price === 'number' ? rawPlayer.price : Number.NaN,
       pitchRow: 0,
       isOnPitch: true,
       isCaptain: false,

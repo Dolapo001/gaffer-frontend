@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { resolveNotificationLink } from '@/lib/notificationLinks'
 import { formatDistanceToNow } from 'date-fns'
 import {
   Bell,
@@ -71,7 +72,9 @@ export function NotificationItem({ notification, onRead }: NotificationItemProps
 
   const handleClick = () => {
     if (!notification.isRead) onRead(notification._id)
-    if (notification.link) router.push(notification.link)
+    // Old notifications carry pre-/app links ("/fantasy", "/match/:id"): map them
+    const target = resolveNotificationLink(notification.link)
+    if (target) router.push(target)
   }
 
   return (
