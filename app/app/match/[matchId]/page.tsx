@@ -322,6 +322,7 @@ export default function MatchCenterPage() {
                            homeTeam={homeTeamData}
                            awayTeam={awayTeamData}
                            matchEvents={events}
+                           isLive={['live', 'halftime'].includes(fixture.status)}
                         />
                      )
                   })()}

@@ -252,3 +252,23 @@ export async function listLineups(fixtureId: string): Promise<any> {
   // Fallback: if it's an array (legacy format), return as-is
   return Array.isArray(raw) ? raw : []
 }
+
+/**
+ * Names of the teams without an APPROVED lineup for this fixture (admin view:
+ * GET /fixtures/:id/lineups returns pending ones too, each side with a status).
+ * Used to warn before kickoff: fantasy minutes, appearance and clean-sheet
+ * points all come from approved lineups.
+ */
+export async function teamsWithoutApprovedLineup(
+  fixtureId: string,
+  names: { home: string; away: string },
+): Promise<string[]> {
+  const lineups = await listLineups(fixtureId).catch(() => null)
+  const approved = (side: any) => side?.status === 'approved' && (side?.players?.length ?? 0) > 0
+  const missing: string[] = []
+  // Anything but the { homeTeam, awayTeam } shape means we can't confirm either side
+  if (!lineups || Array.isArray(lineups)) return [names.home, names.away]
+  if (!approved(lineups.homeTeam)) missing.push(names.home)
+  if (!approved(lineups.awayTeam)) missing.push(names.away)
+  return missing
+}

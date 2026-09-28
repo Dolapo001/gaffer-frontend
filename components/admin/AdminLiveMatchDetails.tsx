@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, submitLineup, recordEvent, type FixtureEvent } from '@/lib/services/fixture.service'
+import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, submitLineup, recordEvent, teamsWithoutApprovedLineup, type FixtureEvent } from '@/lib/services/fixture.service'
 import { deleteMatchEvent } from '@/lib/services/match.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
@@ -112,41 +112,14 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     onError: (err: any) => addToast(err?.message || "Failed to update match", "error")
   })
 
+  // Teams without an approved lineup when the admin tries to go live. It's a
+  // warning, not a block: grassroots admins must still be able to start.
+  const [missingLineups, setMissingLineups] = useState<string[] | null>(null)
+  const [checkingLineups, setCheckingLineups] = useState(false)
+
   const toggleMutation = useMutation({
     mutationFn: async (live: boolean) => {
       if (live) {
-        const localHomeCount = Object.values(homeLineup).filter(Boolean).length
-        const localAwayCount = Object.values(awayLineup).filter(Boolean).length
-        let savedHomeCount = 0
-        let savedAwayCount = 0
-
-        if (existingLineups?.homeTeam) {
-          savedHomeCount = existingLineups.homeTeam.players?.length ?? 0
-        }
-        if (existingLineups?.awayTeam) {
-          savedAwayCount = existingLineups.awayTeam.players?.length ?? 0
-        }
-
-        // Legacy array fallback
-        if (Array.isArray(existingLineups)) {
-          savedHomeCount = existingLineups
-            .filter((l: any) => {
-              const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
-              return tid === homeId
-            }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
-          savedAwayCount = existingLineups
-            .filter((l: any) => {
-              const tid = typeof l.teamId === 'object' ? l.teamId?._id : l.teamId
-              return tid === awayId
-            }).reduce((acc: number, l: any) => acc + (l.starters?.length ?? 0), 0)
-        }
-
-        if (localHomeCount === 0 || localAwayCount === 0) {
-          throw new Error("Both team lineups must be assigned before going live")
-        }
-        if (savedHomeCount === 0 || savedAwayCount === 0) {
-          throw new Error("Save both lineups before going live")
-        }
         return startMatch(id)
       }
       return cancelLive(id)
@@ -157,6 +130,19 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     },
     onError: (err: any) => addToast(err?.message || "Failed to update status", "error")
   })
+
+  const handleGoLiveToggle = async (next: boolean) => {
+    if (!next) return toggleMutation.mutate(false)
+    setCheckingLineups(true)
+    const names = {
+      home: typeof fixture?.homeTeamId === 'object' ? (fixture.homeTeamId as any).name : 'Home',
+      away: typeof fixture?.awayTeamId === 'object' ? (fixture.awayTeamId as any).name : 'Away',
+    }
+    const missing = await teamsWithoutApprovedLineup(id, names)
+    setCheckingLineups(false)
+    if (missing.length) setMissingLineups(missing)
+    else toggleMutation.mutate(true)
+  }
 
   // 2.1 Save Lineup — POST /fixtures/:id/lineups (once per team)
   const saveLineupMutation = useMutation({
@@ -656,7 +642,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
             ) : (
               <>
                 <label className={`relative inline-flex items-center scale-100 ${toggleMutation.isPending ? 'opacity-50' : 'cursor-pointer'}`}>
-                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => toggleMutation.mutate(e.target.checked)} disabled={toggleMutation.isPending} />
+                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => handleGoLiveToggle(e.target.checked)} disabled={toggleMutation.isPending || checkingLineups} />
                   <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22C55E]"></div>
                 </label>
                 <span className={`text-[10px] font-inter font-bold uppercase tracking-widest mt-1 ${isLive ? 'text-[#22C55E]' : 'text-[#FF5C00]'}`}>
@@ -1605,6 +1591,16 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
           </motion.div>
         )}
       </AnimatePresence>
+      <ConfirmDialog
+        open={!!missingLineups}
+        title="No confirmed lineup"
+        message={`No confirmed lineup for ${(missingLineups ?? []).join(' and ')}. Fantasy appearance and clean-sheet points can't be calculated without one. Start anyway?`}
+        cancelLabel="Add lineup"
+        confirmLabel="Start anyway"
+        onCancel={() => { setMissingLineups(null); setActiveTab('lineup') }}
+        onDismiss={() => setMissingLineups(null)}
+        onConfirm={() => { setMissingLineups(null); toggleMutation.mutate(true) }}
+      />
     </div>
   )
 }
