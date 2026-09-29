@@ -272,7 +272,7 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
           <span className="text-4xl">📋</span>
           <p className="text-white font-bold text-sm">No Snapshot Available</p>
           <p className="text-white/50 text-xs max-w-xs">
-            Squad data for this gameweek hasn't been captured yet — it will appear once the gameweek scoring has been processed.
+            Squad data for this gameweek hasn&apos;t been captured yet — it will appear once the gameweek scoring has been processed.
           </p>
         </div>
       ) : pitchPlayers.length === 0 ? (

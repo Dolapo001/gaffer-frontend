@@ -156,7 +156,7 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
                         <p className="text-[9px] text-white/30 font-bold uppercase leading-tight mt-1">{CHIP_DESCRIPTIONS[chip.chipType]}</p>
                       </div>
                       {chip.available === false && (
-                        <div className="text-[9px] text-white/60 font-chakra font-black uppercase mt-1">Coming soon: can't be played yet</div>
+                        <div className="text-[9px] text-white/60 font-chakra font-black uppercase mt-1">Coming soon: can&apos;t be played yet</div>
                       )}
                       {chip.available !== false && chip.cooldown.active && (
                         <div className="flex items-center gap-1.5 text-[9px] text-yellow-500 font-chakra font-black uppercase mt-1">
