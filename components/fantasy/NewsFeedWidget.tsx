@@ -303,7 +303,8 @@ export function NewsFeedWidget({
 
       {/* Compact Cards List */}
       {trendingNews.length > 0 && (
-        <div className="flex flex-col gap-2 mt-1">
+        <div className="flex flex-col gap-2 mt-3">
+          <h3 className="text-white text-[16px] font-bold tracking-wide px-1">Trending</h3>
           {trendingNews.map((item) => (
             <CompactCard key={item._id} item={item} returnPath={returnPath} />
           ))}

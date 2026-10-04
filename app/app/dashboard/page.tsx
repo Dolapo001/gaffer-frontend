@@ -7,7 +7,10 @@ import { useAuthStore } from '@/store/authStore'
 import { Menu, Share2, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
-import { getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
+import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { listJoinedCompetitions } from '@/lib/services/competition.service'
+import { getPublisherName, getInitials } from '@/components/fantasy/NewsFeedWidget'
+import { rankTopNews, resolveOrgId } from '@/lib/newsRanking'
 import { getImageUrl } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
@@ -31,25 +34,33 @@ export default function DashboardPage() {
     return () => window.removeEventListener('gaffer:upgrade-org', handleUpgrade)
   }, [router])
 
+  // Top News: news from the organisations running tournaments this user is in
+  // comes first, then the global feed.
   useEffect(() => {
+    if (!user) return
+    let cancelled = false
     const fetchNews = async () => {
       try {
-        const feed = await getGlobalFeed(1)
-        const sorted = [...(feed.data || feed.items || [])].sort((a, b) => {
-          const aSystem = a.authorType === 'system' ? 1 : 0
-          const bSystem = b.authorType === 'system' ? 1 : 0
-          if (bSystem !== aSystem) return bSystem - aSystem
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-        })
-        setNews(sorted.slice(0, 3))
+        const joined = await listJoinedCompetitions().catch(() => [])
+        const orgIds = Array.from(new Set(joined.map((c) => resolveOrgId(c.orgId)).filter(Boolean) as string[]))
+        const orgFeeds = await Promise.all(
+          orgIds.map((id) => getOrgFeed(id).then((r) => (r.items ?? r.data ?? []) as FeedItem[]).catch(() => [] as FeedItem[]))
+        )
+        const mine = rankTopNews(orgFeeds.flat().filter((i) => !i.isDefault))
+        const feed = await getGlobalFeed(1).catch(() => null)
+        const global = rankTopNews((feed?.data ?? feed?.items ?? []) as FeedItem[])
+        const seen = new Set<string>()
+        const merged = [...mine, ...global].filter((i) => !seen.has(i._id) && seen.add(i._id))
+        if (!cancelled) setNews(merged.slice(0, 3))
       } catch (err) {
         console.error('Failed to fetch news:', err)
       } finally {
-        setIsLoadingNews(false)
+        if (!cancelled) setIsLoadingNews(false)
       }
     }
     fetchNews()
-  }, [])
+    return () => { cancelled = true }
+  }, [user])
 
   const displayName = profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
 
@@ -132,8 +143,8 @@ export default function DashboardPage() {
                   onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)}
                 >
                   <div className="relative h-48 bg-gaffer-dark">
-                    {item.media?.[0]?.url && (
-                        <img src={getImageUrl(item.media[0].url)} className="w-full h-full object-cover" alt="" />
+                    {(item.media?.[0]?.url || item.imageUrl) && (
+                        <img src={getImageUrl((item.media?.[0]?.url || item.imageUrl)!)} className="w-full h-full object-cover" alt="" />
                     )}
                     <div className="absolute bottom-3 left-4 bg-black/40 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white/80 font-chakra">
                        {new Date(item.createdAt).toLocaleDateString()}
@@ -141,10 +152,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="p-5 space-y-3">
                     <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-[#FF4D00] rounded-full flex items-center justify-center font-black text-[8px] text-white">G</div>
-                      <span className="text-xs font-chakra font-bold text-white uppercase">GAFFER</span>
+                      <div className="w-5 h-5 bg-[#FF4D00] rounded-full flex items-center justify-center font-black text-[8px] text-white">{getInitials(getPublisherName(item))}</div>
+                      <span className="text-xs font-chakra font-bold text-white uppercase">{getPublisherName(item)}</span>
                     </div>
-                    <h3 className="text-white font-chakra font-black text-lg leading-tight uppercase line-clamp-2">{item.body.substring(0, 50)}...</h3>
+                    <h3 className="text-white font-chakra font-black text-lg leading-tight uppercase line-clamp-2">{item.title || (item.body.length > 50 ? item.body.substring(0, 50) + '...' : item.body)}</h3>
                     <p className="text-white/60 text-xs font-chakra line-clamp-2">{item.body}</p>
                     <div className="flex items-center justify-between pt-2">
                        <div className="flex items-center gap-2">

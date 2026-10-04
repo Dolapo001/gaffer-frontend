@@ -1,14 +1,24 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { getMyFantasyTeam, getLeaderboard, listGameweeks, listFantasyPlayers, getGameweekTopPlayers } from '@/lib/services/fantasy.service'
+import { getMyFantasyTeam, getFantasyStats, getLeaderboard, listGameweeks, listFantasyPlayers, getGameweekTopPlayers } from '@/lib/services/fantasy.service'
 import { listFixtures } from '@/lib/services/fixture.service'
 import { CountdownTimer } from '@/components/fantasy/CountdownTimer'
-import { ManagerSnapshotCard } from './ManagerSnapshotCard'
+import { FantasyHeaderCard } from '@/components/fantasy/FantasyHeaderCard'
+import { format } from 'date-fns'
 import { FantasyLeaderboardWidget } from './FantasyLeaderboardWidget'
 import { TopPlayersLeaderboard } from './TopPlayersLeaderboard'
 import { TeamOfTheRoundWidget } from './TeamOfTheRoundWidget'
+import { LiveMatchWidget } from '@/components/fantasy/LiveMatchWidget'
+import { NewsFeedWidget } from '@/components/fantasy/NewsFeedWidget'
+import { NextMatchWidget } from '@/components/league/NextMatchWidget'
+import { TableStandings } from '@/components/league/TableStandings'
+import { useCompetitionNews } from '@/hooks/useCompetitionNews'
+import { getStandings } from '@/lib/services/standings.service'
+import { listCompetitionTeams } from '@/lib/services/competition.service'
 import { getGameweekState, getCurrentGameweek, computeGameweekDeadline, type GameweekState } from '@/lib/gameweekState'
 
 const STATE_LABELS: Record<GameweekState, string> = {
@@ -19,7 +29,19 @@ const STATE_LABELS: Record<GameweekState, string> = {
 }
 
 export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
+  const router = useRouter()
   const currentUserId = useAuthStore((s) => s.user?.id)
+  const { news } = useCompetitionNews(competitionId)
+  const [activeGwIndex, setActiveGwIndex] = useState<number | null>(null)
+
+  const { data: standingsData } = useQuery({
+    queryKey: ['standings', competitionId],
+    queryFn: () => getStandings(competitionId),
+  })
+  const { data: compTeams } = useQuery({
+    queryKey: ['competition-teams', competitionId],
+    queryFn: () => listCompetitionTeams(competitionId),
+  })
 
   const { data: myTeam } = useQuery({
     queryKey: ['fantasy-team-me', competitionId],
@@ -65,14 +87,54 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
     .find((gw) => getGameweekState(gw, fixtures) === 'upcoming')
   const nextUpcomingDeadline = nextUpcoming ? computeGameweekDeadline(nextUpcoming, fixtures) : null
 
+  const { data: fantasyStats } = useQuery({
+    queryKey: ['fantasy-stats', competitionId],
+    queryFn: () => getFantasyStats(competitionId),
+    retry: false,
+  })
+
+  // Gameweek card: user can page through gameweeks, defaulting to the current one.
+  const sortedGameweeks = (gameweeks ?? []).slice().sort((a, b) => a.gameweekNumber - b.gameweekNumber)
+  const defaultGwIndex = Math.max(0, sortedGameweeks.findIndex((gw) => gw._id === featuredGameweek?._id))
+  const gwIndex = Math.min(activeGwIndex ?? defaultGwIndex, Math.max(0, sortedGameweeks.length - 1))
+  const activeGw = sortedGameweeks[gwIndex]
+  const activeGwState = activeGw ? getGameweekState(activeGw, fixtures) : 'upcoming'
+  const activeGwDeadline = activeGw ? computeGameweekDeadline(activeGw, fixtures) : null
+  const activeGwPoints: number | string = (() => {
+    if (!myTeam || !activeGw || activeGwState === 'upcoming') return '-'
+    const history: any[] = (myTeam as any).gameweekHistory ?? (myTeam as any).history ?? []
+    const entry = history.find(
+      (h) =>
+        (h.gameweekId && String(h.gameweekId) === String(activeGw._id)) ||
+        (h.gameweek && Number(h.gameweek) === Number(activeGw.gameweekNumber))
+    )
+    return entry?.points ?? entry?.eventPoints ?? 0
+  })()
+  const squadCount = ((myTeam as any)?.startingXI?.length ?? 0) + ((myTeam as any)?.bench?.length ?? 0)
+
   const { data: topPlayersRes } = useQuery({
     queryKey: ['fantasy-gw-top-players', competitionId, featuredGameweek?._id],
     queryFn: () => getGameweekTopPlayers(competitionId, featuredGameweek!._id),
     enabled: !!featuredGameweek && featuredState === 'completed',
   })
 
+  const nextMatch = fixtures.find((f) => f.status === 'scheduled') ?? null
+  const teamInfo = (ref: any): { name: string; logo: string } => {
+    if (ref && typeof ref === 'object') return { name: ref.name || ref.shortName || 'TBD', logo: ref.logoUrl || ref.logo || '' }
+    const found: any = (compTeams ?? []).find((ct: any) => ct._id === ref || ct.teamId === ref || ct.team?._id === ref)
+    const t = found?.team || found
+    return { name: t?.name || t?.shortName || 'TBD', logo: t?.logoUrl || t?.logo || '' }
+  }
+  const kickoff = nextMatch?.kickoffAt ? new Date(nextMatch.kickoffAt) : null
+  const kickoffValid = !!kickoff && !isNaN(kickoff.getTime())
+  const kickoffTime = kickoffValid ? kickoff!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'
+  const kickoffDay = kickoffValid ? `${kickoff!.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()} ${kickoffTime}` : 'TBD'
+  const nextRound = nextMatch && typeof nextMatch.roundId === 'object' ? (nextMatch.roundId as any)?.name : undefined
+
   return (
     <div className="p-4 space-y-4">
+      <LiveMatchWidget fixtures={fixtures} onMatchClick={(id) => router.push(`/app/match/${id}`)} />
+
       {featuredGameweek && featuredState && (
         <div className="flex items-center justify-between px-1">
           <span className="text-white font-display font-bold text-sm uppercase tracking-wide">{featuredGameweek.name}</span>
@@ -80,11 +142,23 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
         </div>
       )}
 
-      <ManagerSnapshotCard
-        competitionId={competitionId}
-        teamName={myTeam?.teamName ?? ''}
-        totalPoints={myTeam?.totalPoints ?? 0}
-        rank={myRank}
+      <FantasyHeaderCard
+        teamName={myTeam?.teamName || 'My Team'}
+        gameweekCurrent={gameweeksPlayed}
+        gameweekTotal={sortedGameweeks.length || undefined}
+        totalPoints={myTeam ? (myTeam.totalPoints ?? 0) : undefined}
+        globalRank={myRank}
+        teamValue={(myTeam as any)?.teamValue ?? null}
+        activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
+        activeGameweekPoints={activeGwPoints}
+        activePlayers={myTeam ? squadCount : undefined}
+        totalPlayers={15}
+        highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
+        deadline={activeGwDeadline ? format(activeGwDeadline, 'do MMM · HH:mm') : null}
+        onPrevGameweek={() => setActiveGwIndex(Math.max(0, gwIndex - 1))}
+        onNextGameweek={() => setActiveGwIndex(Math.min(sortedGameweeks.length - 1, gwIndex + 1))}
+        onPointsClick={() => router.push(`/app/fantasy/${competitionId}/team`)}
+        onHighestClick={() => router.push(`/app/fantasy/${competitionId}/stats`)}
       />
 
       {!gameweeks?.length ? (
@@ -101,9 +175,32 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
         </div>
       ) : null}
 
+      <NewsFeedWidget
+        featured={news[0] ?? null}
+        additional={news.slice(1, 4)}
+        returnPath={`/app/fantasy/${competitionId}`}
+      />
+
+      {nextMatch && (
+        <NextMatchWidget
+          gameweek={nextRound ?? 'Next Match'}
+          homeTeam={teamInfo(nextMatch.homeTeamId)}
+          awayTeam={teamInfo(nextMatch.awayTeamId)}
+          day={kickoffDay}
+          time={kickoffTime}
+        />
+      )}
+
       <FantasyLeaderboardWidget competitionId={competitionId} />
 
       <TopPlayersLeaderboard players={playersRes?.data ?? []} gameweeksPlayed={gameweeksPlayed} />
+
+      <TableStandings
+        standings={standingsData?.standings ?? []}
+        competitionTeams={compTeams}
+        limit={5}
+        onSeeAll={() => router.push(`/app/league/${competitionId}/standings`)}
+      />
 
       {featuredState === 'completed' && featuredGameweek && (
         <TeamOfTheRoundWidget players={topPlayersRes ?? []} roundName={featuredGameweek.name} />
