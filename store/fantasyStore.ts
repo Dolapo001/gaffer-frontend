@@ -70,6 +70,8 @@ interface FantasyState {
   setBaseBankBalance: (balance: number) => void
   adjustBudget: (delta: number) => void
   resetTeam: () => void
+  /** Wipes all persisted fantasy state — called on logout / account switch. */
+  clearUserData: () => void
 }
 
 export const useFantasyStore = create<FantasyState>()(
@@ -294,12 +296,13 @@ export const useFantasyStore = create<FantasyState>()(
       setSquadBudget: (budget) => set({ squadBudget: budget }),
       setActiveChipType: (chipType) => set({ activeChipType: chipType }),
 
+      // squadBudget is season config (set by the competition layout), not team
+      // state, so it is deliberately not reset here.
       resetTeam: () =>
         set({
           players: [],
           budget: 100,
           baseBankBalance: 100,
-          squadBudget: 100,
           activeChipType: null,
           isSaved: false,
           hasSeenWelcome: true,
@@ -310,6 +313,30 @@ export const useFantasyStore = create<FantasyState>()(
           apiTeamId: null,
           totalPoints: 0,
           saveError: null,
+        }),
+
+      clearUserData: () =>
+        set({
+          competitionId: null,
+          players: [],
+          selectedPlayerId: null,
+          substitutingOutId: null,
+          selectedBoost: null,
+          budget: 100,
+          baseBankBalance: 100,
+          squadBudget: 100,
+          activeChipType: null,
+          isSaved: false,
+          isSaving: false,
+          saveError: null,
+          substituteError: null,
+          hasSeenWelcome: false,
+          hasCreatedTeam: false,
+          hasOrganizedBench: false,
+          hasNamedTeam: false,
+          teamName: '',
+          apiTeamId: null,
+          totalPoints: 0,
         }),
     }),
     {

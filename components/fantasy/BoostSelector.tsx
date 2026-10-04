@@ -72,7 +72,9 @@ export function BoostSelector({
       {/* Boost Cards Row */}
       <div className="flex items-start justify-center gap-[8px] w-full">
         {BOOST_OPTIONS.map((boost) => {
-          const isActive = active === boost.id;
+          // Only Bench Boost is applied by scoring; the rest are coming soon
+          const comingSoon = boost.id !== 'benchBoost';
+          const isActive = !comingSoon && active === boost.id;
 
           let outerBgClass = 'bg-[#40424d]';
           let iconBgClass = 'bg-[#3b2b28]';
@@ -85,10 +87,12 @@ export function BoostSelector({
           return (
             <motion.div
               key={boost.id}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => onToggle(isActive ? null : boost.id)}
+              whileTap={comingSoon ? undefined : { scale: 0.98 }}
+              onClick={() => { if (!comingSoon) onToggle(isActive ? null : boost.id) }}
+              aria-disabled={comingSoon || undefined}
               className={[
-                "relative flex h-[105px] w-full min-w-[70px] flex-col items-center overflow-hidden cursor-pointer backdrop-blur-sm",
+                "relative flex h-[105px] w-full min-w-[70px] flex-col items-center overflow-hidden backdrop-blur-sm",
+                comingSoon ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
                 outerBgClass,
                 containerRadius,
                 isActive ? "ring-2 ring-[#ff6b00] z-10" : "border border-white/5"
@@ -109,12 +113,14 @@ export function BoostSelector({
 
               <button
                 type="button"
+                disabled={comingSoon}
                 className={[
-                  "mt-auto mb-[10px] h-[20px] w-[85%] rounded-[6px] border border-white bg-transparent text-[10px] font-bold leading-none text-white transition hover:bg-white/10",
+                  "mt-auto mb-[10px] h-[20px] w-[85%] rounded-[6px] border border-white bg-transparent text-[10px] font-bold leading-none text-white transition",
+                  comingSoon ? "" : "hover:bg-white/10",
                   isActive ? "bg-white/20" : ""
                 ].join(" ")}
               >
-                Play
+                {comingSoon ? 'Soon' : 'Play'}
               </button>
             </motion.div>
           );

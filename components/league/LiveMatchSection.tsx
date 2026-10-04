@@ -76,7 +76,7 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
 
     liveFixtureIds.forEach((id) => socket.emit('join:match', id));
 
-    socket.on('live:event', (event: any) => {
+    const handler = (event: any) => {
       if (!['goal', 'own_goal', 'penalty_scored', 'event_deleted'].includes(event.type)) return;
 
       queryClient.setQueriesData(
@@ -96,11 +96,13 @@ export function LiveMatchSection({ onCardClick, fixtures }: LiveMatchSectionProp
           });
         }
       );
-    });
+    };
+    socket.on('live:event', handler);
 
     return () => {
       liveFixtureIds.forEach((id) => socket.emit('leave:match', id));
-      socket.off('live:event');
+      // Only our handler — a bare off('live:event') removed every listener on the shared socket
+      socket.off('live:event', handler);
     };
   }, [fixtures, queryClient]);
 

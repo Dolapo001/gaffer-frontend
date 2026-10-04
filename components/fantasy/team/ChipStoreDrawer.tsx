@@ -144,7 +144,7 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
                   [1, 2].map((i) => <div key={i} className="h-32 bg-white/5 rounded-[24px] animate-pulse" />)
                 ) : (
                   chips?.filter((c) => c.remaining > 0).map((chip) => (
-                    <div key={chip.chipType} className="bg-gaffer-card border border-white/5 rounded-[24px] p-5 flex flex-col gap-3 relative">
+                    <div key={chip.chipType} className={`bg-gaffer-card border border-white/5 rounded-[24px] p-5 flex flex-col gap-3 relative ${chip.available === false ? 'opacity-50' : ''}`}>
                       <div className="absolute top-0 right-0 p-3">
                         <div className="w-8 h-8 rounded-full bg-gaffer-orange/10 flex items-center justify-center font-chakra font-black text-gaffer-orange text-xs">
                           x{chip.remaining}
@@ -155,7 +155,10 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
                         <h4 className="font-chakra font-black text-sm uppercase tracking-tight text-white">{CHIP_LABELS[chip.chipType]}</h4>
                         <p className="text-[9px] text-white/30 font-bold uppercase leading-tight mt-1">{CHIP_DESCRIPTIONS[chip.chipType]}</p>
                       </div>
-                      {chip.cooldown.active && (
+                      {chip.available === false && (
+                        <div className="text-[9px] text-white/60 font-chakra font-black uppercase mt-1">Coming soon: can&apos;t be played yet</div>
+                      )}
+                      {chip.available !== false && chip.cooldown.active && (
                         <div className="flex items-center gap-1.5 text-[9px] text-yellow-500 font-chakra font-black uppercase mt-1">
                           <Clock size={10} /> GW {chip.cooldown.nextAvailableGameweek}
                         </div>
@@ -175,7 +178,25 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
             <section className="space-y-4">
               <h3 className="text-[11px] font-chakra font-black uppercase tracking-[0.2em] text-white/40">Operational Store</h3>
               <div className="space-y-3">
-                {chips?.map((chip) => (
+                {chips?.map((chip) => chip.available === false ? (
+                  // Not applied by scoring yet: shown greyed, no details / buy
+                  <div
+                    key={chip.chipType}
+                    aria-disabled="true"
+                    className="w-full bg-gaffer-card border border-white/5 rounded-[28px] p-6 flex items-center justify-between opacity-50 cursor-not-allowed"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center bg-white/5">
+                        <Sparkles size={24} className="text-white/30" />
+                      </div>
+                      <div className="text-left">
+                        <h4 className="font-chakra font-black text-base text-white uppercase tracking-tight">{CHIP_LABELS[chip.chipType]}</h4>
+                        <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{formatCoins(chip.price.coins)}</p>
+                      </div>
+                    </div>
+                    <div className="px-3 py-1.5 bg-white/10 text-white/70 rounded-xl font-chakra font-black text-[10px] uppercase">Coming soon</div>
+                  </div>
+                ) : (
                   <button
                     key={chip.chipType}
                     onClick={() => setSelectedChip(chip)}

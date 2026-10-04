@@ -114,7 +114,12 @@ export default function FantasyCompetitionLayout({ children }: { children: React
   // full-screen takeover, but never hid the global bottom nav — it stayed
   // mounted at z-100 and covered the bottom of every onboarding screen,
   // including the Pick Team step's Save button. Hide it for the duration.
-  const isOnboarding = !myTeam && !(hasCreatedTeam && hasNamedTeam && hasOrganizedBench)
+  // A team can exist with only a name (POST /team happens at the naming step,
+  // before the squad is saved). Treat that as unfinished onboarding, otherwise
+  // a failed or abandoned squad save left the user with an empty team and no
+  // way back into the wizard.
+  const hasSavedSquad = Boolean(myTeam?.isComplete)
+  const isOnboarding = !hasSavedSquad && !(hasCreatedTeam && hasNamedTeam && hasOrganizedBench)
   useEffect(() => {
     if (!isOnboarding) return
     hideNavbar()
@@ -130,7 +135,7 @@ export default function FantasyCompetitionLayout({ children }: { children: React
   }
 
   // Gate: no saved squad yet → run the one-time onboarding wizard full-screen.
-  if (!myTeam && !(hasCreatedTeam && hasNamedTeam && hasOrganizedBench)) {
+  if (isOnboarding) {
     if (!hasCreatedTeam) {
       return <CreateTeamScreen onComplete={() => setHasCreatedTeam(true)} />
     }

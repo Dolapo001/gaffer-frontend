@@ -9,7 +9,7 @@ import { getCompetition, listCompetitionTeams } from '@/lib/services/competition
 import { getStandings } from '@/lib/services/standings.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 import { getOrgFeed, getGlobalFeed, type FeedItem } from '@/lib/services/feed.service'
-import { getMyFantasyTeam, listGameweeks } from '@/lib/services/fantasy.service'
+import { getMyFantasyTeam, listGameweeks, getFantasyStats } from '@/lib/services/fantasy.service'
 import { getLeaderboard } from '@/lib/services/fantasy.service'
 import { getGameweekState, getCurrentGameweek, computeGameweekDeadline } from '@/lib/gameweekState'
 import { format } from 'date-fns'
@@ -182,6 +182,13 @@ export default function LeagueOverviewPage() {
     retry: false,
   })
 
+  // Highest single-gameweek score of any manager in this competition
+  const { data: fantasyStats } = useQuery({
+    queryKey: ['fantasy-stats', leagueId],
+    queryFn: () => getFantasyStats(leagueId),
+    enabled: !!leagueId,
+  })
+
   const { data: gameweeks = [] } = useQuery({
     queryKey: ['gameweeks', leagueId],
     queryFn: () => listGameweeks(leagueId),
@@ -303,15 +310,16 @@ export default function LeagueOverviewPage() {
       <FantasyHeaderCard
         teamName={fantasyTeam?.teamName || 'My Team'}
         gameweekCurrent={gameweeksPlayed}
-        gameweekTotal={sortedGameweeks.length || 1}
-        totalPoints={fantasyTeam?.totalPoints ?? 0}
+        gameweekTotal={sortedGameweeks.length || undefined}
+        totalPoints={fantasyTeam ? (fantasyTeam.totalPoints ?? 0) : undefined}
         globalRank={myRank}
         teamValue={(fantasyTeam as any)?.teamValue ?? null}
         activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
         activeGameweekPoints={activeGwPoints}
-        activePlayers={activePlayers}
-        totalPlayers={15}
-        highestScore={(fantasyTeam as any)?.highestScore ?? null}
+        activePlayers={fantasyTeam ? activePlayers : undefined}
+        totalPlayers={15 /* squad size */}
+        // Only meaningful once a gameweek has been scored
+        highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
         deadline={deadlineLabel}
         onPrevGameweek={() => setActiveGwIndex((i) => Math.max(0, i - 1))}
         onNextGameweek={() => setActiveGwIndex((i) => Math.min(sortedGameweeks.length - 1, i + 1))}

@@ -22,8 +22,8 @@ export function OrganizationHome() {
   const { hideNavbar, showNavbar } = useUIStore()
 
   useEffect(() => {
-    if (isSidebarOpen) hideNavbar()
-    else showNavbar()
+    if (!isSidebarOpen) return
+    hideNavbar()
     return () => showNavbar()
   }, [isSidebarOpen, hideNavbar, showNavbar])
 

@@ -60,18 +60,14 @@ export default function TournamentDetailPage() {
   const { hideNavbar, showNavbar } = useUIStore() // Added this line
 
   useEffect(() => {
-    if (showEnrollModal) {
-      hideNavbar()
-      document.body.setAttribute('data-nav-hidden', 'true')
-    } else {
-      showNavbar()
-      document.body.removeAttribute('data-nav-hidden')
-    }
+    if (!showEnrollModal) return
+    hideNavbar()
+    document.body.setAttribute('data-nav-hidden', 'true')
     return () => {
       showNavbar()
       document.body.removeAttribute('data-nav-hidden')
     }
-  }, [showEnrollModal, hideNavbar, showNavbar]) // Added this useEffect block
+  }, [showEnrollModal, hideNavbar, showNavbar])
 
   const { data: competition, isLoading } = useQuery({
     queryKey: ['competition', id],
@@ -433,11 +429,11 @@ export default function TournamentDetailPage() {
                         <label className="block text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-[0.25em] mb-2 ml-1 opacity-50">Tournament Join Link</label>
                         <div className="flex items-center gap-3 bg-gaffer-surface border border-gaffer-border rounded-xl pl-4 pr-3 py-3 hover:border-gaffer-orange/30 transition-all shadow-inner">
                           <p className="text-[11px] text-white/60 font-medium truncate flex-1 font-body">
-                            {typeof window !== 'undefined' ? `${window.location.origin}/app/${slugify(competition.name)}/${competition.joinCode}` : `/app/${slugify(competition.name)}/${competition.joinCode}`}
+                            {typeof window !== 'undefined' ? `${window.location.origin}/app/${competition.slug || slugify(competition.name)}/${competition.joinCode}` : `/app/${competition.slug || slugify(competition.name)}/${competition.joinCode}`}
                           </p>
                           <button 
                             onClick={() => {
-                              const url = typeof window !== 'undefined' ? `${window.location.origin}/app/${slugify(competition.name)}/${competition.joinCode}` : `/app/${slugify(competition.name)}/${competition.joinCode}`
+                              const url = typeof window !== 'undefined' ? `${window.location.origin}/app/${competition.slug || slugify(competition.name)}/${competition.joinCode}` : `/app/${competition.slug || slugify(competition.name)}/${competition.joinCode}`
                               navigator.clipboard.writeText(url)
                               toast.addToast('Link copied!', 'success')
                             }}
@@ -527,7 +523,7 @@ export default function TournamentDetailPage() {
                               onClick={(e) => {
                                 e.stopPropagation()
                                 const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-                                const compName = slugify(competition?.name || 'tournament')
+                                const compName = competition?.slug || slugify(competition?.name || 'tournament')
                                 const groupName = tm.groupName && tm.groupName !== 'unassigned' ? slugify(tm.groupName) : null
                                 const teamHandle = tm.handle || tm.teamId
                                 const link = groupName ? `${baseUrl}/${compName}/${groupName}/${teamHandle}` : `${baseUrl}/${compName}/${teamHandle}`

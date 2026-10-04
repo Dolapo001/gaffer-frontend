@@ -472,12 +472,9 @@ export default function OrganizePage() {
 
   // Sync navbar visibility with current view
   useEffect(() => {
-    if (view === 'create') {
-      hideNavbar()
-    } else {
-      showNavbar()
-    }
-    // Guarantee navbar is restored if this page unmounts while in create view
+    if (view !== 'create') return
+    hideNavbar()
+    // Restores the navbar when leaving create view or unmounting
     return () => showNavbar()
   }, [view, hideNavbar, showNavbar])
 

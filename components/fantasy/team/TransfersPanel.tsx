@@ -89,7 +89,12 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
 
   // Budget: what the user can spend after selling playerOut
   const bankBalance: number = (myTeam as any)?.bankBalance ?? 0
-  const freeTransfersRemaining: number = (myTeam as any)?.transferState?.freeTransfersAvailable ?? 1
+  // Server-derived for the gameweek the transfer applies to (raw transferState
+  // only resets on the first transfer of a new gameweek, so it goes stale)
+  // null from the server means unlimited (pre-season or an unlimited stage);
+  // no made-up "1" when the value is missing
+  const unlimitedTransfers: boolean = myTeam?.unlimitedTransfers ?? stageRules.isUnlimitedTransfers
+  const freeTransfersRemaining: number | null = myTeam?.freeTransfersRemaining ?? (myTeam as any)?.transferState?.freeTransfersAvailable ?? null
   const sellValue: number = (playerOut as any)?.sellPrice ?? playerOut?.price ?? 0
   const maxAffordable = Math.round((bankBalance + sellValue) * 10) / 10
 
@@ -180,7 +185,7 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
                 Free Transfers
               </span>
               <span className="text-gaffer-orange text-xs font-bold font-chakra">
-                {stageRules.isUnlimitedTransfers ? 'Unlimited (Reset)' : `${freeTransfersRemaining} Available`}
+                {unlimitedTransfers ? 'Unlimited' : freeTransfersRemaining != null ? `${freeTransfersRemaining} Available` : '-'}
               </span>
             </div>
             <div className="flex-1 bg-gaffer-card border border-gaffer-border rounded-xl px-3 py-2 text-center">

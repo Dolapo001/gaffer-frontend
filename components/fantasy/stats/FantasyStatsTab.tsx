@@ -49,7 +49,8 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
       teamColor: '#ff5500',
       position: (pObj.position || rawPlayer.position || 'FWD').toUpperCase() as any,
       points: rawPlayer.totalPoints ?? rawPlayer.points ?? 0,
-      price: rawPlayer.price ?? 5.0,
+      // Stats rows carry no fantasy price: NaN → the drawer hides it (it showed a fake £5.0m)
+      price: typeof rawPlayer.price === 'number' ? rawPlayer.price : Number.NaN,
       pitchRow: 0,
       isOnPitch: true,
       isCaptain: false,
@@ -68,7 +69,8 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
   const TABS = [
     { key: 'goals', label: 'Golden Boot ⚽', statKey: 'goals', statLabel: 'Goals', data: scorers },
     { key: 'assists', label: 'Top Assists 🅰️', statKey: 'assists', statLabel: 'Assists', data: assisters },
-    { key: 'cleanSheets', label: 'Clean Sheets 🧤', statKey: 'cleanSheets', statLabel: 'Clean Sheets', data: cleanSheets },
+    // Golden Glove: goalkeepers only (the backend credits keepers who played)
+    { key: 'cleanSheets', label: 'Clean Sheets 🧤', statKey: 'cleanSheets', statLabel: 'GK Clean Sheets', emptyText: 'No goalkeeper clean sheets yet', data: cleanSheets },
     { key: 'discipline', label: 'Discipline 🟨', statKey: 'yellowCards', statLabel: 'Cards', data: discipline },
   ] as const
 
@@ -97,6 +99,7 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
         players={currentTabInfo.data}
         statKey={currentTabInfo.statKey as any}
         statLabel={currentTabInfo.statLabel}
+        emptyText={'emptyText' in currentTabInfo ? currentTabInfo.emptyText : undefined}
         onSelectPlayer={handleSelectPlayer}
       />
 

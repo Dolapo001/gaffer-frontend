@@ -11,6 +11,8 @@ interface ConfirmDialogProps {
   destructive?: boolean
   onConfirm: () => void
   onCancel: () => void
+  /** Backdrop tap. Defaults to onCancel; set it when cancel is a real action (e.g. navigate) */
+  onDismiss?: () => void
 }
 
 /**
@@ -26,6 +28,7 @@ export function ConfirmDialog({
   destructive = false,
   onConfirm,
   onCancel,
+  onDismiss,
 }: ConfirmDialogProps) {
   return (
     <AnimatePresence>
@@ -37,7 +40,7 @@ export function ConfirmDialog({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-            onClick={onCancel}
+            onClick={onDismiss ?? onCancel}
           />
 
           {/* Dialog Container */}

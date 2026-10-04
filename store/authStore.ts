@@ -56,6 +56,9 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
             queryClient.clear()
+            // Persisted fantasy draft/onboarding flags belong to the old user too
+            const { useFantasyStore } = require('@/store/fantasyStore')
+            useFantasyStore.getState().clearUserData()
           }
         }
 
@@ -211,6 +214,8 @@ export const useAuthStore = create<AuthState>()(
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
             queryClient.clear()
+            const { useFantasyStore } = require('@/store/fantasyStore')
+            useFantasyStore.getState().clearUserData()
           }
           set({
             user: null,

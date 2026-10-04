@@ -3,6 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
+import { useNotificationSocket } from '@/hooks/useNotificationSocket'
 import Link from 'next/link'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, CalendarClock, Award, FileText, Users } from 'lucide-react'
@@ -21,6 +22,9 @@ const NAV_ITEMS = [
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const { isReady } = useAuthGuard('organization')
+  // Realtime socket for every page in this area (live scores, notifications),
+  // not only pages that happen to render the NotificationBell
+  useNotificationSocket()
 
   if (!isReady) {
     return (

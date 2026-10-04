@@ -8,12 +8,14 @@ interface TopPlayersListProps {
   players?: any[];
   statKey: 'goals' | 'assists' | 'cleanSheets' | 'yellowCards' | 'redCards';
   statLabel: string;
+  /** Shown when there are no rows (defaults to a generic message) */
+  emptyText?: string;
   onSeeAll?: () => void;
   onSelectPlayer?: (playerId: string, rawPlayer?: any) => void;
   maxDisplay?: number;
 }
 
-export function TopPlayersList({ title, players, statKey, statLabel, onSeeAll, onSelectPlayer, maxDisplay }: TopPlayersListProps) {
+export function TopPlayersList({ title, players, statKey, statLabel, emptyText, onSeeAll, onSelectPlayer, maxDisplay }: TopPlayersListProps) {
   const hasData = players && players.length > 0;
 
   const filtered = hasData ? players.filter((p) => (p?.[statKey] || (p as any)?.stats?.[statKey] || 0) > 0) : [];
@@ -46,7 +48,7 @@ export function TopPlayersList({ title, players, statKey, statLabel, onSeeAll, o
         }}
       >
         <p className="text-white/20 font-black uppercase tracking-widest text-[11px] mb-2">{title}</p>
-        <p className="text-white/10 font-bold uppercase tracking-widest text-[10px]">No stats recorded yet</p>
+        <p className="text-white/10 font-bold uppercase tracking-widest text-[10px]">{emptyText ?? 'No stats recorded yet'}</p>
       </div>
     );
   }

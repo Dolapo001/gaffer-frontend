@@ -39,12 +39,9 @@ export function InvitePlayerModal({ teamId, isOpen, onClose }: InvitePlayerModal
   const [state, setState] = useState<ModalState>({ step: 'form' })
 
   useEffect(() => {
-    if (isOpen) {
-      hideNavbar()
-    } else {
-      showNavbar()
-    }
-    // Cleanup on unmount to ensure navbar is restored
+    if (!isOpen) return
+    hideNavbar()
+    // Restores the navbar when the modal closes or unmounts
     return () => {
       showNavbar()
     }

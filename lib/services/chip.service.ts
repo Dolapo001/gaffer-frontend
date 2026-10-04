@@ -10,6 +10,8 @@ export interface ChipInfo {
   remaining: number
   max: number
   cooldownGameweeks: number
+  /** false = "Coming soon": can't be bought or activated yet (backend returns 422 CHIP_NOT_AVAILABLE) */
+  available: boolean
   cooldown: {
     active: boolean
     nextAvailableGameweek: number | null

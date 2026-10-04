@@ -94,13 +94,19 @@ export interface FantasyTeam {
   captainId: string
   viceCaptainId: string
   totalPoints: number
+  /** True once a valid 15-player squad has been saved. A named team without a squad is false. */
+  isComplete?: boolean
   formation?: string
   transfersRemaining?: number
   bankBalance?: number
   // Optional — only present once the backend ships the coin-based transfer
   // economy (see BACKEND_CONTRACT.md). Read defensively: when absent, the
   // transfers UI falls back to today's points-hit model unchanged.
-  freeTransfersRemaining?: number
+  freeTransfersRemaining?: number | null
+  /** True before the season's first deadline (or in an unlimited stage) */
+  unlimitedTransfers?: boolean
+  /** The gameweek squad changes and transfers currently apply to */
+  editingGameweekId?: string | null
   transferCostMode?: 'points' | 'coins'
   createdAt: string
 }
@@ -178,7 +184,10 @@ export async function createGameweeks(competitionId: string): Promise<FantasyGam
 export async function getFantasySeason(competitionId: string): Promise<FantasySeason | null> {
   if (!/^[0-9a-fA-F]{24}$/.test(competitionId)) return null
   try {
-    return await api.get<FantasySeason>(`/fantasy/${competitionId}/season`)
+    // The backend wraps this in { data } — without unwrapping, squadBudget was
+    // always undefined and every league silently used the 100m default.
+    const res = await api.get<FantasySeason | { data: FantasySeason }>(`/fantasy/${competitionId}/season`)
+    return (res && 'data' in res && res.data) ? (res as any).data as FantasySeason : res as FantasySeason
   } catch (err) {
     if (err instanceof ApiError && (err.code === 'FANTASY_SEASON_NOT_FOUND' || err.status === 400)) return null
     throw err
@@ -301,14 +310,13 @@ export interface FantasySeasonStats {
 }
 
 // GET /fantasy/:competitionId/stats
+// Errors propagate (React Query then shows nothing) instead of turning into
+// made-up zeros on screen
 export async function getFantasyStats(competitionId: string): Promise<FantasySeasonStats> {
-  try {
-    const res = await api.get<FantasySeasonStats | { data: FantasySeasonStats }>(`/fantasy/${competitionId}/stats`)
-    const stats = (res && 'data' in res && res.data) ? (res as any).data : res
-    return stats ?? { yourSC: 0, averageSC: 0, highestSC: 0 }
-  } catch {
-    return { yourSC: 0, averageSC: 0, highestSC: 0 }
-  }
+  const res = await api.get<FantasySeasonStats | { data: FantasySeasonStats }>(`/fantasy/${competitionId}/stats`)
+  const stats = (res && 'data' in res && res.data) ? (res as any).data : res
+  if (!stats) throw new Error('No fantasy stats returned')
+  return stats as FantasySeasonStats
 }
 
 // PUT /fantasy/:competitionId/team/squad

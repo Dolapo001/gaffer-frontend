@@ -121,7 +121,22 @@ export interface MatchLineupPitchProps {
   awayTeam: TeamLineupData
   matchEvents?: any[]
   isAdmin?: boolean
+  /** Live or half-time: explains that lineups appear once the organiser confirms them */
+  isLive?: boolean
   onUpdateRating?: (playerId: string, teamSide: 'home' | 'away', newRating: number) => void
+}
+
+function LineupNotAnnounced({ teamName, isLive }: { teamName: string; isLive: boolean }) {
+  return (
+    <div className="rounded-2xl border border-dashed border-white/10 bg-[#1c2230]/60 px-4 py-6 text-center">
+      <p className="text-white font-bold text-sm uppercase tracking-wide">{teamName}: lineup not announced yet</p>
+      {isLive && (
+        <p className="text-white/50 text-xs mt-1.5 font-body normal-case tracking-normal">
+          Lineups will appear once the organiser confirms them
+        </p>
+      )}
+    </div>
+  )
 }
 
 export function MatchLineupPitch({
@@ -129,6 +144,7 @@ export function MatchLineupPitch({
   awayTeam,
   matchEvents = [],
   isAdmin = false,
+  isLive = false,
   onUpdateRating,
 }: MatchLineupPitchProps) {
   const [selectedPlayer, setSelectedPlayer] = useState<{
@@ -152,14 +168,18 @@ export function MatchLineupPitch({
   }
 
   // Calculate team average rating
-  const computeTeamAvg = (starters: LineupPlayer[]): string => {
-    if (!starters.length) return '6.5'
+  // null when a team has no starters: never show the engine's 6.5 base
+  // rating for a team whose lineup isn't in
+  const computeTeamAvg = (starters: LineupPlayer[]): string | null => {
+    if (!starters.length) return null
     const total = starters.reduce((sum, p) => sum + getPlayerRating(p), 0)
     return (total / starters.length).toFixed(2)
   }
 
   const awayAvg = computeTeamAvg(awayTeam.starters)
   const homeAvg = computeTeamAvg(homeTeam.starters)
+  const awayHasLineup = awayTeam.starters.length > 0
+  const homeHasLineup = homeTeam.starters.length > 0
 
   // Helper to extract player match event counts
   const getPlayerStats = (player: LineupPlayer) => {
@@ -254,18 +274,23 @@ export function MatchLineupPitch({
             {awayTeam.shortName || awayTeam.name}
           </span>
           {/* Average Rating Pill */}
-          <div className="flex items-center gap-1 bg-[#eab308] text-black text-[11px] font-black px-2 py-0.5 rounded-md shadow">
-            <Star size={10} fill="currentColor" />
-            <span>{awayAvg}</span>
-          </div>
+          {awayAvg != null && (
+            <div className="flex items-center gap-1 bg-[#eab308] text-black text-[11px] font-black px-2 py-0.5 rounded-md shadow">
+              <Star size={10} fill="currentColor" />
+              <span>{awayAvg}</span>
+            </div>
+          )}
         </div>
         <span className="text-white/40 text-xs font-bold uppercase tracking-widest">
-          {awayTeam.formation}
+          {awayHasLineup ? awayTeam.formation : 'No lineup'}
         </span>
       </div>
 
       {/* ── Head-to-Head Pitch Diagram ── */}
-      <PitchView players={[...awayMarkers, ...homeMarkers]} />
+      {/* Only lineups that exist go on the pitch; a side without one gets a note */}
+      {!awayHasLineup && <LineupNotAnnounced teamName={awayTeam.shortName || awayTeam.name || awayTeam.teamName} isLive={isLive} />}
+      {(awayHasLineup || homeHasLineup) && <PitchView players={[...awayMarkers, ...homeMarkers]} />}
+      {!homeHasLineup && <LineupNotAnnounced teamName={homeTeam.shortName || homeTeam.name || homeTeam.teamName} isLive={isLive} />}
 
       {/* ── Home Team Header (Bottom) ── */}
       <div className="flex items-center justify-between bg-[#1c2230] rounded-2xl p-3 border border-white/5 shadow-md">
@@ -277,13 +302,15 @@ export function MatchLineupPitch({
             {homeTeam.shortName || homeTeam.name}
           </span>
           {/* Average Rating Pill */}
-          <div className="flex items-center gap-1 bg-[#eab308] text-black text-[11px] font-black px-2 py-0.5 rounded-md shadow">
-            <Star size={10} fill="currentColor" />
-            <span>{homeAvg}</span>
-          </div>
+          {homeAvg != null && (
+            <div className="flex items-center gap-1 bg-[#eab308] text-black text-[11px] font-black px-2 py-0.5 rounded-md shadow">
+              <Star size={10} fill="currentColor" />
+              <span>{homeAvg}</span>
+            </div>
+          )}
         </div>
         <span className="text-white/40 text-xs font-bold uppercase tracking-widest">
-          {homeTeam.formation}
+          {homeHasLineup ? homeTeam.formation : 'No lineup'}
         </span>
       </div>
 

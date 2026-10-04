@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { startMatch, cancelLive, deleteFixture } from '@/lib/services/fixture.service'
+import { startMatch, cancelLive, deleteFixture, teamsWithoutApprovedLineup } from '@/lib/services/fixture.service'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToast } from '@/store/toastStore'
 
 interface AdminFixtureRowProps {
@@ -21,6 +22,9 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
   const isCompleted = fixture.status === 'completed'
   const [live, setLive] = useState(isLive)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  // Teams without an approved lineup, when the admin tries to go live
+  const [missingLineups, setMissingLineups] = useState<string[] | null>(null)
+  const [checkingLineups, setCheckingLineups] = useState(false)
 
   useEffect(() => setLive(isLive), [isLive])
 
@@ -52,11 +56,21 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
     onError: (err: any) => addToast(err?.message || 'Failed to delete fixture', 'error'),
   })
 
-  const handleToggle = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (toggleMutation.isPending) return
-    const next = e.target.checked
+  const goLive = (next: boolean) => {
     setLive(next)
     toggleMutation.mutate(next)
+  }
+
+  const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (toggleMutation.isPending || checkingLineups) return
+    const next = e.target.checked
+    if (!next) return goLive(false)
+    // Warn (never block) when a side has no approved lineup
+    setCheckingLineups(true)
+    const missing = await teamsWithoutApprovedLineup(fixture._id, { home: home.name, away: away.name })
+    setCheckingLineups(false)
+    if (missing.length) setMissingLineups(missing)
+    else goLive(true)
   }
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -96,10 +110,10 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
 
         {!isCompleted && (
           <label
-            className={`relative inline-flex items-center flex-shrink-0 ${toggleMutation.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            className={`relative inline-flex items-center flex-shrink-0 ${toggleMutation.isPending || checkingLineups ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             onClick={(e) => e.stopPropagation()}
           >
-            <input type="checkbox" className="sr-only peer" checked={live} onChange={handleToggle} disabled={toggleMutation.isPending} />
+            <input type="checkbox" className="sr-only peer" checked={live} onChange={handleToggle} disabled={toggleMutation.isPending || checkingLineups} />
             <div className="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-gaffer-orange" />
           </label>
         )}
@@ -111,6 +125,17 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
           <Trash2 size={12} />
         </button>
       </div>
+
+      <ConfirmDialog
+        open={!!missingLineups}
+        title="No confirmed lineup"
+        message={`No confirmed lineup for ${(missingLineups ?? []).join(' and ')}. Fantasy appearance and clean-sheet points can't be calculated without one. Start anyway?`}
+        cancelLabel="Add lineup"
+        confirmLabel="Start anyway"
+        onCancel={() => { setMissingLineups(null); onClick() }}
+        onDismiss={() => setMissingLineups(null)}
+        onConfirm={() => { setMissingLineups(null); goLive(true) }}
+      />
 
       <AnimatePresence>
         {showDeleteConfirm && (

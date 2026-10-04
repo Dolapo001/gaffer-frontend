@@ -130,7 +130,7 @@ export function NotificationPanel({ open, onClose: _, anchor = 'top' }: Notifica
           <div className="flex flex-col items-center gap-2 py-10">
             <BellOff size={28} className="text-white/10" />
             <p className="text-[10px] font-chakra font-black uppercase text-white/20">
-              You're all caught up
+              You&apos;re all caught up
             </p>
           </div>
         ) : (

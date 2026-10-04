@@ -22,17 +22,18 @@ interface FantasyHeaderCardProps {
   onHighestClick?: () => void
 }
 
+// No demo defaults: a missing value shows "-" rather than a made-up number
 export const FantasyHeaderCard = ({
-  teamName = 'The Special One',
-  gameweekCurrent = 4,
-  gameweekTotal = 7,
-  totalPoints = 0,
+  teamName,
+  gameweekCurrent,
+  gameweekTotal,
+  totalPoints,
   globalRank = null,
   teamValue = null,
-  activeGameweekLabel = 'Gameweek 5',
+  activeGameweekLabel,
   activeGameweekPoints = '-',
-  activePlayers = 15,
-  totalPlayers = 15,
+  activePlayers,
+  totalPlayers,
   highestScore = null,
   deadline = null,
   onPrevGameweek,
@@ -42,7 +43,9 @@ export const FantasyHeaderCard = ({
 }: FantasyHeaderCardProps) => {
   const rankDisplay = globalRank != null ? `#${globalRank}` : '-'
   const valueDisplay = teamValue != null ? `£${teamValue.toFixed(1)}M` : '-'
-  const highestDisplay = highestScore != null ? highestScore : 132
+  const highestDisplay = highestScore != null ? highestScore : '-'
+  const gameweekDisplay = gameweekCurrent != null && gameweekTotal ? `${gameweekCurrent}/${gameweekTotal}` : '-'
+  const playersDisplay = activePlayers != null && totalPlayers ? `${activePlayers}/${totalPlayers}` : '-'
 
   return (
     <div className="w-full max-w-[380px] mx-auto flex flex-col gap-4 font-chakra">
@@ -53,20 +56,20 @@ export const FantasyHeaderCard = ({
       <div className="w-full rounded-[24px] bg-[#242539]/40 backdrop-blur-xl border border-white/20 p-[20px_25px] shadow-lg flex flex-col items-center gap-[15px]">
 
         <b className="text-white text-[15px] uppercase tracking-wide drop-shadow-md">
-          {teamName}
+          {teamName || '-'}
         </b>
 
         <div className="w-full grid grid-cols-2 gap-[15px]">
           {/* Gameweek */}
           <div className="rounded-[10px] bg-[#2C355A]/50 backdrop-blur-md h-[42px] flex flex-col items-center justify-center gap-1 shadow-inner">
             <div className="text-[#94a3b8] text-[8px] font-light uppercase tracking-wide">GAMEWEEK</div>
-            <div className="text-white text-[12px] font-medium leading-none">{gameweekCurrent}/{gameweekTotal}</div>
+            <div className="text-white text-[12px] font-medium leading-none">{gameweekDisplay}</div>
           </div>
 
           {/* Total Pts */}
           <div className="rounded-[10px] bg-[#2C355A]/50 backdrop-blur-md h-[42px] flex flex-col items-center justify-center gap-1 shadow-inner">
             <div className="text-[#94a3b8] text-[8px] font-light uppercase tracking-wide">TOTAL PTS</div>
-            <div className="text-white text-[12px] font-medium leading-none">{totalPoints}</div>
+            <div className="text-white text-[12px] font-medium leading-none">{totalPoints ?? '-'}</div>
           </div>
 
           {/* Global Ranking */}
@@ -97,7 +100,7 @@ export const FantasyHeaderCard = ({
           >
             <ChevronLeft size={16} strokeWidth={2.5} />
           </button>
-          <b className="text-white text-[16px] uppercase tracking-[1px] drop-shadow-sm">{activeGameweekLabel}</b>
+          <b className="text-white text-[16px] uppercase tracking-[1px] drop-shadow-sm">{activeGameweekLabel || '-'}</b>
           <button
             onClick={onNextGameweek}
             className="text-white/50 hover:text-white transition"
@@ -112,7 +115,7 @@ export const FantasyHeaderCard = ({
 
           {/* Left: Players */}
           <div className="flex flex-col items-center justify-center flex-1">
-            <div className="text-white text-[28px] font-medium leading-none drop-shadow-md">{activePlayers}/{totalPlayers}</div>
+            <div className="text-white text-[28px] font-medium leading-none drop-shadow-md">{playersDisplay}</div>
             <div className="text-white/70 text-[10px] uppercase tracking-wider mt-[8px]">PLAYERS</div>
           </div>
 

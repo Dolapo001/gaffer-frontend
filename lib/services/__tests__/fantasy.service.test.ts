@@ -310,10 +310,10 @@ describe('getFantasyStats()', () => {
     expect(result.yourSC).toBe(50)
   })
 
-  it('falls back to zeroed stats on error rather than throwing', async () => {
+  // No made-up zeros on screen: callers hide the stats (MyTeamTab) or show "-" (league header)
+  it('propagates errors instead of returning zeroed stats', async () => {
     mockApi.get.mockRejectedValue(new Error('down'))
-    const result = await getFantasyStats(COMPETITION_ID)
-    expect(result).toEqual({ yourSC: 0, averageSC: 0, highestSC: 0 })
+    await expect(getFantasyStats(COMPETITION_ID)).rejects.toThrow('down')
   })
 })
 

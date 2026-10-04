@@ -51,8 +51,8 @@ export default function CollaboratorsPage() {
   const { hideNavbar, showNavbar } = useUIStore()
 
   useEffect(() => {
-    if (isInviteOpen) hideNavbar()
-    else showNavbar()
+    if (!isInviteOpen) return
+    hideNavbar()
     return () => showNavbar()
   }, [isInviteOpen, hideNavbar, showNavbar])
 

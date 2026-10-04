@@ -32,12 +32,11 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
     enabled: !!player && !!competitionId && competitionId !== 'default',
   });
 
+  // Balanced hide/show: the navbar counter is shared, so only release what we took
   useEffect(() => {
-    if (player) {
-      hideNavbar();
-    } else {
-      showNavbar();
-    }
+    if (!player) return;
+    hideNavbar();
+    return () => showNavbar();
   }, [player, hideNavbar, showNavbar]);
 
   return (
