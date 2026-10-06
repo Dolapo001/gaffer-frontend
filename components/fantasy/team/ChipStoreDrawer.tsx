@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Sparkles, Zap, Clock, ShieldCheck, HelpCircle, X } from 'lucide-react'
 import { listChips, purchaseChip, activateChip, type ChipType, type ChipInfo } from '@/lib/services/chip.service'
-import { listGameweeks } from '@/lib/services/fantasy.service'
+import { listGameweeks, getMyFantasyTeam } from '@/lib/services/fantasy.service'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { useToastStore } from '@/store/toastStore'
 import { useWallet } from '@/hooks/useWallet'
@@ -52,10 +52,21 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
     queryFn: () => listGameweeks(competitionId),
   })
 
+  // The backend locks a gameweek by the clock (1h before its deadline) and never
+  // flips lockStatus, so that flag alone can't say what is still open. The team's
+  // editingGameweekId is the first gameweek that is genuinely open for changes.
+  const { data: myTeam } = useQuery({
+    queryKey: ['fantasy-team-editing', competitionId],
+    queryFn: () => getMyFantasyTeam(competitionId),
+    retry: false,
+  })
+  const editingGw = (gameweeks ?? []).find((gw) => gw._id === myTeam?.editingGameweekId)
+
   // ── Eligible Gameweeks for Chip Activation ──────────────────────────────
-  // Exclude ALL completed or locked gameweeks. Sort ascending.
+  // Exclude completed or locked gameweeks and anything before the open one.
   const eligibleGameweeks = (gameweeks ?? [])
     .filter((gw) => gw.completionStatus !== 'completed' && gw.lockStatus !== 'locked')
+    .filter((gw) => !editingGw || gw.gameweekNumber >= editingGw.gameweekNumber)
     .sort((a, b) => a.gameweekNumber - b.gameweekNumber)
 
   const [targetGameweekId, setTargetGameweekId] = useState<string | null>(null)
