@@ -1,17 +1,29 @@
 (function(){
+// the page may already have been left by the time this runs
+if (!document.querySelector('#hA')) return;
 
 const $ = (s, r = document) => r.querySelector(s), $$ = (s, r = document) => [...r.querySelectorAll(s)];
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// everything that outlives the markup (window listeners, timers, observers, running demos) registers here,
+// so leaving the page can stop it all via window.__gafferLanding.destroy()
+const cleanups = [];
+const on = (t, ev, fn, o) => { t.addEventListener(ev, fn, o); cleanups.push(() => t.removeEventListener(ev, fn, o)); };
+const later = (fn, ms) => { const id = setTimeout(fn, ms); cleanups.push(() => clearTimeout(id)); return id; };
+const every = (fn, ms) => { const id = setInterval(fn, ms); cleanups.push(() => clearInterval(id)); return id; };
+const watch = (io) => { cleanups.push(() => io.disconnect()); return io; };
 const goReady = () => requestAnimationFrame(() => document.body.classList.add('ready'));
-if (document.readyState === 'complete') goReady(); else addEventListener('load', goReady);
-addEventListener('scroll', () => $('#nav').classList.toggle('scrolled', scrollY > 20), { passive: true });
+if (document.readyState === 'complete') goReady(); else on(window, 'load', goReady);
+on(window, 'scroll', () => { const n = $('#nav'); if (n) n.classList.toggle('scrolled', scrollY > 20); }, { passive: true });
 
 // the three hero phones play real app screens
 const S = (src, hold) => ({ src, hold: hold || 3600 });
 const TL = (src) => ({ src, tall: true, nav: true });
-Phone.mount($('#hA'), [TL('/landing/screens/my-team-tall.png'), S('/landing/screens/chips.png')], { pips: false });
-setTimeout(() => Phone.mount($('#hB'), [TL('/landing/screens/match-tall.png'), S('/landing/screens/lineup.png')], { pips: false }), 700);
-setTimeout(() => Phone.mount($('#hC'), [TL('/landing/screens/league-tall.png'), S('/landing/screens/standings.png')], { pips: false }), 1400);
+const phones = [];
+phones.push(Phone.mount($('#hA'), [TL('/landing/screens/my-team-tall.png'), S('/landing/screens/chips.png')], { pips: false }));
+cleanups.push(() => phones.forEach((p) => p.destroy && p.destroy()));
+later(() => phones.push(Phone.mount($('#hB'), [TL('/landing/screens/match-tall.png'), S('/landing/screens/lineup.png')], { pips: false })), 700);
+later(() => phones.push(Phone.mount($('#hC'), [TL('/landing/screens/league-tall.png'), S('/landing/screens/standings.png')], { pips: false })), 1400);
 
 // glass reflection + a little tilt that follow the pointer
 if (!reduce) {
@@ -51,6 +63,7 @@ const tour = Tour.mount($('#storySc'), { frames, steps: [
   [{ show: 'home' }, { wait: 900 }, { tap: [179, 113] }, { go: 'fixtures', how: 'slide' }, { wait: 900 }, { tap: [195, 306] }, { go: 'match', how: 'slide' }, { wait: 900 }, { scroll: 9999, ms: 5200 }, { wait: 600 }],
   [{ show: 'homeTall' }, { wait: 800 }, { scroll: 2150, ms: 3600 }, { wait: 900 }, { tap: [242, 813] }, { go: 'league', how: 'slide' }, { wait: 2600 }],
 ] });
+cleanups.push(() => tour.stop());
 const steps = $$('.step'), rail = $('#rail');
 function setStep(i) {
   steps.forEach((s) => s.classList.toggle('on', +s.dataset.i === i));
@@ -58,7 +71,7 @@ function setStep(i) {
   rail.style.height = (last.offsetTop + last.offsetHeight / 2 - rail.offsetTop) + 'px';
   tour.play(i);
 }
-const so = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setStep(+e.target.dataset.i); }), { rootMargin: '-45% 0px -45% 0px' });
+const so = watch(new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setStep(+e.target.dataset.i); }), { rootMargin: '-45% 0px -45% 0px' }));
 steps.forEach((s) => so.observe(s));
 
 // spotlight on step panels and chip cards
@@ -69,11 +82,11 @@ const mag = $('#mag');
 if (!reduce) { mag.addEventListener('pointermove', (e) => { const r = mag.getBoundingClientRect(); mag.style.transform = `translate(${(e.clientX - r.left - r.width / 2) * .14}px,${(e.clientY - r.top - r.height / 2) * .22}px)`; }); mag.addEventListener('pointerleave', () => mag.style.transform = ''); }
 
 // organisers
-new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); o.unobserve(e.target); } }), { threshold: .3 }).observe($('#ck'));
+watch(new IntersectionObserver((es, o) => es.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); o.unobserve(e.target); } }), { threshold: .3 })).observe($('#ck'));
 const ol = $('#orgLog'); let oi = 0;
 const oev = [["12'", 'Goal', 'Eze', '+4'], ["21'", 'Save', 'Musa', ''], ["34'", 'Penalty saved', 'Musa', '+5'], ["51'", 'Yellow card', 'Duru', '−1'], ["68'", 'Clean sheet', 'Okon', '+4'], ["90'", 'Man of the Match', 'Eze', '+3']];
 function addO() { const e = oev[oi++ % oev.length]; const d = document.createElement('div'); d.className = 'ev'; d.innerHTML = `<b>${e[0]}</b><span>${e[1]}, ${e[2]}</span><i class="${e[3].startsWith('−') ? 'neg' : ''}">${e[3]}</i>`; ol.prepend(d); while (ol.children.length > 5) ol.lastChild.remove(); }
-for (let i = 0; i < 4; i++) addO(); if (!reduce) setInterval(addO, 2400);
+for (let i = 0; i < 4; i++) addO(); if (!reduce) every(addO, 2400);
 
 // scoring scoreboard
 const data = {
@@ -93,9 +106,13 @@ function draw(k) {
   });
 }
 const tabs = $('#tabs'), ind = $('#ind');
-function moveInd(b) { ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft - 4}px)`; }
+function moveInd(b) { if (!b) return; ind.style.width = b.offsetWidth + 'px'; ind.style.transform = `translateX(${b.offsetLeft - 4}px)`; }
 $$('button', tabs).forEach((b) => b.addEventListener('click', () => { $$('button', tabs).forEach((x) => x.classList.remove('on')); b.classList.add('on'); moveInd(b); draw(b.dataset.p); }));
-board.innerHTML = ''; draw('GK'); addEventListener('load', () => moveInd($('button.on', tabs))); moveInd($('button.on', tabs));
+board.innerHTML = ''; draw('GK'); // the indicator is measured from layout, so re-measure whenever the tabs resize (stylesheet or fonts arriving late, rotation)
+const remeasure = () => moveInd($('button.on', tabs));
+remeasure(); on(window, 'load', remeasure);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(remeasure);
+if (window.ResizeObserver) { const ro = new ResizeObserver(remeasure); ro.observe(tabs); cleanups.push(() => ro.disconnect()); }
 
 // premium text motion
 (function(){
@@ -103,11 +120,13 @@ board.innerHTML = ''; draw('GK'); addEventListener('load', () => moveInd($('butt
   $$('.chips h2,.org h2,.scoring h2,.close h2,.step h3').forEach(split);
   $$('.sub,.hint,.close p,.tabs,.close .cta,.board').forEach((e,i)=>e.classList.add('fx'));
   $$('.step .eb,.step p').forEach(e=>e.classList.add('fx'));
-  const io=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('go');io.unobserve(e.target)}}),{threshold:.2,rootMargin:'0px 0px -8% 0px'});
+  const io=watch(new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('go');io.unobserve(e.target)}}),{threshold:.2,rootMargin:'0px 0px -8% 0px'}));
   $$('.chips .wrap,.org .wrap,.scoring .wrap,.close .wrap').forEach(e=>io.observe(e));
-  const seen=new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('seen')}),{rootMargin:'0px 0px -22% 0px'});
+  const seen=watch(new IntersectionObserver((es)=>es.forEach(e=>{if(e.isIntersecting)e.target.classList.add('seen')}),{rootMargin:'0px 0px -22% 0px'}));
   $$('.step').forEach(e=>seen.observe(e));
   $$('.step.on').forEach(e=>e.classList.add('seen'));
   })();
 
+
+window.__gafferLanding = { destroy() { cleanups.splice(0).forEach((f) => { try { f(); } catch (e) { /* already gone */ } }); } };
 })();
