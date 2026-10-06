@@ -107,6 +107,21 @@ export function CommentaryIcon({ type, size = 18, className = '' }: CommentaryIc
         </div>
       )
 
+    case 'save':
+      return (
+        <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 ${className}`}>
+          <ShieldCheck size={size} />
+        </div>
+      )
+
+    case 'motm':
+    case 'motm_award':
+      return (
+        <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 ${className}`}>
+          <Trophy size={size} />
+        </div>
+      )
+
     case 'attempt_missed':
       return (
         <div className={`flex items-center justify-center w-8 h-8 rounded-full bg-sky-500/20 border border-sky-500/30 text-sky-400 ${className}`}>

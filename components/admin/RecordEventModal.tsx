@@ -10,7 +10,7 @@ import { listLineups } from '@/lib/services/fixture.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 
-type EventCategory = 'GOAL' | 'PENALTY' | 'CARD' | 'SUBSTITUTION' | 'MATCH STATUS' | 'CUSTOM NOTE'
+type EventCategory = 'GOAL' | 'PENALTY' | 'CARD' | 'GK SAVE' | 'MAN OF THE MATCH' | 'SUBSTITUTION' | 'MATCH STATUS' | 'CUSTOM NOTE'
 
 // Flattens whichever shape listPlayers/listLineups returns a player in —
 // sometimes a full nested `playerId` document, sometimes already-flat —
@@ -52,6 +52,10 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
   // CARD
   const [cardType, setCardType] = useState<'yellow_card' | 'red_card'>('yellow_card')
   const [cardPlayerId, setCardPlayerId] = useState<string>('')
+
+  // GK SAVE (+1 fantasy point per 3 saves) and MAN OF THE MATCH (+3 fantasy points)
+  const [savePlayerId, setSavePlayerId] = useState<string>('')
+  const [motmPlayerId, setMotmPlayerId] = useState<string>('')
 
   // SUBSTITUTION
   const [playerOutId, setPlayerOutId] = useState<string>('')
@@ -195,6 +199,12 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
       payload.type = matchStatusType
     } else if (activeCategory === 'CUSTOM NOTE') {
       payload.type = 'custom'
+    } else if (activeCategory === 'GK SAVE') {
+      payload.type = 'save'
+      if (savePlayerId) payload.playerId = savePlayerId
+    } else if (activeCategory === 'MAN OF THE MATCH') {
+      payload.type = 'motm'
+      if (motmPlayerId) payload.playerId = motmPlayerId
     } else if (activeCategory === 'PENALTY') {
       if (penaltyMode === 'awarded') {
         payload.type = 'penalty_awarded'
@@ -288,7 +298,7 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
             <div className="space-y-3">
               <label className="text-[11px] font-chakra font-black text-white/40 uppercase tracking-widest ml-1">Event Category</label>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(['GOAL', 'PENALTY', 'CARD', 'SUBSTITUTION', 'MATCH STATUS', 'CUSTOM NOTE'] as EventCategory[]).map((cat) => (
+                {(['GOAL', 'PENALTY', 'CARD', 'GK SAVE', 'MAN OF THE MATCH', 'SUBSTITUTION', 'MATCH STATUS', 'CUSTOM NOTE'] as EventCategory[]).map((cat) => (
                   <button
                     key={cat}
                     onClick={() => setActiveCategory(cat)}
@@ -379,6 +389,30 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
                       <span>Second Yellow Card! Player will receive a RED CARD send-off in commentary and stats.</span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {(activeCategory === 'GK SAVE' || activeCategory === 'MAN OF THE MATCH') && (
+                <div className="space-y-3">
+                  <p className="text-[11px] font-chakra font-bold text-white/50 leading-snug ml-1">
+                    {activeCategory === 'GK SAVE'
+                      ? 'Goalkeeper makes a save. Fantasy: +1 point for every 3 saves in the match.'
+                      : 'Pick the Man of the Match once, at the end. Fantasy: +3 bonus points. Only one per match counts (the latest).'}
+                  </p>
+                  <label className="text-[11px] font-chakra font-black text-white/40 uppercase tracking-widest ml-1">
+                    {activeCategory === 'GK SAVE' ? 'Goalkeeper' : 'Player'}
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={activeCategory === 'GK SAVE' ? savePlayerId : motmPlayerId}
+                      onChange={(e) => (activeCategory === 'GK SAVE' ? setSavePlayerId(e.target.value) : setMotmPlayerId(e.target.value))}
+                      className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 font-chakra font-black text-white text-[12px] uppercase outline-none appearance-none focus:border-gaffer-orange transition-all"
+                    >
+                      <option value="">{activeCategory === 'GK SAVE' ? 'Select Goalkeeper' : 'Select Player'}</option>
+                      {onPitchPlayers.map((p) => <option key={p._id} value={p._id}>#{p.jerseyNumber} {p.lastName}</option>)}
+                    </select>
+                    <ChevronDown size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/20 pointer-events-none" />
+                  </div>
                 </div>
               )}
 
@@ -544,7 +578,7 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
           <div className="p-8 border-t border-white/5 bg-[#1C1D2B] shrink-0">
             <button
               onClick={handleRecord}
-              disabled={eventMutation.isPending || (activeCategory === 'GOAL' && !scorerId) || (activeCategory === 'SUBSTITUTION' && (!playerInId || !playerOutId)) || (activeCategory === 'CARD' && !cardPlayerId) || (activeCategory === 'PENALTY' && penaltyMode === 'result' && !penaltyTakerId)}
+              disabled={eventMutation.isPending || (activeCategory === 'GOAL' && !scorerId) || (activeCategory === 'SUBSTITUTION' && (!playerInId || !playerOutId)) || (activeCategory === 'CARD' && !cardPlayerId) || (activeCategory === 'GK SAVE' && !savePlayerId) || (activeCategory === 'MAN OF THE MATCH' && !motmPlayerId) || (activeCategory === 'PENALTY' && penaltyMode === 'result' && !penaltyTakerId)}
               className={`w-full h-16 rounded-[24px] font-chakra font-black text-sm uppercase tracking-widest shadow-2xl active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 bg-gradient-to-r from-gaffer-orange to-red-500 text-white`}
             >
               {eventMutation.isPending ? (
@@ -560,6 +594,10 @@ export function RecordEventModal({ fixtureId, homeTeam, awayTeam, onClose }: Pro
                         : penaltyOutcome === 'saved'
                         ? 'Record Penalty Save 🧤'
                         : 'Record Penalty Miss ❌')
+                    : activeCategory === 'GK SAVE'
+                    ? 'Record Goalkeeper Save 🧤'
+                    : activeCategory === 'MAN OF THE MATCH'
+                    ? 'Award Man of the Match 🏆'
                     : 'Record Event'}
                 </>
               )}

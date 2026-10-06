@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -25,6 +25,9 @@ export default function ShopPage() {
   const qc = useQueryClient()
   const reference = searchParams.get('reference')
   const [isVerifying, setIsVerifying] = useState(false)
+  // Verify each Paystack reference only once; the toast store changes on every
+  // toast and would otherwise re-run the effect and report a false failure.
+  const verifiedRef = useRef<string | null>(null)
 
   // 1. Fetch data
   const { data: packs, isLoading: isLoadingPacks } = useQuery({
@@ -44,7 +47,8 @@ export default function ShopPage() {
 
   // 3. Handle Payment Verification if returning from Paystack
   useEffect(() => {
-    if (reference) {
+    if (reference && verifiedRef.current !== reference) {
+      verifiedRef.current = reference
       const verify = async () => {
         setIsVerifying(true)
         try {
