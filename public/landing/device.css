@@ -1,0 +1,32 @@
+/* A realistic iPhone-style device. Set --w (the device width); the screen mounts at .glass > .scr */
+.iph{--w:300px;position:relative;width:var(--w);aspect-ratio:1/2.099;transform-style:preserve-3d;
+  transform:perspective(1400px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .5s cubic-bezier(.22,1,.36,1);will-change:transform}
+.iph::after{content:"";position:absolute;left:8%;right:8%;bottom:-3.5%;height:5%;border-radius:50%;background:radial-gradient(closest-side,rgba(0,0,0,.65),transparent);filter:blur(10px);z-index:-1;transform:translateZ(-1px)}
+/* titanium band */
+.iph .frame{position:absolute;inset:0;border-radius:calc(var(--w)*.158);
+  background:linear-gradient(145deg,#a3a6af 0%,#50525b 16%,#d2d4da 31%,#62656e 48%,#2c2e35 66%,#b0b3bb 84%,#5a5c65 100%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.34),inset 0 0 0 calc(var(--w)*.0085) rgba(0,0,0,.5),0 0 0 1px rgba(0,0,0,.65),0 calc(var(--w)*.1) calc(var(--w)*.2) rgba(0,0,0,.45)}
+/* black glass edge */
+.iph .bezel{position:absolute;inset:calc(var(--w)*.0115);border-radius:calc(var(--w)*.147);background:#04050a;box-shadow:inset 0 0 0 calc(var(--w)*.0045) #181920}
+/* the display */
+.iph .glass{position:absolute;inset:calc(var(--w)*.028);border-radius:calc(var(--w)*.122);overflow:hidden;background:#000;isolation:isolate}
+.iph .glass .scr{position:absolute;inset:0;--pm-r:0}
+.iph .glass .pm{width:100%;height:100%;aspect-ratio:auto;border-radius:0}
+/* reflection that follows the pointer */
+.iph .glass::after{content:"";position:absolute;inset:0;z-index:30;pointer-events:none;mix-blend-mode:screen;
+  background:linear-gradient(112deg,rgba(255,255,255,.13) 0%,rgba(255,255,255,.04) 26%,rgba(255,255,255,0) 40%),
+             radial-gradient(circle at var(--gx,28%) var(--gy,8%),rgba(255,255,255,.14),transparent 46%)}
+/* home indicator */
+.iph .glass::before{content:"";position:absolute;left:50%;bottom:1.1%;width:34%;height:.5%;min-height:3px;transform:translateX(-50%);border-radius:99px;background:rgba(255,255,255,.62);z-index:31;pointer-events:none}
+/* hardware buttons */
+.iph .hb{position:absolute;border-radius:2px;background:linear-gradient(90deg,#2f3138,#9b9ea7 48%,#34363d);box-shadow:0 0 0 1px rgba(0,0,0,.5)}
+.iph .hb.l{left:calc(var(--w)*-.0105);width:calc(var(--w)*.0125)}
+.iph .hb.r{right:calc(var(--w)*-.0105);width:calc(var(--w)*.0125)}
+.iph .hb.act{top:12.4%;height:3.2%}
+.iph .hb.vu{top:18.2%;height:6.2%}
+.iph .hb.vd{top:25.8%;height:6.2%}
+.iph .hb.pw{top:21%;height:9.4%}
+/* camera lens glint inside the dynamic island */
+.pm .isl::after{content:"";position:absolute;right:11%;top:50%;width:.95em;height:.95em;transform:translateY(-50%);border-radius:50%;
+  background:radial-gradient(circle at 34% 32%,#35486f 0,#0b1124 52%,#000 100%);box-shadow:inset 0 0 0 .13em #0b0c12}
+@media (prefers-reduced-motion:reduce){.iph{transition:none}}

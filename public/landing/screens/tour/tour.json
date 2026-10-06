@@ -1,0 +1,179 @@
+{
+ "frames": {
+  "s1-home": {
+   "tall": false
+  },
+  "s1-team": {
+   "tall": false
+  },
+  "s1-teamfull": {
+   "tall": false
+  },
+  "s1-teamfull-T": {
+   "tall": true,
+   "h": 1155
+  },
+  "s1-player": {
+   "tall": false
+  },
+  "s1-captain-toast": {
+   "tall": false
+  },
+  "s1-captain-team": {
+   "tall": false
+  },
+  "s1-captain-team-T": {
+   "tall": true,
+   "h": 1155
+  },
+  "s2-chips": {
+   "tall": false
+  },
+  "s2-tcdetail": {
+   "tall": false
+  },
+  "s2-active": {
+   "tall": false
+  },
+  "s2-banner": {
+   "tall": false
+  },
+  "s3-fixtures": {
+   "tall": false
+  },
+  "s3-match": {
+   "tall": false
+  },
+  "s3-match-T": {
+   "tall": true,
+   "h": 1222
+  },
+  "s4-leaguelist": {
+   "tall": false
+  },
+  "s4-league": {
+   "tall": false
+  },
+  "s4-league-T": {
+   "tall": true,
+   "h": 745
+  },
+  "s4-standings": {
+   "tall": false
+  }
+ },
+ "boxes": {
+  "home.tabMyTeam": {
+   "x": 74,
+   "y": 92,
+   "w": 58,
+   "h": 42,
+   "cx": 103,
+   "cy": 113
+  },
+  "teamT.salah": {
+   "x": 30,
+   "y": 750,
+   "w": 51,
+   "h": 8,
+   "cx": 56,
+   "cy": 754
+  },
+  "teamT.chips": {
+   "x": 257,
+   "y": 1080,
+   "w": 111,
+   "h": 46,
+   "cx": 313,
+   "cy": 1103
+  },
+  "teamT.transfers": {
+   "x": 118,
+   "y": 1080,
+   "w": 123,
+   "h": 46,
+   "cx": 179,
+   "cy": 1103
+  },
+  "player.makeCaptain": {
+   "x": 44,
+   "y": 809,
+   "w": 74,
+   "h": 15,
+   "cx": 81,
+   "cy": 817
+  },
+  "team.chips": {
+   "x": 257,
+   "y": 622,
+   "w": 111,
+   "h": 46,
+   "cx": 313,
+   "cy": 645
+  },
+  "chips.tc": {
+   "x": 24,
+   "y": 686,
+   "w": 342,
+   "h": 106,
+   "cx": 195,
+   "cy": 739
+  },
+  "chips.activate": {
+   "x": 32,
+   "y": 756,
+   "w": 326,
+   "h": 56,
+   "cx": 195,
+   "cy": 784
+  },
+  "chips.close": {
+   "x": 330,
+   "y": 130,
+   "w": 36,
+   "h": 36,
+   "cx": 348,
+   "cy": 148
+  },
+  "home.tabFixtures": {
+   "x": 148,
+   "y": 92,
+   "w": 62,
+   "h": 42,
+   "cx": 179,
+   "cy": 113
+  },
+  "fixtures.match": {
+   "x": 16,
+   "y": 273,
+   "w": 358,
+   "h": 68,
+   "cx": 195,
+   "cy": 307
+  },
+  "nav.league": {
+   "x": 195,
+   "y": 781,
+   "w": 94,
+   "h": 63,
+   "cx": 242,
+   "cy": 813
+  },
+  "leaguelist.card": {
+   "x": 108,
+   "y": 54,
+   "w": 218,
+   "h": 24,
+   "cx": 217,
+   "cy": 66
+  },
+  "league.standings": {
+   "x": 180,
+   "y": 96,
+   "w": 85,
+   "h": 42,
+   "cx": 223,
+   "cy": 117
+  }
+ }
+}
