@@ -400,6 +400,10 @@ export interface PlayerHistoryEntry {
   appearancePoints?: number
   cleanSheetPoints?: number
   goalsConcededPoints?: number
+  penaltyMissPoints?: number
+  penaltySavePoints?: number
+  savePoints?: number
+  bonusPoints?: number
 }
 
 // GET /fantasy/:competitionId/players/:fantasyPlayerId/history

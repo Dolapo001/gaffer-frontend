@@ -341,6 +341,42 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
                         </div>
                       )}
 
+                      {!!gwStats.savePoints && gwStats.savePoints > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Saves</span>
+                          <span className="text-white text-lg font-bold">
+                            <span className="text-gaffer-orange text-[14px] font-semibold">+{gwStats.savePoints} pts</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {!!gwStats.penaltySavePoints && gwStats.penaltySavePoints > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Penalty Saved</span>
+                          <span className="text-white text-lg font-bold">
+                            <span className="text-gaffer-orange text-[14px] font-semibold">+{gwStats.penaltySavePoints} pts</span>
+                          </span>
+                        </div>
+                      )}
+
+                      {!!gwStats.penaltyMissPoints && gwStats.penaltyMissPoints < 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Penalty Missed</span>
+                          <span className="text-white text-lg font-bold text-red-400">
+                            {gwStats.penaltyMissPoints} pts
+                          </span>
+                        </div>
+                      )}
+
+                      {!!gwStats.bonusPoints && gwStats.bonusPoints > 0 && (
+                        <div className="flex flex-col gap-1">
+                          <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Man of the Match</span>
+                          <span className="text-white text-lg font-bold">
+                            <span className="text-gaffer-orange text-[14px] font-semibold">+{gwStats.bonusPoints} pts</span>
+                          </span>
+                        </div>
+                      )}
+
                       {!!gwStats.goalsConcededPoints && gwStats.goalsConcededPoints < 0 && (
                         <div className="flex flex-col gap-1">
                           <span className="text-gray-400 text-[10px] uppercase tracking-wider font-medium">Goals Conceded</span>

@@ -104,7 +104,7 @@ export const EVENT_TYPES = [
   'start', 'halftime', 'fulltime', 'match_suspended', 'match_resumed',
   'goal', 'own_goal', 'penalty_scored', 'yellow_card', 'red_card',
   'substitution', 'attempt_missed', 'penalty_awarded', 'penalty_missed', 'penalty_saved',
-  'corner', 'custom',
+  'save', 'motm', 'corner', 'custom',
 ] as const
 
 export type EventType = (typeof EVENT_TYPES)[number]
