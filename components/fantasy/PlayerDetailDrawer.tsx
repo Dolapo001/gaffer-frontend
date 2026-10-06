@@ -102,11 +102,11 @@ function PointHistoryGraph({ history }: { history: any[] }) {
           const heightPct = Math.max((pts / maxPts) * 100, 8)
           const isHigh = pts >= 10
           return (
-            <div key={h._id} className="flex-1 flex flex-col items-center gap-1 group relative">
+            <div key={h._id} className="flex-1 h-full flex flex-col items-center gap-1 group relative">
               <span className="text-[10px] font-chakra font-bold text-white/70 group-hover:text-gaffer-orange transition-colors">
                 {pts}
               </span>
-              <div className="w-full bg-[#121420] rounded-t-lg h-full flex items-end overflow-hidden">
+              <div className="w-full bg-[#121420] rounded-t-lg flex-1 min-h-0 flex items-end overflow-hidden">
                 <div
                   style={{ height: `${heightPct}%` }}
                   className={`w-full rounded-t-lg transition-all ${
