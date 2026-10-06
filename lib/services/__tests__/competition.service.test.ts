@@ -35,7 +35,7 @@ import {
 const mockApi = api as unknown as Record<string, ReturnType<typeof vi.fn>>
 
 const ORG_ID = 'org-001'
-const COMP_ID = 'comp-001'
+const COMP_ID = '507f1f77bcf86cd799439011'
 const TEAM_ID = 'team-001'
 
 function makeCompetition(overrides = {}) {
@@ -61,29 +61,22 @@ beforeEach(() => {
 
 // ── listCompetitions ──────────────────────────────────────────────────────────
 
-// listCompetitions() always appends the local "pl-mock-123" test competition
-// (see lib/testing-mocks/premierLeague.ts) alongside whatever the API
-// returns, so the organizer flow can be exercised without real tournament
-// data. TODO: REMOVE MOCK DATA BEFORE PROD — drop the `+ 1` / mock-id checks
-// below once that fallback is removed.
 describe('listCompetitions()', () => {
-  it('calls GET /orgs/:orgId/competitions and returns the array plus the mock competition', async () => {
+  it('calls GET /orgs/:orgId/competitions and returns the competitions array', async () => {
     const comp = makeCompetition()
     mockApi.get.mockResolvedValue({ competitions: [comp] })
 
     const result = await listCompetitions(ORG_ID)
 
     expect(mockApi.get).toHaveBeenCalledWith(`/orgs/${ORG_ID}/competitions`)
-    expect(result).toHaveLength(2)
+    expect(result).toHaveLength(1)
     expect(result[0]._id).toBe(COMP_ID)
-    expect(result[1]._id).toBe('pl-mock-123')
   })
 
-  it('returns only the mock competition when no real competitions exist', async () => {
+  it('returns an empty array when no competitions exist', async () => {
     mockApi.get.mockResolvedValue({ competitions: [] })
     const result = await listCompetitions(ORG_ID)
-    expect(result).toHaveLength(1)
-    expect(result[0]._id).toBe('pl-mock-123')
+    expect(result).toEqual([])
   })
 })
 
@@ -231,7 +224,7 @@ describe('assignTeamGroups()', () => {
     const assignments = [{ teamId: TEAM_ID, groupName: 'Group A', seed: 1 }]
     const result = await assignTeamGroups(COMP_ID, assignments)
 
-    expect(mockApi.patch).toHaveBeenCalledWith(`/competitions/${COMP_ID}/teams`, { assignments })
+    expect(mockApi.patch).toHaveBeenCalledWith(`/competitions/${COMP_ID}/teams`, { teams: assignments })
     expect(result.message).toContain('assigned')
   })
 })

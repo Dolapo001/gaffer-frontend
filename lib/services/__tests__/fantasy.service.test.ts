@@ -53,7 +53,7 @@ import {
 
 const mockApi = api as unknown as Record<string, ReturnType<typeof vi.fn>>
 
-const COMPETITION_ID = 'comp-001'
+const COMPETITION_ID = '507f1f77bcf86cd799439011'
 const TEAM_ID = 'team-001'
 
 beforeEach(() => {
