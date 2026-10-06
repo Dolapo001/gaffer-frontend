@@ -40,7 +40,7 @@ describe('JerseySvg — rendering', () => {
     const paths = container.querySelectorAll('path')
     // All filled paths should use the primary color (monochrome jersey)
     const coloredPaths = Array.from(paths).filter(
-      (p) => p.getAttribute('fill') && !p.getAttribute('fill')?.startsWith('rgba'),
+      (p) => p.getAttribute('fill') && p.getAttribute('fill') !== 'none' && !p.getAttribute('fill')?.startsWith('rgba'),
     )
     coloredPaths.forEach((p) => expect(p.getAttribute('fill')).toBe('#16A34A'))
   })
