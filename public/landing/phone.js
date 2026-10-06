@@ -5,7 +5,7 @@
  *     hold   = ms to rest before and after the scroll (default 1100)
  *     scroll = ms the scroll takes (default 5200)
  *   opts: { auto: true (cycle through screens), pips: true, only: false }
- *   Returns { show(i), play(), pause() }.
+ *   Returns { show(i), play(), pause(), destroy() }.
  */
 (function () {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -78,15 +78,16 @@
     function pause() { playing = false; token++; clear(); }
 
     show(0);
+    let io = null;
     if (opts.auto && !reduce) {
-      const io = new IntersectionObserver((es) => es.forEach((e) => {
+      io = new IntersectionObserver((es) => es.forEach((e) => {
         visible = e.isIntersecting;
         if (visible) play(); else pause();
       }), { threshold: 0.25 });
       io.observe(el);
       playing = true;
     }
-    return { show: (i) => { playing = opts.auto && !reduce; show(i); }, play, pause };
+    return { show: (i) => { playing = opts.auto && !reduce; show(i); }, play, pause, destroy() { pause(); if (io) io.disconnect(); } };
   }
   window.Phone = { mount };
 })();
