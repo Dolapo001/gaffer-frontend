@@ -81,3 +81,6 @@ export const registerServiceWorker = async (): Promise<void> => {
     console.error('[GAFFER SW] Registration failed:', error)
   }
 }
+
+
+
