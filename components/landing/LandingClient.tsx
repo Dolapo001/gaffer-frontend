@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isStandalone } from '@/lib/pwa'
+import { isStandalone, isIOS, getDeferredPrompt, triggerInstallPrompt } from '@/lib/pwa'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
 import { IOSInstallBanner } from '@/components/IOSInstallBanner'
+import { IOSInstallModal } from '@/components/IOSInstallModal'
+import { InstallHelp } from './InstallHelp'
+import { ctaAction } from './ctaGate'
 import { landingMarkup } from './landingMarkup'
 
 const STYLES = ['/landing/phone.css', '/landing/device.css', '/landing/landing.css']
@@ -41,7 +44,8 @@ export default function LandingClient() {
   const [checking, setChecking] = useState(true)
 
   // Initialize PWA hook to capture install prompt event early
-  usePWAInstall()
+  const { handleInstall, showIOSModal, closeIOSModal } = usePWAInstall()
+  const [helpIntent, setHelpIntent] = useState<'join' | 'organise' | 'login' | null>(null)
 
   useEffect(() => {
     // iOS PWA deep-link recovery: when iOS opens the PWA at root (/) instead
@@ -99,13 +103,40 @@ export default function LandingClient() {
     }
   }, [checking])
 
+  // Gaffer only runs as an installed app: the auth pages send any normal browser tab straight back to '/'.
+  // So a tap on a sign-up / log-in button in a browser starts the install instead of a navigation that would bounce.
+  const onMarkupClick = async (e: React.MouseEvent<HTMLDivElement>) => {
+    const href = (e.target as HTMLElement).closest('a')?.getAttribute('href')
+    const action = ctaAction({
+      href,
+      // set NEXT_PUBLIC_FORCE_INSTALL_GATE=1 to see the production behaviour on a local dev server
+      isDev: process.env.NODE_ENV === 'development' && !process.env.NEXT_PUBLIC_FORCE_INSTALL_GATE,
+      standalone: isStandalone(),
+      ios: isIOS(),
+      hasInstallPrompt: !!getDeferredPrompt(),
+    })
+    if (action.type === 'navigate') return
+    e.preventDefault()
+    try { localStorage.setItem('gaffer-post-install-intent', action.intent) } catch { /* private mode */ }
+    if (action.type === 'ios-install') await handleInstall()
+    else if (action.type === 'native-install') await triggerInstallPrompt()
+    else setHelpIntent(action.intent)
+  }
+
   if (checking) {
     return <div style={{ minHeight: '100vh', background: '#090A14' }} aria-busy="true" />
   }
 
   return (
     <>
-      <div dangerouslySetInnerHTML={{ __html: landingMarkup }} />
+      <div onClick={onMarkupClick} dangerouslySetInnerHTML={{ __html: landingMarkup }} />
+      <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
+      <InstallHelp
+        isOpen={helpIntent !== null}
+        onClose={() => setHelpIntent(null)}
+        intent={helpIntent ?? 'join'}
+        onInstall={async () => (getDeferredPrompt() ? (await triggerInstallPrompt(), true) : false)}
+      />
       {/* iOS-only: auto-appearing install banner + modal */}
       <IOSInstallBanner />
     </>
