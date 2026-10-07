@@ -4,7 +4,8 @@ import type { NextRequest } from 'next/server'
 const ADMIN_ROUTES = ['/admin']
 const APP_ROUTES = ['/app']
 const AUTH_ROUTES = ['/auth']
-const PUBLIC_ROUTES = ['/', '/onboarding']
+// /hq is Gaffer HQ: its pages check for the platform admin role themselves, and the API enforces it.
+const PUBLIC_ROUTES = ['/', '/onboarding', '/hq']
 // Invite onboarding pages must be reachable without a session — the token
 // itself authenticates the request at the API layer.
 const INVITE_ROUTES = ['/player/onboarding', '/organization/onboarding']
@@ -23,6 +24,7 @@ const RESERVED_TOP_SEGMENTS = [
   'organization',
   'player',
   'recruit',
+  'hq',
 ]
 
 /**

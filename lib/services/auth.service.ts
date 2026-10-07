@@ -9,6 +9,8 @@ export interface AuthUser {
   isPersonalActive?: boolean
   isOrgActive?: boolean
   lastRole?: 'personal' | 'organization'
+  /** Set only for Gaffer HQ staff. */
+  platformRole?: 'platform_admin' | null
 }
 
 export interface AuthResponse {

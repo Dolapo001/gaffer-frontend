@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
 
@@ -10,7 +10,9 @@ import { useStandaloneGuard } from '@/hooks/useStandaloneGuard'
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const { isAuthenticated, isLoading, role } = useAuthStore()
-  const isReady = useStandaloneGuard()
+  const pathname = usePathname()
+  // Password links arrive from email and must open in a normal browser tab.
+  const isReady = useStandaloneGuard(pathname.startsWith('/auth/reset-password'))
 
   // If user is already authenticated, send them to the right place
   useEffect(() => {

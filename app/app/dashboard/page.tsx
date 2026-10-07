@@ -10,7 +10,7 @@ import { OrganizationSidebar } from '@/components/organization/OrganizationSideb
 import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
 import { getPublisherName, getInitials } from '@/components/fantasy/NewsFeedWidget'
-import { rankTopNews, resolveOrgId } from '@/lib/newsRanking'
+import { rankTopNews, resolveOrgId, isGafferNews } from '@/lib/newsRanking'
 import { getImageUrl } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
@@ -50,7 +50,8 @@ export default function DashboardPage() {
         const feed = await getGlobalFeed(1).catch(() => null)
         const global = rankTopNews((feed?.data ?? feed?.items ?? []) as FeedItem[])
         const seen = new Set<string>()
-        const merged = [...mine, ...global].filter((i) => !seen.has(i._id) && seen.add(i._id))
+        // Official Gaffer news from HQ comes before everything, then news from the organisations the player joined.
+        const merged = [...global.filter(isGafferNews), ...mine, ...global].filter((i) => !seen.has(i._id) && seen.add(i._id))
         if (!cancelled) setNews(merged.slice(0, 3))
       } catch (err) {
         console.error('Failed to fetch news:', err)

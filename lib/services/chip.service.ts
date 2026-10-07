@@ -38,15 +38,18 @@ export interface ActiveChipUsage {
 export interface ListChipsResult {
   chips: ChipInfo[]
   activeUsages: ActiveChipUsage[]
+  /** False while Gaffer has switched coin purchases off. Free chips and chips already owned still work. */
+  purchasesEnabled: boolean
 }
 
 // GET /chips?competitionId=...
 export async function listChips(competitionId: string): Promise<ListChipsResult> {
-  const res = await api.get<{ data: ChipInfo[]; activeUsages?: ActiveChipUsage[] }>(`/chips?competitionId=${competitionId}`)
+  const res = await api.get<{ data: ChipInfo[]; activeUsages?: ActiveChipUsage[]; purchasesEnabled?: boolean }>(`/chips?competitionId=${competitionId}`)
+  const purchasesEnabled = res.purchasesEnabled !== false
   if (Array.isArray(res.data)) {
-    return { chips: res.data, activeUsages: (res as any).activeUsages ?? [] }
+    return { chips: res.data, activeUsages: (res as any).activeUsages ?? [], purchasesEnabled }
   }
-  return { chips: (res.data as any)?.chips ?? [], activeUsages: (res as any).activeUsages ?? [] }
+  return { chips: (res.data as any)?.chips ?? [], activeUsages: (res as any).activeUsages ?? [], purchasesEnabled }
 }
 
 // POST /chips/purchase

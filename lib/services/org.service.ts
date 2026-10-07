@@ -12,6 +12,9 @@ export interface Org {
   ownerId: string
   lifecycleStatus: string
   verificationStatus: string
+  /** What the organisation told Gaffer, and HQ's decision (see Gaffer HQ). */
+  application?: { socialLinks?: string[]; phone?: string; proofUrl?: string; rejectionReason?: string }
+  suspension?: { reason?: string }
   createdAt: string
   updatedAt: string
 }
@@ -45,6 +48,10 @@ export interface CreateOrgPayload {
   sports?: string[]
   ownerId?: string
   userFullName?: string
+  /** Details Gaffer HQ uses to review a new organisation. */
+  phone?: string
+  socialLinks?: string[]
+  proofUrl?: string
 }
 
 // GET /orgs
@@ -68,6 +75,12 @@ export async function getOrg(orgId: string): Promise<Org> {
 // POST /orgs
 export async function createOrg(payload: CreateOrgPayload): Promise<Org> {
   const data = await api.post<{ org: Org }>('/orgs', payload)
+  return data.org
+}
+
+// POST /orgs/:orgId/reapply — a rejected organisation fixes its details and applies again
+export async function reapplyOrg(orgId: string, changes: { description?: string; phone?: string; socialLinks?: string[] }): Promise<Org> {
+  const data = await api.post<{ org: Org }>(`/orgs/${orgId}/reapply`, changes)
   return data.org
 }
 
