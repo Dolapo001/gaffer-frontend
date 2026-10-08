@@ -132,7 +132,14 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   })
 
   const handleGoLiveToggle = async (next: boolean) => {
-    if (!next) return toggleMutation.mutate(false)
+    if (!next) {
+      // Once anything has been recorded the match can only be ended with Full time
+      if (matchHasEvents) {
+        addToast('This match has events recorded. End it with Full time instead of switching it off.', 'error')
+        return
+      }
+      return toggleMutation.mutate(false)
+    }
     setCheckingLineups(true)
     const names = {
       home: typeof fixture?.homeTeamId === 'object' ? (fixture.homeTeamId as any).name : 'Home',
@@ -279,6 +286,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   // a cache slot briefly populated by something else) — this data drives
   // several `.filter()`/`.length` reads below and must never be non-array.
   const events = Array.isArray(rawEvents) ? rawEvents : []
+  // Anything beyond the kick-off itself means the match is under way and can only end with Full time
+  const matchHasEvents = events.some((e: any) => !['start', 'match_started'].includes(String(e.rawType || e.type || '').toLowerCase()))
 
   const flattenSquad = (squad: any) => {
     const list = Array.isArray(squad) ? squad : (squad?.players || [])
@@ -646,12 +655,15 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
             ) : (
               <>
                 <label className={`relative inline-flex items-center scale-100 ${toggleMutation.isPending ? 'opacity-50' : 'cursor-pointer'}`}>
-                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => handleGoLiveToggle(e.target.checked)} disabled={toggleMutation.isPending || checkingLineups} />
+                  <input type="checkbox" className="sr-only peer" checked={isLive} onChange={(e) => handleGoLiveToggle(e.target.checked)} disabled={toggleMutation.isPending || checkingLineups || (isLive && matchHasEvents)} />
                   <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#22C55E]"></div>
                 </label>
                 <span className={`text-[10px] font-inter font-bold uppercase tracking-widest mt-1 ${isLive ? 'text-[#22C55E]' : 'text-[#FF5C00]'}`}>
                   {toggleMutation.isPending ? 'Updating...' : isLive ? 'Live' : 'Go Live'}
                 </span>
+                {isLive && matchHasEvents && (
+                  <span className="text-[9px] font-inter font-semibold uppercase tracking-widest text-white/35 mt-0.5">End it with Full Time</span>
+                )}
               </>
             )}
           </div>
