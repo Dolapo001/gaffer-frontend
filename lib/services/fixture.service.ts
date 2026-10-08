@@ -232,6 +232,25 @@ export async function submitLineup(
   return data.lineup
 }
 
+/**
+ * What the admin's Save button does: submit the lineup and confirm it in the same step.
+ * Fans only see confirmed lineups, and kick-off warns when a team has none, so a saved but
+ * unconfirmed lineup looked like it had not been saved at all. A helper who is only allowed to
+ * submit (not confirm) leaves it waiting for a manager.
+ */
+export async function saveLineup(
+  fixtureId: string,
+  payload: { teamId: string; starters: string[]; bench?: string[]; slots?: any[] },
+): Promise<Lineup> {
+  const lineup = await submitLineup(fixtureId, payload)
+  try {
+    return await approveLineup(fixtureId, payload.teamId)
+  } catch (err: any) {
+    if (err?.status === 403 || err?.code === 'FORBIDDEN') return lineup
+    throw err
+  }
+}
+
 // POST /fixtures/:fixtureId/lineups/approve
 export async function approveLineup(fixtureId: string, teamId: string): Promise<Lineup> {
   const data = await api.post<{ lineup: Lineup }>(`/fixtures/${fixtureId}/lineups/approve`, { teamId })

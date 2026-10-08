@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, submitLineup, recordEvent, teamsWithoutApprovedLineup, type FixtureEvent } from '@/lib/services/fixture.service'
+import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, saveLineup, recordEvent, teamsWithoutApprovedLineup, type FixtureEvent } from '@/lib/services/fixture.service'
 import { deleteMatchEvent } from '@/lib/services/match.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
@@ -196,14 +196,14 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       const awaySlots = awayId ? getLineupSlots(awayLineup) : []
 
       if (homeId) {
-        saves.push(submitLineup(id, { 
+        saves.push(saveLineup(id, { 
           teamId: homeId, 
           starters: homeStarters,
           slots: homeSlots
         }))
       }
       if (awayId) {
-        saves.push(submitLineup(id, { 
+        saves.push(saveLineup(id, { 
           teamId: awayId, 
           starters: awayStarters,
           slots: awaySlots
@@ -404,6 +404,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
         const mapped = hydrateLineup(existingLineups.awayTeam || {}, flattenedAwaySquad)
         if (Object.keys(mapped).length) setAwayLineup(mapped)
       }
+
+      // A lineup saved earlier but never confirmed is invisible to fans: offer Save again so it gets confirmed
+      const pendingSide = (side: any) => side?.status === 'pending' && (side?.players?.length ?? 0) > 0
+      if (pendingSide(existingLineups.homeTeam) || pendingSide(existingLineups.awayTeam)) setIsLineupDirty(true)
 
       // Also restore formations from the response if available
       if (existingLineups.homeTeam?.formation) setHomeFormation(existingLineups.homeTeam.formation as any)
