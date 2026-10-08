@@ -1,3 +1,4 @@
+import { asArray } from '@/lib/asArray'
 import { api, ApiError } from '@/lib/api'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 import { mockFantasyTeam, mockPlayers } from '@/lib/testing-mocks/premierLeague'
@@ -201,8 +202,8 @@ export async function listGameweeks(competitionId: string): Promise<FantasyGamew
     `/fantasy/${competitionId}/gameweeks`,
   )
   if (Array.isArray(res)) return res
-  if ('gameweeks' in res) return res.gameweeks
-  if ('data' in res) return res.data as FantasyGameweek[]
+  if ('gameweeks' in res) return asArray<FantasyGameweek>(res.gameweeks)
+  if ('data' in res) return asArray<FantasyGameweek>(res.data)
   return []
 }
 
