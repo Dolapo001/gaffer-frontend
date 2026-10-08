@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react'
 import { PitchView, type PitchPlayerMarker } from './PitchView'
-import { calculatePlayerRating, getRatingBadgeStyle } from '@/lib/ratingsEngine'
+import { calculatePlayerRating, eventsForPlayer, getRatingBadgeStyle } from '@/lib/ratingsEngine'
 import { getImageUrl } from '@/lib/api'
 import { Star, Edit3, X } from 'lucide-react'
 
@@ -158,12 +158,7 @@ export function MatchLineupPitch({
     if (player.rating != null && !isNaN(player.rating)) {
       return player.rating
     }
-    const playerEvents = matchEvents.filter(
-      (e) =>
-        (e.playerId && typeof e.playerId === 'object'
-          ? e.playerId._id === player.id
-          : e.playerId === player.id),
-    )
+    const playerEvents = eventsForPlayer(player.id, matchEvents)
     return calculatePlayerRating(player.position || 'MID', playerEvents)
   }
 
@@ -183,12 +178,7 @@ export function MatchLineupPitch({
 
   // Helper to extract player match event counts
   const getPlayerStats = (player: LineupPlayer) => {
-    const pEvents = matchEvents.filter(
-      (e) =>
-        (e.playerId && typeof e.playerId === 'object'
-          ? e.playerId._id === player.id
-          : e.playerId === player.id),
-    )
+    const pEvents = eventsForPlayer(player.id, matchEvents)
     const goalsCount = pEvents.filter((e) => {
       const t = (e.type || e.rawType || '').toLowerCase()
       return t === 'goal' || t === 'penalty_scored'
