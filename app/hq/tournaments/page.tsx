@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqTournament } from '@/lib/services/hq.service'
@@ -60,6 +61,7 @@ export default function HqTournamentsPage() {
                   <div className="flex gap-2"><Pill label={t.status} tone="neutral" />{t.hidden && <Pill label="Hidden" tone="bad" />}</div>
                 </div>
                 <div className="flex flex-wrap gap-2">
+                  <Link href={`/hq/tournaments/${t.id}`} className="px-3 py-2 rounded-xl text-sm font-body font-semibold bg-gaffer-orange text-black">Manage</Link>
                   {t.hidden ? <ActionButton tone="good" label="Show again" onClick={() => act.mutate(() => hqService.unhideTournament(t.id))} disabled={act.isPending} /> : <ActionButton label="Hide…" onClick={() => { setError(null); setHiding(t) }} />}
                   <ActionButton tone="bad" label="Delete…" onClick={() => { setError(null); setDeleting(t) }} />
                 </div>

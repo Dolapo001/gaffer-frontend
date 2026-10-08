@@ -290,6 +290,7 @@ export const hqService = {
   listContent: (f: { q?: string; type?: string; page?: number }) =>
     api.get<{ items: HqContentItem[]; total: number; page: number; pageSize: number }>(`/platform/content${qs(f)}`),
   removeContent: (id: string, reason?: string) => api.post<{ ok: boolean }>(`/platform/content/${id}/remove`, { reason }),
+  editContent: (id: string, input: { title?: string; body?: string }) => api.patch<{ ok: boolean }>(`/platform/content/${id}`, input),
   listComments: (id: string) => api.get<{ comments: HqComment[] }>(`/platform/content/${id}/comments`),
   removeComment: (id: string, reason?: string) => api.post<{ ok: boolean }>(`/platform/comments/${id}/remove`, { reason }),
 
