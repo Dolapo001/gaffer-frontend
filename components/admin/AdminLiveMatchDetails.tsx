@@ -18,7 +18,7 @@ import { useAuthStore } from '@/store/authStore'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { PositionFilterBar, type PositionFilterValue } from '@/components/PositionFilterBar'
 import { CommentaryIcon } from '@/components/CommentaryIcon'
-import { calculatePlayerRating } from '@/lib/ratingsEngine'
+import { calculatePlayerRating, eventsForPlayer } from '@/lib/ratingsEngine'
 
 const POSITION_NORMALIZE: Record<string, PositionFilterValue> = {
   goalkeeper: 'GK', gk: 'GK',
@@ -700,9 +700,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     const player = awayLineup[idx]
                     const pitchT = ((100 - t) / 100) * 47 + 2
                     const pId = player?._id || player?.id
-                    const pEvts = events.filter((e) =>
-                      (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
-                    )
+                    const pEvts = eventsForPlayer(pId, events)
                     const r = calculatePlayerRating(player?.position || 'MID', pEvts, player?.rating)
                     const goalsCount = pEvts.filter((e) => {
                       const type = (e.type || e.rawType || '').toLowerCase()
@@ -761,9 +759,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     const player = homeLineup[idx]
                     const pitchT = 51 + (t / 100) * 47
                     const pId = player?._id || player?.id
-                    const pEvts = events.filter((e) =>
-                      (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
-                    )
+                    const pEvts = eventsForPlayer(pId, events)
                     const r = calculatePlayerRating(player?.position || 'MID', pEvts, player?.rating)
                     const goalsCount = pEvts.filter((e) => {
                       const type = (e.type || e.rawType || '').toLowerCase()
@@ -951,9 +947,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         {/* Player Rating Adjuster */}
                         {(() => {
                           const pId = slotContextMenu.player?._id || slotContextMenu.player?.id
-                          const pEvts = events.filter((e) =>
-                            (e.playerId && typeof e.playerId === 'object' ? e.playerId._id === pId : e.playerId === pId)
-                          )
+                          const pEvts = eventsForPlayer(pId, events)
                           const curRating = calculatePlayerRating(slotContextMenu.player.position || 'MID', pEvts, slotContextMenu.player.rating)
 
                           return (

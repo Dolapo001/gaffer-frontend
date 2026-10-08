@@ -9,6 +9,7 @@ export interface EventImpactRule {
   delta: number | ((position?: string) => number)
 }
 
+// These values match the server's (The-Gaffer--backend src/modules/stats/playerRating.js). Change both together.
 export const BASE_PLAYER_RATING = 6.5
 
 export function getGoalRatingDelta(position?: string): number {
@@ -42,6 +43,8 @@ export function calculatePlayerRating(
 
     if (type === 'goal' || type === 'penalty_scored') {
       rating += getGoalRatingDelta(position)
+    } else if (type === 'own_goal') {
+      rating -= 1.0
     } else if (type === 'assist') {
       rating += 0.8
     } else if (type === 'penalty_saved') {
@@ -58,6 +61,38 @@ export function calculatePlayerRating(
   }
 
   return Math.min(10.0, Math.max(1.0, Number(rating.toFixed(1))))
+}
+
+type EventRef = string | { _id?: string; id?: string } | null | undefined
+const idOf = (ref: EventRef): string | undefined => (ref && typeof ref === 'object' ? ref._id ?? ref.id : ref ?? undefined)
+
+/**
+ * The match events that count towards ONE player's rating, seen from that player's side.
+ * An assist is stored on the goal (assistPlayerId), and a saved penalty names the taker (playerId)
+ * and the goalkeeper (goalkeeperId, or relatedPlayerId on older events), so each is turned into
+ * the event that player earned: the assister gets an 'assist', the taker a 'penalty_missed',
+ * the goalkeeper a 'penalty_saved'.
+ */
+export function eventsForPlayer(
+  playerId: string | undefined,
+  events: Array<Record<string, any>> = [],
+): Array<{ type: string; rawType?: string; metadata?: any }> {
+  if (!playerId) return []
+  const out: Array<{ type: string; rawType?: string; metadata?: any }> = []
+  for (const e of events) {
+    const type = String(e.rawType || e.type || '').toLowerCase()
+    const isTaker = idOf(e.playerId) === playerId
+    if (type === 'goal' || type === 'penalty_scored') {
+      if (isTaker) out.push({ type, metadata: e.metadata })
+      if (idOf(e.assistPlayerId) === playerId) out.push({ type: 'assist' })
+    } else if (type === 'penalty_saved') {
+      if (isTaker) out.push({ type: 'penalty_missed' })
+      if ((idOf(e.goalkeeperId) ?? idOf(e.relatedPlayerId)) === playerId) out.push({ type: 'penalty_saved' })
+    } else if (isTaker) {
+      out.push({ type, metadata: e.metadata })
+    }
+  }
+  return out
 }
 
 export interface RatingBadgeStyle {
