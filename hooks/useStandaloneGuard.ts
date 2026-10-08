@@ -11,21 +11,24 @@ import { isStandalone } from '@/lib/pwa'
  * - In production:  redirects to the landing page (/) if the app is not
  *   running as an installed PWA.
  *
- * Returns `true` once the check passes (standalone confirmed or dev mode).
+
+ * Pass `allowBrowser` for the few pages that must work in an ordinary browser tab (password links from email).
+ *
+ * Returns `true` once the check passes (standalone confirmed, dev mode, or allowed in a browser).
  * Returns `false` while the check is pending — callers should render a loader.
  */
-export function useStandaloneGuard(): boolean {
+export function useStandaloneGuard(allowBrowser = false): boolean {
   const router = useRouter()
   const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'development' || isStandalone()) {
+    if (allowBrowser || process.env.NODE_ENV === 'development' || isStandalone()) {
       setIsReady(true)
     } else {
       // Not running as installed PWA in production — send to landing page
       router.replace('/')
     }
-  }, [router])
+  }, [router, allowBrowser])
 
   return isReady
 }

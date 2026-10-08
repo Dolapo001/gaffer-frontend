@@ -1,14 +1,20 @@
 import type { FeedItem } from '@/lib/services/feed.service'
 
 /**
- * Orders feed items for "Top News" slots: real news from an organisation first,
- * then pinned, then newest. Auto-generated welcome posts only appear when
+/** Official Gaffer news written in HQ: a news post authored by the system that is not a welcome post. */
+export function isGafferNews(i: FeedItem): boolean {
+  return i.type === 'news' && i.authorType === 'system' && !i.isDefault
+}
+
+/**
+ * Orders feed items for "Top News" slots: official Gaffer news first, then real news from an
+ * organisation, then pinned, then newest. Auto-generated welcome posts only appear when
  * there is nothing else to show.
  */
 export function rankTopNews(items: FeedItem[]): FeedItem[] {
   const real = items.filter((i) => !i.isDefault)
   const pool = real.length > 0 ? real : items
-  const weight = (i: FeedItem) => (i.type === 'news' ? 2 : 0) + (i.isPinned ? 1 : 0)
+  const weight = (i: FeedItem) => (isGafferNews(i) ? 4 : 0) + (i.type === 'news' ? 2 : 0) + (i.isPinned ? 1 : 0)
   return [...pool].sort((a, b) => {
     const w = weight(b) - weight(a)
     if (w !== 0) return w

@@ -1,4 +1,4 @@
-import { api, ApiError } from '@/lib/api'
+import { api, ApiError, tokenStore } from '@/lib/api'
 
 export interface Competition {
   _id: string
@@ -91,7 +91,9 @@ export async function getCompetition(competitionId: string): Promise<Competition
   if (!isObjectId) {
     return await getPublicCompetitionBySlug(competitionId);
   }
-  const data = await api.get<{ competition: Competition }>(`/competitions/${competitionId}`, { public: true })
+  // A draft is only visible to the organisation that owns it, and the server decides that from who is asking.
+  // So send the login when there is one; a signed-out visitor still reads published tournaments anonymously.
+  const data = await api.get<{ competition: Competition }>(`/competitions/${competitionId}`, { public: !tokenStore.get() })
   return data.competition
 }
 

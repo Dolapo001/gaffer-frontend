@@ -61,6 +61,8 @@ export default function OrganizationSignupPage() {
       confirmPassword: '',
       sports: [],
       description: '',
+      phone: '',
+      socialLink: '',
     },
   })
 
@@ -95,6 +97,8 @@ export default function OrganizationSignupPage() {
         handle: data.handle,
         description: data.description || '',
         sports: data.sports,
+        phone: data.phone || undefined,
+        socialLinks: data.socialLink ? [data.socialLink] : undefined,
         ownerId: finalUser.id,
         userFullName: data.fullName || finalUser.fullName || undefined,
       })
@@ -238,6 +242,33 @@ export default function OrganizationSignupPage() {
                     </>
                   )}
 
+                  <div className="space-y-2">
+                    <label className="block text-sm font-chakra font-medium text-white/70 pl-1">
+                      Phone number (optional)
+                    </label>
+                    <input
+                      {...register('phone')}
+                      type="tel"
+                      autoComplete="tel"
+                      placeholder="So we can reach you about your application"
+                      className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 font-chakra text-sm transition-all duration-200 focus:outline-none focus:border-gaffer-orange focus:ring-1 focus:ring-gaffer-orange/20"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="block text-sm font-chakra font-medium text-white/70 pl-1">
+                      Social page or website (optional)
+                    </label>
+                    <input
+                      {...register('socialLink')}
+                      placeholder="Instagram, X, Facebook or a website"
+                      className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 font-chakra text-sm transition-all duration-200 focus:outline-none focus:border-gaffer-orange focus:ring-1 focus:ring-gaffer-orange/20"
+                    />
+                    <p className="text-xs text-white/40 pl-1">
+                      Gaffer reviews every new organisation. You can set everything up now, and publishing opens once you are approved.
+                    </p>
+                  </div>
+
                   <div className="pt-6">
                     <GradientButton 
                       type="button"
@@ -305,7 +336,7 @@ export default function OrganizationSignupPage() {
                     </label>
                     <textarea
                       {...register('description')}
-                      placeholder="Charlie Westervelt"
+                      placeholder="Tell us about your league: who plays, how often, and roughly how many teams."
                       rows={5}
                       className="w-full px-4 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 font-chakra text-sm transition-all duration-200 focus:outline-none focus:border-gaffer-orange focus:ring-1 focus:ring-gaffer-orange/20 resize-none h-40"
                     />

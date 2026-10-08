@@ -44,6 +44,8 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
   })
 
   const chips = Array.isArray(chipsData) ? chipsData : chipsData?.chips
+  // Gaffer can pause coin purchases (for example while payments are not ready); free chips still work.
+  const purchasesPaused = !Array.isArray(chipsData) && chipsData?.purchasesEnabled === false
 
   const { data: wallet } = useWallet()
 
@@ -311,13 +313,18 @@ export function ChipStoreDrawer({ competitionId, onClose }: ChipStoreDrawerProps
                   )}
 
                   <div className="pt-2 space-y-3">
+                    {purchasesPaused && selectedChip.price.coins > 0 && (
+                      <p role="status" className="text-xs text-white/50 font-chakra text-center">Buying chips with coins is paused for now. Check back soon.</p>
+                    )}
                     <button
                       onClick={() => buyMutation.mutate(selectedChip.chipType)}
-                      disabled={buyMutation.isPending || selectedChip.price.coins > (wallet?.balance ?? 0)}
+                      disabled={buyMutation.isPending || (purchasesPaused && selectedChip.price.coins > 0) || selectedChip.price.coins > (wallet?.balance ?? 0)}
                       className="w-full h-16 rounded-[24px] bg-orange-gradient-btn text-white font-chakra font-black text-sm uppercase tracking-[0.2em] shadow-orange-glow disabled:opacity-50"
                     >
                       {buyMutation.isPending
                         ? 'Processing...'
+                        : purchasesPaused && selectedChip.price.coins > 0
+                          ? 'Purchases Paused'
                         : selectedChip.price.coins > (wallet?.balance ?? 0)
                           ? 'Insufficient Coins'
                           : 'Confirm Purchase'}

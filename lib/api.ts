@@ -342,8 +342,10 @@ function forceEjectAndRedirect(message: string): never {
       duration: 5000
     })
 
-    if (window.location.pathname !== '/auth/login') {
-      window.location.href = '/auth/login'
+    // Gaffer HQ has its own login page; the rest of the app uses /auth/login.
+    const loginPath = window.location.pathname.startsWith('/hq') ? '/hq/login' : '/auth/login'
+    if (window.location.pathname !== loginPath) {
+      window.location.href = loginPath
     }
   }
   throw new ApiError(401, 'SESSION_EXPIRED', message)

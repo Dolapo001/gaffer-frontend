@@ -113,6 +113,9 @@ export const organizationSignUpSchema = z
       .or(z.literal('')),
     sports: z.array(z.string()).min(1, 'Select at least one sport'),
     description: z.string().max(500, 'Description must be at most 500 characters').optional(),
+    // Helps Gaffer review the organisation. Both optional.
+    phone: z.string().max(30, 'Phone must be at most 30 characters').optional().or(z.literal('')),
+    socialLink: z.string().max(300, 'Link must be at most 300 characters').optional().or(z.literal('')),
   })
   .refine((data) => !data.password || !data.confirmPassword || data.password === data.confirmPassword, {
     message: 'Passwords do not match',

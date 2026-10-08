@@ -6,7 +6,9 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+let mockToken: string | null = null
 vi.mock('@/lib/api', () => ({
+  tokenStore: { get: () => mockToken },
   api: {
     get: vi.fn(),
     post: vi.fn(),
@@ -57,6 +59,7 @@ function makeCompetition(overrides = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks()
+  mockToken = null
 })
 
 // ── listCompetitions ──────────────────────────────────────────────────────────
@@ -99,6 +102,15 @@ describe('createCompetition()', () => {
 // ── getCompetition ────────────────────────────────────────────────────────────
 
 describe('getCompetition()', () => {
+  it('sends the login when signed in, so an organisation can open its own draft', async () => {
+    mockToken = 'token'
+    mockApi.get.mockResolvedValue({ competition: makeCompetition() })
+
+    await getCompetition(COMP_ID)
+
+    expect(mockApi.get).toHaveBeenCalledWith(`/competitions/${COMP_ID}`, { public: false })
+  })
+
   it('calls GET /competitions/:competitionId and returns the competition', async () => {
     const comp = makeCompetition()
     mockApi.get.mockResolvedValue({ competition: comp })

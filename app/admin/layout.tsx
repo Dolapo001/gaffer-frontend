@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, CalendarClock, Award, FileText, Users } from 'lucide-react'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
+import { OrgStatusBanner } from '@/components/organization/OrgStatusBanner'
 
 const NAV_ITEMS = [
   { href: '/admin', icon: Home, label: 'Home' },
@@ -36,6 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
+      <OrgStatusBanner />
       <ErrorBoundary>
         <motion.main
           initial={{ opacity: 0, y: 8 }}

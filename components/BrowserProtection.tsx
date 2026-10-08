@@ -12,6 +12,10 @@ function isAlwaysAllowed(pathname: string): boolean {
   return (
     pathname === '/' ||
     pathname.startsWith('/onboarding/') ||
+    // Gaffer HQ is used in an ordinary browser tab
+    pathname.startsWith('/hq') ||
+    // Password links (forgot password, organisation invites) are opened from email in a browser
+    pathname.startsWith('/auth/reset-password') ||
     // Public invite + recruitment routes — must work in a regular browser
     // without the PWA being installed (shared links, email links, etc.)
     pathname.startsWith('/recruit/') ||
