@@ -5,7 +5,8 @@ import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, deleteMatchEvent, type MatchEvent } from '@/lib/services/match.service'
-import { listLineups } from '@/lib/services/fixture.service'
+import { listLineups, penaltiesSuffix, phaseLabel } from '@/lib/services/fixture.service'
+import { ShootoutView } from '@/components/match/ShootoutView'
 import {
   followMatch,
   unfollowMatch,
@@ -178,6 +179,14 @@ export default function MatchCenterPage() {
             </div>
          </div>
 
+         {/* Extra time / penalties */}
+         {(phaseLabel(fixture as any) || penaltiesSuffix(fixture as any)) && (
+            <div className="-mt-4 mb-4 text-center space-y-1">
+               {phaseLabel(fixture as any) && <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-400 animate-pulse">{phaseLabel(fixture as any)}</p>}
+               {penaltiesSuffix(fixture as any) && <p className="text-[12px] font-bold uppercase tracking-widest text-white/60">{penaltiesSuffix(fixture as any)}</p>}
+            </div>
+         )}
+
          {/* Scorers List */}
          <div className="w-full max-w-[350px] flex justify-between px-2 opacity-80 min-h-[40px]">
             <div className="flex flex-col gap-1">
@@ -192,6 +201,11 @@ export default function MatchCenterPage() {
             </div>
          </div>
       </section>
+
+      {/* Penalty shootout, kick by kick */}
+      {((fixture as any).phase === 'penalties' || (fixture as any).decidedBy === 'penalties') && (
+         <div className="px-6 mb-6"><ShootoutView fixture={fixture as any} /></div>
+      )}
 
       {/* Tabs */}
       <div className="px-6 mb-6">

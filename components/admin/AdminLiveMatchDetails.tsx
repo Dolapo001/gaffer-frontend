@@ -9,7 +9,10 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, saveLineup, recordEvent, teamsWithoutApprovedLineup, type FixtureEvent } from '@/lib/services/fixture.service'
+import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, saveLineup, recordEvent, teamsWithoutApprovedLineup, penaltiesSuffix, phaseLabel, type Fixture, type FixtureEvent } from '@/lib/services/fixture.service'
+import { ShootoutPanel } from '@/components/admin/ShootoutPanel'
+import { DeciderToggles } from '@/components/admin/DeciderToggles'
+import { ExtraTimeCard } from '@/components/admin/ExtraTimeCard'
 import { deleteMatchEvent } from '@/lib/services/match.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
@@ -99,7 +102,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const { data: fixture, isLoading: isFixtureLoading } = useQuery({
     queryKey: ['fixture', id],
     queryFn: () => getFixture(id),
-    enabled: !!id
+    enabled: !!id,
+    refetchInterval: (q) => (['live', 'halftime'].includes((q.state.data as Fixture | undefined)?.status ?? '') ? 8_000 : false),
   })
 
   // 2. Persist Go Live Status
@@ -456,6 +460,10 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       queryClient.invalidateQueries({ queryKey: ['fixtures'] })
       addToast('Event recorded', 'success')
+      if (variables.type === 'fulltime') {
+        // A level knockout match moves to extra time or penalties a moment after Full Time is recorded
+        setTimeout(() => queryClient.invalidateQueries({ queryKey: ['fixture', id] }), 1500)
+      }
       if (variables.type === 'penalty_awarded') {
         setFlowStep('penaltyOutcome')
       } else {
@@ -562,6 +570,12 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
             <span className={`font-inter font-bold text-[12px] uppercase tracking-[0.2em] ${isLive ? 'text-[#00FF85] animate-pulse' : 'text-white/40'}`}>
               {fixture.status === 'live' ? 'Live' : fixture.status === 'completed' ? 'Full Time' : 'Scheduled'}
             </span>
+            {phaseLabel(fixture as Fixture) && (
+              <span className="font-inter font-bold text-[11px] uppercase tracking-[0.2em] text-orange-400">{phaseLabel(fixture as Fixture)}</span>
+            )}
+            {penaltiesSuffix(fixture as Fixture) && (
+              <span className="font-inter font-bold text-[11px] uppercase tracking-widest text-white/60">{penaltiesSuffix(fixture as Fixture)}</span>
+            )}
           </div>
 
           <div className="flex items-center justify-between w-full max-w-md px-2 sm:px-4 gap-x-1 sm:gap-x-2">
@@ -661,13 +675,33 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                 <span className={`text-[10px] font-inter font-bold uppercase tracking-widest mt-1 ${isLive ? 'text-[#22C55E]' : 'text-[#FF5C00]'}`}>
                   {toggleMutation.isPending ? 'Updating...' : isLive ? 'Live' : 'Go Live'}
                 </span>
-                {isLive && matchHasEvents && (
+                {isLive && matchHasEvents && (fixture as Fixture).phase !== 'extra_time' && (fixture as Fixture).phase !== 'penalties' && (
                   <span className="text-[9px] font-inter font-semibold uppercase tracking-widest text-white/35 mt-0.5">End it with Full Time</span>
                 )}
               </>
             )}
           </div>
         </section>
+
+        {fixture.status === 'scheduled' && (
+          <div className="pt-4">
+            <DeciderToggles
+              value={(fixture as Fixture).decider ?? { extraTime: false, penalties: fixture.stageType === 'knockout' }}
+              onChange={(decider) => updateFixtureMutation.mutate({ decider })}
+              disabled={updateFixtureMutation.isPending}
+            />
+          </div>
+        )}
+
+        {fixture.status !== 'completed' && (fixture as Fixture).phase === 'extra_time' && (
+          <ExtraTimeCard fixtureId={id} onDone={() => { queryClient.invalidateQueries({ queryKey: ['fixture', id] }); queryClient.invalidateQueries({ queryKey: ['fixtures'] }) }} />
+        )}
+
+        {(fixture as Fixture).phase === 'penalties' && (
+          <div className="pt-4">
+            <ShootoutPanel fixture={fixture as Fixture} />
+          </div>
+        )}
 
         <div className="flex border-b border-white/5 shrink-0">
           <button onClick={() => setActiveTab('lineup')} className={`flex-1 py-2.5 font-inter font-bold text-xs uppercase tracking-wider transition-colors ${activeTab === 'lineup' ? 'text-white border-b-2 border-[#FF5C00]' : 'text-white/40'}`}>Line-up</button>

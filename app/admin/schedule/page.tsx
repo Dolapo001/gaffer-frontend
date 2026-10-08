@@ -18,6 +18,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { GroupedFixturesView } from '@/components/league/GroupedFixturesView'
 import { AdminFixtureRow } from '@/components/admin/AdminFixtureRow'
 import { CreateRoundModal } from '@/components/admin/CreateRoundModal'
+import { DeciderToggles } from '@/components/admin/DeciderToggles'
+import { setRoundDecider, type Decider } from '@/lib/services/fixture.service'
 
 export default function SchedulePage() {
   const router = useRouter()
@@ -39,6 +41,11 @@ export default function SchedulePage() {
   const [formAwayTeamId, setFormAwayTeamId] = useState('')
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [formTime, setFormTime] = useState('14:00')
+  // What settles the match if it ends level. Untouched, a knockout match defaults to penalties and anything else to nothing.
+  const [formDecider, setFormDecider] = useState<Decider | null>(null)
+  // Two-leg ties: 0 = a single match, 1 = first leg, 2 = second leg (which names the first)
+  const [formLeg, setFormLeg] = useState<0 | 1 | 2>(0)
+  const [formFirstLegId, setFormFirstLegId] = useState('')
 
   // 1. Fetch Org
   const { data: orgs, isLoading: isLoadingOrgs } = useQuery({
@@ -111,6 +118,9 @@ export default function SchedulePage() {
       setShowScheduleForm(false)
       setFormHomeTeamId('')
       setFormAwayTeamId('')
+      setFormDecider(null)
+      setFormLeg(0)
+      setFormFirstLegId('')
     },
     onError: (err: any) => {
       addToast(err?.message || 'Failed to schedule game', 'error')
@@ -133,6 +143,22 @@ export default function SchedulePage() {
   })
 
   const isEmpty = !backendFixtures?.length || !competitionId
+
+  const formRound = rounds?.find((r: Round) => r._id === formRoundId)
+  const formStageType = formRound?.stageType || (selectedComp?.format === 'knockout' ? 'knockout' : selectedComp?.format === 'groups' ? 'groups' : 'league')
+  const effectiveDecider: Decider = formDecider ?? { extraTime: false, penalties: formStageType === 'knockout' }
+  // First legs this second leg can belong to: same two teams, no second leg yet
+  const sameTwoTeams = (f: any) => {
+    const h = typeof f.homeTeamId === 'object' ? f.homeTeamId._id : f.homeTeamId
+    const a = typeof f.awayTeamId === 'object' ? f.awayTeamId._id : f.awayTeamId
+    return [h, a].sort().join() === [formHomeTeamId, formAwayTeamId].sort().join()
+  }
+  const firstLegChoices = (backendFixtures ?? []).filter((f: any) => f.leg === 1 && sameTwoTeams(f) && !(backendFixtures ?? []).some((g: any) => g.leg === 2 && g.tieId === f.tieId))
+  const applyToRound = useMutation({
+    mutationFn: () => setRoundDecider(formRoundId, effectiveDecider),
+    onSuccess: (r) => { queryClient.invalidateQueries({ queryKey: ['fixtures', competitionId] }); addToast(`Applied to ${r.updated} unplayed ${r.updated === 1 ? 'match' : 'matches'} in this round`, 'success') },
+    onError: (err: any) => addToast(err?.message || 'Could not apply to the round', 'error'),
+  })
 
   if (isLoadingOrgs || isLoadingComps || isLoadingFixtures) {
     return (
@@ -301,6 +327,39 @@ export default function SchedulePage() {
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <DeciderToggles value={effectiveDecider} onChange={setFormDecider} />
+                {formRoundId && (
+                  <button type="button" onClick={() => applyToRound.mutate()} disabled={applyToRound.isPending} className="text-xs text-white/50 underline hover:text-white">
+                    {applyToRound.isPending ? 'Applying…' : 'Use these for every unplayed match in this round'}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1 uppercase tracking-wider">Home and away</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([[0, 'Single match'], [1, 'First leg'], [2, 'Second leg']] as const).map(([v, label]) => (
+                    <button key={v} type="button" onClick={() => { setFormLeg(v); setFormFirstLegId('') }}
+                      className={`h-12 rounded-xl text-sm font-semibold border ${formLeg === v ? 'bg-orange-500 text-black border-orange-500' : 'bg-[#1E2032] text-white/70 border-white/5'}`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {formLeg === 2 && (
+                  <div className="relative">
+                    <select value={formFirstLegId} onChange={(e) => setFormFirstLegId(e.target.value)} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
+                      <option value="">{formHomeTeamId && formAwayTeamId ? (firstLegChoices.length ? 'Pick the first leg' : 'No first leg between these teams yet') : 'Pick both teams first'}</option>
+                      {firstLegChoices.map((f: any) => (
+                        <option key={f._id} value={f._id}>{`${typeof f.homeTeamId === 'object' ? f.homeTeamId.name : 'Home'} v ${typeof f.awayTeamId === 'object' ? f.awayTeamId.name : 'Away'} · ${new Date(f.kickoffAt).toLocaleDateString()}`}</option>
+                      ))}
+                    </select>
+                    <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+                  </div>
+                )}
+                {formLeg > 0 && <p className="text-xs text-white/40 ml-1">Extra time and penalties apply after the second leg, when the two matches together are level.</p>}
+              </div>
+
               <div className="pt-4">
                 <GradientButton
                   onClick={async () => {
@@ -317,8 +376,15 @@ export default function SchedulePage() {
                       return
                     }
 
+                    if (formLeg === 2 && !formFirstLegId) {
+                      addToast('Pick the first leg this match belongs to', 'error')
+                      return
+                    }
                     const round = rounds?.find(r => r._id === formRoundId)
                     const payload = {
+                      decider: effectiveDecider,
+                      ...(formLeg ? { leg: formLeg } : {}),
+                      ...(formLeg === 2 ? { tieWithFixtureId: formFirstLegId } : {}),
                       competitionId: formCompetitionId,
                       homeTeamId: formHomeTeamId,
                       awayTeamId: formAwayTeamId,

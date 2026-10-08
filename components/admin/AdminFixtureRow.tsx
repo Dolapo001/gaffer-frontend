@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { startMatch, cancelLive, deleteFixture, teamsWithoutApprovedLineup } from '@/lib/services/fixture.service'
+import { startMatch, cancelLive, deleteFixture, teamsWithoutApprovedLineup, penaltiesSuffix } from '@/lib/services/fixture.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToast } from '@/store/toastStore'
 
@@ -106,6 +106,7 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
         <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
           <span className="text-white text-[13px] font-black">{isCompleted || isLive ? fixture.score?.home ?? 0 : ''}</span>
           <span className="text-white text-[13px] font-black">{isCompleted || isLive ? fixture.score?.away ?? 0 : ''}</span>
+          {isCompleted && penaltiesSuffix(fixture) && <span className="text-white/50 text-[10px] font-bold whitespace-nowrap">{penaltiesSuffix(fixture)}</span>}
         </div>
 
         {!isCompleted && (

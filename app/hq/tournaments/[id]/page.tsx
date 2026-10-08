@@ -4,7 +4,8 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCompetition, updateCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
-import { listFixtures, updateFixture, deleteFixture, type Fixture } from '@/lib/services/fixture.service'
+import { listFixtures, updateFixture, deleteFixture, penaltiesSuffix, type Decider, type Fixture } from '@/lib/services/fixture.service'
+import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/services/team.service'
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
 
@@ -59,10 +60,11 @@ function FixtureRow({ f }: { f: Fixture }) {
   const [kickoff, setKickoff] = useState(toLocalInput(f.kickoffAt))
   const [venue, setVenue] = useState(f.venue ?? '')
   const [status, setStatus] = useState<Fixture['status']>(f.status)
+  const [decider, setDecider] = useState<Decider>(f.decider ?? { extraTime: false, penalties: f.stageType === 'knockout' })
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const started = ['live', 'halftime', 'completed'].includes(f.status)
   const save = useMutation({
-    mutationFn: () => updateFixture(f._id, { kickoffAt: new Date(kickoff).toISOString(), venue, ...(status !== f.status ? { status } : {}) }),
+    mutationFn: () => updateFixture(f._id, { kickoffAt: new Date(kickoff).toISOString(), venue, ...(status !== f.status ? { status } : {}), ...(started ? {} : { decider }) }),
     onSuccess: () => { setMsg({ ok: true, text: 'Saved' }); qc.invalidateQueries({ queryKey: ['hq', 'fixtures'] }) },
     onError: (e) => setMsg({ ok: false, text: errorText(e) }),
   })
@@ -75,7 +77,7 @@ function FixtureRow({ f }: { f: Fixture }) {
     <li className="rounded-2xl bg-gaffer-bg border border-gaffer-border p-3 space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <p className="font-body font-semibold">{teamName(f.homeTeamId)} <span className="text-gaffer-muted">v</span> {teamName(f.awayTeamId)}
-          {started && <span className="ml-2 font-chakra">{f.score?.home ?? 0} - {f.score?.away ?? 0}</span>}
+          {started && <span className="ml-2 font-chakra">{f.score?.home ?? 0} - {f.score?.away ?? 0} {penaltiesSuffix(f)}</span>}
         </p>
         <Pill label={f.status} tone={f.status === 'live' ? 'good' : 'neutral'} />
       </div>
@@ -86,6 +88,7 @@ function FixtureRow({ f }: { f: Fixture }) {
           {['scheduled', 'postponed', 'cancelled', ...(started ? [f.status] : [])].filter((v, i, a) => a.indexOf(v) === i).map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </div>
+      {!started && <DeciderToggles value={decider} onChange={setDecider} />}
       <div className="flex flex-wrap items-center gap-2">
         <ActionButton tone="good" label={save.isPending ? 'Saving…' : 'Save'} onClick={() => save.mutate()} disabled={save.isPending || f.status === 'completed'} />
         <Link href={`/hq/match/${f._id}`} className="px-3 py-2 rounded-xl text-sm font-body font-semibold border border-gaffer-border hover:bg-gaffer-card">Open match console</Link>

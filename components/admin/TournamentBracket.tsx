@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { listRounds, listFixtures, type Round, type Fixture } from '@/lib/services/fixture.service'
+import { listRounds, listFixtures, type Round, type Fixture, penaltiesSuffix } from '@/lib/services/fixture.service'
 import { getImageUrl } from '@/lib/api'
 import { Trophy, Lock } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -153,9 +153,14 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
     if (homeId) teamsInBracket.add(homeId)
     if (awayId) teamsInBracket.add(awayId)
     if (f.status === 'completed') {
-      if (f.score.home > f.score.away) eliminatedTeams.add(awayId)
+      const winner = f.winnerTeamId ? String(f.winnerTeamId) : null
+      if (winner) {
+        // Decided by the server: score, extra time, penalties, or the aggregate of a two-leg tie
+        if (winner === homeId) eliminatedTeams.add(awayId)
+        else if (winner === awayId) eliminatedTeams.add(homeId)
+      } else if (f.score.home > f.score.away) eliminatedTeams.add(awayId)
       else if (f.score.away > f.score.home) eliminatedTeams.add(homeId)
-      // draws: no elimination derived — tournament may use extra-time/pens
+      // a level match with no winner yet (e.g. the first leg of a two-leg tie): nobody is out
     }
   })
 
@@ -482,8 +487,9 @@ function BracketMatch({
 }) {
   const isCompleted = fixture.status === 'completed'
   const isLive = fixture.status === 'live' || fixture.status === 'halftime'
-  const homeWon = isCompleted && fixture.score.home > fixture.score.away
-  const awayWon = isCompleted && fixture.score.away > fixture.score.home
+  const winnerId = fixture.winnerTeamId ? String(fixture.winnerTeamId) : null
+  const homeWon = isCompleted && (winnerId ? winnerId === toTeamId(fixture.homeTeamId) : fixture.score.home > fixture.score.away)
+  const awayWon = isCompleted && (winnerId ? winnerId === toTeamId(fixture.awayTeamId) : fixture.score.away > fixture.score.home)
   const locked = isKickedOff(fixture)
 
   const homeLabel = toTeamLabel(fixture.homeTeamId)
@@ -553,6 +559,7 @@ function BracketMatch({
       ) : isCompleted ? (
         <span className="font-display font-black tabular-nums text-white text-[12px] tracking-wider bg-black/40 px-2 py-0.5 rounded-full border border-white/5">
           {fixture.score?.home ?? 0} : {fixture.score?.away ?? 0}
+          {penaltiesSuffix(fixture) && <span className="ml-1 text-white/60 text-[9px]">{penaltiesSuffix(fixture)}</span>}
         </span>
       ) : (
         <span className="font-chakra font-bold text-white/50 text-[9px] uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-md border border-white/5">

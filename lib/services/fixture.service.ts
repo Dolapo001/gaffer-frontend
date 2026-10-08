@@ -30,6 +30,11 @@ export interface Round {
   endDate?: string
 }
 
+export interface Decider {
+  extraTime?: boolean
+  penalties?: boolean
+}
+
 export interface Fixture {
   _id: string
   competitionId: string
@@ -48,6 +53,19 @@ export interface Fixture {
   awayFormation?: string
   homeLineup?: Record<string, any>
   awayLineup?: Record<string, any>
+  /** What settles the match if it finishes level (chosen when it was scheduled). Unset on older fixtures. */
+  decider?: Decider
+  /** Where a level knockout match is now: normal time, extra time or the penalty shootout. */
+  phase?: 'regular' | 'extra_time' | 'penalties'
+  extraTimePlayed?: boolean
+  decidedBy?: 'score' | 'extra_time' | 'penalties' | 'aggregate' | null
+  /** Two-leg ties: both legs share tieId; leg is 1 or 2. */
+  leg?: 1 | 2 | null
+  tieId?: string | null
+  winnerTeamId?: string | null
+  isFinalized?: boolean
+  /** Running shootout tally. The kicks come from getShootout. */
+  shootout?: { status: 'none' | 'in_progress' | 'completed'; home: number; away: number; firstTeamId?: string | null }
   /** Clash-resolved kit assignments. Present when the backend has processed kit selection. */
   resolvedKits?: ResolvedKits
 }
@@ -126,6 +144,11 @@ export async function createFixture(
     roundId?: string
     groupName?: string
     venue?: string
+    /** Extra time and/or penalties if the match finishes level. */
+    decider?: Decider
+    /** Two-leg ties: 1 or 2; the second leg names the first leg's fixture. */
+    leg?: 1 | 2
+    tieWithFixtureId?: string
   },
 ): Promise<Fixture> {
   const data = await api.post<{ fixture: Fixture }>(`/competitions/${competitionId}/fixtures`, payload)
@@ -186,9 +209,98 @@ export async function startMatch(fixtureId: string): Promise<Fixture> {
 }
 
 // POST /fixtures/:fixtureId/end
-export async function endMatch(fixtureId: string): Promise<Fixture> {
-  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/end`)
+/**
+ * Ends the current period. A level knockout match does not finish here: it moves to extra time, then to the
+ * shootout. `minute` is when extra time ended (optional).
+ */
+export async function endMatch(fixtureId: string, minute?: number): Promise<Fixture> {
+  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/end`, minute ? { minute } : undefined)
   return data.fixture
+}
+
+// ── Penalty shootout ─────────────────────────────────────────────────────────
+
+export type KickResult = 'scored' | 'missed' | 'saved'
+
+export interface ShootoutKick {
+  _id: string
+  order: number
+  teamId: string
+  takerId?: { _id: string; firstName: string; lastName: string; jerseyNumber?: number } | string | null
+  goalkeeperId?: { _id: string; firstName: string; lastName: string } | string | null
+  result: KickResult
+}
+
+export interface Shootout {
+  status: 'none' | 'in_progress' | 'completed'
+  phase?: 'regular' | 'extra_time' | 'penalties'
+  home: number
+  away: number
+  homeTaken: number
+  awayTaken: number
+  finished: boolean
+  winner: 'home' | 'away' | null
+  suddenDeath: boolean
+  /** The team whose turn it is; null before the first kick (the admin picks who goes first). */
+  nextTeamId: string | null
+  firstTeamId: string | null
+  kicks: ShootoutKick[]
+}
+
+// GET /fixtures/:fixtureId/shootout — PUBLIC
+export async function getShootout(fixtureId: string): Promise<Shootout> {
+  const data = await api.get<{ shootout: Shootout }>(`/fixtures/${fixtureId}/shootout`, { public: true })
+  return data.shootout
+}
+
+// POST /fixtures/:fixtureId/shootout/kicks
+export async function addShootoutKick(
+  fixtureId: string,
+  payload: { teamId: string; takerId?: string; goalkeeperId?: string; result: KickResult },
+): Promise<Shootout> {
+  const data = await api.post<{ shootout: Shootout }>(`/fixtures/${fixtureId}/shootout/kicks`, payload)
+  return data.shootout
+}
+
+// PATCH /fixtures/:fixtureId/shootout/kicks/:kickId
+export async function updateShootoutKick(
+  fixtureId: string,
+  kickId: string,
+  payload: { takerId?: string | null; goalkeeperId?: string | null; result?: KickResult },
+): Promise<Shootout> {
+  const data = await api.patch<{ shootout: Shootout }>(`/fixtures/${fixtureId}/shootout/kicks/${kickId}`, payload)
+  return data.shootout
+}
+
+// DELETE /fixtures/:fixtureId/shootout/kicks/:kickId
+export async function deleteShootoutKick(fixtureId: string, kickId: string): Promise<Shootout> {
+  const data = await api.delete<{ shootout: Shootout }>(`/fixtures/${fixtureId}/shootout/kicks/${kickId}`)
+  return data.shootout
+}
+
+// DELETE /fixtures/:fixtureId/shootout — start the shootout over
+export async function clearShootout(fixtureId: string): Promise<Shootout> {
+  const data = await api.delete<{ shootout: Shootout }>(`/fixtures/${fixtureId}/shootout`)
+  return data.shootout
+}
+
+// POST /rounds/:roundId/decider — apply extra time / penalties to every match in the round that has not started
+export async function setRoundDecider(roundId: string, decider: Decider): Promise<{ updated: number }> {
+  return api.post<{ updated: number }>(`/rounds/${roundId}/decider`, decider)
+}
+
+/** "(4-3 pens)" for a match a shootout decided, else an empty string. Shown next to the score. */
+export function penaltiesSuffix(f: Pick<Fixture, 'decidedBy' | 'shootout'> | null | undefined): string {
+  if (!f || f.decidedBy !== 'penalties' || !f.shootout) return ''
+  return `(${f.shootout.home}-${f.shootout.away} pens)`
+}
+
+/** What the match is doing beyond normal time: shown as a badge on the live match. */
+export function phaseLabel(f: Pick<Fixture, 'phase' | 'status'> | null | undefined): string | null {
+  if (!f || f.status === 'completed') return null
+  if (f.phase === 'extra_time') return 'EXTRA TIME'
+  if (f.phase === 'penalties') return 'PENALTIES'
+  return null
 }
 
 // POST /fixtures/:fixtureId/cancel-live — set live fixture back to scheduled
