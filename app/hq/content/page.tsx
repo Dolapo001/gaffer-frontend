@@ -29,12 +29,43 @@ function Comments({ id }: { id: string }) {
   )
 }
 
+function EditDialog({ item, onClose }: { item: HqContentItem; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [title, setTitle] = useState(item.title ?? '')
+  const [body, setBody] = useState(item.body)
+  const [error, setError] = useState<string | null>(null)
+  const save = useMutation({
+    mutationFn: () => hqService.editContent(item.id, { title, body }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['hq'] }); onClose() },
+    onError: (e) => setError(errorText(e)),
+  })
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-end md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Edit post">
+      <div className="w-full max-w-lg bg-gaffer-surface border border-gaffer-border rounded-3xl p-5 space-y-3">
+        <h3 className="font-display font-bold text-xl">Edit this post</h3>
+        <label className="block text-sm font-body text-gaffer-muted">Headline
+          <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} className="mt-1 w-full rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white" />
+        </label>
+        <label className="block text-sm font-body text-gaffer-muted">Text
+          <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={7} maxLength={5000} className="mt-1 w-full rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white" />
+        </label>
+        {error && <p role="alert" className="text-sm text-red-400 font-body">{error}</p>}
+        <div className="flex gap-2 justify-end">
+          <button onClick={onClose} className="px-4 py-2 rounded-xl font-body text-gaffer-muted hover:text-white">Cancel</button>
+          <button onClick={() => save.mutate()} disabled={save.isPending || !body.trim()} className="px-4 py-2 rounded-xl bg-gaffer-orange text-black font-display font-bold disabled:opacity-50">{save.isPending ? 'Saving…' : 'Save changes'}</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function HqContentPage() {
   const qc = useQueryClient()
   const [q, setQ] = useState('')
   const [type, setType] = useState('')
   const [page, setPage] = useState(1)
   const [removing, setRemoving] = useState<HqContentItem | null>(null)
+  const [editing, setEditing] = useState<HqContentItem | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
@@ -74,6 +105,7 @@ export default function HqContentPage() {
                 </div>
                 <p className="text-sm font-body whitespace-pre-line line-clamp-4">{i.body}</p>
                 <div className="flex flex-wrap gap-2">
+                  <ActionButton label="Edit" onClick={() => setEditing(i)} />
                   <ActionButton tone="bad" label="Remove…" onClick={() => { setError(null); setRemoving(i) }} />
                   {i.comments > 0 && <ActionButton label={open === i.id ? 'Hide comments' : `Comments (${i.comments})`} onClick={() => setOpen(open === i.id ? null : i.id)} />}
                 </div>
@@ -84,6 +116,7 @@ export default function HqContentPage() {
         )}
       {data && <Pager page={page} total={data.total} pageSize={data.pageSize} onPage={setPage} />}
 
+      {editing && <EditDialog item={editing} onClose={() => setEditing(null)} />}
       {removing && (
         <ReasonDialog title="Remove this post" confirmLabel="Remove" required={false} busy={remove.isPending} error={error}
           onCancel={() => { setRemoving(null); setError(null) }} onConfirm={(reason) => remove.mutate({ id: removing.id, reason: reason || undefined })} />
