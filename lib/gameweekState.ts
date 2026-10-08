@@ -69,6 +69,27 @@ export function getCurrentGameweek(gameweeks: FantasyGameweek[], fixtures: Fixtu
   return active ?? sorted[sorted.length - 1]
 }
 
+// The server stops accepting squad changes this long before a gameweek's deadline.
+const LOCK_BEFORE_DEADLINE_MS = 60 * 60 * 1000
+
+/**
+ * The gameweek squad changes apply to: the earliest one that isn't finished and hasn't reached its lock time. Mirrors the server's rule, so Pick Team opens on a gameweek that
+ * accepts changes instead of one that is live or locked (where swaps were silently ignored).
+ */
+export function getEditableGameweek(
+  gameweeks: FantasyGameweek[],
+  fixtures: Fixture[],
+  now: Date = new Date(),
+): FantasyGameweek | undefined {
+  const sorted = [...gameweeks].sort((a, b) => a.gameweekNumber - b.gameweekNumber)
+  return sorted.find((gw) => {
+    if (gw.completionStatus === 'completed' || gw.lockStatus === 'locked') return false
+    // Same as the server: a round with no fixtures yet has no real deadline, so it is still open
+    if (getGameweekState(gw, fixtures) === 'no_fixtures') return true
+    return !(gw.deadline && now.getTime() >= new Date(gw.deadline).getTime() - LOCK_BEFORE_DEADLINE_MS)
+  })
+}
+
 function teamIdOf(ref: Fixture['homeTeamId']): string | undefined {
   return typeof ref === 'object' ? ref?._id : ref
 }

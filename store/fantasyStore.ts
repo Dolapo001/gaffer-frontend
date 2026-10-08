@@ -74,6 +74,25 @@ interface FantasyState {
   clearUserData: () => void
 }
 
+/**
+ * Captain and vice-captain have to be on the pitch. When a swap sends one of them to the bench the
+ * armband moves on: a benched captain hands over to the vice-captain, and the save picks a new vice.
+ * Without this the save was refused with "Captain must be in the starting XI" and the swap looked broken.
+ */
+export function withArmbandsOnPitch(players: FantasySquadPlayer[]): FantasySquadPlayer[] {
+  const captain = players.find((p) => p.isCaptain)
+  const vice = players.find((p) => p.isViceCaptain)
+  const captainBenched = !!captain && !captain.isOnPitch
+  const viceBenched = !!vice && !vice.isOnPitch
+  if (!captainBenched && !viceBenched) return players
+  return players.map((p) => {
+    if (captainBenched && p.id === captain!.id) return { ...p, isCaptain: false }
+    if (viceBenched && p.id === vice!.id) return { ...p, isViceCaptain: false }
+    if (captainBenched && !viceBenched && vice && p.id === vice.id) return { ...p, isCaptain: true, isViceCaptain: false }
+    return p
+  })
+}
+
 export const useFantasyStore = create<FantasyState>()(
   persist(
     (set, get) => ({
@@ -193,7 +212,7 @@ export const useFantasyStore = create<FantasyState>()(
             newPlayers[p1Index] = { ...p1, isOnPitch: p2WasOnPitch }
             newPlayers[p2Index] = { ...p2, isOnPitch: p1WasOnPitch }
 
-            return { players: newPlayers, substitutingOutId: null, substituteError: null }
+            return { players: withArmbandsOnPitch(newPlayers), substitutingOutId: null, substituteError: null }
           }
           return state
         }),

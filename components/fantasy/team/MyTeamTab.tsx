@@ -11,7 +11,7 @@ import { useToastStore } from '@/store/toastStore'
 import { getMyFantasyTeam, getFantasyStats, listGameweeks, getFantasySeason, getMyFantasyTeamHistory } from '@/lib/services/fantasy.service'
 import { listFixtures } from '@/lib/services/fixture.service'
 import { mapApiTeamToSquad } from '@/lib/converters'
-import { getGameweekState, getCurrentGameweek, getRoundFixtures, getTeamFixtureInRound } from '@/lib/gameweekState'
+import { getGameweekState, getCurrentGameweek, getEditableGameweek, getRoundFixtures, getTeamFixtureInRound } from '@/lib/gameweekState'
 import { formatSquadValue } from '@/lib/format'
 
 import { Pitch } from '@/components/fantasy/Pitch'
@@ -62,8 +62,9 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
 
   useEffect(() => {
     if (selectedGameweekId || !gameweeks?.length) return
-    const current = getCurrentGameweek(gameweeks, fixtures)
-    if (current) setSelectedGameweekId(current._id)
+    // Open on the gameweek that accepts changes; the strip above still lets people look back at live and past ones
+    const target = getEditableGameweek(gameweeks, fixtures) ?? getCurrentGameweek(gameweeks, fixtures)
+    if (target) setSelectedGameweekId(target._id)
   }, [gameweeks, fixtures, selectedGameweekId])
 
   useEffect(() => {
@@ -191,7 +192,12 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
           setSubstitutingOutId(null)
           return
         }
-        if (isHistorical) return // No substitutions in history
+        if (isHistorical) {
+          // Nothing can change in a gameweek that is live or finished
+          setSubstitutingOutId(null)
+          toast.addToast('This gameweek is locked. Pick the next open gameweek above to make changes.', 'error')
+          return
+        }
         performSubstitution(substitutingOutId, id)
         return
       }

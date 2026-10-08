@@ -501,7 +501,7 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
                       >
                         {action.icon}
                       </motion.button>
-                      <span className="text-white text-[12px] font-bold tracking-tight text-center leading-tight">{action.label}</span>
+                      <button type="button" onClick={action.onClick} className="text-white text-[12px] font-bold tracking-tight text-center leading-tight">{action.label}</button>
                     </div>
                   ))}
                 </div>
