@@ -54,12 +54,14 @@ export async function listTransactions(): Promise<Transaction[]> {
 // POST /payments/coins/initiate
 export async function initiatePurchase(packId: string): Promise<{ 
   authorization_url: string; 
-  reference: string 
+  reference: string;
+  access_code?: string;
 }> {
   const res = await api.post<{ data: any }>('/payments/coins/initiate', { packId })
   return {
     authorization_url: res.data.authorizationUrl,
-    reference: res.data.reference
+    reference: res.data.reference,
+    access_code: res.data.accessCode,
   }
 }
 
@@ -74,5 +76,19 @@ export async function verifyPayment(reference: string): Promise<{
     status: 'success', // if we reached here, its successful
     coinsAdded: res.data.coins,
     newBalance: res.data.wallet.balance
+  }
+}
+
+// POST /payments/verify-pending
+export async function verifyPendingPayment(): Promise<{
+  credited: boolean;
+  coinsAdded?: number;
+  newBalance?: number;
+}> {
+  const res = await api.post<{ data: any }>('/payments/verify-pending')
+  return {
+    credited: Boolean(res.data.credited),
+    coinsAdded: res.data.coinsAdded,
+    newBalance: res.data.wallet?.balance,
   }
 }

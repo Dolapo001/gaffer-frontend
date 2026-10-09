@@ -60,12 +60,18 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
     staleTime: 60_000,
   })
 
+  const editableGw = useMemo(
+    () => (gameweeks && fixtures ? getEditableGameweek(gameweeks, fixtures) : undefined),
+    [gameweeks, fixtures],
+  )
+  const editableGwId = editableGw?._id ?? null
+
   useEffect(() => {
     if (selectedGameweekId || !gameweeks?.length) return
     // Open on the gameweek that accepts changes; the strip above still lets people look back at live and past ones
-    const target = getEditableGameweek(gameweeks, fixtures) ?? getCurrentGameweek(gameweeks, fixtures)
+    const target = editableGw ?? getCurrentGameweek(gameweeks, fixtures)
     if (target) setSelectedGameweekId(target._id)
-  }, [gameweeks, fixtures, selectedGameweekId])
+  }, [gameweeks, fixtures, selectedGameweekId, editableGw])
 
   useEffect(() => {
     let activeSocket: any = null
@@ -97,7 +103,11 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
   const { data: myTeam, isLoading: loadingTeam, isError: teamLoadFailed } = useQuery({
     queryKey: ['fantasy-team-me', competitionId, selectedGameweekId],
     queryFn: () => {
-      if (!selectedGameweekId) return getMyFantasyTeam(competitionId)
+      // Use live endpoint if no gameweek is selected or if viewing the active editable gameweek.
+      // Use historical snapshot endpoint only when viewing genuinely completed/past rounds.
+      if (!selectedGameweekId || selectedGameweekId === editableGwId) {
+        return getMyFantasyTeam(competitionId)
+      }
       return getMyFantasyTeamHistory(competitionId, selectedGameweekId)
     },
     enabled: !!selectedGameweekId || (gameweeks && gameweeks.length === 0),
