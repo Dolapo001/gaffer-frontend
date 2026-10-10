@@ -186,6 +186,9 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
               </select>
               <ChevronDown size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30" />
             </div>
+            {form.format !== (competition.format || 'round_robin') && (
+              <p className="text-[11px] text-white/40 ml-1 pt-1">Changing the format sets up the stages it needs (for example the group stage). Nothing you have already scheduled is removed.</p>
+            )}
           </div>
 
           {/* Rules Section */}
