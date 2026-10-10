@@ -1,3 +1,4 @@
+import { asArray } from '@/lib/asArray'
 import { api } from '@/lib/api'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 import { mockRounds, mockFixtures } from '@/lib/testing-mocks/premierLeague'
@@ -165,7 +166,7 @@ export async function listFixtures(
     ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined) as [string, string][]).toString()
     : ''
   const data = await api.get<{ fixtures: Fixture[] }>(`/competitions/${competitionId}/fixtures${qs}`, { public: true })
-  return data.fixtures
+  return asArray<Fixture>(data.fixtures)
 }
 
 // POST /competitions/:competitionId/fixtures/generate

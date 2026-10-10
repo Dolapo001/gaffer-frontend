@@ -7,6 +7,7 @@ import type { FantasyGameweek } from '@/lib/services/fantasy.service'
 import type { Fixture } from '@/lib/services/fixture.service'
 import { ProgressRing } from './ProgressRing'
 import { CountdownTimer } from './CountdownTimer'
+import { asArray } from '@/lib/asArray'
 import { getGameweekState, computeGameweekDeadline } from '@/lib/gameweekState'
 
 interface CompetitionFantasyCardProps {
@@ -16,7 +17,9 @@ interface CompetitionFantasyCardProps {
   onClick: () => void
 }
 
-export function CompetitionFantasyCard({ competition, gameweeks, fixtures, onClick }: CompetitionFantasyCardProps) {
+export function CompetitionFantasyCard({ competition, gameweeks: gameweeksProp, fixtures: fixturesProp, onClick }: CompetitionFantasyCardProps) {
+  const gameweeks = asArray<FantasyGameweek>(gameweeksProp)
+  const fixtures = asArray<Fixture>(fixturesProp)
   const completed = gameweeks.filter((gw) => getGameweekState(gw, fixtures) === 'completed').length
   const anyInProgress = gameweeks.some((gw) => getGameweekState(gw, fixtures) === 'in_progress')
   const nextUpcoming = gameweeks

@@ -10,6 +10,7 @@ import { CountdownTimer } from '@/components/fantasy/CountdownTimer'
 import { FantasyHeaderCard } from '@/components/fantasy/FantasyHeaderCard'
 import { format } from 'date-fns'
 import { FantasyLeaderboardWidget } from './FantasyLeaderboardWidget'
+import { asArray } from '@/lib/asArray'
 import { TopPlayersLeaderboard } from './TopPlayersLeaderboard'
 import { TeamOfTheRoundWidget } from './TeamOfTheRoundWidget'
 import { LiveMatchWidget } from '@/components/fantasy/LiveMatchWidget'
@@ -31,7 +32,8 @@ const STATE_LABELS: Record<GameweekState, string> = {
 export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
   const router = useRouter()
   const currentUserId = useAuthStore((s) => s.user?.id)
-  const { news } = useCompetitionNews(competitionId)
+  const { news: rawNews } = useCompetitionNews(competitionId)
+  const news = asArray<any>(rawNews)
   const [activeGwIndex, setActiveGwIndex] = useState<number | null>(null)
 
   const { data: standingsData } = useQuery({
@@ -53,12 +55,14 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
     queryFn: () => getLeaderboard(competitionId, 1),
   })
 
-  const { data: gameweeks } = useQuery({
+  const { data: gameweeksRaw } = useQuery({
     queryKey: ['fantasy-gameweeks', competitionId],
     queryFn: () => listGameweeks(competitionId),
   })
 
-  const { data: fixtures = [] } = useQuery({
+  const gameweeks = gameweeksRaw === undefined ? undefined : asArray<any>(gameweeksRaw)
+
+  const { data: fixturesRaw = [] } = useQuery({
     queryKey: ['fixtures', competitionId],
     queryFn: () => listFixtures(competitionId),
     staleTime: 60_000,
@@ -69,7 +73,8 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
     queryFn: () => listFantasyPlayers(competitionId, { pageSize: 50 }),
   })
 
-  const myRank = leaderboard?.data?.find((e) => e.userId._id === currentUserId)?.rank ?? null
+  const fixtures = asArray<any>(fixturesRaw)
+  const myRank = asArray<any>(leaderboard?.data).find((e) => e.userId._id === currentUserId)?.rank ?? null
   const gameweeksPlayed = (gameweeks ?? []).filter((gw) => getGameweekState(gw, fixtures) === 'completed').length
 
   // Round/status label + Team of the Round feature the "current" gameweek:
@@ -193,7 +198,7 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
 
       <FantasyLeaderboardWidget competitionId={competitionId} />
 
-      <TopPlayersLeaderboard players={playersRes?.data ?? []} gameweeksPlayed={gameweeksPlayed} />
+      <TopPlayersLeaderboard players={asArray<any>(playersRes?.data)} gameweeksPlayed={gameweeksPlayed} />
 
       <TableStandings
         standings={standingsData?.standings ?? []}
