@@ -1,5 +1,7 @@
 'use client'
 
+import { nextOpponentLabel } from '@/lib/playerDisplay'
+import { PlayerAvatar } from '@/components/fantasy/PlayerAvatar'
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Search, Trash2, X } from 'lucide-react';
@@ -489,24 +491,23 @@ const PlayerRow = ({ player, blockedReason, onClick }: { player: FantasySquadPla
     onClick={onClick}
     className={`w-full flex items-center py-3 px-2 transition-colors border-b border-white/5 group ${blockedReason ? 'opacity-40' : 'hover:bg-white/5'}`}
   >
-    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#2a2b3d] relative mr-4 border border-white/10 shadow-lg">
-      <img
-        src={player.avatarUrl || `https://i.pravatar.cc/100?u=${player.id}`}
-        alt={player.name}
-        className="w-full h-full object-cover object-top"
-      />
-      <div className="absolute bottom-0 left-0 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-[#2a2b3d] p-0.5 shadow-md">
-        <div className="w-full h-full bg-[#004170] rounded-full" />
-      </div>
+    <div className="mr-4">
+      <PlayerAvatar name={player.name} photoUrl={player.avatarUrl} teamColor={player.teamColor} teamLogoUrl={player.teamLogoUrl} teamCode={player.teamCode} size={48} />
     </div>
 
     <div className="flex flex-col items-start flex-1 min-w-0">
       <span className={`text-[15px] font-bold truncate transition-colors leading-tight ${blockedReason ? 'text-white/60' : 'text-white group-hover:text-[#ff6b00]'}`}>
         {player.name}
       </span>
-      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5">
+      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5 max-w-full truncate">
         {player.position}{blockedReason ? ` · ${blockedReason}` : ''}
       </span>
+      <span className="text-white/60 text-[11px] font-semibold mt-0.5 max-w-full truncate">
+        {[player.teamCode, player.teamName && player.teamName !== player.teamCode ? player.teamName : ''].filter(Boolean).join(' · ')}
+      </span>
+      {nextOpponentLabel(player.teamCode, player.nextFixtures) && (
+        <span className="text-white/40 text-[10px] font-semibold mt-0.5">Next: {nextOpponentLabel(player.teamCode, player.nextFixtures)}</span>
+      )}
     </div>
 
     <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
