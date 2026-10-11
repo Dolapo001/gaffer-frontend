@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { PlayerAvatar } from '@/components/fantasy/PlayerAvatar'
 import { motion, AnimatePresence } from 'framer-motion';
 import { FantasySquadPlayer } from '@/lib/fantasyMockData';
 import { X, Shield, MinusCircle } from 'lucide-react';
@@ -72,19 +73,7 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
             {/* Player Info Header */}
             <div className="flex items-center gap-5 mt-4 mb-5">
               <div className="relative flex-shrink-0">
-                <div className="w-[85px] h-[85px] rounded-full overflow-hidden bg-[#2D2E3F] border border-white/10 flex items-center justify-center shadow-xl">
-                  {player.avatarUrl ? (
-                    <img 
-                      src={player.avatarUrl} 
-                      alt={player.name} 
-                      className="w-full h-full object-cover object-top"
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-[#ff6b00]/20 flex items-center justify-center text-gaffer-orange text-3xl font-black">
-                      {player.name[0]}
-                    </div>
-                  )}
-                </div>
+                <PlayerAvatar name={player.name} photoUrl={player.avatarUrl} teamColor={player.teamColor} teamCode={player.teamCode} size={85} showTeamBadge={false} />
                 {/* Team Logo Badge */}
                 {player.teamLogoUrl && (
                   <div className="absolute -bottom-1 -left-1 w-[32px] h-[32px] bg-white rounded-full border-2 border-[#272836] shadow-lg flex items-center justify-center p-1 overflow-hidden z-20">

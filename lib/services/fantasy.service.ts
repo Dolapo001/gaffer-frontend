@@ -167,8 +167,25 @@ export async function enrollPlayers(
 // POST /fantasy/:competitionId/players/sync
 export async function syncTournamentPlayers(
   competitionId: string,
-): Promise<{ data: { enrolled: number; skipped: number; errors: unknown[] } }> {
+): Promise<{ data: { enrolled: number; added: number; skipped: number; errors: unknown[] } }> {
   return api.post(`/fantasy/${competitionId}/players/sync`)
+}
+
+export interface FantasySyncStatus {
+  /** Active players on the tournament's team rosters */
+  rosterPlayers: number
+  /** Players already in the Fantasy pool */
+  inFantasy: number
+  /** Registered after the last sync: on a roster but not in Fantasy yet */
+  notInFantasy: number
+  /** In Fantasy but waiting for a price, so hidden from fans */
+  needPrice: number
+}
+
+// GET /fantasy/:competitionId/players/sync-status (organiser)
+export async function getFantasySyncStatus(competitionId: string): Promise<FantasySyncStatus> {
+  const res = await api.get<{ data: FantasySyncStatus }>(`/fantasy/${competitionId}/players/sync-status`)
+  return res.data
 }
 
 // POST /fantasy/:competitionId/gameweeks

@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayerAvatar } from '@/components/fantasy/PlayerAvatar'
 import React, { useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { CornerUpLeft, ArrowRightLeft } from 'lucide-react'
@@ -282,13 +283,7 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
                 {/* Player header */}
                 <div className="flex items-center gap-5 mb-6">
                   <div className="relative">
-                    <div className="w-[82px] h-[82px] rounded-full overflow-hidden flex items-center justify-center bg-[#25283c] border-[3px] border-white/10 shadow-xl">
-                      {player.avatarUrl ? (
-                        <img src={player.avatarUrl} alt={player.name} className="w-full h-full object-cover object-top" />
-                      ) : (
-                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${player.name}`} alt={player.name} className="w-full h-full object-cover" />
-                      )}
-                    </div>
+                    <PlayerAvatar name={player.name} photoUrl={player.avatarUrl} teamColor={player.teamColor} teamLogoUrl={player.teamLogoUrl} teamCode={player.teamCode} size={82} />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-center">
                     <h3 className="text-white font-bold text-[24px] leading-tight tracking-tight">{player.name}</h3>
