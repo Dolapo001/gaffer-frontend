@@ -53,6 +53,8 @@ export interface Fixture {
   awayFormation?: string
   homeLineup?: Record<string, any>
   awayLineup?: Record<string, any>
+  /** Matches close to this kick-off time, returned after scheduling or rescheduling. A heads-up, never a block. */
+  schedulingWarnings?: string[]
   /** What settles the match if it finishes level (chosen when it was scheduled). Unset on older fixtures. */
   decider?: Decider
   /** Where a level knockout match is now: normal time, extra time or the penalty shootout. */
