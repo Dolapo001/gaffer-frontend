@@ -41,6 +41,7 @@ export default function SchedulePage() {
   const [formAwayTeamId, setFormAwayTeamId] = useState('')
   const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [formTime, setFormTime] = useState('14:00')
+  const [formVenue, setFormVenue] = useState('')
   // What settles the match if it ends level. Untouched, a knockout match defaults to penalties and anything else to nothing.
   const [formDecider, setFormDecider] = useState<Decider | null>(null)
   // Two-leg ties: 0 = a single match, 1 = first leg, 2 = second leg (which names the first)
@@ -112,12 +113,16 @@ export default function SchedulePage() {
   // Mutate: Create Fixture
   const createFixtureMutation = useMutation({
     mutationFn: (payload: any) => createFixture(payload.competitionId, payload),
-    onSuccess: () => {
+    onSuccess: (fixture) => {
       queryClient.invalidateQueries({ queryKey: ['fixtures', competitionId] })
       addToast('Game scheduled successfully!', 'success')
+      // Any time is allowed; if another match is close you just get a heads-up
+      const warnings = fixture?.schedulingWarnings ?? []
+      if (warnings.length) addToast({ message: `Heads-up: ${warnings.join(' ')}`, type: 'warning', duration: 7000 })
       setShowScheduleForm(false)
       setFormHomeTeamId('')
       setFormAwayTeamId('')
+      setFormVenue('')
       setFormDecider(null)
       setFormLeg(0)
       setFormFirstLegId('')
@@ -236,6 +241,17 @@ export default function SchedulePage() {
                     className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-4 text-white text-sm focus:outline-none font-medium"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[13px] text-white/50 font-medium ml-1">Venue (optional)</label>
+                <input
+                  value={formVenue}
+                  onChange={(e) => setFormVenue(e.target.value)}
+                  maxLength={200}
+                  placeholder="e.g. Pitch 2"
+                  className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-4 text-white text-sm focus:outline-none font-medium"
+                />
               </div>
 
               <div className="space-y-2">
@@ -391,7 +407,7 @@ export default function SchedulePage() {
                       kickoffAt: new Date(`${formDate}T${formTime}`).toISOString(),
                       roundId: formRoundId || undefined,
                       stageType: round?.stageType || (selectedComp?.format === 'knockout' ? 'knockout' : selectedComp?.format === 'groups' ? 'groups' : 'league'),
-                      venue: 'Main Stadium',
+                      venue: formVenue.trim() || undefined,
                     }
                     createFixtureMutation.mutate(payload)
                   }}

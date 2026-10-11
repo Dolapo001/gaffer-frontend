@@ -13,6 +13,7 @@ import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLine
 import { ShootoutPanel } from '@/components/admin/ShootoutPanel'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { ExtraTimeCard } from '@/components/admin/ExtraTimeCard'
+import { RescheduleCard } from '@/components/admin/RescheduleCard'
 import { deleteMatchEvent } from '@/lib/services/match.service'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
@@ -682,6 +683,15 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
             )}
           </div>
         </section>
+
+        {fixture.status === 'scheduled' && (
+          <div className="pt-4">
+            <RescheduleCard
+              fixture={fixture as Fixture}
+              onSaved={() => { queryClient.invalidateQueries({ queryKey: ['fixture', id] }); queryClient.invalidateQueries({ queryKey: ['fixtures'] }) }}
+            />
+          </div>
+        )}
 
         {fixture.status === 'scheduled' && (
           <div className="pt-4">
