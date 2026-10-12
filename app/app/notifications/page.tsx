@@ -49,7 +49,7 @@ export default function NotificationsPage() {
   const toast = useToastStore()
   const [activeTab, setActiveTab] = useState<Tab>('inbox')
   const [showMuteSettings, setShowMuteSettings] = useState(false)
-  const { isSubscribed, isPending: isPushPending, toggle: togglePush } = usePushNotifications()
+  const { isSubscribed, isPending: isPushPending, permission, toggle: togglePush, sendTest } = usePushNotifications()
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const { data: inbox, isLoading: isLoadingInbox, isError: isInboxError, refetch: refetchInbox } = useQuery({
@@ -328,6 +328,19 @@ export default function NotificationsPage() {
                     />
                   </button>
                 </div>
+
+                {permission === 'denied' && (
+                  <p className="text-xs text-red-300/80">Alerts are blocked for Gaffer on this phone. Open your phone settings, allow notifications for Gaffer, then turn this on.</p>
+                )}
+                {isSubscribed && (
+                  <button
+                    onClick={sendTest}
+                    disabled={isPushPending}
+                    className="w-full h-11 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50"
+                  >
+                    {isPushPending ? 'Sending…' : 'Send me a test notification'}
+                  </button>
+                )}
 
                 {/* Following summary */}
                 <div className="pt-6 border-t border-white/5 grid grid-cols-3 gap-4">

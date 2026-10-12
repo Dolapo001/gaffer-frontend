@@ -12,6 +12,7 @@ import { useUIStore } from '@/store/uiStore'
 // useAuthListener is called once at the root via AuthProvider — not here.
 
 import { BottomNavbar } from '@/components/BottomNavbar'
+import { PushPrompt } from '@/components/notifications/PushPrompt'
 
 // Exact paths that mean the user has intentionally left the competition context.
 // Note: '/app/league/:id' is the league home and must NOT clear the context.
@@ -77,6 +78,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </motion.main>
         </ErrorBoundary>
 
+        <PushPrompt />
         <BottomNavbar items={navItems} id="global-nav-bar" />
       </div>
   )
