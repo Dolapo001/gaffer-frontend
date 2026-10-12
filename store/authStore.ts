@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import { register, login, logout } from '@/lib/services/auth.service'
+import { register, login, logout, googleAuth } from '@/lib/services/auth.service'
 import { tokenStore, ApiError } from '@/lib/api'
 import { translateError } from '@/lib/errorMessages'
 import type { AuthUser } from '@/lib/services/auth.service'
@@ -32,6 +32,8 @@ interface AuthState {
   clearError: () => void
 
   login: (email: string, password: string) => Promise<void>
+  /** Sign in or sign up with the token the Google button returns */
+  loginWithGoogle: (token: string) => Promise<void>
   register: (email: string, password: string, role?: UserRole, isOrgActive?: boolean) => Promise<AuthUser>
   logout: () => Promise<void>
 }
@@ -157,6 +159,26 @@ export const useAuthStore = create<AuthState>()(
           const msg = err instanceof ApiError
             ? translateError(err.code, err.message)
             : 'Login failed. Please try again.'
+          set({ error: msg })
+          throw err
+        } finally {
+          set({ isLoading: false })
+        }
+      },
+
+      loginWithGoogle: async (token) => {
+        set({ isLoading: true, error: null })
+        try {
+          const res = await googleAuth(token)
+          // A fresh Google sign-in always lands on the personal side (the server says the same)
+          if (typeof document !== 'undefined') {
+            document.cookie = `gaffer-user-role=personal; path=/; max-age=31536000; SameSite=Lax`
+          }
+          set({ user: res.user, role: 'personal', accessToken: res.accessToken, isAuthenticated: true, error: null })
+        } catch (err: unknown) {
+          const msg = err instanceof ApiError
+            ? translateError(err.code, err.message)
+            : 'Google sign-in failed. Please try again.'
           set({ error: msg })
           throw err
         } finally {
