@@ -14,7 +14,6 @@ import { ChevronLeft } from 'lucide-react'
 
 import { GoogleIcon } from '@/components/icons/GoogleIcon'
 import { useGoogleLogin } from '@react-oauth/google'
-import { googleAuth } from '@/lib/services/auth.service'
 import { useGoBack } from '@/hooks/useGoBack'
 
 export default function SignUpPage() {
@@ -30,14 +29,14 @@ export default function SignUpPage() {
   const handleGoogleAuth = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        await googleAuth(tokenResponse.access_token)
+        await useAuthStore.getState().loginWithGoogle(tokenResponse.access_token)
         const currentRole = useAuthStore.getState().role
         router.replace(currentRole === 'organization' ? '/admin' : '/app/dashboard')
       } catch {
-        // error handled by store
+        // the store shows the reason above the form
       }
     },
-    onError: () => {},
+    onError: () => useAuthStore.getState().setError('Google sign-in was closed or blocked. Allow pop-ups for this site and try again.'),
   })
 
   const {

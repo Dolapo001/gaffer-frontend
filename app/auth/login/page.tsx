@@ -14,13 +14,12 @@ import { getErrorMessage } from '@/lib/api'
 
 import { GoogleIcon } from '@/components/icons/GoogleIcon'
 import { useGoogleLogin } from '@react-oauth/google'
-import { googleAuth } from '@/lib/services/auth.service'
 import { useGoBack } from '@/hooks/useGoBack'
 
 export default function LoginPage() {
   const router = useRouter()
   const goBack = useGoBack('/')
-  const { login, error, clearError } = useAuthStore()
+  const { login, loginWithGoogle, error, clearError } = useAuthStore()
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
@@ -30,14 +29,14 @@ export default function LoginPage() {
   const handleGoogleAuth = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        await googleAuth(tokenResponse.access_token)
+        await loginWithGoogle(tokenResponse.access_token)
         const { role } = useAuthStore.getState()
         router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
       } catch {
-        // error handled by store
+        // the store shows the reason above the form
       }
     },
-    onError: () => {},
+    onError: () => useAuthStore.getState().setError('Google sign-in was closed or blocked. Allow pop-ups for this site and try again.'),
   })
 
   const {
