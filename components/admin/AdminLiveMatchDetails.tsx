@@ -23,6 +23,8 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { PositionFilterBar, type PositionFilterValue } from '@/components/PositionFilterBar'
 import { CommentaryIcon } from '@/components/CommentaryIcon'
 import { calculatePlayerRating, eventsForPlayer } from '@/lib/ratingsEngine'
+import { getCompetition } from '@/lib/services/competition.service'
+import { ZONES, ZONE_LABEL, parseFormation, formationString, slotLayout, zoneOfSlot, moveSlot, growZone, shrinkZone, applyFormation, suggestedFormations, type Zone } from '@/lib/lineupFormation'
 
 const POSITION_NORMALIZE: Record<string, PositionFilterValue> = {
   goalkeeper: 'GK', gk: 'GK',
@@ -67,8 +69,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     setCustomText('')
   }
 
-  const [homeFormation, setHomeFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
-  const [awayFormation, setAwayFormation] = useState<'4-4-2' | '4-3-3' | '3-5-2'>('4-3-3')
+  const [homeFormation, setHomeFormation] = useState<string>('4-3-3')
+  const [awayFormation, setAwayFormation] = useState<string>('4-3-3')
   const [isSelectingFormation, setIsSelectingFormation] = useState<'home' | 'away' | null>(null)
   const [homeLineup, setHomeLineup] = useState<Record<number, any>>({})
   const [awayLineup, setAwayLineup] = useState<Record<number, any>>({})
@@ -106,6 +108,15 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     enabled: !!id,
     refetchInterval: (q) => (['live', 'halftime'].includes((q.state.data as Fixture | undefined)?.status ?? '') ? 8_000 : false),
   })
+
+  // The size of the game decides how many players a lineup holds (5 to 11)
+  const competitionId = typeof fixture?.competitionId === 'object' ? (fixture.competitionId as any)?._id : fixture?.competitionId
+  const { data: competition } = useQuery({
+    queryKey: ['competition', competitionId],
+    queryFn: () => getCompetition(competitionId),
+    enabled: !!competitionId,
+  })
+  const playersPerSide = competition?.gameFormat?.playersPerSide ?? 11
 
   // 2. Persist Go Live Status
   const updateFixtureMutation = useMutation({
@@ -161,7 +172,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     mutationFn: async () => {
       // Extract unique, valid player IDs from the lineup slots
       const getLineupArray = (lineup: Record<number, any>, formation: string): string[] => {
-        const slotCount = formations[formation as keyof typeof formations]?.length || 11
+        const slotCount = playersPerSide
         const seen = new Set<string>()
         const arr: string[] = []
         for (let i = 0; i < slotCount; i++) {
@@ -179,8 +190,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       
       // 1. Save Formations to Fixture object (safely handled if live)
       saves.push(updateFixture(id, { 
-        homeFormation, 
-        awayFormation 
+        homeFormation: formationString(parseFormation(homeFormation, playersPerSide)), 
+        awayFormation: formationString(parseFormation(awayFormation, playersPerSide)) 
       }).catch((err) => {
         console.warn("Formation update non-critical warning:", err?.message)
         return null
@@ -476,23 +487,17 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 
 
 
-  const formations = {
-    '4-4-2': [
-      { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-      { t: 45, l: 15 }, { t: 45, l: 38 }, { t: 45, l: 62 }, { t: 45, l: 85 },
-      { t: 18, l: 35 }, { t: 18, l: 65 }
-    ],
-    '4-3-3': [
-      { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-      { t: 45, l: 25 }, { t: 45, l: 50 }, { t: 45, l: 75 },
-      { t: 18, l: 15 }, { t: 18, l: 50 }, { t: 18, l: 85 }
-    ],
-    '3-5-2': [
-      { t: 88, l: 50 }, { t: 72, l: 25 }, { t: 72, l: 50 }, { t: 72, l: 75 },
-      { t: 45, l: 10 }, { t: 45, l: 30 }, { t: 45, l: 50 }, { t: 45, l: 70 }, { t: 45, l: 90 },
-      { t: 18, l: 35 }, { t: 18, l: 65 }
-    ]
+  const zonesFor = (team: 'home' | 'away') => parseFormation(team === 'home' ? homeFormation : awayFormation, playersPerSide)
+  const homeZones = zonesFor('home')
+  const awayZones = zonesFor('away')
+
+  // Any change of shape (a new formation, a slot moved to another area) rewrites the lineup and the formation together
+  const setShape = (team: 'home' | 'away', r: { lineup: Record<number, any>; zones: Record<Zone, number> }) => {
+    if (team === 'home') { setHomeLineup(r.lineup); setHomeFormation(formationString(r.zones)) }
+    else { setAwayLineup(r.lineup); setAwayFormation(formationString(r.zones)) }
+    setIsLineupDirty(true)
   }
+  const lineupOf = (team: 'home' | 'away') => (team === 'home' ? homeLineup : awayLineup)
 
   // Slot assignment is local-state-only — no per-tap network request. The
   // whole lineup (both teams + formations) is persisted in one shot by
@@ -729,7 +734,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     {typeof fixture?.awayTeamId === 'object' ? ((fixture.awayTeamId as any).shortName || (fixture.awayTeamId as any).name) : 'Away'}
                   </span>
                   <button onClick={() => setIsSelectingFormation('away')} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
-                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{awayFormation}</span>
+                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{formationString(awayZones)}</span>
                     <ChevronDown size={10} className="text-white/40 group-hover:text-white transition-colors" />
                   </button>
                 </div>
@@ -756,7 +761,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   <div className="absolute left-[40%] right-[40%] border-x border-t border-white/30 pointer-events-none" style={{ bottom: '3%', height: '4%' }} />
 
                   {/* Away players — t=88 (GK) maps near top, t=18 (FWD) maps near center */}
-                  {(formations[awayFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
+                  {slotLayout(awayZones).map(({ t, l }, idx) => {
                     const player = awayLineup[idx]
                     const pitchT = ((100 - t) / 100) * 47 + 2
                     const pId = player?._id || player?.id
@@ -815,7 +820,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   })}
 
                   {/* Home players — t=88 (GK) maps near bottom, t=18 (FWD) maps near center */}
-                  {(formations[homeFormation] || formations['4-3-3']).map(({ t, l }, idx) => {
+                  {slotLayout(homeZones).map(({ t, l }, idx) => {
                     const player = homeLineup[idx]
                     const pitchT = 51 + (t / 100) * 47
                     const pId = player?._id || player?.id
@@ -880,7 +885,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     {typeof fixture?.homeTeamId === 'object' ? ((fixture.homeTeamId as any).shortName || (fixture.homeTeamId as any).name) : 'Home'}
                   </span>
                   <button onClick={() => setIsSelectingFormation('home')} className="flex items-center gap-1.5 px-3 py-1 bg-white/5 rounded-full border border-white/10 group">
-                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{homeFormation}</span>
+                    <span className="text-[10px] font-inter font-bold text-white/60 uppercase tracking-widest">{formationString(homeZones)}</span>
                     <ChevronDown size={10} className="text-white/40 group-hover:text-white transition-colors" />
                   </button>
                 </div>
@@ -1069,6 +1074,25 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                           )
                         })()}
 
+                        {zoneOfSlot(zonesFor(slotContextMenu.team), slotContextMenu.idx) && (
+                          <div className="p-3 rounded-2xl bg-white/5 border border-white/5">
+                            <p className="text-[10px] text-white/30 font-inter font-bold uppercase tracking-widest mb-2">Move to another area</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {ZONES.filter((zn) => zn !== zoneOfSlot(zonesFor(slotContextMenu.team), slotContextMenu.idx)).map((zn) => (
+                                <button
+                                  key={zn}
+                                  onClick={() => {
+                                    setShape(slotContextMenu.team, moveSlot(lineupOf(slotContextMenu.team), zonesFor(slotContextMenu.team), slotContextMenu.idx, zn))
+                                    setSlotContextMenu(null)
+                                  }}
+                                  className="py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-inter font-bold"
+                                >
+                                  {ZONE_LABEL[zn]}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <button
                           onClick={() => {
                             setAssignPositionFilter('ALL')
@@ -1112,25 +1136,40 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         <div className="p-6 border-b border-white/5 text-center bg-white/5">
                           <h3 className="font-inter font-bold text-xs uppercase tracking-widest text-white/40">Select Formation</h3>
                        </div>
-                       <div className="p-3">
-                          {Object.keys(formations).map((form) => (
-                            <button
-                              key={form}
-                              onClick={() => {
-                                if (isSelectingFormation === 'home') setHomeFormation(form as any)
-                                else setAwayFormation(form as any)
-                                setIsSelectingFormation(null)
-                                setIsLineupDirty(true)
-                              }}
-                              className={`w-full py-4 rounded-2xl font-inter font-bold text-sm uppercase transition-all mb-1 last:mb-0 ${
-                                (isSelectingFormation === 'home' ? homeFormation : awayFormation) === form
-                                  ? 'bg-gradient-to-r from-[#FF5C00] to-[#FF2D20] text-white shadow-lg'
-                                  : 'text-white/40 hover:text-white hover:bg-white/5'
-                              }`}
-                            >
-                              {form}
-                            </button>
-                          ))}
+                       <div className="p-3 space-y-3">
+                          <div className="grid grid-cols-2 gap-2">
+                            {suggestedFormations(playersPerSide).map((form) => {
+                              const side = isSelectingFormation as 'home' | 'away'
+                              const current = side === 'home' ? homeFormation : awayFormation
+                              return (
+                                <button
+                                  key={form}
+                                  onClick={() => setShape(side, applyFormation(lineupOf(side), zonesFor(side), parseFormation(form, playersPerSide)))}
+                                  className={`py-3 rounded-2xl font-inter font-bold text-sm transition-all ${current === form ? 'bg-gradient-to-r from-[#FF5C00] to-[#FF2D20] text-white shadow-lg' : 'text-white/50 bg-white/5 hover:text-white'}`}
+                                >
+                                  {form}
+                                </button>
+                              )
+                            })}
+                          </div>
+                          <div className="rounded-2xl bg-white/5 border border-white/5 p-3 space-y-2">
+                            <p className="text-[10px] text-white/30 font-inter font-bold uppercase tracking-widest">Players in each area</p>
+                            {ZONES.map((zn) => {
+                              const side = isSelectingFormation as 'home' | 'away'
+                              const zs = zonesFor(side)
+                              return (
+                                <div key={zn} className="flex items-center justify-between">
+                                  <span className="text-white/70 text-xs font-inter font-bold">{ZONE_LABEL[zn]}</span>
+                                  <div className="flex items-center gap-3">
+                                    <button aria-label={`Fewer in ${ZONE_LABEL[zn]}`} disabled={zs[zn] <= 0} onClick={() => setShape(side, shrinkZone(lineupOf(side), zs, zn))} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold disabled:opacity-30">-</button>
+                                    <span className="w-4 text-center text-white font-inter font-bold text-sm">{zs[zn]}</span>
+                                    <button aria-label={`More in ${ZONE_LABEL[zn]}`} onClick={() => setShape(side, growZone(lineupOf(side), zs, zn))} className="w-8 h-8 rounded-full bg-white/10 text-white font-bold">+</button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                          <button onClick={() => setIsSelectingFormation(null)} className="w-full py-3 rounded-2xl bg-white/10 text-white font-inter font-bold text-xs uppercase tracking-widest">Done</button>
                        </div>
                     </motion.div>
                   </motion.div>

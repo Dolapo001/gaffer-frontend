@@ -1,5 +1,6 @@
 'use client'
 
+import { slotLayout, zonesFromString } from '@/lib/lineupFormation'
 import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -476,30 +477,10 @@ function Pitch({ teamLineup, formation }: { teamLineup?: any; formation?: string
    // Use explicit SLOTS if available, otherwise fall back to sequential starters
    const slots = teamLineup?.slots || []
    const starters = teamLineup?.players || (Array.isArray(teamLineup) ? teamLineup : [])
-   const [defN, midN, attN] = (formation || '4-3-3').split('-').map(Number)
 
-   // 4-3-3 formations normally have 11 slots (0-10)
-   // We'll use the same formations mapping logic as the admin side for consistency
-   const formationDots = {
-      '4-4-2': [
-         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-         { t: 45, l: 15 }, { t: 45, l: 38 }, { t: 45, l: 62 }, { t: 45, l: 85 },
-         { t: 18, l: 35 }, { t: 18, l: 65 }
-      ],
-      '4-3-3': [
-         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-         { t: 45, l: 25 }, { t: 45, l: 50 }, { t: 45, l: 75 },
-         { t: 18, l: 15 }, { t: 18, l: 50 }, { t: 18, l: 85 }
-      ],
-      '3-5-2': [
-         { t: 88, l: 50 }, { t: 72, l: 25 }, { t: 72, l: 50 }, { t: 72, l: 75 },
-         { t: 45, l: 10 }, { t: 45, l: 30 }, { t: 45, l: 50 }, { t: 45, l: 70 }, { t: 45, l: 90 },
-         { t: 18, l: 35 }, { t: 18, l: 65 }
-      ]
-   }
+   // Any size of game: the formation string says how many play in each area
+   const activeFormation = slotLayout(zonesFromString(formation))
 
-   const activeFormation = formationDots[formation as keyof typeof formationDots] || formationDots['4-3-3']
-   
    // Map players to their designated slots
    const mappedPlayers: Record<number, any> = {}
    
