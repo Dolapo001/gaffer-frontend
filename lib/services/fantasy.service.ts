@@ -456,6 +456,8 @@ export async function listManagers(competitionId: string, page = 1, q = ''): Pro
 
 export interface ManagerPlayer {
   id: string
+  /** 2 for the captain (3 with Triple Captain), 1 otherwise: the points shown already include it */
+  multiplier?: number
   name: string
   position: 'GK' | 'DEF' | 'MID' | 'FWD' | null
   jerseyNumber: number | null

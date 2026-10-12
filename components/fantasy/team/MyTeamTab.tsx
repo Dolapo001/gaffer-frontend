@@ -147,11 +147,15 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
     const state = selectedGw ? getGameweekState(selectedGw, fixtures) : 'no_fixtures'
     const isGwStarted = state === 'in_progress' || state === 'completed'
 
+    // The captain's points count double (triple with the Triple Captain chip); the vice-captain's if the captain
+    // did not play. The server says who, so the pitch adds up to the same total as the leaderboard.
+    const bonus = (myTeam as any)?.captainEffect as { playerId: string | null; times: number } | undefined
     players.forEach((p) => {
-      map[p.id] = isGwStarted ? p.points : null
+      const times = bonus?.playerId && bonus.playerId === p.id && p.isOnPitch ? bonus.times : 1
+      map[p.id] = isGwStarted ? (p.points ?? 0) * times : null
     })
     return map
-  }, [players, selectedGameweekId, gameweeks, fixtures])
+  }, [players, selectedGameweekId, gameweeks, fixtures, myTeam])
 
   // A player's real-world team can have a fixture in some other round while
   // having none in the round you're viewing — "TBC" should only show when

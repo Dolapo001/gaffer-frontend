@@ -94,6 +94,16 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           </div>
         )}
 
+        {/* Captain / vice-captain badge, like Fantasy Premier League: a black disc with a white C or V */}
+        {captaincy && (
+          <div
+            aria-label={captaincy === 'C' ? 'Captain' : 'Vice-captain'}
+            className="absolute -top-1.5 -right-1.5 z-20 w-[17px] h-[17px] rounded-full bg-black border border-white flex items-center justify-center text-white text-[9px] font-black leading-none shadow-md"
+          >
+            {captaincy}
+          </div>
+        )}
+
         {/* JERSEY CONTAINER — Scaled to 54 width to ensure both sleeves are visible */}
         <div className="absolute" style={{ top: 9.7, left: (51.3 - 44.4) / 2, width: 44.4, height: 58.5, overflow: 'visible' }}>
             <div style={{ filter: jerseyGlow || undefined }} className="w-full h-full flex items-center justify-center">
