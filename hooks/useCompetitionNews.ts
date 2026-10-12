@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { getCompetition } from '@/lib/services/competition.service'
 import { getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
+import { asArray } from '@/lib/asArray'
 import { rankTopNews, resolveOrgId } from '@/lib/newsRanking'
 
 /** News published by the organisation running a competition, ranked for "Top News". */
@@ -16,7 +17,7 @@ export function useCompetitionNews(competitionId: string) {
     queryKey: ['org-feed', orgId],
     queryFn: async (): Promise<FeedItem[]> => {
       const res = await getOrgFeed(orgId!)
-      return rankTopNews((res.items ?? res.data ?? []) as FeedItem[])
+      return rankTopNews(asArray<FeedItem>(res.items ?? res.data))
     },
     enabled: !!orgId,
     staleTime: 60_000,

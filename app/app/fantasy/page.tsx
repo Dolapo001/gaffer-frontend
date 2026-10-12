@@ -4,11 +4,12 @@ import { useRouter } from 'next/navigation'
 import { useQuery, useQueries } from '@tanstack/react-query'
 import { Trophy, Gamepad2, Search } from 'lucide-react'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
+import { asArray } from '@/lib/asArray'
 import { CompetitionFantasyCard } from '@/components/fantasy/CompetitionFantasyCard'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
-import { getFantasySeason, listGameweeks } from '@/lib/services/fantasy.service'
-import { listFixtures } from '@/lib/services/fixture.service'
+import { getFantasySeason, listGameweeks, type FantasyGameweek } from '@/lib/services/fantasy.service'
+import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 
 export default function FantasyPage() {
   const router = useRouter()
@@ -84,8 +85,8 @@ export default function FantasyPage() {
     .map((c, i) => ({
       competition: c,
       season: seasonQueries[i]?.data,
-      gameweeks: gameweekQueries[i]?.data ?? [],
-      fixtures: fixtureQueries[i]?.data ?? [],
+      gameweeks: asArray<FantasyGameweek>(gameweekQueries[i]?.data),
+      fixtures: asArray<Fixture>(fixtureQueries[i]?.data),
     }))
     .filter((entry) => !!entry.season)
 

@@ -1,5 +1,6 @@
 'use client'
 
+import { asArray } from '@/lib/asArray'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trophy, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react'
@@ -26,7 +27,7 @@ export function FantasyLeaderboardWidget({ competitionId }: FantasyLeaderboardWi
     queryFn: () => getLeaderboard(competitionId, 1),
   })
 
-  const leaderboard = leaderboardRes?.data ?? []
+  const leaderboard = asArray<any>(leaderboardRes?.data)
 
   // Socket live update listener
   useEffect(() => {

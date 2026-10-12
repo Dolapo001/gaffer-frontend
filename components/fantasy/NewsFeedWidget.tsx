@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Clock, CheckCircle2, Flame, Share2 } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
+import { asArray } from '@/lib/asArray'
 import { likeFeedItem, unlikeFeedItem, type FeedItem } from '@/lib/services/feed.service'
 
 interface NewsFeedWidgetProps {
@@ -287,10 +288,11 @@ export function NewsFeedWidget({
   newsItems,
   returnPath,
 }: NewsFeedWidgetProps) {
-  const topNews = newsItems?.[0] ?? featured ?? null
-  const trendingNews = newsItems
-    ? newsItems.slice(1, 4)
-    : additional.slice(0, 3)
+  const listed = newsItems ? asArray<FeedItem>(newsItems) : null
+  const topNews = listed?.[0] ?? featured ?? null
+  const trendingNews = listed
+    ? listed.slice(1, 4)
+    : asArray<FeedItem>(additional).slice(0, 3)
 
   if (!topNews && trendingNews.length === 0) return null
 
