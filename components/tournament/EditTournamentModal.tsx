@@ -1,5 +1,7 @@
 'use client'
 
+import { PlayersPerSidePicker } from '@/components/tournament/PlayersPerSidePicker'
+import { CardRulesPicker, STANDARD_CARD_RULES, cardRulesPayload, type CardRules } from '@/components/tournament/CardRulesPicker'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, User, Trophy, LayoutGrid, GitFork, Layers, Settings2, ChevronDown } from 'lucide-react'
@@ -35,6 +37,11 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
     startDate: competition.startDate.split('T')[0],
     endDate: competition.endDate.split('T')[0],
     format: competition.format || 'round_robin',
+    playersPerSide: competition.gameFormat?.playersPerSide ?? 11,
+    cardRules: {
+      yellow: { ...STANDARD_CARD_RULES.yellow, ...(competition.gameFormat?.cardRules?.yellow ?? {}) },
+      red: { ...STANDARD_CARD_RULES.red, ...(competition.gameFormat?.cardRules?.red ?? {}) },
+    } as CardRules,
     rules: {
       winPoints: competition.rules?.winPoints ?? 3,
       drawPoints: competition.rules?.drawPoints ?? 1,
@@ -65,8 +72,18 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const { playersPerSide, cardRules, ...rest } = form
+    const cardsChanged = JSON.stringify(cardRulesPayload(cardRules)) !== JSON.stringify(cardRulesPayload({
+      yellow: { ...STANDARD_CARD_RULES.yellow, ...(competition.gameFormat?.cardRules?.yellow ?? {}) },
+      red: { ...STANDARD_CARD_RULES.red, ...(competition.gameFormat?.cardRules?.red ?? {}) },
+    } as CardRules))
+    const sizeChanged = playersPerSide !== (competition.gameFormat?.playersPerSide ?? 11)
     updateMutation.mutate({
-      ...form,
+      ...rest,
+      // Only sent when changed: the server refuses a change once managers have built Fantasy teams
+      ...(sizeChanged || cardsChanged
+        ? { gameFormat: { ...(sizeChanged ? { playersPerSide } : {}), ...(cardsChanged ? { cardRules: cardRulesPayload(cardRules) } : {}) } }
+        : {}),
       startDate: new Date(form.startDate).toISOString(),
       endDate: new Date(form.endDate).toISOString()
     })
@@ -170,6 +187,10 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
               />
             </div>
           </div>
+
+          <PlayersPerSidePicker value={form.playersPerSide} onChange={(n) => setForm({ ...form, playersPerSide: n })} />
+
+          <CardRulesPicker value={form.cardRules} onChange={(v) => setForm({ ...form, cardRules: v })} />
 
           {/* Format */}
           <div className="space-y-2">
