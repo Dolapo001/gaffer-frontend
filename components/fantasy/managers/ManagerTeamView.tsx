@@ -25,7 +25,12 @@ function PlayerChip({ p, showPoints }: { p: ManagerPlayer; showPoints: boolean }
         )}
       </div>
       <span className="text-[10px] text-white font-bold mt-1 leading-tight truncate w-full">{p.name.split(' ').slice(-1)[0]}</span>
-      {showPoints && <span className="text-[10px] text-gaffer-orange font-black">{p.points}</span>}
+      {showPoints && (
+        <span className="text-[10px] text-gaffer-orange font-black">
+          {p.points}
+          {(p.multiplier ?? 1) > 1 && <span className="ml-0.5 text-white/60 font-bold">x{p.multiplier}</span>}
+        </span>
+      )}
     </li>
   )
 }
