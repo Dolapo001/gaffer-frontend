@@ -4,6 +4,8 @@ import { asArray } from '@/lib/asArray'
 import { useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Trophy, TrendingUp, TrendingDown, Minus, Sparkles } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getLeaderboard } from '@/lib/services/fantasy.service'
 import { onSocketInitialized } from '@/hooks/useNotificationSocket'
@@ -16,6 +18,7 @@ interface FantasyLeaderboardWidgetProps {
 
 export function FantasyLeaderboardWidget({ competitionId }: FantasyLeaderboardWidgetProps) {
   const queryClient = useQueryClient()
+  const router = useRouter()
   const toast = useToastStore()
   const currentUserId = useAuthStore((s) => s.user?.id)
 
@@ -133,12 +136,16 @@ export function FantasyLeaderboardWidget({ competitionId }: FantasyLeaderboardWi
             return (
               <motion.div
                 key={entry._id}
+                onClick={() => router.push(`/app/fantasy/${competitionId}/managers/${entry._id}`)}
+                role="link"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/app/fantasy/${competitionId}/managers/${entry._id}`) }}
                 layout
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ type: 'spring', stiffness: 350, damping: 25 }}
-                className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors ${
+                className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-colors cursor-pointer ${
                   isMe
                     ? 'bg-gaffer-orange/15 border-gaffer-orange/40 shadow-[0_0_12px_rgba(255,107,0,0.15)]'
                     : 'bg-[#1a1b2e]/60 border-white/5 hover:border-white/10'
@@ -203,6 +210,13 @@ export function FantasyLeaderboardWidget({ competitionId }: FantasyLeaderboardWi
           })}
         </AnimatePresence>
       </div>
+
+      <Link
+        href={`/app/fantasy/${competitionId}/managers`}
+        className="block w-full text-center h-11 leading-[44px] rounded-xl bg-white/5 border border-white/10 text-white text-[11px] font-black uppercase tracking-widest"
+      >
+        See all managers
+      </Link>
     </div>
   )
 }

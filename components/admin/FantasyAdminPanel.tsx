@@ -18,6 +18,7 @@ import {
 import { listRounds } from '@/lib/services/fixture.service'
 import { useToastStore } from '@/store/toastStore'
 import { SquadRulesCard } from '@/components/admin/SquadRulesCard'
+import Link from 'next/link'
 import { ScoringCard } from '@/components/admin/ScoringCard'
 import { getErrorMessage } from '@/lib/api'
 
@@ -192,6 +193,16 @@ export function FantasyAdminPanel({ competitionId }: Props) {
         </div>
       </div>
 
+      <Link
+        href={`/admin/tournaments/${competitionId}/managers`}
+        className="flex items-center justify-between rounded-2xl bg-gaffer-card border border-gaffer-border p-4"
+      >
+        <div>
+          <h4 className="text-white font-display font-bold text-sm uppercase tracking-tight">Managers and their teams</h4>
+          <p className="text-gaffer-muted text-xs mt-1">See everyone in this tournament and the team each picked.</p>
+        </div>
+        <span className="text-gaffer-orange text-xs font-black uppercase tracking-widest">See all</span>
+      </Link>
       <SquadRulesCard key={JSON.stringify(season.resolvedRules) + season.squadBudget} competitionId={competitionId} season={season} />
       <ScoringCard key={JSON.stringify(season.resolvedScoring)} competitionId={competitionId} season={season} />
 
