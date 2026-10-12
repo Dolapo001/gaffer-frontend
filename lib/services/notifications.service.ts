@@ -39,6 +39,11 @@ export async function unsubscribePush(endpoint: string): Promise<{ message: stri
   return api.delete<{ message: string }>('/notifications/push/unsubscribe', { body: { endpoint } } as any)
 }
 
+// POST /notifications/push/test: sends a test notification to this account's devices
+export async function sendTestPush(): Promise<{ devices: number; delivered: number }> {
+  return api.post<{ devices: number; delivered: number }>('/notifications/push/test', {})
+}
+
 // ─── Preferences ──────────────────────────────────────────────────────────────
 
 // GET /notifications/preferences
