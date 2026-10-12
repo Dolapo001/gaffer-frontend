@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayersPerSidePicker } from '@/components/tournament/PlayersPerSidePicker'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, User, Trophy, LayoutGrid, GitFork, Layers, Settings2, ChevronDown } from 'lucide-react'
@@ -35,6 +36,7 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
     startDate: competition.startDate.split('T')[0],
     endDate: competition.endDate.split('T')[0],
     format: competition.format || 'round_robin',
+    playersPerSide: competition.gameFormat?.playersPerSide ?? 11,
     rules: {
       winPoints: competition.rules?.winPoints ?? 3,
       drawPoints: competition.rules?.drawPoints ?? 1,
@@ -65,8 +67,11 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    const { playersPerSide, ...rest } = form
     updateMutation.mutate({
-      ...form,
+      ...rest,
+      // Only sent when changed: the server refuses a change once managers have built Fantasy teams
+      ...(playersPerSide !== (competition.gameFormat?.playersPerSide ?? 11) ? { gameFormat: { playersPerSide } } : {}),
       startDate: new Date(form.startDate).toISOString(),
       endDate: new Date(form.endDate).toISOString()
     })
@@ -170,6 +175,8 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
               />
             </div>
           </div>
+
+          <PlayersPerSidePicker value={form.playersPerSide} onChange={(n) => setForm({ ...form, playersPerSide: n })} />
 
           {/* Format */}
           <div className="space-y-2">

@@ -13,6 +13,7 @@ import {
   SQUAD_RULES,
 } from '@/lib/services/fantasy.service'
 import type { ChipType } from '@/lib/services/chip.service'
+import { STANDARD_RULES, whyIllegalStartingTeam, countByPosition, type SquadRules } from '@/lib/squadRules'
 
 interface FantasyState {
   // Competition context
@@ -29,6 +30,8 @@ interface FantasyState {
   baseBankBalance: number
   /** Total squad budget for the active competition (from FantasySeason.squadBudget). Defaults to 100 until loaded. */
   squadBudget: number
+  /** Squad and formation rules for the size of the game (5 to 11 a side). The standard 11-a-side rules until loaded. */
+  rules: SquadRules
   /** Chip currently active for the open gameweek, if any — drives the My Team active-chip banner. */
   activeChipType: ChipType | null
   isSaved: boolean
@@ -54,6 +57,7 @@ interface FantasyState {
   /** @deprecated superseded by real chip.service.ts data */
   setBoost: (boost: BoostType) => void
   setSquadBudget: (budget: number) => void
+  setRules: (rules: SquadRules | null | undefined) => void
   setActiveChipType: (chipType: ChipType | null) => void
   toggleCaptain: (id: string) => void
   performSubstitution: (id1: string, id2: string) => void
@@ -104,6 +108,7 @@ export const useFantasyStore = create<FantasyState>()(
       budget: 100,
       baseBankBalance: 100,
       squadBudget: 100,
+      rules: STANDARD_RULES,
       activeChipType: null,
       isSaved: false,
       isSaving: false,
@@ -184,27 +189,14 @@ export const useFantasyStore = create<FantasyState>()(
               return { substitutingOutId: null, substituteError: 'Goalkeeper can only swap with another goalkeeper.' }
             }
 
-            // Simulate the swap and check position min/max on the pitch
-            const MIN: Record<string, number> = { GK: 1, DEF: 3, MID: 3, FWD: 1 }
-            const MAX: Record<string, number> = { GK: 1, DEF: 5, MID: 5, FWD: 3 }
-
-            const pitchAfter: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 }
-            newPlayers.forEach((p, i) => {
-              let onPitch = p.isOnPitch
-              if (i === p1Index) onPitch = p2.isOnPitch
-              if (i === p2Index) onPitch = p1.isOnPitch
-              if (onPitch) pitchAfter[p.position] = (pitchAfter[p.position] ?? 0) + 1
+            // Simulate the swap and check the formation against the size of the game (free in the small games)
+            const after = newPlayers.filter((p, i) => {
+              if (i === p1Index) return p2.isOnPitch
+              if (i === p2Index) return p1.isOnPitch
+              return p.isOnPitch
             })
-
-            for (const pos of ['DEF', 'MID', 'FWD']) {
-              const count = pitchAfter[pos] ?? 0
-              if (count < MIN[pos]) {
-                return { substitutingOutId: null, substituteError: `You need at least ${MIN[pos]} ${pos} on the pitch.` }
-              }
-              if (count > MAX[pos]) {
-                return { substitutingOutId: null, substituteError: `You can have at most ${MAX[pos]} ${pos} on the pitch.` }
-              }
-            }
+            const problem = whyIllegalStartingTeam(state.rules, countByPosition(after))
+            if (problem) return { substitutingOutId: null, substituteError: problem }
 
             const p1WasOnPitch = p1.isOnPitch
             const p2WasOnPitch = p2.isOnPitch
@@ -313,6 +305,7 @@ export const useFantasyStore = create<FantasyState>()(
       setBaseBankBalance: (balance) => set({ baseBankBalance: balance }),
       adjustBudget: (delta) => set((state) => ({ budget: Math.max(0, state.budget + delta) })),
       setSquadBudget: (budget) => set({ squadBudget: budget }),
+      setRules: (rules) => set({ rules: rules ?? STANDARD_RULES }),
       setActiveChipType: (chipType) => set({ activeChipType: chipType }),
 
       // squadBudget is season config (set by the competition layout), not team

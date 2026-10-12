@@ -1,5 +1,6 @@
 'use client'
 
+import { PlayersPerSidePicker } from '@/components/tournament/PlayersPerSidePicker'
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
@@ -58,6 +59,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
     host: 'Gaffer Admin',
     sport: 'Football',
     gender: 'male' as 'male' | 'female' | 'mixed',
+    playersPerSide: 11,
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     photo: '',
@@ -229,6 +231,7 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
       startDate: new Date(details.startDate).toISOString(),
       endDate: new Date(details.endDate).toISOString(),
       format: selectedFormat,
+      gameFormat: { playersPerSide: details.playersPerSide },
       bannerUrl: details.photo.startsWith('blob:') ? undefined : details.photo,
       stages, // Essential for publishing
       maxTeams: totalMaxTeams,
@@ -518,6 +521,10 @@ export function CreateTournamentModal({ onClose }: CreateTournamentProps) {
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
                   </div>
+                </div>
+
+                <div className="text-start">
+                  <PlayersPerSidePicker value={details.playersPerSide} onChange={(n) => setDetails({ ...details, playersPerSide: n })} />
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

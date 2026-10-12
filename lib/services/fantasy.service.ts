@@ -1,4 +1,5 @@
 import { api, ApiError } from '@/lib/api'
+import type { SquadRules } from '@/lib/squadRules'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
 import { mockFantasyTeam, mockPlayers } from '@/lib/testing-mocks/premierLeague'
 // TODO: REMOVE MOCK DATA BEFORE PROD
@@ -10,6 +11,8 @@ export interface FantasySeason {
   pricingFinalized: boolean
   registrationOpen: boolean
   createdAt: string
+  /** Squad size, bench, starters, formation limits and club limit for the size of the game. Missing on old servers. */
+  resolvedRules?: SquadRules
 }
 
 export interface FantasyGameweek {
@@ -169,6 +172,16 @@ export async function syncTournamentPlayers(
   competitionId: string,
 ): Promise<{ data: { enrolled: number; added: number; skipped: number; errors: unknown[] } }> {
   return api.post(`/fantasy/${competitionId}/players/sync`)
+}
+
+// PATCH /fantasy/:competitionId/season/rules (organiser): squad size, bench, club limit, budget.
+// Refused once managers have complete teams.
+export async function updateFantasySeasonRules(
+  competitionId: string,
+  changes: { squadSize?: number; benchSize?: number; maxPerClub?: number; squadBudget?: number },
+): Promise<FantasySeason> {
+  const res = await api.patch<{ data: FantasySeason }>(`/fantasy/${competitionId}/season/rules`, changes)
+  return res.data
 }
 
 export interface FantasySyncStatus {

@@ -43,6 +43,7 @@ export default function FantasyCompetitionLayout({ children }: { children: React
     setPlayers,
     teamName,
     setSquadBudget,
+    setRules,
   } = useFantasyStore(
     useShallow((s) => ({
       setCompetitionId: s.setCompetitionId,
@@ -56,6 +57,7 @@ export default function FantasyCompetitionLayout({ children }: { children: React
       setPlayers: s.setPlayers,
       teamName: s.teamName,
       setSquadBudget: s.setSquadBudget,
+      setRules: s.setRules,
     }))
   )
 
@@ -66,7 +68,7 @@ export default function FantasyCompetitionLayout({ children }: { children: React
 
   const realCompId = competition?._id || competitionId
 
-  const { data: season } = useQuery({
+  const { data: season, isLoading: isLoadingSeason } = useQuery({
     queryKey: ['fantasy-season', realCompId],
     queryFn: () => getFantasySeason(realCompId),
   })
@@ -93,6 +95,11 @@ export default function FantasyCompetitionLayout({ children }: { children: React
   useEffect(() => {
     if (season?.squadBudget != null) setSquadBudget(season.squadBudget)
   }, [season?.squadBudget])
+
+  // Squad size, bench and formation limits for the size of the game (5 to 11 a side)
+  useEffect(() => {
+    setRules(season?.resolvedRules)
+  }, [season?.resolvedRules, setRules])
 
   const setBaseBankBalance = useFantasyStore((s) => s.setBaseBankBalance)
 
@@ -126,7 +133,7 @@ export default function FantasyCompetitionLayout({ children }: { children: React
     return () => showNavbar()
   }, [isOnboarding])
 
-  if (isLoadingTeam) {
+  if (isLoadingTeam || isLoadingSeason) {
     return (
       <div className="min-h-screen bg-[#181928] flex items-center justify-center">
         <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />

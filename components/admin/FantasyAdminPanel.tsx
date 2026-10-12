@@ -17,6 +17,7 @@ import {
 } from '@/lib/services/fantasy.service'
 import { listRounds } from '@/lib/services/fixture.service'
 import { useToastStore } from '@/store/toastStore'
+import { SquadRulesCard } from '@/components/admin/SquadRulesCard'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -189,6 +190,8 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           )}
         </div>
       </div>
+
+      <SquadRulesCard key={JSON.stringify(season.resolvedRules) + season.squadBudget} competitionId={competitionId} season={season} />
 
       {syncStatus && (syncStatus.notInFantasy > 0 || syncStatus.needPrice > 0) && (
         <div role="status" className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 space-y-1">

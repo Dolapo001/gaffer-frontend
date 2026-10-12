@@ -12,6 +12,8 @@ export interface Competition {
   status: 'draft' | 'published' | 'live' | 'completed' | 'archived'
   format?: string
   stages?: Stage[]
+  /** Players per side (5 to 11) and related settings. Missing means the standard 11-a-side game. */
+  gameFormat?: { playersPerSide?: number; matchMinutes?: number; shootoutKicks?: number; rollingSubs?: boolean }
   rules?: {
     winPoints: number
     drawPoints: number
@@ -56,6 +58,8 @@ export interface CreateCompetitionPayload {
   endDate: string
   bannerUrl?: string
   format?: string
+  /** How the game is played: players per side (5 to 11). Left out means the standard 11-a-side game. */
+  gameFormat?: { playersPerSide?: number; matchMinutes?: number; shootoutKicks?: number; rollingSubs?: boolean }
   rules?: {
     winPoints: number
     drawPoints: number
