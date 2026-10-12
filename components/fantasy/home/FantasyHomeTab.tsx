@@ -21,6 +21,7 @@ import { getStandings } from '@/lib/services/standings.service'
 import { listCompetitionTeams } from '@/lib/services/competition.service'
 import { getGameweekState, getCurrentGameweek, computeGameweekDeadline, type GameweekState } from '@/lib/gameweekState'
 import { useFantasyStore } from '@/store/fantasyStore'
+import { PointsInfo } from '@/components/fantasy/PointsInfo'
 
 const STATE_LABELS: Record<GameweekState, string> = {
   no_fixtures: 'Not Scheduled',
@@ -192,6 +193,8 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
           time={kickoffTime}
         />
       )}
+
+      <PointsInfo competitionId={competitionId} />
 
       <FantasyLeaderboardWidget competitionId={competitionId} />
 

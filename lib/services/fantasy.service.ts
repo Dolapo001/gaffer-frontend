@@ -13,6 +13,19 @@ export interface FantasySeason {
   createdAt: string
   /** Squad size, bench, starters, formation limits and club limit for the size of the game. Missing on old servers. */
   resolvedRules?: SquadRules
+  /** The points for this tournament's size of game, with the organiser's changes. Missing on old servers. */
+  resolvedScoring?: ScoringRules
+  /** The organiser's changes to the points; null while the standard points are in use */
+  scoring?: unknown
+}
+
+export interface ScoringRules {
+  /** Small games: one point for anyone who gets on the pitch */
+  flatAppearance: boolean
+  concededPer: number
+  goal: Record<'GK' | 'DEF' | 'MID' | 'FWD', number>
+  assist: number
+  cleanSheet: Record<'GK' | 'DEF' | 'MID' | 'FWD', number>
 }
 
 export interface FantasyGameweek {
@@ -181,6 +194,21 @@ export async function updateFantasySeasonRules(
   changes: { squadSize?: number; benchSize?: number; maxPerClub?: number; squadBudget?: number },
 ): Promise<FantasySeason> {
   const res = await api.patch<{ data: FantasySeason }>(`/fantasy/${competitionId}/season/rules`, changes)
+  return res.data
+}
+
+// PATCH /fantasy/:competitionId/season/scoring (organiser): change points; { reset: true } restores the standard.
+export async function updateFantasyScoring(
+  competitionId: string,
+  changes: {
+    goal?: Partial<ScoringRules['goal']>
+    assist?: number
+    cleanSheet?: { GK?: number; DEF?: number }
+    concededPer?: number
+    reset?: boolean
+  },
+): Promise<FantasySeason> {
+  const res = await api.patch<{ data: FantasySeason }>(`/fantasy/${competitionId}/season/scoring`, changes)
   return res.data
 }
 
