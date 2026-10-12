@@ -424,6 +424,66 @@ export async function getLeaderboard(
   return api.get<OverallLeaderboardResponse>(`/fantasy/${competitionId}/leaderboard?page=${page}`)
 }
 
+export interface ManagerRow {
+  teamId: string
+  teamName: string
+  rank: number
+  totalPoints: number
+  lastGwPoints: number
+  manager: { id: string | null; name: string; avatarUrl: string | null }
+  isMine: boolean
+  /** Organisers only */
+  isComplete?: boolean
+  hidden?: boolean
+}
+
+export interface ManagersResponse {
+  data: ManagerRow[]
+  total: number
+  page: number
+  pageSize: number
+  isAdmin: boolean
+  /** Organisers only, first page: members who joined but have not picked a team */
+  withoutTeam?: Array<{ id: string | null; name: string }>
+}
+
+// GET /fantasy/:competitionId/managers: every manager, ranked, with search and paging
+export async function listManagers(competitionId: string, page = 1, q = ''): Promise<ManagersResponse> {
+  const qs = new URLSearchParams({ page: String(page) })
+  if (q) qs.set('q', q)
+  return api.get<ManagersResponse>(`/fantasy/${competitionId}/managers?${qs.toString()}`)
+}
+
+export interface ManagerPlayer {
+  id: string
+  name: string
+  position: 'GK' | 'DEF' | 'MID' | 'FWD' | null
+  jerseyNumber: number | null
+  photoUrl: string | null
+  club: { name: string; shortName?: string; logoUrl?: string } | null
+  price: number | null
+  points: number
+  isCaptain: boolean
+  isViceCaptain: boolean
+}
+
+export interface ManagerTeamData {
+  team: { teamId: string; teamName: string; manager: { id: string | null; name: string; avatarUrl: string | null }; totalPoints: number; lastGwPoints: number; rank: number | null; isMine: boolean; isComplete: boolean }
+  isAdmin: boolean
+  squad: { live: boolean; gameweek: { id: string; name: string; number: number } | null; formation: string; startingXI: ManagerPlayer[]; bench: ManagerPlayer[] } | null
+  /** Why there is no squad to show */
+  squadHidden: string | null
+  history: Array<{ gameweekId: string; name: string; number: number; status: string; points: number; grossPoints: number; transferHit: number; benchBoost: boolean }>
+  gameweeks: Array<{ id: string; name: string; number: number }>
+}
+
+// GET /fantasy/:competitionId/managers/:teamId: one manager's team and history
+export async function getManagerTeam(competitionId: string, teamId: string, gameweekId?: string | null): Promise<ManagerTeamData> {
+  const qs = gameweekId ? `?gameweekId=${gameweekId}` : ''
+  const res = await api.get<{ data: ManagerTeamData }>(`/fantasy/${competitionId}/managers/${teamId}${qs}`)
+  return res.data
+}
+
 // GET /fantasy/:competitionId/leaderboard/gameweek/:gameweekId
 export async function getGameweekLeaderboard(
   competitionId: string,

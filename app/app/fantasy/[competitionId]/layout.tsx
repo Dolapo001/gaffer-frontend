@@ -126,7 +126,9 @@ export default function FantasyCompetitionLayout({ children }: { children: React
   // a failed or abandoned squad save left the user with an empty team and no
   // way back into the wizard.
   const hasSavedSquad = Boolean(myTeam?.isComplete)
-  const isOnboarding = !hasSavedSquad && !(hasCreatedTeam && hasNamedTeam && hasOrganizedBench)
+  // Anyone can look at the other managers, even before picking a team of their own
+  const browsingManagers = pathname.includes('/managers')
+  const isOnboarding = !hasSavedSquad && !(hasCreatedTeam && hasNamedTeam && hasOrganizedBench) && !browsingManagers
   useEffect(() => {
     if (!isOnboarding) return
     hideNavbar()
