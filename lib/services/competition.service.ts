@@ -13,7 +13,17 @@ export interface Competition {
   format?: string
   stages?: Stage[]
   /** Players per side (5 to 11) and related settings. Missing means the standard 11-a-side game. */
-  gameFormat?: { playersPerSide?: number; matchMinutes?: number; shootoutKicks?: number; rollingSubs?: boolean }
+  gameFormat?: {
+    playersPerSide?: number
+    matchMinutes?: number
+    shootoutKicks?: number
+    rollingSubs?: boolean
+    /** What a yellow and a red card mean; missing means the standard game */
+    cardRules?: {
+      yellow?: { action: 'none' | 'break' | 'off'; minutes?: number }
+      red?: { action: 'off' | 'replace'; minutes?: number; nextMatchBan?: boolean }
+    }
+  }
   rules?: {
     winPoints: number
     drawPoints: number

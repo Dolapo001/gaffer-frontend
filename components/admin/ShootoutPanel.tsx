@@ -103,6 +103,7 @@ export function ShootoutPanel({ fixture }: { fixture: Fixture }) {
         <p className="font-chakra font-black text-4xl text-white mt-1" aria-live="polite">
           {teamName(fixture.homeTeamId)} {shootout.home} - {shootout.away} {teamName(fixture.awayTeamId)}
         </p>
+        {shootout.kicksPerTeam ? <p className="text-white/40 text-xs mt-1">{shootout.kicksPerTeam} kicks each, then sudden death</p> : null}
         <p className="text-white/40 text-xs mt-1">The match score stays {fixture.score?.home ?? 0}-{fixture.score?.away ?? 0}. Penalties never count as goals.</p>
       </div>
 

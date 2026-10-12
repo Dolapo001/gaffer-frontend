@@ -50,7 +50,7 @@ export function ShootoutView({ fixture }: { fixture: Fixture }) {
   return (
     <section aria-label="Penalty shootout" className="rounded-2xl bg-[#1E2032] border border-white/5 p-5 space-y-4">
       <div className="text-center">
-        <p className="text-[11px] text-white/40 font-bold uppercase tracking-widest">Penalty shootout{data.suddenDeath ? ' · sudden death' : ''}</p>
+        <p className="text-[11px] text-white/40 font-bold uppercase tracking-widest">Penalty shootout{data.suddenDeath ? ' · sudden death' : data.kicksPerTeam ? ` · ${data.kicksPerTeam} kicks each` : ''}</p>
         <p className="font-chakra font-black text-3xl text-white mt-1">{data.home} - {data.away}</p>
         {winnerName && <p className="text-[#22C55E] text-sm font-bold mt-1">{winnerName} win on penalties</p>}
       </div>

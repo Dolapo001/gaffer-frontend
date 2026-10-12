@@ -9,7 +9,7 @@ import {
 import { useRouter } from 'next/navigation'
 import { GradientButton } from '@/components/GradientButton'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, saveLineup, recordEvent, teamsWithoutApprovedLineup, penaltiesSuffix, phaseLabel, type Fixture, type FixtureEvent } from '@/lib/services/fixture.service'
+import { listSuspendedPlayers, getFixture, startMatch, cancelLive, updateFixture, listEvents, listLineups, saveLineup, recordEvent, teamsWithoutApprovedLineup, penaltiesSuffix, phaseLabel, type Fixture, type FixtureEvent } from '@/lib/services/fixture.service'
 import { ShootoutPanel } from '@/components/admin/ShootoutPanel'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { ExtraTimeCard } from '@/components/admin/ExtraTimeCard'
@@ -117,6 +117,12 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     enabled: !!competitionId,
   })
   const playersPerSide = competition?.gameFormat?.playersPerSide ?? 11
+
+  const { data: suspendedIds = [] } = useQuery({
+    queryKey: ['suspensions', id],
+    queryFn: () => listSuspendedPlayers(id),
+    enabled: !!id && !!competition?.gameFormat?.cardRules?.red?.nextMatchBan,
+  })
 
   // 2. Persist Go Live Status
   const updateFixtureMutation = useMutation({
@@ -471,7 +477,9 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ['events', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       queryClient.invalidateQueries({ queryKey: ['fixtures'] })
-      addToast('Event recorded', 'success')
+      // A card can mean a break or a ban in this tournament: tell the organiser what to do next
+      const cardNote = (data as any)?.metadata?.cardOutcome?.text as string | undefined
+      addToast(cardNote ? `Card shown: ${cardNote}` : 'Event recorded', 'success')
       if (variables.type === 'fulltime') {
         // A level knockout match moves to extra time or penalties a moment after Full Time is recorded
         setTimeout(() => queryClient.invalidateQueries({ queryKey: ['fixture', id] }), 1500)
@@ -964,6 +972,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                     <h4 className="font-inter font-bold text-white text-base uppercase leading-tight">{player.firstName} {player.lastName}</h4>
                                     <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">
                                       {player.position || player.role || 'PLAYER'}
+                                      {suspendedIds.includes(String(player._id)) && <span className="text-red-400 ml-2">• Suspended (red card last match)</span>}
                                       {assignedSlot && !isInCurrentSlot && <span className="text-yellow-400 ml-2">• Will move from slot {Number(assignedSlot[0]) + 1}</span>}
                                     </p>
                                   </div>

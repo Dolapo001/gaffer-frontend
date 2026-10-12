@@ -243,6 +243,8 @@ export interface Shootout {
   finished: boolean
   winner: 'home' | 'away' | null
   suddenDeath: boolean
+  /** Kicks each team takes before sudden death (3 in the small games, 5 in 11-a-side) */
+  kicksPerTeam?: number
   /** The team whose turn it is; null before the first kick (the admin picks who goes first). */
   nextTeamId: string | null
   firstTeamId: string | null
@@ -329,6 +331,12 @@ export async function recordEvent(
 ): Promise<FixtureEvent> {
   const data = await api.post<{ event: FixtureEvent }>(`/fixtures/${fixtureId}/events`, payload)
   return data.event
+}
+
+// GET /fixtures/:fixtureId/suspensions: players with a next-match ban from a red card (staff). A warning only.
+export async function listSuspendedPlayers(fixtureId: string): Promise<string[]> {
+  const data = await api.get<{ playerIds: string[] }>(`/fixtures/${fixtureId}/suspensions`)
+  return data.playerIds ?? []
 }
 
 // GET /fixtures/:fixtureId/events — PUBLIC
