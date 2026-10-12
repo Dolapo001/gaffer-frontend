@@ -11,11 +11,14 @@ import {
   getTeamPricing,
   finalizeAllPricing,
   syncTournamentPlayers,
+  getFantasySyncStatus,
   listGameweeks,
   createGameweeks,
 } from '@/lib/services/fantasy.service'
 import { listRounds } from '@/lib/services/fixture.service'
 import { useToastStore } from '@/store/toastStore'
+import { SquadRulesCard } from '@/components/admin/SquadRulesCard'
+import { ScoringCard } from '@/components/admin/ScoringCard'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -52,11 +55,26 @@ export function FantasyAdminPanel({ competitionId }: Props) {
     enabled: !!season,
   })
 
+  // Players can register at any time, so this stays available after pricing is final
+  const { data: syncStatus } = useQuery({
+    queryKey: ['fantasy-sync-status', competitionId],
+    queryFn: () => getFantasySyncStatus(competitionId),
+    enabled: !!season,
+    refetchOnWindowFocus: true,
+  })
+
   const syncMutation = useMutation({
     mutationFn: () => syncTournamentPlayers(competitionId),
     onSuccess: (res) => {
       qc.invalidateQueries({ queryKey: ['team-pricing', competitionId] })
-      toast.addToast(`Sync complete: ${res.data.enrolled} players enrolled`, 'success')
+      qc.invalidateQueries({ queryKey: ['fantasy-sync-status', competitionId] })
+      const added = res.data.added ?? 0
+      toast.addToast(
+        added > 0
+          ? `${added} new ${added === 1 ? 'player' : 'players'} added. They stay hidden from fans until you price them.`
+          : 'Everyone on the team rosters is already in Fantasy.',
+        'success',
+      )
       setIsSyncing(false)
     },
     onError: (err) => {
@@ -145,20 +163,18 @@ export function FantasyAdminPanel({ competitionId }: Props) {
         </div>
 
         <div className="flex items-center gap-3">
-          {!season.pricingFinalized && (
-            <button 
-              onClick={() => {
-                setIsSyncing(true)
-                syncMutation.mutate()
-              }}
-              disabled={isSyncing}
-              className="px-4 py-3 rounded-xl bg-gaffer-surface border border-white/5 hover:border-white/20 text-white/60 hover:text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
-              title="Sync players from tournament roster"
-            >
-              <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
-              <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Sync</span>
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setIsSyncing(true)
+              syncMutation.mutate()
+            }}
+            disabled={isSyncing}
+            className="px-4 py-3 rounded-xl bg-gaffer-surface border border-white/5 hover:border-white/20 text-white/60 hover:text-white transition-all active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            title="Add players who registered since the last sync"
+          >
+            <RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''} />
+            <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">Sync players</span>
+          </button>
 
           {!season.pricingFinalized && (
             <button 
@@ -175,6 +191,24 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           )}
         </div>
       </div>
+
+      <SquadRulesCard key={JSON.stringify(season.resolvedRules) + season.squadBudget} competitionId={competitionId} season={season} />
+      <ScoringCard key={JSON.stringify(season.resolvedScoring)} competitionId={competitionId} season={season} />
+
+      {syncStatus && (syncStatus.notInFantasy > 0 || syncStatus.needPrice > 0) && (
+        <div role="status" className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 space-y-1">
+          {syncStatus.notInFantasy > 0 && (
+            <p className="text-orange-200 text-sm font-body">
+              <b>{syncStatus.notInFantasy}</b> {syncStatus.notInFantasy === 1 ? 'player has' : 'players have'} registered but {syncStatus.notInFantasy === 1 ? 'is' : 'are'} not in Fantasy yet. Press <b>Sync players</b>.
+            </p>
+          )}
+          {syncStatus.needPrice > 0 && (
+            <p className="text-orange-200 text-sm font-body">
+              <b>{syncStatus.needPrice}</b> {syncStatus.needPrice === 1 ? 'player needs' : 'players need'} a price. Fans can&apos;t pick them until you price them: open the team below.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Gameweeks — creating a round/schedule entry does NOT automatically
           create the matching fantasy gameweek; this is that missing step.

@@ -1,6 +1,7 @@
 'use client'
 
 import { Bell, BellOff } from 'lucide-react'
+import { penaltiesSuffix } from '@/lib/services/fixture.service'
 
 interface CompactFixtureRowProps {
   fixture: any
@@ -53,6 +54,7 @@ export function CompactFixtureRow({ fixture, onClick }: CompactFixtureRowProps) 
       <div className="flex-shrink-0 flex flex-col items-end gap-1.5">
         <span className="text-white text-[13px] font-black">{isFinished || isLive ? fixture.score?.home ?? 0 : ''}</span>
         <span className="text-white text-[13px] font-black">{isFinished || isLive ? fixture.score?.away ?? 0 : ''}</span>
+        {isFinished && penaltiesSuffix(fixture) && <span className="text-white/50 text-[10px] font-bold whitespace-nowrap">{penaltiesSuffix(fixture)}</span>}
       </div>
 
       <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-gaffer-muted">

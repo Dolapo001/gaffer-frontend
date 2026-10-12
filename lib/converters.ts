@@ -94,7 +94,7 @@ export function mapApiPlayer(
         homeCode: (home as any).shortName || (home as any).handle?.slice(0, 3).toUpperCase() || 'HOM',
         awayCode: (away as any).shortName || (away as any).handle?.slice(0, 3).toUpperCase() || 'AWA',
         kickoff: f.kickoffAt,
-        gameweek: typeof f.roundId === 'object' ? (f.roundId as any).order : 1
+        gameweek: f.roundId && typeof f.roundId === 'object' ? ((f.roundId as any).order ?? 1) : 1
       }
     })
 

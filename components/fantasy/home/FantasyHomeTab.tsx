@@ -21,6 +21,8 @@ import { useCompetitionNews } from '@/hooks/useCompetitionNews'
 import { getStandings } from '@/lib/services/standings.service'
 import { listCompetitionTeams } from '@/lib/services/competition.service'
 import { getGameweekState, getCurrentGameweek, computeGameweekDeadline, type GameweekState } from '@/lib/gameweekState'
+import { useFantasyStore } from '@/store/fantasyStore'
+import { PointsInfo } from '@/components/fantasy/PointsInfo'
 
 const STATE_LABELS: Record<GameweekState, string> = {
   no_fixtures: 'Not Scheduled',
@@ -34,6 +36,7 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
   const currentUserId = useAuthStore((s) => s.user?.id)
   const { news: rawNews } = useCompetitionNews(competitionId)
   const news = asArray<any>(rawNews)
+  const squadRules = useFantasyStore((s) => s.rules)
   const [activeGwIndex, setActiveGwIndex] = useState<number | null>(null)
 
   const { data: standingsData } = useQuery({
@@ -157,7 +160,7 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
         activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
         activeGameweekPoints={activeGwPoints}
         activePlayers={myTeam ? squadCount : undefined}
-        totalPlayers={15}
+        totalPlayers={squadRules.squadSize}
         highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
         deadline={activeGwDeadline ? format(activeGwDeadline, 'do MMM · HH:mm') : null}
         onPrevGameweek={() => setActiveGwIndex(Math.max(0, gwIndex - 1))}
@@ -195,6 +198,8 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
           time={kickoffTime}
         />
       )}
+
+      <PointsInfo competitionId={competitionId} />
 
       <FantasyLeaderboardWidget competitionId={competitionId} />
 

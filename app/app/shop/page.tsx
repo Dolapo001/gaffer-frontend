@@ -4,13 +4,15 @@ import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useRouter, useSearchParams } from 'next/navigation'
+import Script from 'next/script'
 import {
   listCoinPacks,
   initiatePurchase,
   verifyPayment,
+  verifyPendingPayment,
   type CoinPack
 } from '@/lib/services/payment.service'
-import { ChevronLeft, ShoppingBag, CreditCard, Sparkles, CheckCircle2, AlertCircle } from 'lucide-react'
+import { ChevronLeft, ShoppingBag, CreditCard, Sparkles, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { useGoBack } from '@/hooks/useGoBack'
@@ -25,8 +27,7 @@ export default function ShopPage() {
   const qc = useQueryClient()
   const reference = searchParams.get('reference')
   const [isVerifying, setIsVerifying] = useState(false)
-  // Verify each Paystack reference only once; the toast store changes on every
-  // toast and would otherwise re-run the effect and report a false failure.
+  const [isManualVerifying, setIsManualVerifying] = useState(false)
   const verifiedRef = useRef<string | null>(null)
 
   // 1. Fetch data
@@ -35,17 +36,82 @@ export default function ShopPage() {
     queryFn: listCoinPacks
   })
 
+  // Auto-check and reconcile pending payment on mount and app resume/focus
+  const checkPending = async (silent = true) => {
+    try {
+      const res = await verifyPendingPayment()
+      if (res.credited) {
+        toast.addToast(`Success! ${res.coinsAdded} coins added to your wallet.`, 'success')
+        qc.invalidateQueries({ queryKey: ['wallet'] })
+        return true
+      } else if (!silent) {
+        toast.addToast('No pending payment found. If you were debited, please contact support.', 'info')
+      }
+    } catch (err: any) {
+      if (!silent) {
+        toast.addToast(err?.message || 'Could not verify payment. Please try again.', 'error')
+      }
+    }
+    return false
+  }
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkPending(true)
+      }
+    }
+    window.addEventListener('focus', onVisibilityChange)
+    document.addEventListener('visibilitychange', onVisibilityChange)
+    checkPending(true)
+
+    return () => {
+      window.removeEventListener('focus', onVisibilityChange)
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+    }
+  }, [])
+
   // 2. Mutations
   const buyMutation = useMutation({
     mutationFn: (packId: string) => initiatePurchase(packId),
     onSuccess: (data) => {
-      // Redirect to Paystack
+      // If Paystack inline script is loaded, try opening popup first
+      if (typeof window !== 'undefined' && (window as any).PaystackPop && data.access_code) {
+        try {
+          const handler = (window as any).PaystackPop.setup({
+            key: process.env.NEXT_PUBLIC_PAYSTACK_KEY,
+            access_code: data.access_code,
+            callback: async (response: any) => {
+              setIsVerifying(true)
+              try {
+                const res = await verifyPayment(response.reference || data.reference)
+                toast.addToast(`Success! ${res.coinsAdded} coins added to your wallet.`, 'success')
+                qc.invalidateQueries({ queryKey: ['wallet'] })
+              } catch {
+                await checkPending(true)
+                qc.invalidateQueries({ queryKey: ['wallet'] })
+              } finally {
+                setIsVerifying(false)
+              }
+            },
+            onClose: () => {
+              checkPending(true)
+            }
+          })
+          handler.openIframe()
+          return
+        } catch {
+          // Fallback to direct redirect if popup setup failed
+        }
+      }
+
+      // Default redirect
       window.location.href = data.authorization_url
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error')
   })
 
-  // 3. Handle Payment Verification if returning from Paystack
+  // 3. Handle Payment Verification if returning from Paystack redirect
   useEffect(() => {
     if (reference && verifiedRef.current !== reference) {
       verifiedRef.current = reference
@@ -55,7 +121,6 @@ export default function ShopPage() {
           const res = await verifyPayment(reference)
           toast.addToast(`Success! ${res.coinsAdded} coins added to your wallet.`, 'success')
           qc.invalidateQueries({ queryKey: ['wallet'] })
-          // Clear query params
           router.replace('/app/shop')
         } catch (err) {
           toast.addToast('Payment verification failed. If you were debited, please contact support.', 'error')
@@ -66,6 +131,15 @@ export default function ShopPage() {
       verify()
     }
   }, [reference, toast, qc, router])
+
+  const handleManualVerify = async () => {
+    setIsManualVerifying(true)
+    try {
+      await checkPending(false)
+    } finally {
+      setIsManualVerifying(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#181928] text-white flex flex-col font-inter">
@@ -184,13 +258,29 @@ export default function ShopPage() {
           </div>
         </div>
 
+        {/* Manual Reconcile Button */}
+        <div className="text-center pt-2">
+          <button
+            type="button"
+            onClick={handleManualVerify}
+            disabled={isManualVerifying}
+            className="inline-flex items-center gap-1.5 text-white/50 hover:text-white transition-colors text-[11px] font-chakra font-bold uppercase tracking-wider underline disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={isManualVerifying ? "animate-spin text-gaffer-orange" : ""} />
+            {isManualVerifying ? 'Checking Paystack...' : 'Paid but coins not showing? Tap to refresh'}
+          </button>
+        </div>
+
         {/* Secure Message */}
-        <div className="flex items-center justify-center gap-2 opacity-30 text-[10px] font-chakra font-bold uppercase tracking-widest pt-4">
+        <div className="flex items-center justify-center gap-2 opacity-30 text-[10px] font-chakra font-bold uppercase tracking-widest pt-2">
            <AlertCircle size={12} />
            Secure Payments by Paystack
         </div>
 
       </div>
+
+      {/* Script for Paystack inline popup */}
+      <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
 
       {/* Buy Button Overlay (if loading) */}
       <AnimatePresence>
@@ -203,7 +293,7 @@ export default function ShopPage() {
           >
             <div className="text-center space-y-4">
                <div className="w-12 h-12 border-4 border-gaffer-orange border-t-transparent rounded-full animate-spin mx-auto" />
-               <p className="font-chakra font-black uppercase tracking-widest text-white">Redirecting to Paystack...</p>
+               <p className="font-chakra font-black uppercase tracking-widest text-white">Opening Paystack...</p>
             </div>
           </motion.div>
         )}

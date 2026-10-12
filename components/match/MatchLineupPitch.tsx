@@ -92,6 +92,24 @@ const FORMATION_GRID_HOME: Record<string, Array<{ x: number; y: number }>> = {
   ],
 }
 
+/**
+ * Positions for any other formation ("2-1-1", "3-3-2", ...): the goalkeeper, then the defence, midfield and attack
+ * rows, each spread evenly across the pitch. The three classic 11-a-side shapes above keep their hand-placed grids.
+ */
+function gridFor(formation: string, side: 'home' | 'away'): Array<{ x: number; y: number }> {
+  const preset = (side === 'home' ? FORMATION_GRID_HOME : FORMATION_GRID_AWAY)[formation]
+  if (preset) return preset
+  const parts = String(formation).split('-').map(Number)
+  const rows = parts.length === 3 && parts.every((p) => Number.isInteger(p) && p >= 0) ? parts : [4, 3, 3]
+  const ys = side === 'home' ? [388, 340, 290, 248] : [40, 86, 136, 180]
+  const points = [{ x: 150, y: ys[0] }]
+  rows.forEach((count, r) => {
+    const width = Math.min(210, (count - 1) * 70)
+    for (let i = 0; i < count; i++) points.push({ x: count === 1 ? 150 : 150 - width / 2 + (i * width) / (count - 1), y: ys[r + 1] })
+  })
+  return points
+}
+
 export interface LineupPlayer {
   id: string
   name: string
@@ -195,7 +213,7 @@ export function MatchLineupPitch({
   }
 
   // Map Away team starters to pitch positions
-  const awayGrid = FORMATION_GRID_AWAY[awayTeam.formation] || FORMATION_GRID_AWAY['4-3-3']
+  const awayGrid = gridFor(awayTeam.formation, 'away')
   const awayMarkers: PitchPlayerMarker[] = awayTeam.starters.slice(0, 11).map((player, idx) => {
     const pos = awayGrid[idx] || { x: 150, y: 100 }
     const rating = getPlayerRating(player)
@@ -220,7 +238,7 @@ export function MatchLineupPitch({
   })
 
   // Map Home team starters to pitch positions
-  const homeGrid = FORMATION_GRID_HOME[homeTeam.formation] || FORMATION_GRID_HOME['4-3-3']
+  const homeGrid = gridFor(homeTeam.formation, 'home')
   const homeMarkers: PitchPlayerMarker[] = homeTeam.starters.slice(0, 11).map((player, idx) => {
     const pos = homeGrid[idx] || { x: 150, y: 300 }
     const rating = getPlayerRating(player)

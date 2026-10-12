@@ -29,8 +29,10 @@ import { ApiError } from '@/lib/api'
 import {
   getPublicTeamByHandle,
   registerPublicPlayer,
+  uploadPublicPlayerPhoto,
   type Team,
 } from '@/lib/services/team.service'
+import { PlayerPhotoPicker } from '@/components/PlayerPhotoPicker'
 
 type PageStatus = 'loading' | 'valid' | 'invalid'
 
@@ -67,6 +69,8 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
   })
   const [errors, setErrors] = useState<FieldErrors>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [photo, setPhoto] = useState<File | null>(null)
+  const [photoFailed, setPhotoFailed] = useState(false)
   const [isDone, setIsDone] = useState(false)
 
   // ── Validate once on mount ────────────────────────────────────────────────
@@ -126,7 +130,7 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
 
     setIsSubmitting(true)
     try {
-      await registerPublicPlayer(handle, {
+      const registered = await registerPublicPlayer(handle, {
         firstName: fields.firstName.trim(),
         lastName: fields.lastName.trim(),
         position: fields.position.toLowerCase(),
@@ -134,6 +138,14 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
         email: fields.email.trim() || undefined,
         jerseyNumber: fields.jerseyNumber ? Number(fields.jerseyNumber) : undefined,
       })
+      // The photo is optional and never blocks registration
+      if (photo && registered.player?._id) {
+        try {
+          await uploadPublicPlayerPhoto(handle, registered.player._id, photo)
+        } catch {
+          setPhotoFailed(true)
+        }
+      }
       setIsDone(true)
     } catch (err: unknown) {
       if (err instanceof ApiError) {
@@ -229,6 +241,9 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
                 <p className="text-white/50 text-sm font-body leading-relaxed max-w-xs mx-auto">
                   Your request has been submitted. The coach will review your application.
                 </p>
+                {photoFailed && (
+                  <p className="text-yellow-300/80 text-xs font-body mt-3 max-w-xs mx-auto">Your photo did not upload. You are registered, and the coach can add it later. Your initials will show until then.</p>
+                )}
               </div>
             </motion.div>
           )}
@@ -279,6 +294,8 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
                   <p className="text-red-400 text-sm font-body">{errors.general}</p>
                 </motion.div>
               )}
+
+              <PlayerPhotoPicker name={`${fields.firstName} ${fields.lastName}`.trim()} file={photo} onChange={setPhoto} />
 
               {/* Required */}
               <div className="space-y-4">

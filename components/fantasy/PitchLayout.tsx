@@ -4,6 +4,7 @@ import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
 import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
 import { EmptySlotCard } from './EmptySlotCard'
 import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+import { STANDARD_RULES, type SquadRules } from '@/lib/squadRules'
 
 /** Always returns a JerseyProps — uses team.jersey if present, falls back to teamColor solid kit */
 function toJersey(player: FantasySquadPlayer): JerseyProps {
@@ -132,6 +133,8 @@ export function PitchMarkings() {
 
 interface PitchLayoutProps {
   pitchPlayers: FantasySquadPlayer[]
+  /** The size of the game. Decides which empty places the squad builder shows. Defaults to the standard 11-a-side game. */
+  rules?: SquadRules
   selectedId: string | null
   substitutingOutId?: string | null
   budget: number
@@ -146,6 +149,7 @@ interface PitchLayoutProps {
 
 export function PitchLayout({
   pitchPlayers,
+  rules = STANDARD_RULES,
   selectedId,
   substitutingOutId,
   budget,
@@ -160,23 +164,37 @@ export function PitchLayout({
   // Row 2: DEF (5 slots)
   // Row 1: MID (5 slots)
   // Row 0: FWD (3 slots)
-  const slotConfig = [
-    { row: 3, count: 2, position: 'GK' },
-    { row: 2, count: 5, position: 'DEF' },
-    { row: 1, count: 5, position: 'MID' },
-    { row: 0, count: 3, position: 'FWD' },
-  ]
+  // The standard game has a fixed place for each position. In the small games only the goalkeepers are fixed: the
+  // rows grow with the players picked, and the places still to fill are shown as free outfield places at the bottom.
+  const outfieldPicked = pitchPlayers.filter((p) => p.pitchRow !== 3).length
+  const slotConfig = rules.composition
+    ? [
+        { row: 3, count: rules.composition.GK, position: 'GK' },
+        { row: 2, count: rules.composition.DEF, position: 'DEF' },
+        { row: 1, count: rules.composition.MID, position: 'MID' },
+        { row: 0, count: rules.composition.FWD, position: 'FWD' },
+      ]
+    : [
+        { row: 3, count: rules.gkInSquad, position: 'GK' },
+        { row: 2, count: pitchPlayers.filter((p) => p.pitchRow === 2).length, position: 'DEF' },
+        { row: 1, count: pitchPlayers.filter((p) => p.pitchRow === 1).length, position: 'MID' },
+        { row: 0, count: pitchPlayers.filter((p) => p.pitchRow === 0).length, position: 'FWD' },
+        { row: -1, count: Math.max(0, rules.squadSize - rules.gkInSquad - outfieldPicked), position: 'OUT' },
+      ]
 
-  const rows = [3, 2, 1, 0].map((row) => {
-    const playersInRow = pitchPlayers.filter((p) => p.pitchRow === row)
-    const config = slotConfig.find((c) => c.row === row)
-    return {
-      row,
-      players: playersInRow,
-      totalSlots: config?.count || 0,
-      position: config?.position || '',
-    }
-  })
+  const rows = [3, 2, 1, 0, -1]
+    .map((row) => {
+      const playersInRow = pitchPlayers.filter((p) => p.pitchRow === row)
+      const config = slotConfig.find((c) => c.row === row)
+      return {
+        row,
+        players: playersInRow,
+        totalSlots: config?.count || 0,
+        position: config?.position || '',
+      }
+    })
+    // A row with nothing to show takes no space, so the others spread over the pitch
+    .filter((r) => (selectionMode ? r.totalSlots > 0 || r.players.length > 0 : r.players.length > 0))
 
   return (
     <div className={className ?? "relative w-full aspect-[4/5]"}>
@@ -216,7 +234,7 @@ export function PitchLayout({
                 return (
                   <EmptySlotCard
                     key={`empty-${rowData.row}-${si}`}
-                    position={rowData.position}
+                    position={rowData.position === 'OUT' ? 'ANY' : rowData.position}
                     onClick={() => {
                         onSelectPlayer(`empty-${rowData.position}-${si}`)
                     }}

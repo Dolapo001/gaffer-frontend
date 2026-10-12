@@ -1,11 +1,13 @@
 'use client'
 
+import { slotLayout, zonesFromString } from '@/lib/lineupFormation'
 import { useState, useMemo } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getMatchState, getMatchEvents, deleteMatchEvent, type MatchEvent } from '@/lib/services/match.service'
-import { listLineups } from '@/lib/services/fixture.service'
+import { listLineups, penaltiesSuffix, phaseLabel } from '@/lib/services/fixture.service'
+import { ShootoutView } from '@/components/match/ShootoutView'
 import {
   followMatch,
   unfollowMatch,
@@ -178,6 +180,14 @@ export default function MatchCenterPage() {
             </div>
          </div>
 
+         {/* Extra time / penalties */}
+         {(phaseLabel(fixture as any) || penaltiesSuffix(fixture as any)) && (
+            <div className="-mt-4 mb-4 text-center space-y-1">
+               {phaseLabel(fixture as any) && <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-400 animate-pulse">{phaseLabel(fixture as any)}</p>}
+               {penaltiesSuffix(fixture as any) && <p className="text-[12px] font-bold uppercase tracking-widest text-white/60">{penaltiesSuffix(fixture as any)}</p>}
+            </div>
+         )}
+
          {/* Scorers List */}
          <div className="w-full max-w-[350px] flex justify-between px-2 opacity-80 min-h-[40px]">
             <div className="flex flex-col gap-1">
@@ -192,6 +202,11 @@ export default function MatchCenterPage() {
             </div>
          </div>
       </section>
+
+      {/* Penalty shootout, kick by kick */}
+      {((fixture as any).phase === 'penalties' || (fixture as any).decidedBy === 'penalties') && (
+         <div className="px-6 mb-6"><ShootoutView fixture={fixture as any} /></div>
+      )}
 
       {/* Tabs */}
       <div className="px-6 mb-6">
@@ -462,30 +477,10 @@ function Pitch({ teamLineup, formation }: { teamLineup?: any; formation?: string
    // Use explicit SLOTS if available, otherwise fall back to sequential starters
    const slots = teamLineup?.slots || []
    const starters = teamLineup?.players || (Array.isArray(teamLineup) ? teamLineup : [])
-   const [defN, midN, attN] = (formation || '4-3-3').split('-').map(Number)
 
-   // 4-3-3 formations normally have 11 slots (0-10)
-   // We'll use the same formations mapping logic as the admin side for consistency
-   const formationDots = {
-      '4-4-2': [
-         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-         { t: 45, l: 15 }, { t: 45, l: 38 }, { t: 45, l: 62 }, { t: 45, l: 85 },
-         { t: 18, l: 35 }, { t: 18, l: 65 }
-      ],
-      '4-3-3': [
-         { t: 88, l: 50 }, { t: 72, l: 15 }, { t: 72, l: 38 }, { t: 72, l: 62 }, { t: 72, l: 85 },
-         { t: 45, l: 25 }, { t: 45, l: 50 }, { t: 45, l: 75 },
-         { t: 18, l: 15 }, { t: 18, l: 50 }, { t: 18, l: 85 }
-      ],
-      '3-5-2': [
-         { t: 88, l: 50 }, { t: 72, l: 25 }, { t: 72, l: 50 }, { t: 72, l: 75 },
-         { t: 45, l: 10 }, { t: 45, l: 30 }, { t: 45, l: 50 }, { t: 45, l: 70 }, { t: 45, l: 90 },
-         { t: 18, l: 35 }, { t: 18, l: 65 }
-      ]
-   }
+   // Any size of game: the formation string says how many play in each area
+   const activeFormation = slotLayout(zonesFromString(formation))
 
-   const activeFormation = formationDots[formation as keyof typeof formationDots] || formationDots['4-3-3']
-   
    // Map players to their designated slots
    const mappedPlayers: Record<number, any> = {}
    

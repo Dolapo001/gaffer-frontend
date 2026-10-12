@@ -1,5 +1,7 @@
 'use client'
 
+import { nextOpponentLabel } from '@/lib/playerDisplay'
+import { PlayerAvatar } from '@/components/fantasy/PlayerAvatar'
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Search, Trash2, X } from 'lucide-react';
@@ -11,7 +13,8 @@ import { PitchLayout } from './PitchLayout';
 import { getJerseyUrl, type FantasySquadPlayer, type Position } from '@/lib/fantasyMockData';
 import CreateTeamPlayerDrawer from './CreateTeamPlayerDrawer';
 import { SaveTeamConfirmationModal } from './SaveTeamConfirmationModal';
-import { listFantasyPlayers, listGameweeks, SQUAD_RULES, type FantasyPlayer } from '@/lib/services/fantasy.service';
+import { whyCannotAdd, isDraftComplete, stillNeeded, chooseStarters, type SquadRules } from '@/lib/squadRules';
+import { listFantasyPlayers, listGameweeks, type FantasyPlayer } from '@/lib/services/fantasy.service';
 import { listFixtures } from '@/lib/services/fixture.service';
 import { PositionFilterBar, type PositionFilterValue } from '@/components/PositionFilterBar';
 import { formatSquadValue } from '@/lib/format';
@@ -24,7 +27,7 @@ interface CreateTeamScreenProps {
 
 export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }) => {
   const router = useRouter();
-  const { competitionId, resetTeam, setPlayers, squadBudget } = useFantasyStore();
+  const { competitionId, resetTeam, setPlayers, squadBudget, rules } = useFantasyStore();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [activeSlot, setActiveSlot] = useState<{ position: Position; index: number } | null>(null);
 
@@ -38,8 +41,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
     acc[p.position] = (acc[p.position] ?? 0) + 1;
     return acc;
   }, {});
-  const isSquadComplete = (Object.keys(SQUAD_RULES.positions) as Position[])
-    .every((pos) => (positionCounts[pos] ?? 0) === SQUAD_RULES.positions[pos]);
+  const isSquadComplete = isDraftComplete(rules, draftPlayers);
 
   // Drawer & Modal State
   const [selectedPlayerForDrawer, setSelectedPlayerForDrawer] = useState<FantasySquadPlayer | null>(null);
@@ -80,8 +82,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
     // Functional update + guards: a repeat tap on a closing overlay is a no-op
     setDraftPlayers((prev) => {
       if (prev.some((p) => p.id === player.id)) return prev;
-      const posCount = prev.filter((p) => p.position === player.position).length;
-      if (posCount >= (SQUAD_RULES.positions[player.position as Position] ?? 0)) return prev;
+      if (whyCannotAdd(rules, prev, player)) return prev;
       return [...prev, { ...player, isOnPitch: true }];
     });
     setIsSearchOpen(false);
@@ -99,7 +100,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   };
 
   const handleConfirmSave = () => {
-    setPlayers(apply442(draftPlayers));
+    setPlayers(applyStarters(draftPlayers, rules));
     setIsConfirmModalOpen(false);
     onComplete();
   };
@@ -118,13 +119,13 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         </div>
 
         <p className="text-white/60 text-[12px] text-center mb-8 px-4">
-          Pick Players one by one, you only get to select 3 players per club
+          Pick Players one by one, you only get to select {rules.maxPerClub} players per club
         </p>
 
         <div className="flex justify-between items-center px-2">
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Players :</span>
-            <span className="text-white text-[14px] font-bold">{draftPlayers.length}/15</span>
+            <span className="text-white text-[14px] font-bold">{draftPlayers.length}/{rules.squadSize}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">Bank :</span>
@@ -146,6 +147,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         <div className="px-2 mt-4">
           <PitchLayout
             pitchPlayers={draftPlayers}
+            rules={rules}
             selectedId={selectedPlayerForDrawer?.id || null}
             budget={budget}
             onSelectPlayer={handleSelectSlot}
@@ -156,11 +158,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
         <div className="flex flex-col items-center gap-4 mt-12 pb-10">
           {!isSquadComplete && (
             <p className="text-white/60 text-[12px] text-center px-6">
-              Still needed:{' '}
-              {(Object.keys(SQUAD_RULES.positions) as Position[])
-                .filter((pos) => (positionCounts[pos] ?? 0) < SQUAD_RULES.positions[pos])
-                .map((pos) => `${SQUAD_RULES.positions[pos] - (positionCounts[pos] ?? 0)} ${pos}`)
-                .join(', ')}
+              Still needed: {stillNeeded(rules, draftPlayers)}
             </p>
           )}
           <button
@@ -206,26 +204,19 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
   );
 };
 
-// ─── Auto 4-4-2 Formation ────────────────────────────────────────────────────
-// Assigns 1 GK, 4 DEF, 4 MID, 2 FWD to pitch; rest go to bench.
-// Bench order: remaining DEF/MID/FWD first, then the reserve GK last.
-function apply442(players: FantasySquadPlayer[]): FantasySquadPlayer[] {
-  const STARTERS: Record<string, number> = { GK: 1, DEF: 4, MID: 4, FWD: 2 };
-  const counts: Record<string, number> = { GK: 0, DEF: 0, MID: 0, FWD: 0 };
-
-  return players.map((p) => {
-    const pos = p.position as string;
-    const limit = STARTERS[pos] ?? 0;
-    const isStarter = counts[pos] < limit;
-    if (isStarter) counts[pos]++;
-    return { ...p, isOnPitch: isStarter };
-  });
+// ─── Starting team for a new squad ───────────────────────────────────────────
+// The standard game starts a 4-4-2. The small games start the goalkeeper and the most expensive outfield players.
+// Bench order is settled when the squad is saved: outfield players first, then the reserve GK last.
+function applyStarters(players: FantasySquadPlayer[], rules: SquadRules): FantasySquadPlayer[] {
+  const starters = chooseStarters(rules, players);
+  return players.map((p) => ({ ...p, isOnPitch: starters.has(p.id) }));
 }
 
 // ─── PlayerSearchOverlay Component ──────────────────────────────────────────
 
 interface PlayerOverlayProps {
-  position: Position;
+  /** The slot that was tapped. 'OUT' is a free outfield place in the small games. */
+  position: Position | 'OUT';
   draftPlayers: FantasySquadPlayer[];
   budget: number;
   onClose: () => void;
@@ -233,6 +224,7 @@ interface PlayerOverlayProps {
 }
 
 const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string }> = ({ position, competitionId, draftPlayers, budget, onClose, onSelect }) => {
+  const rules = useFantasyStore((s) => s.rules);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTeam, setSelectedTeam] = useState<string>('all');
   const [maxPrice, setMaxPrice] = useState<number>(20);
@@ -240,7 +232,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   // lets the user browse other positions from the same overlay — selecting a
   // player elsewhere doesn't depend on which slot opened it (final pitch
   // placement is derived from the player's own position at Save time).
-  const [positionFilter, setPositionFilter] = useState<PositionFilterValue>(position);
+  const [positionFilter, setPositionFilter] = useState<PositionFilterValue>(position === 'OUT' ? 'ALL' : position);
   const [blockedMessage, setBlockedMessage] = useState<string | null>(null);
 
   const showBlockedMessage = (message: string) => {
@@ -290,9 +282,12 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   };
   const normalizePos = (p: string) => POS_NORMALIZE[p?.trim().toLowerCase()] || p?.trim().toUpperCase() || '';
 
-  const positionMatchedPlayers = (playerResponse?.data || []).filter(p =>
-    positionFilter === 'ALL' || normalizePos(p.position) === positionFilter
-  );
+  const positionMatchedPlayers = (playerResponse?.data || []).filter(p => {
+    const pos = normalizePos(p.position);
+    // An outfield place never lists goalkeepers until the filter is changed
+    if (positionFilter === 'ALL' && position === 'OUT' && pos === 'GK') return false;
+    return positionFilter === 'ALL' || pos === positionFilter;
+  });
 
   const excludeIds = draftPlayers.map(p => p.id);
   const apiPlayers = positionMatchedPlayers.filter(p => {
@@ -306,13 +301,10 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
   const mappedPlayers = apiPlayers.map(p => {
     const teamIdKey = (p.teamId as any)?._id || p.teamId?.name || '';
     const normalized = { ...p, position: normalizePos(p.position) as FantasyPlayer['position'] };
-    const pos = normalized.position as Position;
-    let blockedReason: string | null = null;
-    if ((positionCounts[pos] ?? 0) >= (SQUAD_RULES.positions[pos] ?? 0)) {
-      blockedReason = `All ${SQUAD_RULES.positions[pos]} ${pos} slots filled`;
-    } else if ((teamCounts[teamIdKey] ?? 0) >= 3) {
-      blockedReason = '3 max reached';
-    } else if (p.price > budget) {
+    let blockedReason: string | null = whyCannotAdd(rules, draftPlayers, normalized);
+    if (!blockedReason && (teamCounts[teamIdKey] ?? 0) >= rules.maxPerClub) {
+      blockedReason = `${rules.maxPerClub} max reached`;
+    } else if (!blockedReason && p.price > budget) {
       blockedReason = 'Not enough in bank';
     }
     return {
@@ -334,7 +326,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
     setSearchQuery('');
     setSelectedTeam('all');
     setMaxPrice(20);
-    setPositionFilter(position);
+    setPositionFilter(position === 'OUT' ? 'ALL' : position);
   };
 
 
@@ -489,24 +481,23 @@ const PlayerRow = ({ player, blockedReason, onClick }: { player: FantasySquadPla
     onClick={onClick}
     className={`w-full flex items-center py-3 px-2 transition-colors border-b border-white/5 group ${blockedReason ? 'opacity-40' : 'hover:bg-white/5'}`}
   >
-    <div className="w-12 h-12 rounded-full overflow-hidden bg-[#2a2b3d] relative mr-4 border border-white/10 shadow-lg">
-      <img
-        src={player.avatarUrl || `https://i.pravatar.cc/100?u=${player.id}`}
-        alt={player.name}
-        className="w-full h-full object-cover object-top"
-      />
-      <div className="absolute bottom-0 left-0 w-6 h-6 bg-white rounded-full flex items-center justify-center border-2 border-[#2a2b3d] p-0.5 shadow-md">
-        <div className="w-full h-full bg-[#004170] rounded-full" />
-      </div>
+    <div className="mr-4">
+      <PlayerAvatar name={player.name} photoUrl={player.avatarUrl} teamColor={player.teamColor} teamLogoUrl={player.teamLogoUrl} teamCode={player.teamCode} size={48} />
     </div>
 
     <div className="flex flex-col items-start flex-1 min-w-0">
       <span className={`text-[15px] font-bold truncate transition-colors leading-tight ${blockedReason ? 'text-white/60' : 'text-white group-hover:text-[#ff6b00]'}`}>
         {player.name}
       </span>
-      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5">
+      <span className="text-[#ff4d00] text-[10px] font-black uppercase tracking-wider mt-0.5 max-w-full truncate">
         {player.position}{blockedReason ? ` · ${blockedReason}` : ''}
       </span>
+      <span className="text-white/60 text-[11px] font-semibold mt-0.5 max-w-full truncate">
+        {[player.teamCode, player.teamName && player.teamName !== player.teamCode ? player.teamName : ''].filter(Boolean).join(' · ')}
+      </span>
+      {nextOpponentLabel(player.teamCode, player.nextFixtures) && (
+        <span className="text-white/40 text-[10px] font-semibold mt-0.5">Next: {nextOpponentLabel(player.teamCode, player.nextFixtures)}</span>
+      )}
     </div>
 
     <div className="flex items-center gap-1.5 min-w-[120px] justify-end">
