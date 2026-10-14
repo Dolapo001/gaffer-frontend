@@ -61,6 +61,8 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
   const org = orgs?.[0]
+  // Only people who run an organisation switch between accounts. Everyone else is just a player.
+  const isOrganiser = !!(org || user?.isOrgActive || currentRole === 'organization')
 
   const deleteOrgMutation = useMutation({
     mutationFn: () => deleteOrg(org!._id),
@@ -209,7 +211,25 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
         </button>
       </nav>
 
-      {/* Role Switcher Section */}
+      {/* Players who have never created an organisation: a single way in */}
+      {!isOrganiser && (
+        <div className="space-y-3 pt-6 border-t border-white/10 relative z-10 w-full mb-10">
+          <h4 className="text-[10px] font-black tracking-widest text-white/30 uppercase mb-2 px-2">Tournaments</h4>
+          <motion.button
+            whileTap={{ scale: 0.96 }}
+            onClick={() => { onClose(); router.push('/onboarding/organization') }}
+            className="w-full py-4 rounded-xl font-black text-sm text-center border border-transparent shadow-md bg-gradient-to-r from-[#FF8904] to-[#ff4d00] text-white"
+          >
+            Run a tournament
+          </motion.button>
+          <p className="text-[11px] text-white/40 px-2 leading-relaxed">
+            Set up an organisation to run your own league. We check it before you can publish.
+          </p>
+        </div>
+      )}
+
+      {/* Role Switcher Section (organisers only) */}
+      {isOrganiser && (
       <div className="space-y-3 pt-6 border-t border-white/10 relative z-10 w-full mb-10">
         <h4 className="text-[10px] font-black tracking-widest text-white/30 uppercase mb-2 px-2">Switch Account</h4>
 
@@ -245,6 +265,7 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
           Organization Account
         </motion.button>
       </div>
+      )}
 
       {/* Delete Organisation */}
       {currentRole === 'organization' && org && (
