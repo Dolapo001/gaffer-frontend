@@ -42,6 +42,20 @@ export interface FantasyGameweek {
   completionStatus: 'pending' | 'scoring' | 'completed'
   gameweekNumber: number
   stage?: 'group_stage' | 'round_of_16' | 'quarter_finals' | 'semi_finals' | 'final'
+  /** The organiser's own rules for this round (anything missing follows the usual rules) */
+  rules?: Partial<GameweekRules>
+  /** What actually applies in this round. Missing on old servers. */
+  effectiveRules?: GameweekRules
+}
+
+export interface GameweekRules {
+  freeTransfers: number
+  unlimitedTransfers: boolean
+  maxPerClub: number
+  /** Points lost for each transfer beyond the free ones */
+  transferHit: number
+  /** Squads lock this many minutes before the round's first kick-off */
+  deadlineLeadMinutes: number
 }
 
 export interface StageRules {
@@ -210,6 +224,16 @@ export async function updateFantasyScoring(
   },
 ): Promise<FantasySeason> {
   const res = await api.patch<{ data: FantasySeason }>(`/fantasy/${competitionId}/season/scoring`, changes)
+  return res.data
+}
+
+// PATCH /fantasy/:competitionId/gameweeks/:gameweekId/rules (organiser): the rules for one round
+export async function updateGameweekRules(
+  competitionId: string,
+  gameweekId: string,
+  changes: Partial<GameweekRules> & { reset?: boolean },
+): Promise<FantasyGameweek> {
+  const res = await api.patch<{ data: FantasyGameweek }>(`/fantasy/${competitionId}/gameweeks/${gameweekId}/rules`, changes)
   return res.data
 }
 

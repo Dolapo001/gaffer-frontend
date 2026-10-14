@@ -20,6 +20,7 @@ import { useToastStore } from '@/store/toastStore'
 import { SquadRulesCard } from '@/components/admin/SquadRulesCard'
 import Link from 'next/link'
 import { ScoringCard } from '@/components/admin/ScoringCard'
+import { RoundSettingsCard } from '@/components/admin/RoundSettingsCard'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -205,6 +206,7 @@ export function FantasyAdminPanel({ competitionId }: Props) {
       </Link>
       <SquadRulesCard key={JSON.stringify(season.resolvedRules) + season.squadBudget} competitionId={competitionId} season={season} />
       <ScoringCard key={JSON.stringify(season.resolvedScoring)} competitionId={competitionId} season={season} />
+      <RoundSettingsCard competitionId={competitionId} gameweeks={gameweeks ?? []} />
 
       {syncStatus && (syncStatus.notInFantasy > 0 || syncStatus.needPrice > 0) && (
         <div role="status" className="rounded-2xl border border-orange-500/30 bg-orange-500/10 p-4 space-y-1">

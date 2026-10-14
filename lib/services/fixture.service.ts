@@ -180,9 +180,48 @@ export async function generateFixtures(
     kickoffTime?: string
     venue?: string
     groupName?: string
+    /** Knockout: how teams are paired, and how matches are spread over pitches and time */
+    pairing?: 'random' | 'seeded'
+    spacingMinutes?: number
+    venues?: string[]
+    pitches?: number
   },
 ): Promise<{ message: string; roundsCreated: number; fixturesCreated: number }> {
   return api.post(`/competitions/${competitionId}/fixtures/generate`, payload)
+}
+
+export interface KnockoutTeamRef { id: string; name?: string; shortName?: string }
+export interface KnockoutProposal {
+  done: boolean
+  champion?: KnockoutTeamRef
+  fromRound?: { id: string; name: string }
+  roundName?: string
+  size?: number
+  winners?: KnockoutTeamRef[]
+  byes?: KnockoutTeamRef[]
+  bestLosers?: Array<KnockoutTeamRef & { gf: number; ga: number }>
+  otherLosers?: Array<KnockoutTeamRef & { gf: number; ga: number }>
+  pairs?: Array<{ home: KnockoutTeamRef; away: KnockoutTeamRef }>
+  created?: boolean
+  fixturesCreated?: number
+}
+
+// POST /competitions/:competitionId/knockout/advance: preview or create the next knockout round
+export async function advanceKnockout(
+  competitionId: string,
+  payload: {
+    preview?: boolean
+    pairing?: 'random' | 'seeded'
+    startAt?: string
+    breakMinutes?: number
+    spacingMinutes?: number
+    venues?: string[]
+    pitches?: number
+    /** Create exactly these pairings ([homeTeamId, awayTeamId]), as shown by the preview */
+    pairs?: Array<[string, string]>
+  },
+): Promise<KnockoutProposal> {
+  return api.post<KnockoutProposal>(`/competitions/${competitionId}/knockout/advance`, payload)
 }
 
 // GET /fixtures/:fixtureId — PUBLIC

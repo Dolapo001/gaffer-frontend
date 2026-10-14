@@ -27,6 +27,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage, getImageUrl } from '@/lib/api'
 import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
+import { KnockoutBuilderCard } from '@/components/admin/KnockoutBuilderCard'
 import { TournamentBracket } from '@/components/admin/TournamentBracket'
 import { EditTournamentModal } from '@/components/tournament/EditTournamentModal'
 import { RecordEventModal } from '@/components/admin/RecordEventModal'
@@ -554,6 +555,9 @@ export default function TournamentDetailPage() {
             {/* ── SCHEDULE ── */}
             {activeTab === 'schedule' && (
               <motion.div key="sc" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                {competition?.format === 'knockout' && (
+                  <KnockoutBuilderCard competitionId={id} teamCount={compTeams?.length ?? 0} hasRounds={allFixtures.length > 0} />
+                )}
                 <GroupedFixturesView
                   fixtures={allFixtures}
                   compTeams={compTeams}
