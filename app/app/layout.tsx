@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { useAuthGuard } from '@/hooks/useAuthGuard'
 import { useNotificationSocket } from '@/hooks/useNotificationSocket'
@@ -13,6 +13,7 @@ import { useUIStore } from '@/store/uiStore'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
 import { PushPrompt } from '@/components/notifications/PushPrompt'
+import { adjacentTab, startsInsideSideScroller, swipeDirection } from '@/lib/tabSwipe'
 
 // Exact paths that mean the user has intentionally left the competition context.
 // Note: '/app/league/:id' is the league home and must NOT clear the context.
@@ -23,7 +24,9 @@ const EXIT_PATHS = ['/app/dashboard', '/app/league', '/app/fantasy']
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  const router = useRouter()
   const { isReady } = useAuthGuard('personal')
+  const touch = useRef<{ x: number; y: number; t: number; ignore: boolean } | null>(null)
   // Realtime socket for every page in this area (live scores, notifications),
   // not only pages that happen to render the NotificationBell
   useNotificationSocket()
@@ -53,6 +56,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         { href: '/app/news',      icon: Newspaper, label: 'News'    },
       ]
 
+  // Swipe left or right on a main page to move between Home, Fantasy, League and News
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touch.current = { x: t.clientX, y: t.clientY, t: Date.now(), ignore: e.touches.length > 1 || startsInsideSideScroller(e.target) }
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const start = touch.current
+    touch.current = null
+    if (!start || start.ignore) return
+    const t = e.changedTouches[0]
+    const direction = swipeDirection({ dx: t.clientX - start.x, dy: t.clientY - start.y, ms: Date.now() - start.t })
+    const target = adjacentTab(navItems.map((i) => i.href), pathname, direction)
+    if (target) router.push(target)
+  }
+
   if (!isReady) {
     return (
       <div className="min-h-screen bg-gaffer-bg flex items-center justify-center">
@@ -65,14 +83,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <ErrorBoundary>
           <motion.main
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
             className="flex-1"
-            style={{ paddingBottom: 'calc(64px + env(safe-area-inset-bottom, 0px))' }}
+            style={{ paddingBottom: 'calc(72px + env(safe-area-inset-bottom, 0px))' }}
           >
             {children}
           </motion.main>
