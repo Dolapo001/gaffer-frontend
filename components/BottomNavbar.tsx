@@ -31,15 +31,22 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex items-center justify-around px-2 bg-[#1d1f2e] border-t border-white/5 shadow-2xl"
+          className="flex items-center justify-around px-2"
           style={{
             position: 'fixed',
             bottom: 0,
             left: 0,
             right: 0,
             zIndex: 100,
-            height: 'calc(64px + env(safe-area-inset-bottom, 0px))',
+            height: 'calc(72px + env(safe-area-inset-bottom, 0px))',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            // Frosted glass with a gently arched top: what scrolls underneath shows through, blurred
+            background: 'linear-gradient(180deg, rgba(48,52,74,0.55) 0%, rgba(24,25,40,0.72) 100%)',
+            backdropFilter: 'blur(22px) saturate(170%)',
+            WebkitBackdropFilter: 'blur(22px) saturate(170%)',
+            borderTop: '1px solid rgba(255,255,255,0.16)',
+            borderRadius: '50% 50% 0 0 / 22px 22px 0 0',
+            boxShadow: '0 -10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
           }}
         >
         {items.map((item) => {
