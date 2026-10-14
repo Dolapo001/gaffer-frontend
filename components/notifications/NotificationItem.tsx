@@ -15,6 +15,7 @@ import {
   UserPlus,
   Users,
   Newspaper,
+  Clock,
 } from 'lucide-react'
 
 function getIcon(type: string) {
@@ -47,6 +48,8 @@ function getIcon(type: string) {
       return <UserPlus size={16} className="text-teal-400" />
     case 'team_update':
       return <Users size={16} className="text-teal-400" />
+    case 'fantasy_deadline':
+      return <Clock size={16} className="text-orange-400" />
     case 'news_published':
       return <Newspaper size={16} className="text-gray-400" />
     default:

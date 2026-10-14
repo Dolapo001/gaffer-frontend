@@ -66,7 +66,16 @@ export async function getInboxNotifications(
   page = 1,
   limit = 20
 ): Promise<{ notifications: InboxNotification[]; total: number; page: number; unreadCount: number }> {
-  return api.get(`/notifications?page=${page}&limit=${limit}`)
+  // The server answers { data: [...], unreadCount, pagination: { total } }. This screen used to read a
+  // "notifications" key that never existed, so the bell showed a count but the list was always empty.
+  const raw = await api.get<any>(`/notifications?page=${page}&limit=${limit}`)
+  const list = Array.isArray(raw?.notifications) ? raw.notifications : Array.isArray(raw?.data) ? raw.data : []
+  return {
+    notifications: list,
+    total: raw?.pagination?.total ?? raw?.total ?? list.length,
+    page: raw?.pagination?.page ?? raw?.page ?? page,
+    unreadCount: raw?.unreadCount ?? 0,
+  }
 }
 
 // GET /notifications/unread-count
