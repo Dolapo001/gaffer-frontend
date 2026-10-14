@@ -4,27 +4,25 @@ import React, { useState, useLayoutEffect, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Share2, Newspaper as NewsIcon, User as UserIcon, ShoppingBag } from 'lucide-react'
+import { Menu, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
-import { getPublisherName, getInitials } from '@/components/fantasy/NewsFeedWidget'
+import { NewsCard } from '@/components/home/NewsCard'
+import { TrendingPost } from '@/components/home/TrendingPost'
+import { toNewsCardProps, toTrendingProps } from '@/lib/newsCardProps'
 import { rankTopNews, resolveOrgId, isGafferNews } from '@/lib/newsRanking'
-import { getImageUrl } from '@/lib/api'
 import { useQuery } from '@tanstack/react-query'
-import { listOrgs } from '@/lib/services/org.service'
 import { useWallet } from '@/hooks/useWallet'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, profile, updateUser, setRole } = useAuthStore()
+  const { user, profile } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [news, setNews] = useState<FeedItem[]>([])
+  const [trending, setTrending] = useState<FeedItem[]>([])
   const [isLoadingNews, setIsLoadingNews] = useState(true)
-
-  const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
-  const hasOrg = (orgs && orgs.length > 0) || user?.isOrgActive
   const { data: wallet } = useWallet()
   const walletBalance = wallet?.balance ?? null
 
@@ -52,7 +50,11 @@ export default function DashboardPage() {
         const seen = new Set<string>()
         // Official Gaffer news from HQ comes before everything, then news from the organisations the player joined.
         const merged = [...global.filter(isGafferNews), ...mine, ...global].filter((i) => !seen.has(i._id) && seen.add(i._id))
-        if (!cancelled) setNews(merged.slice(0, 3))
+        if (!cancelled) {
+          // The first item is the pinned Gaffer post when there is one; the next three are the newest from the leagues I follow
+          setNews(merged.slice(0, 4))
+          setTrending(((feed?.data ?? feed?.items ?? []) as FeedItem[]).filter((i) => i.type === 'post' || i.type === 'repost').slice(0, 2))
+        }
       } catch (err) {
         console.error('Failed to fetch news:', err)
       } finally {
@@ -130,86 +132,51 @@ export default function DashboardPage() {
              <h2 className="font-chakra font-black text-2xl text-white uppercase tracking-tight -mt-1">{displayName}</h2>
           </div>
 
-          {/* Top News Section */}
+          {/* Top News: the pinned Gaffer post, then the three newest from my leagues */}
           <section>
-            <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Top News</h2>
-            
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-chakra font-bold text-lg uppercase tracking-tight">Top News</h2>
+              {news.length > 0 && (
+                <button onClick={() => router.push('/app/news')} className="text-gaffer-orange text-[11px] font-chakra font-black uppercase tracking-widest">
+                  See all
+                </button>
+              )}
+            </div>
+
             {isLoadingNews ? (
               <div className="h-48 bg-white/5 animate-pulse rounded-[24px]" />
             ) : news.length > 0 ? (
-              news.slice(0, 1).map(item => (
-                <div
-                  key={item._id}
-                  className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 shadow-2xl cursor-pointer active:opacity-80 transition-opacity"
-                  onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)}
+              <div className="space-y-3">
+                <NewsCard {...toNewsCardProps(news[0])} size="large" onClick={() => router.push(`/app/news/${news[0]._id}?returnTo=/app/dashboard`)} />
+                {news.slice(1, 4).map((item) => (
+                  <NewsCard key={item._id} {...toNewsCardProps(item)} size="small" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
+                ))}
+                <button
+                  onClick={() => router.push('/app/news')}
+                  className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest"
                 >
-                  <div className="relative h-48 bg-gaffer-dark">
-                    {(item.media?.[0]?.url || item.imageUrl) && (
-                        <img src={getImageUrl((item.media?.[0]?.url || item.imageUrl)!)} className="w-full h-full object-cover" alt="" />
-                    )}
-                    <div className="absolute bottom-3 left-4 bg-black/40 backdrop-blur-md px-2 py-1 rounded text-[10px] text-white/80 font-chakra">
-                       {new Date(item.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                  <div className="p-5 space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-5 h-5 bg-[#FF4D00] rounded-full flex items-center justify-center font-black text-[8px] text-white">{getInitials(getPublisherName(item))}</div>
-                      <span className="text-xs font-chakra font-bold text-white uppercase">{getPublisherName(item)}</span>
-                    </div>
-                    <h3 className="text-white font-chakra font-black text-lg leading-tight uppercase line-clamp-2">{item.title || (item.body.length > 50 ? item.body.substring(0, 50) + '...' : item.body)}</h3>
-                    <p className="text-white/60 text-xs font-chakra line-clamp-2">{item.body}</p>
-                    <div className="flex items-center justify-between pt-2">
-                       <div className="flex items-center gap-2">
-                         <span className="text-orange-500 text-sm">🔥</span>
-                         <span className="text-white font-chakra font-bold text-sm tracking-tight">{item.likesCount || 0}</span>
-                       </div>
-                       <Share2 size={16} className="text-white/40" />
-                    </div>
-                  </div>
-                </div>
-              ))
+                  See all news
+                </button>
+              </div>
             ) : (
-                <div className="bg-white/5 rounded-[24px] p-12 text-center border border-dashed border-white/10">
-                    <NewsIcon className="mx-auto text-white/10 mb-2" />
-                    <p className="text-white/40 font-chakra text-sm">No news available</p>
-                </div>
+              <div className="bg-white/5 rounded-[24px] p-12 text-center border border-dashed border-white/10">
+                <NewsIcon className="mx-auto text-white/10 mb-2" />
+                <p className="text-white/40 font-chakra text-sm">No news available</p>
+              </div>
             )}
           </section>
 
-          {/* Tournament Section */}
-          <section>
-            <div className="bg-[#1E2032] rounded-[24px] overflow-hidden border border-white/5 p-6 flex flex-col items-center text-center space-y-6">
-              <div className="w-full h-40 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center">
-                 <img src="/images/empty_tournament.png" className="w-full h-full object-cover opacity-60" alt="" />
+          {/* Trending */}
+          {trending.length > 0 && (
+            <section>
+              <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Trending</h2>
+              <div className="space-y-3">
+                {trending.map((item) => (
+                  <TrendingPost key={item._id} {...toTrendingProps(item)} onClick={() => router.push('/app/news')} />
+                ))}
               </div>
-              {hasOrg ? (
-                <>
-                  <p className="text-white font-chakra font-bold text-lg">Switch to Manager Account</p>
-                  <p className="text-white/40 text-xs font-chakra -mt-4">You have an active organization waiting for you in the admin area.</p>
-                  <button
-                    onClick={() => {
-                      updateUser({ isOrgActive: true, lastRole: 'organization' })
-                      setRole('organization')
-                      router.push('/admin')
-                    }}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
-                  >
-                    Go to Organization
-                  </button>
-                </>
-              ) : (
-                <>
-                  <p className="text-white font-chakra font-bold text-lg">Start a New Tournament</p>
-                  <button
-                    onClick={() => router.push('/onboarding/organization')}
-                    className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-wider"
-                  >
-                    Upgrade to Org
-                  </button>
-                </>
-              )}
-            </div>
-          </section>
+            </section>
+          )}
         </main>
       </div>
     </div>

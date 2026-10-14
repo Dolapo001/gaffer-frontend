@@ -13,55 +13,7 @@ import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem, type FeedPage } 
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
 import { getImageUrl } from '@/lib/api'
 import { useUIStore } from '@/store/uiStore'
-
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-}
-
-function toNewsCardProps(item: FeedItem) {
-  const isSystem = item.authorType === 'system'
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
-  const body = item.body ?? ''
-  const title = item.title ?? body.split('\n')[0].slice(0, 120)
-  return {
-    id: item._id,
-    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
-    source: {
-      name: isSystem ? (item.authorName ?? 'GAFFER') : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER'),
-      verified: true,
-    },
-    title,
-    excerpt: body.length > 120 ? body.slice(120, 280) + '...' : undefined,
-    likes: item.likesCount,
-    initialLiked: item.isLiked ?? false,
-    timeAgo: timeAgo(item.createdAt),
-    isSystemPost: isSystem,
-  }
-}
-
-function toTrendingProps(item: FeedItem) {
-  const authorLabel =
-    item.authorType === 'org' ? (item.authorId?.name ?? 'Organization')
-    : item.authorType === 'team' ? (item.authorId?.name ?? 'Team')
-    : (item.authorId?.fullName ?? 'User')
-  return {
-    id: item._id,
-    author: {
-      name: authorLabel,
-      handle: item.authorId?._id?.slice(-8) ?? '',
-      verified: item.authorType === 'org',
-    },
-    content: item.body ?? '',
-    image: item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url,
-    likes: item.likesCount,
-    initialLiked: item.isLiked ?? false,
-  }
-}
+import { toNewsCardProps, toTrendingProps } from '@/lib/newsCardProps'
 
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
@@ -92,6 +44,7 @@ function toArticleProps(item: FeedItem) {
 export default function NewsPage() {
   const router = useRouter()
   const [selectedItem, setSelectedItem] = useState<FeedItem | null>(null)
+  const [visibleNews, setVisibleNews] = useState(8)
   const { activeOrgId } = useUIStore()
 
   // ── Active-competition news (when inside a league) ─────────────────────────
@@ -228,8 +181,8 @@ export default function NewsPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allNewsItems.slice(0, 1).map((item) => (
-                    <motion.div key={item._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}>
+                  {allNewsItems.slice(0, visibleNews).map((item, i) => (
+                    <motion.div key={item._id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 4) * 0.05 }}>
                       <NewsCard
                         {...toNewsCardProps(item)}
                         size="large"
@@ -237,23 +190,14 @@ export default function NewsPage() {
                       />
                     </motion.div>
                   ))}
-                  <div className="divide-y divide-gaffer-border">
-                    {allNewsItems.slice(1, 5).map((item, i) => (
-                      <motion.div
-                        key={item._id}
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.08 }}
-                        className="pt-3 first:pt-0"
-                      >
-                        <NewsCard
-                          {...toNewsCardProps(item)}
-                          size="small"
-                          onClick={() => setSelectedItem(item)}
-                        />
-                      </motion.div>
-                    ))}
-                  </div>
+                  {allNewsItems.length > visibleNews && (
+                    <button
+                      onClick={() => setVisibleNews((n) => n + 8)}
+                      className="w-full h-12 rounded-2xl bg-gaffer-card border border-gaffer-border text-white text-xs font-black uppercase tracking-widest"
+                    >
+                      Show more news
+                    </button>
+                  )}
                 </div>
               )}
             </section>
