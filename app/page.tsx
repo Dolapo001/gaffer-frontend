@@ -9,6 +9,16 @@ export const metadata: Metadata = {
     title: 'Gaffer — Fantasy football for the league you play in',
     description: 'Pick a squad from your community tournament and score as the real match is played.',
     type: 'website',
+    url: '/',
+    siteName: 'Gaffer',
+    locale: 'en_NG',
+    images: [{ url: '/og-gaffer.png', width: 1200, height: 630, alt: 'Gaffer: Fantasy football for the league you play in' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Gaffer — Fantasy football for the league you play in',
+    description: 'Pick a squad from your community tournament and score as the real match is played.',
+    images: ['/og-gaffer.png'],
   },
 }
 

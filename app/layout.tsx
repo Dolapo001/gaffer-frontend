@@ -7,6 +7,7 @@ import { ToastContainer } from '@/components/ToastContainer'
 import { QueryProvider } from '@/components/QueryProvider'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { GoogleAuthProvider } from '@/components/GoogleAuthProvider'
+import { SITE_NAME, SITE_URL, SITE_TAGLINE, SITE_DESCRIPTION } from '@/lib/site'
 import './globals.css'
 
 const chakraPetch = Chakra_Petch({
@@ -17,9 +18,11 @@ const chakraPetch = Chakra_Petch({
 })
 
 export const metadata: Metadata = {
-  title: 'The GAFFER — Dominate The Field',
-  description:
-    'Manage your personal sporting activities and sports organizations with GAFFER.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: `${SITE_NAME}: ${SITE_TAGLINE}`, template: `%s` },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  alternates: { canonical: '/' },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -30,9 +33,19 @@ export const metadata: Metadata = {
     telephone: false,
   },
   openGraph: {
-    title: 'The GAFFER',
-    description: 'Manage your personal sporting activities and sports organizations.',
+    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
     type: 'website',
+    url: SITE_URL,
+    siteName: SITE_NAME,
+    locale: 'en_NG',
+    images: [{ url: '/og-gaffer.png', width: 1200, height: 630, alt: `${SITE_NAME}: ${SITE_TAGLINE}` }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
+    description: SITE_DESCRIPTION,
+    images: ['/og-gaffer.png'],
   },
 }
 

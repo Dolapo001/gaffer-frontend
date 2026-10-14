@@ -186,7 +186,7 @@ export default function LoginPage() {
           </form>
 
           {/* Footer */}
-          <div className="mt-12 text-center pb-8">
+          <div className="mt-12 text-center pb-2">
             <span className="text-white/40 font-chakra text-sm font-medium">Don&apos;t have an account? </span>
             <button
               onClick={() => router.push('/onboarding/role-select')}
@@ -195,6 +195,11 @@ export default function LoginPage() {
               Sign Up
             </button>
           </div>
+          <p className="mt-6 pb-8 text-center text-white/40 font-chakra text-xs">
+            By continuing you agree to our{' '}
+            <a href="/terms" className="underline hover:text-white/70">Terms</a> and{' '}
+            <a href="/privacy" className="underline hover:text-white/70">Privacy Policy</a>.
+          </p>
         </motion.div>
       </div>
     </div>
