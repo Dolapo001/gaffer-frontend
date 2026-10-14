@@ -78,7 +78,17 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
   })
 
   const currentGw = gameweeks.length ? getCurrentGameweek(gameweeks, fixtures) : undefined
-  const stageRules = getStageRules(currentGw?.stage)
+  // The organiser's rules for this round when the server sends them, otherwise the usual rules for the stage
+  const fallbackRules = getStageRules(currentGw?.stage)
+  const stageRules = currentGw?.effectiveRules
+    ? {
+        name: currentGw.name || fallbackRules.name,
+        maxPerRealTeam: currentGw.effectiveRules.maxPerClub,
+        isUnlimitedTransfers: currentGw.effectiveRules.unlimitedTransfers,
+        freeTransfers: currentGw.effectiveRules.freeTransfers,
+        transferHit: currentGw.effectiveRules.transferHit,
+      }
+    : { ...fallbackRules, transferHit: 4 }
 
   const squad: FantasyPlayer[] = myTeam
     ? [...((myTeam as any).startingXI ?? []), ...((myTeam as any).bench ?? [])]
@@ -177,7 +187,7 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
                 Stage Rules
               </span>
               <span className="text-white text-xs font-bold font-chakra">
-                {stageRules.name} · Max {stageRules.maxPerRealTeam}/club
+                {stageRules.name} · Max {stageRules.maxPerRealTeam}/club · Extra transfer -{stageRules.transferHit}
               </span>
             </div>
             <div className="flex-1 bg-gaffer-card border border-gaffer-border rounded-xl px-3 py-2 text-center">
