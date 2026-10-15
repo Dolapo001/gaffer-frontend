@@ -195,6 +195,16 @@ export function FantasyAdminPanel({ competitionId }: Props) {
       </div>
 
       <Link
+        href={`/admin/tournaments/${competitionId}/insights`}
+        className="flex items-center justify-between rounded-2xl bg-gaffer-card border border-gaffer-border p-4"
+      >
+        <div>
+          <h4 className="text-white font-display font-bold text-sm uppercase tracking-tight">Insights</h4>
+          <p className="text-gaffer-muted text-xs mt-1">Most picked and captained players, transfers, top managers, chips and match stats.</p>
+        </div>
+        <span className="text-gaffer-orange text-xs font-black uppercase tracking-widest">Open</span>
+      </Link>
+      <Link
         href={`/admin/tournaments/${competitionId}/managers`}
         className="flex items-center justify-between rounded-2xl bg-gaffer-card border border-gaffer-border p-4"
       >
