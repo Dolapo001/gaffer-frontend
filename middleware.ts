@@ -35,8 +35,22 @@ const RESERVED_TOP_SEGMENTS = [
  * Full authorization (role verification) still happens server-side
  * via the Firebase Admin SDK or backend JWT validation.
  */
+// Gaffer HQ lives on its own address, not on the public site. On the main site /hq does not exist.
+const ADMIN_HOST = (process.env.NEXT_PUBLIC_ADMIN_HOST || 'mama4orge.the-gaffer.com.ng').toLowerCase()
+const PUBLIC_SITE_SUFFIX = 'the-gaffer.com.ng'
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+  const host = (request.headers.get('host') || '').toLowerCase().split(':')[0]
+
+  if (host === ADMIN_HOST) {
+    // The admin address only serves HQ: the front page goes to HQ and everything else public is sent there too
+    if (pathname === '/') return NextResponse.rewrite(new URL('/hq', request.url))
+    if (!pathname.startsWith('/hq')) return NextResponse.redirect(new URL('/hq', request.url))
+  } else if ((host === PUBLIC_SITE_SUFFIX || host.endsWith('.' + PUBLIC_SITE_SUFFIX)) && (pathname === '/hq' || pathname.startsWith('/hq/'))) {
+    // Looks like any other page that does not exist
+    return NextResponse.rewrite(new URL('/not-found-hq', request.url), { status: 404 })
+  }
 
   // Let public / onboarding routes through unconditionally
   const isPublic = PUBLIC_ROUTES.some(
