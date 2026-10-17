@@ -6,7 +6,7 @@ import { Plus, Flame, Share2, Clock, CheckCircle2, Trash2, Pin, Trophy } from 'l
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
 import { listCompetitions } from '@/lib/services/competition.service'
-import { getOrgFeed, publishNews, deletePost, type FeedItem } from '@/lib/services/feed.service'
+import { getOrgFeed, publishNews, publishPost, deletePost, type FeedItem } from '@/lib/services/feed.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -25,6 +25,9 @@ export default function AdminNewsPage() {
   const qc = useQueryClient()
   const toast = useToastStore()
   
+  // News: fans can only react. Post: fans can react, comment and repost. Fixed once published.
+  const [kind, setKind] = useState<'news' | 'post'>('news')
+  const isPost = kind === 'post'
   const [title, setTitle] = useState('')
   const [newsContent, setNewsContent] = useState('')
   const [selectedCompId, setSelectedCompId] = useState('')
@@ -67,6 +70,10 @@ export default function AdminNewsPage() {
         media = [{ url: result.url, type: 'image' }]
       }
 
+      if (isPost) {
+        return publishPost({ orgId: firstOrg!._id, body: newsContent.trim(), media, visibility: 'public' })
+      }
+
       return publishNews({
         orgId: firstOrg!._id,
         title: title.trim() || undefined,
@@ -87,7 +94,7 @@ export default function AdminNewsPage() {
       setSelectedImage(null)
       setSelectedFile(null)
       qc.invalidateQueries({ queryKey: ['org-feed', firstOrg?._id] })
-      toast.addToast('News published successfully!', 'success')
+      toast.addToast(isPost ? 'Post published successfully!' : 'News published successfully!', 'success')
     },
     onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
@@ -126,14 +133,37 @@ export default function AdminNewsPage() {
         <div className="px-6 pt-12 space-y-8 max-w-2xl mx-auto">
           {/* Header */}
           {canManage && <>
-          <h2 className="font-chakra font-black text-xl text-white tracking-widest uppercase">Post News</h2>
+          <h2 className="font-chakra font-black text-xl text-white tracking-widest uppercase">{isPost ? 'Write a Post' : 'Post News'}</h2>
+
+          {/* What are you publishing? */}
+          <div>
+            <div role="tablist" aria-label="What are you publishing?" className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#141523] border border-white/5">
+              {([['news', 'News'], ['post', 'Post']] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  role="tab"
+                  aria-selected={kind === k}
+                  onClick={() => setKind(k)}
+                  className={`py-2.5 rounded-xl font-chakra font-black text-sm uppercase tracking-widest transition-all ${kind === k ? 'bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white shadow-lg' : 'text-white/40'}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs font-chakra text-white/50">
+              {isPost
+                ? 'Fans can like, comment and repost. It shows in the social feed. You cannot change this after publishing.'
+                : 'Fans can only like it. It shows in Top News. You cannot change this after publishing.'}
+            </p>
+          </div>
 
           {/* Posting Interface */}
           <div className="space-y-4">
             <div className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 focus-within:border-white/10 transition-all shadow-2xl space-y-4">
               
               {/* Headline Input */}
-              <div>
+              {!isPost && <div>
                 <label className="block text-[11px] font-chakra font-bold text-white/50 uppercase tracking-wider mb-1.5">
                   Headline / Title (Optional)
                 </label>
@@ -144,10 +174,10 @@ export default function AdminNewsPage() {
                   placeholder="e.g. Bowen Fans League Round 3 Preview"
                   className="w-full bg-[#141523] text-white text-sm font-chakra font-medium px-4 py-3 rounded-xl border border-white/5 outline-none focus:border-[#FF8904]/50 transition-all placeholder:text-white/20"
                 />
-              </div>
+              </div>}
 
               {/* Target Competition Dropdown */}
-              <div>
+              {!isPost && <div>
                 <label className="block text-[11px] font-chakra font-bold text-white/50 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
                   <Trophy size={13} className="text-[#FF8904]" />
                   Target Competition (Optional)
@@ -168,17 +198,17 @@ export default function AdminNewsPage() {
                     <option value="bowen-fans-league">Bowen Fans League (Default Target)</option>
                   )}
                 </select>
-              </div>
+              </div>}
 
               {/* Main Content Textarea */}
               <div>
                 <label className="block text-[11px] font-chakra font-bold text-white/50 uppercase tracking-wider mb-1.5">
-                  Article Body
+                  {isPost ? 'Your post' : 'Article Body'}
                 </label>
                 <textarea
                   value={newsContent}
                   onChange={(e) => setNewsContent(e.target.value)}
-                  placeholder="Write what's news today..."
+                  placeholder={isPost ? 'What do you want to tell your fans?' : "Write what's news today..."}
                   className="w-full h-32 bg-[#141523] text-white text-sm font-chakra font-medium px-4 py-3 rounded-xl border border-white/5 outline-none resize-none placeholder:text-white/20 focus:border-[#FF8904]/50 transition-all"
                 />
               </div>
@@ -206,7 +236,7 @@ export default function AdminNewsPage() {
                 </div>
 
                 {/* Pin Checkbox */}
-                <label className="flex items-center gap-2 cursor-pointer select-none">
+                {!isPost && <label className="flex items-center gap-2 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={isPinned}
@@ -217,7 +247,7 @@ export default function AdminNewsPage() {
                     <Pin size={13} className={isPinned ? "text-[#FF8904]" : "text-white/30"} />
                     Pin to Top
                   </span>
-                </label>
+                </label>}
               </div>
 
             </div>
@@ -234,14 +264,14 @@ export default function AdminNewsPage() {
               className="w-full py-4 rounded-xl font-chakra font-black text-sm bg-gradient-to-r from-[#FF8904] to-[#E7000B] text-white uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-[0.98] transition-all disabled:opacity-50"
             >
               {postMutation.isPending && <div className="w-5 h-5 rounded-full border-2 border-white/20 border-t-white animate-spin" />}
-              {postMutation.isPending ? 'Posting...' : 'Post News'}
+              {postMutation.isPending ? 'Publishing...' : isPost ? 'Publish Post' : 'Post News'}
             </button>
           </div>
           </>}
 
           {/* Feed Section */}
           <div className="space-y-6">
-            <h2 className="font-chakra font-black text-lg text-white tracking-widest uppercase">Top News</h2>
+            <h2 className="font-chakra font-black text-lg text-white tracking-widest uppercase">Published</h2>
 
             {isLoading ? (
               <div className="space-y-4">
@@ -251,7 +281,7 @@ export default function AdminNewsPage() {
               </div>
             ) : feedItems.length === 0 ? (
               <div className="bg-[#1E2032] rounded-[24px] p-12 text-center border border-dashed border-white/10">
-                <p className="text-white/20 font-chakra text-sm font-bold uppercase tracking-wider">No news posted yet</p>
+                <p className="text-white/20 font-chakra text-sm font-bold uppercase tracking-wider">Nothing published yet</p>
               </div>
             ) : (
               <div className="space-y-6 pb-20">
@@ -288,6 +318,9 @@ export default function AdminNewsPage() {
                         <span className="font-chakra font-black text-[11px] text-white uppercase tracking-wider flex items-center gap-1.5">
                           {firstOrg?.name ?? 'GAFFER'}
                           <CheckCircle2 size={14} className="text-[#FF8904] fill-[#FF8904]/10" />
+                        </span>
+                        <span className="ml-auto px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] font-chakra font-black uppercase tracking-wider text-white/60">
+                          {item.type === 'post' ? 'Post' : 'News'}
                         </span>
                       </div>
 
