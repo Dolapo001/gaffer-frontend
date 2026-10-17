@@ -34,19 +34,19 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
           className="flex items-center justify-around px-2"
           style={{
             position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
+            // A floating glass pill, inset from the screen edges
+            bottom: 'calc(10px + env(safe-area-inset-bottom, 0px))',
+            left: 12,
+            right: 12,
             zIndex: 100,
-            height: 'calc(72px + env(safe-area-inset-bottom, 0px))',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            height: 72,
             // Frosted glass with a gently arched top: what scrolls underneath shows through, blurred
             background: 'linear-gradient(180deg, rgba(48,52,74,0.55) 0%, rgba(24,25,40,0.72) 100%)',
             backdropFilter: 'blur(22px) saturate(170%)',
             WebkitBackdropFilter: 'blur(22px) saturate(170%)',
-            borderTop: '1px solid rgba(255,255,255,0.16)',
-            borderRadius: '50% 50% 0 0 / 22px 22px 0 0',
-            boxShadow: '0 -10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
+            borderRadius: '50% 50% 34px 34px / 20px 20px 34px 34px',
+            border: '1px solid rgba(255,255,255,0.14)',
+            boxShadow: '0 14px 34px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.1)',
           }}
         >
         {items.map((item) => {

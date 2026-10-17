@@ -6,14 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { NewsCard } from '@/components/home/NewsCard'
-import { TrendingPost } from '@/components/home/TrendingPost'
+import { PostCard } from '@/components/home/PostCard'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
 import { getImageUrl } from '@/lib/api'
 import { useUIStore } from '@/store/uiStore'
-import { toNewsCardProps, toTrendingProps } from '@/lib/newsCardProps'
+import { toNewsCardProps } from '@/lib/newsCardProps'
 
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
@@ -221,7 +221,7 @@ export default function NewsPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.2 + i * 0.1 }}
                       >
-                        <TrendingPost {...toTrendingProps(item)} onClick={() => setSelectedItem(item)} />
+                        <PostCard item={item} onOpen={() => setSelectedItem(item)} />
                       </motion.div>
                     ))}
                   </div>
