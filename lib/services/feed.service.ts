@@ -224,10 +224,12 @@ export async function publishNews(payload: {
 
 // POST /feed/posts — create a team/user post
 export async function publishPost(payload: {
+  /** Exactly one of orgId (the organisation posts as itself) or teamId */
+  orgId?: string
   teamId?: string
   body: string
   media?: MediaItem[]
-  visibility?: 'public' | 'team'
+  visibility?: 'public' | 'org' | 'team'
 }): Promise<FeedItem> {
   const raw = await api.post<unknown>('/feed/posts', payload)
   const r = raw as any

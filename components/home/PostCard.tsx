@@ -21,9 +21,10 @@ function authorOf(item: FeedItem) {
 }
 
 function Avatar({ name, src, size = 40 }: { name: string; src: string | null; size?: number }) {
+  const [broken, setBroken] = useState(false)
   return (
     <div className="rounded-full bg-orange-500 flex items-center justify-center shrink-0 overflow-hidden text-black font-black" style={{ width: size, height: size, fontSize: size * 0.4 }}>
-      {src ? <img src={getImageUrl(src)} alt="" className="w-full h-full object-cover" /> : name[0]?.toUpperCase()}
+      {src && !broken ? <img src={getImageUrl(src)} alt="" className="w-full h-full object-cover" onError={() => setBroken(true)} /> : name[0]?.toUpperCase()}
     </div>
   )
 }
