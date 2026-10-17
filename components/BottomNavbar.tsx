@@ -31,7 +31,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex items-start justify-around"
+          className="flex items-center justify-around"
           style={{
             position: 'fixed',
             // Docked near the bottom edge with a small gap on each side, like the design
@@ -39,7 +39,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             left: 8,
             right: 8,
             zIndex: 100,
-            padding: '20px 6px 34px',
+            padding: '26px 6px',
             // Frosted glass: what scrolls underneath shows through, blurred. Flat top, generous rounded corners.
             background: 'linear-gradient(180deg, rgba(24,25,42,0.58) 0%, rgba(38,42,68,0.66) 100%)',
             backdropFilter: 'blur(24px) saturate(160%)',
@@ -72,7 +72,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-start gap-1 transition-all relative"
+              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-center gap-1 transition-all relative"
             >
               <div className="flex items-center justify-center">
                 <item.icon

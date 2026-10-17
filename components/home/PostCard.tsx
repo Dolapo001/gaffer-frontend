@@ -8,6 +8,7 @@ import { useToast } from '@/store/toastStore'
 import { ApiError, getErrorMessage, getImageUrl } from '@/lib/api'
 import { timeAgo } from '@/lib/newsCardProps'
 import { CommentsSheet } from './CommentsSheet'
+import { NewsImage } from './NewsImage'
 
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n))
 
@@ -41,8 +42,7 @@ function Body({ text }: { text: string }) {
 function Media({ item }: { item: FeedItem }) {
   const url = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   if (!url) return null
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={getImageUrl(url)} alt="" className="w-full rounded-2xl object-cover max-h-80 mt-3" />
+  return <NewsImage src={getImageUrl(url)} alt="" ratio="4 / 3" className="rounded-2xl mt-3" />
 }
 
 /**
@@ -68,9 +68,9 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
   const [following, setFollowing] = useState(false)
 
   const like = useMutation({
-    mutationFn: () => (liked ? unlikeFeedItem(root._id) : likeFeedItem(root._id)),
-    onMutate: () => { setLiked((v) => !v); setLikes((c) => (liked ? c - 1 : c + 1)) },
-    onError: () => { setLiked((v) => !v); setLikes((c) => (liked ? c + 1 : c - 1)); addToast('Could not update your reaction. Try again.', 'error') },
+    mutationFn: (next: boolean) => (next ? likeFeedItem(root._id) : unlikeFeedItem(root._id)),
+    onMutate: (next: boolean) => { setLiked(next); setLikes((c) => Math.max(0, c + (next ? 1 : -1))) },
+    onError: (_e, next: boolean) => { setLiked(!next); setLikes((c) => Math.max(0, c + (next ? -1 : 1))); addToast('Could not save your reaction. Check your connection and try again.', 'error') },
   })
 
   const doRepost = useMutation({
@@ -132,7 +132,7 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
         <button className={`${action} ${reposted ? '!text-green-400' : ''}`} onClick={() => setSheet('repost')} aria-label={`Repost, ${reposts}`}>
           <Repeat2 size={19} /> {compact(reposts)}
         </button>
-        <button className={`${action} ${liked ? '!text-orange-400' : ''}`} onClick={() => like.mutate()} aria-label={`React, ${likes}`} aria-pressed={liked}>
+        <button className={`${action} ${liked ? '!text-orange-400' : ''}`} onClick={() => { if (!like.isPending) like.mutate(!liked) }} aria-label={`React, ${likes}`} aria-pressed={liked}>
           <Flame size={18} fill={liked ? 'currentColor' : 'none'} /> {compact(likes)}
         </button>
         <button className={action} onClick={share} aria-label="Share"><Share2 size={18} /></button>

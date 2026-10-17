@@ -1,19 +1,24 @@
 'use client'
 
+import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery, useQueries } from '@tanstack/react-query'
+import { useAuthStore } from '@/store/authStore'
 import { Trophy, Gamepad2, Search } from 'lucide-react'
 import { FantasyWelcome } from '@/components/fantasy/FantasyWelcome'
 import { asArray } from '@/lib/asArray'
 import { CompetitionFantasyCard } from '@/components/fantasy/CompetitionFantasyCard'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
-import { getFantasySeason, listGameweeks, type FantasyGameweek } from '@/lib/services/fantasy.service'
+import { getFantasySeason, getMyFantasyTeam, listGameweeks, type FantasyGameweek } from '@/lib/services/fantasy.service'
 import { listFixtures, type Fixture } from '@/lib/services/fixture.service'
 
 export default function FantasyPage() {
   const router = useRouter()
-  const { hasSeenWelcome, setHasSeenWelcome } = useFantasyStore()
+  const userId = useAuthStore((s) => s.user?.id)
+  const welcomeSeenBy = useFantasyStore((s) => s.welcomeSeenBy)
+  const markWelcomeSeen = useFantasyStore((s) => s.markWelcomeSeen)
+  const seenWelcome = !!userId && welcomeSeenBy.includes(userId)
 
   const { data: joinedCompetitions, isLoading } = useQuery({
     queryKey: ['joined-competitions'],
@@ -45,8 +50,32 @@ export default function FantasyPage() {
     })),
   })
 
-  if (!hasSeenWelcome) {
-    return <FantasyWelcome onGetStarted={() => setHasSeenWelcome(true)} />
+  // Get started is for someone who has never played Fantasy. If they already have a team anywhere, skip it for good:
+  // that comes from the server, so a new phone or a quiet sign-out cannot bring it back.
+  const teamChecks = useQueries({
+    queries: (joinedCompetitions ?? []).map((c, i) => ({
+      queryKey: ['fantasy-has-team', c._id],
+      queryFn: () => getMyFantasyTeam(c._id).then((t) => !!t?.isComplete).catch(() => false),
+      enabled: !seenWelcome && !!seasonQueries[i]?.data,
+      staleTime: 5 * 60_000,
+    })),
+  })
+  const hasPlayedBefore = teamChecks.some((q) => q.data === true)
+  const checkingTeams = !seenWelcome && !hasPlayedBefore && (isLoading || teamChecks.some((q) => q.isLoading) || seasonQueries.some((q) => q.isLoading))
+
+  useEffect(() => {
+    if (userId && hasPlayedBefore && !seenWelcome) markWelcomeSeen(userId)
+  }, [userId, hasPlayedBefore, seenWelcome, markWelcomeSeen])
+
+  if (!seenWelcome && !hasPlayedBefore) {
+    if (checkingTeams) {
+      return (
+        <div className="min-h-screen bg-[#181928] flex items-center justify-center p-6">
+          <div className="w-12 h-12 rounded-full border-2 border-gaffer-orange border-t-transparent animate-spin" />
+        </div>
+      )
+    }
+    return <FantasyWelcome onGetStarted={() => { if (userId) markWelcomeSeen(userId) }} />
   }
 
   const isLoadingSeasons = seasonQueries.some((q) => q.isLoading) || gameweekQueries.some((q) => q.isLoading)

@@ -41,6 +41,9 @@ interface FantasyState {
 
   // Onboarding flow flags
   hasSeenWelcome: boolean
+  /** Who has been through the Get started page on this device. Survives sign-outs: only the person's own choice sets it. */
+  welcomeSeenBy: string[]
+  markWelcomeSeen: (userId: string) => void
   hasCreatedTeam: boolean
   hasOrganizedBench: boolean
   hasNamedTeam: boolean
@@ -115,6 +118,8 @@ export const useFantasyStore = create<FantasyState>()(
       saveError: null,
       substituteError: null,
       hasSeenWelcome: false,
+      welcomeSeenBy: [],
+      markWelcomeSeen: (userId) => set((s) => (s.welcomeSeenBy.includes(userId) ? s : { welcomeSeenBy: [...s.welcomeSeenBy, userId] })),
       hasCreatedTeam: false,
       hasOrganizedBench: false,
       hasNamedTeam: false,
@@ -363,6 +368,7 @@ export const useFantasyStore = create<FantasyState>()(
         activeChipType: state.activeChipType,
         substitutingOutId: state.substitutingOutId,
         hasSeenWelcome: state.hasSeenWelcome,
+        welcomeSeenBy: state.welcomeSeenBy,
         hasCreatedTeam: state.hasCreatedTeam,
         hasOrganizedBench: state.hasOrganizedBench,
         hasNamedTeam: state.hasNamedTeam,

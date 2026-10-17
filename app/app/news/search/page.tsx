@@ -1,5 +1,6 @@
 'use client'
 
+import { splitHeadline } from '@/lib/newsCardProps'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGoBack } from '@/hooks/useGoBack'
@@ -23,7 +24,7 @@ function timeAgo(iso: string) {
 
 function toNewsCardProps(item: FeedItem) {
   const body = item.body ?? ''
-  const title = item.title ?? body.split('\n')[0].slice(0, 120)
+  const title = item.title ?? splitHeadline(body).title
   const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   return {
     id: item._id,
@@ -45,7 +46,7 @@ function toArticleProps(item: FeedItem) {
     : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
   return {
     id: item._id,
-    title: item.title ?? body.split('\n')[0].slice(0, 100),
+    title: item.title ?? splitHeadline(body).title,
     content: body,
     image: rawImage ?? '/images/news-hero.jpg',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
