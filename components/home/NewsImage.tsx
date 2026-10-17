@@ -1,17 +1,14 @@
 'use client'
 
 /**
- * A news picture shown whole. The old cards cropped every picture to a fixed strip, so most of it was cut off.
- * Here the full picture sits inside a frame of fixed shape, and a blurred copy of the same picture fills the
- * space around it. Cards stay the same size and look like news, and nothing is cropped.
+ * A news picture shown whole, in a frame that is exactly the picture's own size and shape: full width, with the
+ * height following the picture, so nothing is cropped and there are no bars around it.
  */
-export function NewsImage({ src, alt, ratio = '16 / 10', className = '', children }: { src: string; alt: string; ratio?: string; className?: string; children?: React.ReactNode }) {
+export function NewsImage({ src, alt, className = '', children }: { src: string; alt: string; ratio?: string; className?: string; children?: React.ReactNode }) {
   return (
-    <div className={`relative w-full overflow-hidden bg-black ${className}`} style={{ aspectRatio: ratio }}>
+    <div className={`relative w-full overflow-hidden bg-black ${className}`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="" aria-hidden="true" className="absolute inset-0 w-full h-full object-cover scale-125 blur-2xl opacity-60" />
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt={alt} className="absolute inset-0 w-full h-full object-contain" loading="lazy" />
+      <img src={src} alt={alt} className="block w-full h-auto" loading="lazy" />
       {children}
     </div>
   )
