@@ -1,5 +1,7 @@
 'use client'
 
+import { NewsImage } from './NewsImage'
+
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Flame, ChevronLeft, MessageCircle, Send, Loader2, ShieldCheck } from 'lucide-react'
@@ -185,14 +187,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
         {/* Expanded Article Image Layout - Fill Container Completely */}
         <div className="px-4 mb-6">
-          <div className="w-full h-[360px] sm:h-[500px] relative bg-[#181E32] rounded-[16px] overflow-hidden border border-white/5 shadow-xl">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img 
-              src={article.image} 
-              alt={article.title} 
-              className="w-full h-full object-cover object-top" 
-            />
-          </div>
+          <NewsImage src={article.image} alt={article.title} ratio="4 / 3" className="rounded-[16px] border border-white/5 shadow-xl" />
         </div>
 
         {/* Actions + date */}

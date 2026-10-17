@@ -68,13 +68,16 @@ function scheduleAutoLogout(token: string) {
     const now = Date.now()
     const delay = exp - now
 
-    if (delay <= 0) {
-      forceEjectAndRedirect('Your session has expired.')
-    } else {
-      _logoutTimer = setTimeout(() => {
+    // Renew the sign-in a minute before it runs out. You are only sent to the login screen if renewing truly fails
+    // (the long-lived refresh cookie has expired or was revoked), never just because time passed.
+    const renew = async () => {
+      try {
+        await refreshOnce()
+      } catch {
         forceEjectAndRedirect('Your session has expired. Please log in again.')
-      }, delay)
+      }
     }
+    _logoutTimer = setTimeout(() => { void renew() }, delay <= 60_000 ? 0 : delay - 60_000)
   } catch (e) {
     console.warn('Failed to parse JWT for auto-logout:', e)
   }

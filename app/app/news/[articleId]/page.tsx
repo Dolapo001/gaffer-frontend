@@ -1,5 +1,6 @@
 'use client'
 
+import { splitHeadline } from '@/lib/newsCardProps'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -78,7 +79,7 @@ function ArticleContent() {
 
   const article = {
     id: item._id,
-    title: item.title ?? item.body.split('\n')[0].slice(0, 100),
+    title: item.title ?? splitHeadline(item.body).title,
     content: item.body,
     image: imageUrl,
     date: formatDate(item.createdAt),

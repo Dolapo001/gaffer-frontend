@@ -6,6 +6,7 @@ import { Flame, Share2, Clock, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { useToast } from '@/store/toastStore'
 import { likeFeedItem, unlikeFeedItem } from '@/lib/services/feed.service'
+import { NewsImage } from './NewsImage'
 
 export interface NewsCardProps {
   id: string
@@ -44,23 +45,24 @@ export function NewsCard({
   const { addToast } = useToast()
 
   const likeMutation = useMutation({
-    mutationFn: () => (liked ? unlikeFeedItem(id) : likeFeedItem(id)),
-    onMutate: () => {
+    mutationFn: (next: boolean) => (next ? likeFeedItem(id) : unlikeFeedItem(id)),
+    onMutate: (next: boolean) => {
       // Optimistic update
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c - 1 : c + 1))
+      setLiked(next)
+      setLikeCount((c) => Math.max(0, c + (next ? 1 : -1)))
     },
-    onError: () => {
+    onError: (_e, next: boolean) => {
       // Revert on failure
-      setLiked((prev) => !prev)
-      setLikeCount((c) => (liked ? c + 1 : c - 1))
-      addToast('Could not update like. Please try again.', 'error')
+      setLiked(!next)
+      setLikeCount((c) => Math.max(0, c + (next ? -1 : 1)))
+      addToast('Could not save your reaction. Check your connection and try again.', 'error')
     },
   })
 
   const handleLike = (e: React.MouseEvent) => {
     e.stopPropagation()
-    likeMutation.mutate()
+    if (likeMutation.isPending) return // a second tap while the first is still on its way
+    likeMutation.mutate(!liked)
   }
 
   if (size === 'small') {
@@ -116,21 +118,13 @@ export function NewsCard({
       className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden cursor-pointer group"
     >
       {/* Hero Image */}
-      <div className="relative h-44 overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={image}
-          alt={title}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+      <NewsImage src={image} alt={title}>
         {/* Time badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1">
           <Clock size={10} className="text-white/70" />
           <span className="text-white/70 text-[10px] font-body">{timeAgo}</span>
         </div>
-      </div>
+      </NewsImage>
 
       {/* Content */}
       <div className="p-4 space-y-2.5">
