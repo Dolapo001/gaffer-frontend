@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6">
-        <main className="space-y-8 pt-4" style={{ paddingBottom: 'calc(110px + env(safe-area-inset-bottom, 0px))' }}>
+        <main className="space-y-8 pt-4" style={{ paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))' }}>
           <div>
              <p className="font-chakra text-white/40 text-xs font-bold uppercase tracking-wider">Good Day,</p>
              <h2 className="font-chakra font-black text-2xl text-white uppercase tracking-tight -mt-1">{displayName}</h2>
