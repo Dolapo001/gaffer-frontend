@@ -1229,36 +1229,22 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                       onClick={resetFlow}
                     />
 
-                    {/* Step Visualizer */}
-                    {(selectedCategory === 'GOAL' || selectedCategory === 'SUBSTITUTION' || selectedCategory === 'PENALTY') && flowStep !== 'category' && (
-                      <div className="absolute inset-0 flex flex-col items-center justify-center -mt-56 pointer-events-none">
-                         <motion.div
-                           initial={{ scale: 0.6, opacity: 0 }}
-                           animate={{ scale: 0.8, opacity: 1 }}
-                           className="flex flex-col items-center"
-                         >
-                            {selectedCategory === 'GOAL' ? (
-                               <div className="flex flex-col items-center">
-                                  <img src="/images/commentary/goal.png" className="w-[280px] h-[280px] object-contain drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]" alt="Goal" />
-                                  <h2 className="text-4xl font-inter font-bold uppercase italic mt-4" style={{ color: '#FFF', textShadow: '0 4px 0 #EA580C, 0 8px 30px rgba(0,0,0,0.5)' }}>GOAL</h2>
-                               </div>
-                            ) : selectedCategory === 'SUBSTITUTION' ? (
-                               <div className="flex flex-col items-center">
-                                  <div className="relative w-[300px] h-[360px]">
-                                     <img src="/images/commentary/substitution.png" className="w-full h-full object-contain" alt="Sub" />
-                                  </div>
-                                  <h2 className="text-4xl font-inter font-bold uppercase italic mt-4" style={{ color: '#FFF', textShadow: '0 4px 0 #EA580C, 0 8px 30px rgba(0,0,0,0.5)' }}>SUBSTITUTION</h2>
-                               </div>
-                            ) : null}
-                         </motion.div>
-                      </div>
-                    )}
-
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
                       className="w-full flex flex-col items-end gap-3"
                     >
+                      {/* What is being recorded: a small header above the options (never a picture behind them) */}
+                      {(selectedCategory === 'GOAL' || selectedCategory === 'SUBSTITUTION' || selectedCategory === 'PENALTY') && flowStep !== 'category' && (
+                        <div className="flex items-center gap-3 self-start" aria-live="polite">
+                          {selectedCategory === 'GOAL' && <img src="/images/commentary/goal.png" className="w-12 h-12 object-contain" alt="" />}
+                          {selectedCategory === 'SUBSTITUTION' && <img src="/images/commentary/substitution.png" className="w-12 h-12 object-contain" alt="" />}
+                          <h2 className="text-2xl font-inter font-bold uppercase italic" style={{ color: '#FFF', textShadow: '0 2px 0 #EA580C' }}>
+                            {selectedCategory === 'GOAL' ? 'Goal' : selectedCategory === 'SUBSTITUTION' ? 'Substitution' : 'Penalty'}
+                          </h2>
+                        </div>
+                      )}
+
                       {/* Step: CATEGORY */}
                       {flowStep === 'category' && (
                         <div className="flex flex-col items-end gap-3 w-full max-h-[80vh] overflow-y-auto no-scrollbar pb-10 pr-1">

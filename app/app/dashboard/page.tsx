@@ -1,28 +1,28 @@
 'use client'
 
-import React, { useState, useLayoutEffect, useEffect } from 'react'
+import React, { useState, useLayoutEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
 import { Menu, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
-import { getGlobalFeed, getOrgFeed, type FeedItem } from '@/lib/services/feed.service'
-import { listJoinedCompetitions } from '@/lib/services/competition.service'
+import { getGlobalFeed, getNewsFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
 import { NewsCard } from '@/components/home/NewsCard'
-import { TrendingPost } from '@/components/home/TrendingPost'
-import { toNewsCardProps, toTrendingProps } from '@/lib/newsCardProps'
-import { rankTopNews, resolveOrgId, isGafferNews } from '@/lib/newsRanking'
-import { useQuery } from '@tanstack/react-query'
+import { PostCard } from '@/components/home/PostCard'
+import { LiveNowCard } from '@/components/home/LiveNowCard'
+import { toNewsCardProps } from '@/lib/newsCardProps'
+import { useInfiniteQuery } from '@tanstack/react-query'
 import { useWallet } from '@/hooks/useWallet'
+
+const PAGE = 20
+const itemsOf = (p: FeedPage): FeedItem[] => (p.items ?? p.data ?? []) as FeedItem[]
+const uniqueById = (list: FeedItem[]) => { const seen = new Set<string>(); return list.filter((i) => !seen.has(i._id) && seen.add(i._id)) }
 
 export default function DashboardPage() {
   const router = useRouter()
   const { user, profile } = useAuthStore()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const [news, setNews] = useState<FeedItem[]>([])
-  const [trending, setTrending] = useState<FeedItem[]>([])
-  const [isLoadingNews, setIsLoadingNews] = useState(true)
   const { data: wallet } = useWallet()
   const walletBalance = wallet?.balance ?? null
 
@@ -32,38 +32,35 @@ export default function DashboardPage() {
     return () => window.removeEventListener('gaffer:upgrade-org', handleUpgrade)
   }, [router])
 
-  // Top News: news from the organisations running tournaments this user is in
-  // comes first, then the global feed.
-  useEffect(() => {
-    if (!user) return
-    let cancelled = false
-    const fetchNews = async () => {
-      try {
-        const joined = await listJoinedCompetitions().catch(() => [])
-        const orgIds = Array.from(new Set(joined.map((c) => resolveOrgId(c.orgId)).filter(Boolean) as string[]))
-        const orgFeeds = await Promise.all(
-          orgIds.map((id) => getOrgFeed(id).then((r) => (r.items ?? r.data ?? []) as FeedItem[]).catch(() => [] as FeedItem[]))
-        )
-        const mine = rankTopNews(orgFeeds.flat().filter((i) => !i.isDefault))
-        const feed = await getGlobalFeed(1).catch(() => null)
-        const global = rankTopNews((feed?.data ?? feed?.items ?? []) as FeedItem[])
-        const seen = new Set<string>()
-        // Official Gaffer news from HQ comes before everything, then news from the organisations the player joined.
-        const merged = [...global.filter(isGafferNews), ...mine, ...global].filter((i) => !seen.has(i._id) && seen.add(i._id))
-        if (!cancelled) {
-          // The first item is the pinned Gaffer post when there is one; the next three are the newest from the leagues I follow
-          setNews(merged.slice(0, 4))
-          setTrending(((feed?.data ?? feed?.items ?? []) as FeedItem[]).filter((i) => i.type === 'post' || i.type === 'repost').slice(0, 2))
-        }
-      } catch (err) {
-        console.error('Failed to fetch news:', err)
-      } finally {
-        if (!cancelled) setIsLoadingNews(false)
-      }
-    }
-    fetchNews()
-    return () => { cancelled = true }
-  }, [user])
+  // News from every competition on the app, newest first, with the official Gaffer post pinned on top
+  const newsQ = useInfiniteQuery({
+    queryKey: ['home-news'],
+    queryFn: ({ pageParam }) => getNewsFeed(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (last, all) => (itemsOf(last).length >= PAGE ? all.length + 1 : undefined),
+    enabled: !!user,
+    staleTime: 60_000,
+  })
+  const news = useMemo(() => {
+    const all = uniqueById((newsQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'news' || i.authorType === 'system'))
+    const pinned = all.filter((i) => i.authorType === 'system' || i.isPinned)
+    const rest = all.filter((i) => !(i.authorType === 'system' || i.isPinned))
+    return [...pinned, ...rest]
+  }, [newsQ.data])
+
+  // Posts people write: reply, repost and react like a social feed
+  const postsQ = useInfiniteQuery({
+    queryKey: ['home-posts'],
+    queryFn: ({ pageParam }) => getGlobalFeed(pageParam),
+    initialPageParam: 1,
+    getNextPageParam: (last, all) => (itemsOf(last).length >= PAGE ? all.length + 1 : undefined),
+    enabled: !!user,
+    staleTime: 60_000,
+  })
+  const posts = useMemo(
+    () => uniqueById((postsQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'post' || i.type === 'repost')),
+    [postsQ.data],
+  )
 
   const displayName = profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
 
@@ -126,13 +123,16 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-y-auto no-scrollbar px-6">
-        <main className="space-y-8 pb-24 pt-4">
+        <main className="space-y-8 pt-4" style={{ paddingBottom: 'calc(140px + env(safe-area-inset-bottom, 0px))' }}>
           <div>
              <p className="font-chakra text-white/40 text-xs font-bold uppercase tracking-wider">Good Day,</p>
              <h2 className="font-chakra font-black text-2xl text-white uppercase tracking-tight -mt-1">{displayName}</h2>
           </div>
 
-          {/* Top News: the pinned Gaffer post, then the three newest from my leagues */}
+          {/* Matches being played right now in my leagues */}
+          <LiveNowCard />
+
+          {/* News: people only react to it */}
           <section>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-white font-chakra font-bold text-lg uppercase tracking-tight">Top News</h2>
@@ -143,38 +143,45 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {isLoadingNews ? (
+            {newsQ.isLoading ? (
               <div className="h-48 bg-white/5 animate-pulse rounded-[24px]" />
             ) : news.length > 0 ? (
-              <div className="space-y-3">
-                <NewsCard {...toNewsCardProps(news[0])} size="large" onClick={() => router.push(`/app/news/${news[0]._id}?returnTo=/app/dashboard`)} />
-                {news.slice(1, 4).map((item) => (
-                  <NewsCard key={item._id} {...toNewsCardProps(item)} size="small" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
+              <div className="space-y-4">
+                {news.map((item) => (
+                  <NewsCard key={item._id} {...toNewsCardProps(item)} size="large" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
                 ))}
-                <button
-                  onClick={() => router.push('/app/news')}
-                  className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest"
-                >
-                  See all news
-                </button>
+                {newsQ.hasNextPage && (
+                  <button onClick={() => newsQ.fetchNextPage()} disabled={newsQ.isFetchingNextPage} className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50">
+                    {newsQ.isFetchingNextPage ? 'Loading…' : 'More news'}
+                  </button>
+                )}
               </div>
             ) : (
               <div className="bg-white/5 rounded-[24px] p-12 text-center border border-dashed border-white/10">
                 <NewsIcon className="mx-auto text-white/10 mb-2" />
-                <p className="text-white/40 font-chakra text-sm">No news available</p>
+                <p className="text-white/40 font-chakra text-sm">No news yet</p>
               </div>
             )}
           </section>
 
-          {/* Trending */}
-          {trending.length > 0 && (
+          {/* Posts: comment, repost, react */}
+          {(postsQ.isLoading || posts.length > 0) && (
             <section>
               <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Trending</h2>
-              <div className="space-y-3">
-                {trending.map((item) => (
-                  <TrendingPost key={item._id} {...toTrendingProps(item)} onClick={() => router.push('/app/news')} />
-                ))}
-              </div>
+              {postsQ.isLoading ? (
+                <div className="h-40 bg-white/5 animate-pulse rounded-[24px]" />
+              ) : (
+                <div className="space-y-4">
+                  {posts.map((item) => (
+                    <PostCard key={item._id} item={item} onOpen={() => router.push(`/app/news/${(item.type === 'repost' && item.parentFeedId ? item.parentFeedId._id : item._id)}?returnTo=/app/dashboard`)} />
+                  ))}
+                  {postsQ.hasNextPage && (
+                    <button onClick={() => postsQ.fetchNextPage()} disabled={postsQ.isFetchingNextPage} className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50">
+                      {postsQ.isFetchingNextPage ? 'Loading…' : 'More posts'}
+                    </button>
+                  )}
+                </div>
+              )}
             </section>
           )}
         </main>

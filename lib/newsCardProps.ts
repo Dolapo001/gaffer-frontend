@@ -10,12 +10,34 @@ export function timeAgo(iso: string) {
   return `${Math.floor(h / 24)}d ago`
 }
 
+/** Cuts text at the end of a word, adding an ellipsis only when something was left out. */
+function clip(text: string, max: number): string {
+  if (text.length <= max) return text
+  const cut = text.slice(0, max)
+  const at = cut.lastIndexOf(' ')
+  return (at > max * 0.6 ? cut.slice(0, at) : cut).trimEnd() + '…'
+}
+
+/** A post with no headline: the first sentence (or line) is the headline, the rest is the preview. */
+export function splitHeadline(body: string): { title: string; rest: string } {
+  const text = body.trim()
+  const line = text.split('\n')[0]
+  if (line.length <= 110) return { title: line, rest: text.slice(line.length).trim() }
+  const head = line.slice(0, 110)
+  const sentence = head.lastIndexOf('. ')
+  const at = sentence > 40 ? sentence + 1 : head.lastIndexOf(' ')
+  const title = line.slice(0, at > 0 ? at : 110).trim()
+  return { title, rest: text.slice(title.length).trim() }
+}
+
 /** What a NewsCard needs, from a feed item. Shared by the home page and the News page so both look the same. */
 export function toNewsCardProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
   const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   const body = item.body ?? ''
-  const title = item.title ?? body.split('\n')[0].slice(0, 120)
+  const split = item.title ? null : splitHeadline(body)
+  const title = item.title ?? split!.title
+  const preview = item.title ? body.trim() : split!.rest
   return {
     id: item._id,
     image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
@@ -24,29 +46,10 @@ export function toNewsCardProps(item: FeedItem) {
       verified: true,
     },
     title,
-    excerpt: body.length > 120 ? body.slice(120, 280) + '...' : undefined,
+    excerpt: preview ? clip(preview, 160) : undefined,
     likes: item.likesCount,
     initialLiked: item.isLiked ?? false,
     timeAgo: timeAgo(item.createdAt),
     isSystemPost: isSystem,
-  }
-}
-
-export function toTrendingProps(item: FeedItem) {
-  const authorLabel =
-    item.authorType === 'org' ? (item.authorId?.name ?? 'Organization')
-    : item.authorType === 'team' ? (item.authorId?.name ?? 'Team')
-    : (item.authorId?.fullName ?? 'User')
-  return {
-    id: item._id,
-    author: {
-      name: authorLabel,
-      handle: item.authorId?._id?.slice(-8) ?? '',
-      verified: item.authorType === 'org',
-    },
-    content: item.body ?? '',
-    image: item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url,
-    likes: item.likesCount,
-    initialLiked: item.isLiked ?? false,
   }
 }

@@ -31,22 +31,22 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex items-center justify-around px-2"
+          className="flex items-start justify-around"
           style={{
             position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
+            // Docked near the bottom edge with a small gap on each side, like the design
+            bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))',
+            left: 8,
+            right: 8,
             zIndex: 100,
-            height: 'calc(72px + env(safe-area-inset-bottom, 0px))',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            // Frosted glass with a gently arched top: what scrolls underneath shows through, blurred
-            background: 'linear-gradient(180deg, rgba(48,52,74,0.55) 0%, rgba(24,25,40,0.72) 100%)',
-            backdropFilter: 'blur(22px) saturate(170%)',
-            WebkitBackdropFilter: 'blur(22px) saturate(170%)',
-            borderTop: '1px solid rgba(255,255,255,0.16)',
-            borderRadius: '50% 50% 0 0 / 22px 22px 0 0',
-            boxShadow: '0 -10px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
+            padding: '20px 6px 34px',
+            // Frosted glass: what scrolls underneath shows through, blurred. Flat top, generous rounded corners.
+            background: 'linear-gradient(180deg, rgba(24,25,42,0.58) 0%, rgba(38,42,68,0.66) 100%)',
+            backdropFilter: 'blur(24px) saturate(160%)',
+            WebkitBackdropFilter: 'blur(24px) saturate(160%)',
+            borderRadius: 46,
+            border: '1px solid rgba(255,255,255,0.18)',
+            boxShadow: '0 -6px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08)',
           }}
         >
         {items.map((item) => {
@@ -72,11 +72,11 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-center gap-1 transition-all h-full relative"
+              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-start gap-1 transition-all relative"
             >
               <div className="flex items-center justify-center">
                 <item.icon
-                  size={24}
+                  size={22}
                   strokeWidth={isActive ? 2 : 1.5}
                   fill={isActive ? 'currentColor' : 'none'}
                   className={`transition-colors duration-200 ${isActive ? 'text-[#ff6b00]' : 'text-[#7A8293] hover:text-[#9EA5B4]'}`}
@@ -84,7 +84,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
               </div>
 
               <span
-                className={`text-[10px] sm:text-[11px] font-medium tracking-tight truncate max-w-full px-0.5 transition-colors duration-200 ${
+                className={`text-[12px] font-medium tracking-tight truncate max-w-full px-0.5 transition-colors duration-200 ${
                   isActive ? 'text-[#ff6b00]' : 'text-[#7A8293] hover:text-[#9EA5B4]'
                 }`}
               >
