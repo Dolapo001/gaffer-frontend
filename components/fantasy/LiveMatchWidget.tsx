@@ -41,7 +41,7 @@ function resolveScorer(event: FixtureEvent): string {
   if (event.playerName) return event.playerName
   // 2. Populated playerId object
   if (typeof event.playerId === 'object' && event.playerId !== null) {
-    return (event.playerId as any).firstName ?? 'Unknown'
+    return (event.playerId as any).displayName?.trim() || (event.playerId as any).firstName || 'Unknown'
   }
   // 3. Fall back to description
   if (event.description) return event.description

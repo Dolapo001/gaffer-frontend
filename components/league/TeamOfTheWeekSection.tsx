@@ -1,5 +1,6 @@
 'use client'
 
+import { playerFullName as chosenFullName } from '@/lib/playerName'
 import { motion } from 'framer-motion'
 import { JerseySvg } from '@/components/jersey/JerseySvg'
 import type { PlayerStatEntry } from '@/lib/services/stats.service'
@@ -31,13 +32,13 @@ function colorFromTeamName(name: string): { primary: string; secondary: string }
 function playerFullName(p: PlayerStatEntry): string {
   const pid = p.playerId
   if (typeof pid === 'string') return 'Player'
-  return `${pid.firstName} ${pid.lastName}`
+  return chosenFullName(pid as any)
 }
 
 function playerFirstName(p: PlayerStatEntry): string {
   const pid = p.playerId
   if (typeof pid === 'string') return 'Player'
-  return pid.firstName
+  return (pid as any).displayName?.trim() || pid.firstName
 }
 
 function teamDisplayName(p: PlayerStatEntry): string {

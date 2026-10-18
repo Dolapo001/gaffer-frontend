@@ -50,6 +50,7 @@ export function mapApiPlayer(
   const posMap: Record<string, number> = { GK: 3, DEF: 2, MID: 1, FWD: 0 };
   const firstName = (p.playerId as any).firstName || ''
   const lastName = (p.playerId as any).lastName || ''
+  const nickname = ((p.playerId as any).displayName || '').trim()
 
   const isOnPitch = startingXIIds.includes(p._id)
   const isCaptain = captainId === p._id
@@ -103,8 +104,8 @@ export function mapApiPlayer(
   }
   return {
     id: p._id,
-    name: `${firstName} ${lastName}`.trim() || 'Unknown Player',
-    shortName: lastName || 'Unknown',
+    name: nickname || `${firstName} ${lastName}`.trim() || 'Unknown Player',
+    shortName: nickname || lastName || 'Unknown',
     teamName: (p.teamId as any)?.name || 'Unknown',
     teamCode: playerTeamHandle,
     teamId: playerTeamId,

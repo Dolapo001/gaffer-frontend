@@ -89,7 +89,7 @@ export default function MatchCenterPage() {
   
   const getScorerName = (g: MatchEvent): string => {
     if (g.playerId && typeof g.playerId === 'object') {
-      return g.playerId.lastName || g.playerId.firstName || `#${(g.playerId as any).jerseyNumber}` || 'Unknown'
+      return (g.playerId as any).displayName?.trim() || g.playerId.lastName || g.playerId.firstName || `#${(g.playerId as any).jerseyNumber}` || 'Unknown'
     }
     return 'Unknown'
   }
@@ -277,7 +277,8 @@ export default function MatchCenterPage() {
                            const p = (item.playerId && typeof item.playerId === 'object') ? item.playerId : (item.player && typeof item.player === 'object') ? item.player : (typeof item.playerId === 'string' ? { _id: item.playerId, name: item.playerName } : item)
                            const firstName = p?.firstName || ''
                            const lastName = p?.lastName || ''
-                           const fullName = (firstName + ' ' + lastName).trim() || item.playerName || p?.name || `Player ${idx + 1}`
+                           const nickname = (p?.displayName || '').trim()
+                           const fullName = nickname || (firstName + ' ' + lastName).trim() || item.playerName || p?.name || `Player ${idx + 1}`
                            const pid = p?._id || p?.id || (typeof item.playerId === 'string' ? item.playerId : null)
                            const slot = pid ? slotMap.get(String(pid)) : null
 
@@ -289,7 +290,7 @@ export default function MatchCenterPage() {
 
                            return {
                               id: pid || `p-${idx}`,
-                              name: lastName || firstName || fullName.split(' ')[0],
+                              name: nickname || lastName || firstName || fullName.split(' ')[0],
                               jerseyNumber: item.jerseyNumber || p?.jerseyNumber || slot?.jerseyNumber || idx + 1,
                               position: item.position || p?.position || slot?.position || item.role || 'MID',
                               rating: itemRating,
@@ -464,7 +465,7 @@ function playerLabel(p: any): { name: string; initial: string } {
    if (!p) return { name: '—', initial: '?' }
    // Handle different object structures
    const player = p.playerId && typeof p.playerId === 'object' ? p.playerId : p
-   const last = player.lastName || player.firstName || p.playerName || '—'
+   const last = (player.displayName || '').trim() || player.lastName || player.firstName || p.playerName || '—'
    const jersey = player.jerseyNumber || p.jerseyNumber || null
    
    return {

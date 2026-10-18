@@ -75,7 +75,7 @@ export function TeamOfTheRoundWidget({ players, roundName }: TeamOfTheRoundWidge
               {row.players.map((p) => (
                 <PitchPlayerCard
                   key={p.fantasyPlayerId}
-                  playerName={`${p.player.firstName?.[0] ? p.player.firstName[0] + '. ' : ''}${p.player.lastName}`.trim()}
+                  playerName={p.player.displayName?.trim() || `${p.player.firstName?.[0] ? p.player.firstName[0] + '. ' : ''}${p.player.lastName}`.trim()}
                   fixture={p.team.shortName || p.team.name}
                   jersey={toJersey(p)}
                   points={p.totalPoints}
