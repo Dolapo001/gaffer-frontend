@@ -82,5 +82,30 @@ export function PWAProvider({ children }: { children: ReactNode }) {
     }
   }, [setUser, setRole, queryClient])
 
+  // Keep the app on the newest version. A phone can keep running the old copy of the app for days after a release.
+  // When a new version takes over, reload once so the screen runs the new code, and look for a new version
+  // every time the app comes back to the front.
+  useEffect(() => {
+    if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+    const hadController = !!navigator.serviceWorker.controller
+    let reloaded = false
+    const onControllerChange = () => {
+      if (!hadController || reloaded) return
+      reloaded = true
+      window.location.reload()
+    }
+    const checkForUpdate = () => {
+      if (document.visibilityState !== 'visible') return
+      navigator.serviceWorker.getRegistration().then((r) => r?.update()).catch(() => {})
+    }
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+    document.addEventListener('visibilitychange', checkForUpdate)
+    checkForUpdate()
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      document.removeEventListener('visibilitychange', checkForUpdate)
+    }
+  }, [])
+
   return <>{children}</>
 }
