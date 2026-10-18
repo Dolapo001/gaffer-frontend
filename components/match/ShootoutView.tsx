@@ -1,5 +1,6 @@
 'use client'
 
+import { playerFullName } from '@/lib/playerName'
 import { useQuery } from '@tanstack/react-query'
 import { getShootout, type Fixture, type ShootoutKick } from '@/lib/services/fixture.service'
 
@@ -8,7 +9,7 @@ const nameOf = (t: Fixture['homeTeamId']): string => (typeof t === 'object' ? t.
 
 function takerName(k: ShootoutKick): string {
   const t = k.takerId
-  return t && typeof t === 'object' ? `${t.firstName} ${t.lastName}`.trim() : 'Taker not recorded'
+  return t && typeof t === 'object' ? playerFullName(t as any) : 'Taker not recorded'
 }
 
 function Mark({ result }: { result: ShootoutKick['result'] }) {

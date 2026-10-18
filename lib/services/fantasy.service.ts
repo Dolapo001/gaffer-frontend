@@ -86,6 +86,7 @@ export interface FantasyPlayer {
     _id: string
     firstName: string
     lastName: string
+    displayName?: string
     position?: string
     picture?: string
   }
@@ -570,6 +571,7 @@ export interface GameweekTopPlayer {
     _id: string
     firstName: string
     lastName: string
+    displayName?: string
     picture?: string
   }
   team: {

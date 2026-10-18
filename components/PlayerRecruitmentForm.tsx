@@ -43,6 +43,7 @@ export default function PlayerRecruitmentForm() {
   const [form, setForm] = useState({
     firstName:    '',
     lastName:     '',
+    displayName:  '',
     position:     '',
     jerseyNumber: '',
     role:         'player' as 'player' | 'captain' | 'coach',
@@ -80,6 +81,7 @@ export default function PlayerRecruitmentForm() {
       const payload: AddPlayerPayload = {
         firstName:    form.firstName,
         lastName:     form.lastName,
+        displayName:  form.displayName.trim() || undefined,
         position:     form.position    || undefined,
         jerseyNumber: form.jerseyNumber ? parseInt(form.jerseyNumber) : undefined,
         role:         form.role,
@@ -110,6 +112,10 @@ export default function PlayerRecruitmentForm() {
     e.preventDefault()
     if (!form.firstName.trim() || !form.lastName.trim()) {
       toast.addToast('First and last name are required', 'error')
+      return
+    }
+    if (form.displayName.trim() && (form.displayName.trim().length < 2 || form.displayName.trim().length > 30)) {
+      toast.addToast('The name we call you must be 2 to 30 characters', 'error')
       return
     }
     registerMutation.mutate()
@@ -271,6 +277,12 @@ export default function PlayerRecruitmentForm() {
                 <label className="text-[9px] font-chakra font-black text-white/30 uppercase tracking-[0.2em] ml-1">Last Name</label>
                 <input type="text" required value={form.lastName} onChange={e => setForm({ ...form, lastName: e.target.value })} placeholder="Doe" className={inputCls(false)} />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-chakra font-black text-white/30 uppercase tracking-[0.2em] ml-1">What should we call you?</label>
+              <input type="text" value={form.displayName} maxLength={30} onChange={e => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Chrissy" className={inputCls(false)} />
+              <p className="text-[10px] text-white/30 ml-1">This is the name fans see and the name that goes on lineup sheets. Leave it empty to use your first and last name.</p>
             </div>
 
             {/* Role */}

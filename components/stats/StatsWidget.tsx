@@ -29,6 +29,7 @@ function getStatValue(entry: PlayerStatEntry, statType: string): number {
 }
 
 function getDisplayName(player: any): string {
+  if (player?.displayName?.trim()) return player.displayName.trim()
   if (player?.firstName) {
     return player.firstName.trim()
   }

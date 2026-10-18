@@ -41,6 +41,7 @@ const POSITIONS = ['Goalkeeper', 'Defender', 'Midfielder', 'Forward'] as const
 interface FieldErrors {
   firstName?: string
   lastName?: string
+  displayName?: string
   position?: string
   phone?: string
   email?: string
@@ -62,6 +63,7 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
   const [fields, setFields] = useState({
     firstName: '',
     lastName: '',
+    displayName: '',
     position: '',
     phone: '',
     email: '',
@@ -103,6 +105,7 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
   const validate = (): FieldErrors => {
     const errs: FieldErrors = {}
     if (!fields.firstName.trim()) errs.firstName = 'First name is required.'
+    if (fields.displayName.trim() && (fields.displayName.trim().length < 2 || fields.displayName.trim().length > 30)) errs.displayName = 'Use 2 to 30 characters.'
     if (!fields.lastName.trim()) errs.lastName = 'Last name is required.'
     if (!fields.position) errs.position = 'Please select a position.'
     if (fields.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fields.email)) {
@@ -133,6 +136,7 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
       const registered = await registerPublicPlayer(handle, {
         firstName: fields.firstName.trim(),
         lastName: fields.lastName.trim(),
+        displayName: fields.displayName.trim() || undefined,
         position: fields.position.toLowerCase(),
         phone: fields.phone.trim() || undefined,
         email: fields.email.trim() || undefined,
@@ -336,6 +340,22 @@ export function RecruitmentPageClient({ token: handle }: RecruitmentPageClientPr
                     />
                     {errors.lastName && <p className="text-red-400 text-xs">{errors.lastName}</p>}
                   </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-body font-medium text-white/70" htmlFor="rc-display">What should we call you?</label>
+                  <input
+                    id="rc-display"
+                    type="text"
+                    value={fields.displayName}
+                    onChange={set('displayName')}
+                    maxLength={30}
+                    placeholder="e.g. Chrissy"
+                    disabled={isSubmitting}
+                    className={inputCls('displayName')}
+                  />
+                  {errors.displayName && <p className="text-red-400 text-xs">{errors.displayName}</p>}
+                  <p className="text-white/40 text-xs">This is the name fans see and the name that goes on lineup sheets. Leave it empty to use your first and last name.</p>
                 </div>
 
                 <div className="space-y-2">

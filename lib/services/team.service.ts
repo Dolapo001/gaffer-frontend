@@ -101,6 +101,8 @@ export async function deleteTeam(teamId: string): Promise<{ message: string }> {
 export interface AddPlayerPayload {
   firstName: string
   lastName: string
+  /** The name the player wants to be called */
+  displayName?: string
   email?: string
   phone?: string
   dateOfBirth?: string

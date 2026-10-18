@@ -26,7 +26,7 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
     const teamObj = p?.teamId || {};
     const firstName = playerObj?.firstName || '';
     const lastName = playerObj?.lastName || '';
-    const fullName = firstName ? `${firstName} ${lastName}`.trim() : (p?.playerName || 'Player');
+    const fullName = playerObj?.displayName?.trim() || (firstName ? `${firstName} ${lastName}`.trim() : (p?.playerName || 'Player'));
     const teamName = teamObj?.shortName || teamObj?.name || '';
 
     return {

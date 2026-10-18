@@ -36,7 +36,7 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
     const pObj = rawPlayer.playerId || rawPlayer
     const tObj = rawPlayer.teamId || {}
 
-    const name = pObj.firstName ? `${pObj.firstName} ${pObj.lastName}`.trim() : (pObj.name || 'Player')
+    const name = pObj.displayName?.trim() || (pObj.firstName ? `${pObj.firstName} ${pObj.lastName}`.trim() : (pObj.name || 'Player'))
     const teamCode = tObj.shortName || tObj.name || 'TEAM'
 
     const playerModalData: FantasySquadPlayer = {

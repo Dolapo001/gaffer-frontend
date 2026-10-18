@@ -1,5 +1,6 @@
 'use client'
 
+import { playerFullName } from '@/lib/playerName'
 import React from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
@@ -111,7 +112,7 @@ export default function StatTypeLeaderboardPage() {
                   {/* Player Name */}
                   <h2 className="text-white font-chakra text-[22px] font-extrabold leading-tight mb-3">
                     {topPlayer.playerId?.firstName
-                      ? `${topPlayer.playerId.firstName} ${topPlayer.playerId.lastName || ''}`.trim()
+                      ? playerFullName(topPlayer.playerId as any)
                       : (topPlayer.playerId as any)?.name || (topPlayer.playerId as any)?.fullName || 'Top Player'}
                   </h2>
 
@@ -150,7 +151,7 @@ export default function StatTypeLeaderboardPage() {
                   const team = entry.teamId || (entry as any).team
                   const rank = idx + 2
                   const fullName = player?.firstName
-                    ? `${player.firstName} ${player.lastName || ''}`.trim()
+                    ? playerFullName(player as any)
                     : (player as any)?.name || (player as any)?.fullName || 'Unknown Player'
                   const teamName = team?.name || team?.shortName || ''
                   const photo = player?.photoUrl

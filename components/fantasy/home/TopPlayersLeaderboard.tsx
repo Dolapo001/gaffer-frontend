@@ -1,5 +1,6 @@
 'use client'
 
+import { playerFullName } from '@/lib/playerName'
 import { useState } from 'react'
 import type { FantasyPlayer } from '@/lib/services/fantasy.service'
 import { getImageUrl } from '@/lib/api'
@@ -65,7 +66,7 @@ export function TopPlayersLeaderboard({ players, gameweeksPlayed }: TopPlayersLe
             const playerDoc = p.playerId
             const teamDoc = p.teamId
             const photoUrl = (playerDoc as any)?.photoUrl
-            const fullName = playerDoc ? `${playerDoc.firstName} ${playerDoc.lastName}`.trim() : 'Player'
+            const fullName = playerDoc ? playerFullName(playerDoc as any) : 'Player'
             const teamName = teamDoc?.shortName || teamDoc?.name || 'Team'
 
             return (

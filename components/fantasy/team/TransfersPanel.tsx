@@ -139,7 +139,7 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
 
   const playerName = (p: FantasyPlayer) => {
     const pid = p.playerId as any
-    return pid ? `${pid.firstName} ${pid.lastName}` : p._id.slice(-6)
+    return pid ? ((pid as any).displayName?.trim() || `${pid.firstName} ${pid.lastName}`) : p._id.slice(-6)
   }
   const teamName = (p: FantasyPlayer) => (p.teamId as any)?.name ?? ''
 
