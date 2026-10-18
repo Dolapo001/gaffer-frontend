@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import { PitchView, type PitchPlayerMarker } from './PitchView'
+import { SubstitutesPanel } from './SubstitutesPanel'
 import { calculatePlayerRating, eventsForPlayer, getRatingBadgeStyle } from '@/lib/ratingsEngine'
 import { getImageUrl } from '@/lib/api'
 import { Star, Edit3, X } from 'lucide-react'
@@ -322,80 +323,15 @@ export function MatchLineupPitch({
         </span>
       </div>
 
-      {/* ── Substitutes Benches ── */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-        {/* Away Bench */}
-        {awayTeam.bench && awayTeam.bench.length > 0 && (
-          <div className="bg-[#1c2230] rounded-2xl p-3.5 border border-white/5 space-y-2">
-            <h4 className="text-white/40 text-[10px] font-black uppercase tracking-widest">
-              {awayTeam.shortName || awayTeam.name} Substitutes
-            </h4>
-            <div className="space-y-1.5">
-              {awayTeam.bench.map((sub) => {
-                const r = getPlayerRating(sub)
-                const style = getRatingBadgeStyle(r, sub.hasRedCard)
-                return (
-                  <div
-                    key={sub.id}
-                    onClick={() => isAdmin && setSelectedPlayer({ player: sub, side: 'away' })}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/5 ${
-                      isAdmin ? 'cursor-pointer hover:bg-white/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/30 text-xs font-bold w-4">
-                        #{sub.jerseyNumber || '-'}
-                      </span>
-                      <span className="text-white text-xs font-bold truncate max-w-[130px]">
-                        {sub.name}
-                      </span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${style.bgClass} ${style.textClass}`}>
-                      {r.toFixed(1)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Home Bench */}
-        {homeTeam.bench && homeTeam.bench.length > 0 && (
-          <div className="bg-[#1c2230] rounded-2xl p-3.5 border border-white/5 space-y-2">
-            <h4 className="text-white/40 text-[10px] font-black uppercase tracking-widest">
-              {homeTeam.shortName || homeTeam.name} Substitutes
-            </h4>
-            <div className="space-y-1.5">
-              {homeTeam.bench.map((sub) => {
-                const r = getPlayerRating(sub)
-                const style = getRatingBadgeStyle(r, sub.hasRedCard)
-                return (
-                  <div
-                    key={sub.id}
-                    onClick={() => isAdmin && setSelectedPlayer({ player: sub, side: 'home' })}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-white/5 ${
-                      isAdmin ? 'cursor-pointer hover:bg-white/10' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-white/30 text-xs font-bold w-4">
-                        #{sub.jerseyNumber || '-'}
-                      </span>
-                      <span className="text-white text-xs font-bold truncate max-w-[130px]">
-                        {sub.name}
-                      </span>
-                    </div>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${style.bgClass} ${style.textClass}`}>
-                      {r.toFixed(1)}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Substitutes: who came on, then everyone who did not play ── */}
+      <SubstitutesPanel
+        homeTeam={homeTeam}
+        awayTeam={awayTeam}
+        matchEvents={matchEvents}
+        getRating={getPlayerRating}
+        isAdmin={isAdmin}
+        onPick={(player, side) => setSelectedPlayer({ player, side })}
+      />
 
       {/* ── Admin Rating Quick-Edit Popover Modal ── */}
       {selectedPlayer && (

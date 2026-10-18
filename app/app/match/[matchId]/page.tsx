@@ -284,7 +284,7 @@ export default function MatchCenterPage() {
 
                            const isRed = events.some((e: any) => (e.type === 'red_card' || (e.metadata as any)?.isSecondYellow) && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
                            const isYellow = events.some((e: any) => e.type === 'yellow_card' && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
-                           const isSubbed = events.some((e: any) => e.type === 'substitution' && (e.playerInId === pid || e.playerOutId === pid))
+                           const isSubbed = events.some((e: any) => ['sub', 'substitution'].includes(e.type) && ([e.playerInId, e.playerOutId].some((x: any) => (typeof x === 'object' && x ? String(x._id) : String(x)) === String(pid))))
 
                            const itemRating = slot?.rating != null ? slot.rating : (item.rating != null ? item.rating : (p?.rating != null ? p?.rating : (item.stats?.rating ?? undefined)))
 
