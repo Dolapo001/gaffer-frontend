@@ -11,6 +11,8 @@ export interface PopulatedAuthor {
   handle?: string | null
   logoUrl?: string | null
   fullName?: string | null
+  /** The name the person asked to be called */
+  displayName?: string | null
   username?: string | null
   avatarUrl?: string | null
 }
@@ -36,6 +38,8 @@ export interface FeedItem {
   commentCount?: number
   repostCount?: number
   isLiked?: boolean
+  /** True when the signed-in viewer has already reposted this item */
+  isReposted?: boolean
   parentFeedId?: FeedItem | null
   /** True on auto-generated welcome posts created by the backend */
   isDefault?: boolean
@@ -47,10 +51,16 @@ export interface FeedItem {
 
 export interface FeedComment {
   _id: string
-  feedItemId: string
-  userId: { _id: string; fullName?: string; email: string }
+  feedItemId?: string
+  userId: { _id: string; fullName?: string | null; displayName?: string | null; username?: string | null; avatarUrl?: string | null } | null
   body: string
   createdAt: string
+  /** Set on a reply: the top-level comment whose thread it belongs to */
+  parentCommentId?: string | null
+  /** Set on a reply: who it is answering */
+  replyToUserId?: { _id: string; fullName?: string | null; displayName?: string | null; username?: string | null } | null
+  /** On a top-level comment: how many replies it has */
+  replyCount?: number
 }
 
 export interface FeedPage {
@@ -138,9 +148,15 @@ export async function getComments(
   return data
 }
 
-// POST /feed/:postId/comments — add a comment
-export async function addComment(id: string, body: string): Promise<FeedComment> {
-  const raw = await api.post<unknown>(`/feed/${id}/comments`, { body })
+// GET /feed/:postId/comments/:commentId/replies — the replies in one comment's thread, oldest first
+export async function getReplies(id: string, commentId: string, page: number = 1): Promise<FeedComment[]> {
+  const data = await api.get<{ comments: FeedComment[] }>(`/feed/${id}/comments/${commentId}/replies?page=${page}`, { public: true })
+  return data?.comments ?? []
+}
+
+// POST /feed/:postId/comments — add a comment, or a reply when parentCommentId is given
+export async function addComment(id: string, body: string, parentCommentId?: string): Promise<FeedComment> {
+  const raw = await api.post<unknown>(`/feed/${id}/comments`, { body, parentCommentId })
   const r = raw as any
   return r?.comment ?? r
 }

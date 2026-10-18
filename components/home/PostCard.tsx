@@ -1,12 +1,14 @@
 'use client'
 
-import { useState } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Flame, MessageCircle, Repeat2, Share2, UserPlus, ShieldCheck } from 'lucide-react'
 import { likeFeedItem, unlikeFeedItem, repost, type FeedItem } from '@/lib/services/feed.service'
 import { useToast } from '@/store/toastStore'
 import { ApiError, getErrorMessage, getImageUrl } from '@/lib/api'
 import { timeAgo } from '@/lib/newsCardProps'
+import { nameOf } from '@/lib/displayName'
+import { useFeedStats } from '@/lib/feedStats'
 import { CommentsSheet } from './CommentsSheet'
 import { NewsImage } from './NewsImage'
 
@@ -14,7 +16,7 @@ const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.
 
 function authorOf(item: FeedItem) {
   const a = item.authorId
-  const name = item.authorType === 'system' ? item.authorName || 'Gaffer' : a?.name || a?.fullName || a?.username || 'Gaffer fan'
+  const name = item.authorType === 'system' ? item.authorName || 'Gaffer' : nameOf(a, 'Gaffer fan')
   const handle = a?.handle || a?.username || ''
   const avatar = a?.logoUrl || a?.avatarUrl || null
   return { name, handle, avatar, verified: item.authorType === 'org' || item.authorType === 'system' }
@@ -59,26 +61,41 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
   const rootAuthor = authorOf(root)
   const reposter = authorOf(item)
 
-  const [liked, setLiked] = useState(root.isLiked ?? false)
-  const [likes, setLikes] = useState(root.likesCount ?? 0)
-  const [comments, setComments] = useState(root.commentsCount ?? root.commentCount ?? 0)
-  const [reposts, setReposts] = useState(root.repostCount ?? 0)
-  const [reposted, setReposted] = useState(false)
+  // The numbers for this post live in one shared place, so the repost card, the original and the article page always agree
+  const qc = useQueryClient()
+  const stats = useFeedStats((s) => s.byId[root._id])
+  const patch = useFeedStats((s) => s.patch)
+  const clearStats = useFeedStats((s) => s.clear)
+  const liked = stats?.liked ?? root.isLiked ?? false
+  const likes = stats?.likes ?? root.likesCount ?? 0
+  const comments = stats?.comments ?? root.commentsCount ?? root.commentCount ?? 0
+  const reposts = stats?.reposts ?? root.repostCount ?? 0
+  const reposted = stats?.reposted ?? root.isReposted ?? false
+  // Fresh numbers from the server replace whatever we were holding for this post
+  useEffect(() => { clearStats(root._id) }, [root._id, root.likesCount, root.repostCount, root.commentsCount, root.commentCount, root.isLiked, root.isReposted, clearStats])
+  const refreshFeed = () => qc.invalidateQueries({ queryKey: ['home-feed'] })
   const [sheet, setSheet] = useState<'comments' | 'repost' | 'quote' | null>(null)
   const [quote, setQuote] = useState('')
   const [following, setFollowing] = useState(false)
 
   const like = useMutation({
     mutationFn: (next: boolean) => (next ? likeFeedItem(root._id) : unlikeFeedItem(root._id)),
-    onMutate: (next: boolean) => { setLiked(next); setLikes((c) => Math.max(0, c + (next ? 1 : -1))) },
-    onError: (_e, next: boolean) => { setLiked(!next); setLikes((c) => Math.max(0, c + (next ? -1 : 1))); addToast('Could not save your reaction. Check your connection and try again.', 'error') },
+    onMutate: (next: boolean) => {
+      patch(root._id, { liked: next, likes: Math.max(0, likes + (next ? 1 : -1)) })
+      return { wasLiked: liked, wasLikes: likes }
+    },
+    onError: (_e, _next, ctx) => {
+      patch(root._id, { liked: ctx?.wasLiked ?? liked, likes: ctx?.wasLikes ?? likes })
+      addToast('Could not save your reaction. Check your connection and try again.', 'error')
+    },
+    onSuccess: refreshFeed,
   })
 
   const doRepost = useMutation({
     mutationFn: (body?: string) => repost(root._id, body),
-    onSuccess: () => { setReposted(true); setReposts((c) => c + 1); setSheet(null); setQuote(''); addToast('Reposted', 'success') },
+    onSuccess: () => { patch(root._id, { reposted: true, reposts: reposts + 1 }); setSheet(null); setQuote(''); addToast('Reposted', 'success'); refreshFeed() },
     onError: (e) => {
-      if (e instanceof ApiError && e.code === 'ALREADY_REPOSTED') { setReposted(true); setSheet(null); addToast('You already reposted this', 'info') }
+      if (e instanceof ApiError && e.code === 'ALREADY_REPOSTED') { patch(root._id, { reposted: true }); setSheet(null); addToast('You already reposted this', 'info') }
       else addToast(getErrorMessage(e), 'error')
     },
   })
@@ -140,7 +157,7 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
       </div>
 
       {sheet === 'comments' && (
-        <CommentsSheet postId={root._id} allowComments={root.allowComments !== false} onClose={() => setSheet(null)} onAdded={() => setComments((c) => c + 1)} />
+        <CommentsSheet postId={root._id} allowComments={root.allowComments !== false} onClose={() => setSheet(null)} onAdded={() => { patch(root._id, { comments: comments + 1 }); refreshFeed() }} />
       )}
 
       {(sheet === 'repost' || sheet === 'quote') && (
