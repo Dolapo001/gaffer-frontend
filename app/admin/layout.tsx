@@ -9,6 +9,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { Home, Trophy, CalendarClock, Award, FileText, Users } from 'lucide-react'
 
 import { BottomNavbar } from '@/components/BottomNavbar'
+import { CompleteAccountPrompt } from '@/components/CompleteAccountPrompt'
 import { OrgStatusBanner } from '@/components/organization/OrgStatusBanner'
 
 const NAV_ITEMS = [
@@ -50,6 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </motion.main>
       </ErrorBoundary>
 
+      <CompleteAccountPrompt />
       <BottomNavbar items={NAV_ITEMS} id="admin-nav-bar" />
     </div>
   )

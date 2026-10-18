@@ -4,6 +4,8 @@ export interface UserProfile {
   _id: string
   email: string
   fullName: string | null
+  /** The name the person asked to be called */
+  displayName?: string | null
   username: string | null
   avatarUrl: string | null
   phone: string | null
@@ -20,6 +22,7 @@ export interface UserProfile {
 
 export interface UpdateProfilePayload {
   fullName?: string
+  displayName?: string
   username?: string
   avatarUrl?: string
   phone?: string
@@ -30,7 +33,9 @@ export interface UpdateProfilePayload {
 
 // GET /users — authenticated user's profile
 export async function getProfile(): Promise<UserProfile> {
-  return api.get<UserProfile>('/users')
+  // The server wraps the profile as { user }; the update call returns it bare
+  const r = await api.get<UserProfile | { user: UserProfile }>('/users')
+  return 'user' in r && r.user ? r.user : (r as UserProfile)
 }
 
 // PUT /users — update profile

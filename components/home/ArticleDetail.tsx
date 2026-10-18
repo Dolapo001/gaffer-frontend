@@ -2,18 +2,14 @@
 
 import { NewsImage } from './NewsImage'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Flame, ChevronLeft, MessageCircle, Send, Loader2, ShieldCheck } from 'lucide-react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import {
-  likeFeedItem,
-  unlikeFeedItem,
-  getComments,
-  addComment,
-  type FeedComment,
-} from '@/lib/services/feed.service'
+import { Flame, ChevronLeft, MessageCircle, ShieldCheck } from 'lucide-react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { likeFeedItem, unlikeFeedItem } from '@/lib/services/feed.service'
 import { useToast } from '@/store/toastStore'
+import { useFeedStats } from '@/lib/feedStats'
+import { CommentThread } from './CommentThread'
 
 interface ArticleDetailProps {
   onBack: () => void
@@ -52,69 +48,41 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
   const qc = useQueryClient()
   const { addToast } = useToast()
 
-  const [liked, setLiked] = useState(article.isLiked ?? false)
-  const [likeCount, setLikeCount] = useState(article.likes)
   const [following, setFollowing] = useState(false)
   const [showComments, setShowComments] = useState(false)
-  const [commentText, setCommentText] = useState('')
 
-  // ── Like / Unlike ─────────────────────────────────────────────────────────
+  // The numbers for this post live in one shared place so every card showing it agrees
+  const stats = useFeedStats((s) => s.byId[article.id])
+  const patch = useFeedStats((s) => s.patch)
+  const clearStats = useFeedStats((s) => s.clear)
+  const liked = stats?.liked ?? article.isLiked ?? false
+  const likeCount = stats?.likes ?? article.likes
+  const commentCount = stats?.comments ?? article.commentsCount ?? 0
+  useEffect(() => { clearStats(article.id) }, [article.id, article.likes, article.isLiked, article.commentsCount, clearStats])
+
+  // ── Like / Unlike (the server is told the state we want; a second tap waits for the first) ──
   const likeMutation = useMutation({
-    mutationFn: (action: 'like' | 'unlike') => {
+    mutationFn: (next: boolean) => {
       if (!article.id) return Promise.reject(new Error('Missing article id'))
-      return action === 'unlike'
-        ? unlikeFeedItem(article.id)
-        : likeFeedItem(article.id)
+      return next ? likeFeedItem(article.id) : unlikeFeedItem(article.id)
     },
-    onMutate: (action) => {
-      setLiked(action === 'like')
-      setLikeCount((c) => (action === 'like' ? c + 1 : c - 1))
+    onMutate: (next: boolean) => {
+      patch(article.id, { liked: next, likes: Math.max(0, likeCount + (next ? 1 : -1)) })
+      return { wasLiked: liked, wasLikes: likeCount }
     },
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['home-feed'] })
       qc.invalidateQueries({ queryKey: ['org-feed'] })
       qc.invalidateQueries({ queryKey: ['feed'] })
       qc.invalidateQueries({ queryKey: ['orgFeed'] })
       qc.invalidateQueries({ queryKey: ['feed-item', article.id] })
     },
-    onError: (_err, action) => {
-      setLiked(action !== 'like')
-      setLikeCount((c) => (action === 'like' ? c - 1 : c + 1))
-      addToast('Could not update like.', 'error')
+    onError: (_err, _next, ctx) => {
+      patch(article.id, { liked: ctx?.wasLiked ?? liked, likes: ctx?.wasLikes ?? likeCount })
+      addToast('Could not save your reaction. Check your connection and try again.', 'error')
     },
     meta: { suppressGlobalError: true },
   })
-
-  // ── Comments ──────────────────────────────────────────────────────────────
-  const { data: commentsData, isLoading: commentsLoading } = useQuery({
-    queryKey: ['comments', article.id],
-    queryFn: () => getComments(article.id),
-    enabled: showComments,
-    staleTime: 30_000,
-    meta: { suppressGlobalError: true },
-  })
-
-  const addCommentMutation = useMutation({
-    mutationFn: () => addComment(article.id, commentText.trim()),
-    onSuccess: () => {
-      setCommentText('')
-      qc.invalidateQueries({ queryKey: ['comments', article.id] })
-    },
-    onError: () => {
-      addToast('Could not post comment.', 'error')
-    },
-    meta: { suppressGlobalError: true },
-  })
-
-  const comments: FeedComment[] = commentsData?.comments ?? []
-
-  function formatCommentTime(iso: string) {
-    const diff = Date.now() - new Date(iso).getTime()
-    const m = Math.floor(diff / 60000)
-    if (m < 60) return `${m}m ago`
-    const h = Math.floor(m / 60)
-    if (h < 24) return `${h}h ago`
-    return `${Math.floor(h / 24)}d ago`
-  }
 
   return (
     <motion.div
@@ -194,7 +162,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
         <div className="flex items-center justify-between px-4 mb-4">
           <div className="flex items-center gap-4">
             <button
-              onClick={() => likeMutation.mutate(liked ? 'unlike' : 'like')}
+              onClick={() => { if (!likeMutation.isPending) likeMutation.mutate(!liked) }}
               className="flex items-center gap-1.5"
             >
               <Flame size={16} className={liked ? 'text-gaffer-orange' : 'text-gaffer-subtle'} />
@@ -209,7 +177,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
                 className={showComments ? 'text-gaffer-orange' : 'text-gaffer-subtle'}
               />
               <span className="text-gaffer-muted text-xs font-body">
-                {commentsData ? commentsData.total : (article.commentsCount ?? 0)}
+                {commentCount}
               </span>
             </button>
           </div>
@@ -235,74 +203,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
               exit={{ opacity: 0, height: 0 }}
               className="border-t border-gaffer-border overflow-hidden"
             >
-              {/* Comment input */}
-              <div className="px-4 py-3 flex items-center gap-2 border-b border-gaffer-border/50">
-                <input
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && commentText.trim()) {
-                      e.preventDefault()
-                      addCommentMutation.mutate()
-                    }
-                  }}
-                  placeholder="Add a comment..."
-                  className="flex-1 bg-gaffer-card border border-gaffer-border rounded-xl px-3 py-2 text-white text-sm font-body placeholder:text-gaffer-subtle focus:outline-none focus:border-gaffer-orange/50 transition-colors"
-                />
-                <button
-                  onClick={() => commentText.trim() && addCommentMutation.mutate()}
-                  disabled={!commentText.trim() || addCommentMutation.isPending}
-                  className="w-9 h-9 flex items-center justify-center rounded-xl bg-gaffer-orange disabled:opacity-40 transition-opacity flex-shrink-0"
-                >
-                  {addCommentMutation.isPending ? (
-                    <Loader2 size={15} className="text-white animate-spin" />
-                  ) : (
-                    <Send size={15} className="text-white" />
-                  )}
-                </button>
-              </div>
-
-              {/* Comments list */}
-              {commentsLoading ? (
-                <div className="px-4 py-4 space-y-3">
-                  {[0, 1, 2].map((i) => (
-                    <div key={i} className="flex gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gaffer-card animate-pulse flex-shrink-0" />
-                      <div className="flex-1 space-y-1.5">
-                        <div className="h-2.5 bg-gaffer-card rounded w-1/4 animate-pulse" />
-                        <div className="h-3 bg-gaffer-card rounded w-3/4 animate-pulse" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : comments.length === 0 ? (
-                <div className="px-4 py-6 text-center">
-                  <p className="text-gaffer-muted text-sm font-body">No comments yet. Be the first!</p>
-                </div>
-              ) : (
-                <div className="px-4 py-3 space-y-4 pb-6">
-                  {comments.map((c) => (
-                    <div key={c._id} className="flex gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-gaffer-orange/20 flex items-center justify-center flex-shrink-0">
-                        <span className="text-gaffer-orange text-xs font-body font-bold">
-                          {(c.userId?.fullName ?? c.userId?.email ?? 'U')[0].toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-white text-xs font-body font-semibold">
-                            {c.userId?.fullName ?? c.userId?.email?.split('@')[0] ?? 'User'}
-                          </span>
-                          <span className="text-gaffer-subtle text-[10px] font-body">
-                            {formatCommentTime(c.createdAt)}
-                          </span>
-                        </div>
-                        <p className="text-white/70 text-sm font-body mt-0.5 leading-relaxed">{c.body}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <CommentThread postId={article.id} allowComments composer="top" onAdded={() => { patch(article.id, { comments: commentCount + 1 }); qc.invalidateQueries({ queryKey: ['home-feed'] }) }} />
             </motion.div>
           )}
         </AnimatePresence>

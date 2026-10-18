@@ -12,6 +12,7 @@ import { useUIStore } from '@/store/uiStore'
 // useAuthListener is called once at the root via AuthProvider — not here.
 
 import { BottomNavbar } from '@/components/BottomNavbar'
+import { CompleteAccountPrompt } from '@/components/CompleteAccountPrompt'
 import { PushPrompt } from '@/components/notifications/PushPrompt'
 import { adjacentTab, startsInsideSideScroller, swipeDirection } from '@/lib/tabSwipe'
 
@@ -97,7 +98,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </ErrorBoundary>
 
         <PushPrompt />
-        <BottomNavbar items={navItems} id="global-nav-bar" />
+        <CompleteAccountPrompt />
+      <BottomNavbar items={navItems} id="global-nav-bar" />
       </div>
   )
 }

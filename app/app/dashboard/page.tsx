@@ -7,7 +7,8 @@ import { useAuthStore } from '@/store/authStore'
 import { Menu, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
-import { getGlobalFeed, getNewsFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
+import { getGlobalFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
+import { nameOf } from '@/lib/displayName'
 import { NewsCard } from '@/components/home/NewsCard'
 import { PostCard } from '@/components/home/PostCard'
 import { LiveNowCard } from '@/components/home/LiveNowCard'
@@ -32,37 +33,23 @@ export default function DashboardPage() {
     return () => window.removeEventListener('gaffer:upgrade-org', handleUpgrade)
   }, [router])
 
-  // News from every competition on the app, newest first, with the official Gaffer post pinned on top
-  const newsQ = useInfiniteQuery({
-    queryKey: ['home-news'],
-    queryFn: ({ pageParam }) => getNewsFeed(pageParam),
-    initialPageParam: 1,
-    getNextPageParam: (last, all) => (itemsOf(last).length >= PAGE ? all.length + 1 : undefined),
-    enabled: !!user,
-    staleTime: 60_000,
-  })
-  const news = useMemo(() => {
-    const all = uniqueById((newsQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'news' || i.authorType === 'system'))
-    const pinned = all.filter((i) => i.authorType === 'system' || i.isPinned)
-    const rest = all.filter((i) => !(i.authorType === 'system' || i.isPinned))
-    return [...pinned, ...rest]
-  }, [newsQ.data])
-
-  // Posts people write: reply, repost and react like a social feed
-  const postsQ = useInfiniteQuery({
-    queryKey: ['home-posts'],
+  // One timeline: news and posts together, newest first, with pinned items (and the official Gaffer post) on top
+  const feedQ = useInfiniteQuery({
+    queryKey: ['home-feed'],
     queryFn: ({ pageParam }) => getGlobalFeed(pageParam),
     initialPageParam: 1,
     getNextPageParam: (last, all) => (itemsOf(last).length >= PAGE ? all.length + 1 : undefined),
     enabled: !!user,
-    staleTime: 60_000,
+    staleTime: 30_000,
   })
-  const posts = useMemo(
-    () => uniqueById((postsQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'post' || i.type === 'repost')),
-    [postsQ.data],
-  )
+  const timeline = useMemo(() => {
+    const all = uniqueById((feedQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'news' || i.type === 'post' || i.type === 'repost'))
+    const isTop = (i: FeedItem) => i.authorType === 'system' || !!i.isPinned
+    const byNewest = (x: FeedItem, y: FeedItem) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime()
+    return [...all.filter(isTop).sort(byNewest), ...all.filter((i) => !isTop(i)).sort(byNewest)]
+  }, [feedQ.data])
 
-  const displayName = profile?.fullName || profile?.username || user?.email?.split('@')[0] || 'Gaffer'
+  const displayName = nameOf(profile, user?.email?.split('@')[0] || 'Gaffer')
 
   return (
     <div className="h-screen flex flex-col bg-[#181928] overflow-hidden relative">
@@ -132,58 +119,34 @@ export default function DashboardPage() {
           {/* Matches being played right now in my leagues */}
           <LiveNowCard />
 
-          {/* News: people only react to it */}
+          {/* News (react only) and posts (comment, repost, react) in one list, newest first */}
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-white font-chakra font-bold text-lg uppercase tracking-tight">Top News</h2>
-              {news.length > 0 && (
-                <button onClick={() => router.push('/app/news')} className="text-gaffer-orange text-[11px] font-chakra font-black uppercase tracking-widest">
-                  See all
-                </button>
-              )}
-            </div>
+            <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Latest</h2>
 
-            {newsQ.isLoading ? (
+            {feedQ.isLoading ? (
               <div className="h-48 bg-white/5 animate-pulse rounded-[24px]" />
-            ) : news.length > 0 ? (
+            ) : timeline.length > 0 ? (
               <div className="space-y-4">
-                {news.map((item) => (
-                  <NewsCard key={item._id} {...toNewsCardProps(item)} size="large" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
-                ))}
-                {newsQ.hasNextPage && (
-                  <button onClick={() => newsQ.fetchNextPage()} disabled={newsQ.isFetchingNextPage} className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50">
-                    {newsQ.isFetchingNextPage ? 'Loading…' : 'More news'}
+                {timeline.map((item) =>
+                  item.type === 'news' ? (
+                    <NewsCard key={item._id} {...toNewsCardProps(item)} size="large" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
+                  ) : (
+                    <PostCard key={item._id} item={item} onOpen={() => router.push(`/app/news/${item.type === 'repost' && item.parentFeedId ? item.parentFeedId._id : item._id}?returnTo=/app/dashboard`)} />
+                  ),
+                )}
+                {feedQ.hasNextPage && (
+                  <button onClick={() => feedQ.fetchNextPage()} disabled={feedQ.isFetchingNextPage} className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50">
+                    {feedQ.isFetchingNextPage ? 'Loading…' : 'Load more'}
                   </button>
                 )}
               </div>
             ) : (
               <div className="bg-white/5 rounded-[24px] p-12 text-center border border-dashed border-white/10">
                 <NewsIcon className="mx-auto text-white/10 mb-2" />
-                <p className="text-white/40 font-chakra text-sm">No news yet</p>
+                <p className="text-white/40 font-chakra text-sm">Nothing here yet</p>
               </div>
             )}
           </section>
-
-          {/* Posts: comment, repost, react */}
-          {(postsQ.isLoading || posts.length > 0) && (
-            <section>
-              <h2 className="text-white font-chakra font-bold text-lg mb-4 uppercase tracking-tight">Trending</h2>
-              {postsQ.isLoading ? (
-                <div className="h-40 bg-white/5 animate-pulse rounded-[24px]" />
-              ) : (
-                <div className="space-y-4">
-                  {posts.map((item) => (
-                    <PostCard key={item._id} item={item} onOpen={() => router.push(`/app/news/${(item.type === 'repost' && item.parentFeedId ? item.parentFeedId._id : item._id)}?returnTo=/app/dashboard`)} />
-                  ))}
-                  {postsQ.hasNextPage && (
-                    <button onClick={() => postsQ.fetchNextPage()} disabled={postsQ.isFetchingNextPage} className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white text-[11px] font-chakra font-black uppercase tracking-widest disabled:opacity-50">
-                      {postsQ.isFetchingNextPage ? 'Loading…' : 'More posts'}
-                    </button>
-                  )}
-                </div>
-              )}
-            </section>
-          )}
         </main>
       </div>
     </div>
