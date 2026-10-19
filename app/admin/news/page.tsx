@@ -6,7 +6,7 @@ import { Plus, Flame, Share2, Clock, CheckCircle2, Trash2, Pin, Trophy } from 'l
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { listOrgs } from '@/lib/services/org.service'
 import { listCompetitions } from '@/lib/services/competition.service'
-import { getOrgFeed, publishNews, publishPost, deletePost, type FeedItem } from '@/lib/services/feed.service'
+import { getOrgFeed, publishNews, publishPost, deletePost, setPinned, type FeedItem } from '@/lib/services/feed.service'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -110,6 +110,16 @@ export default function AdminNewsPage() {
       setDeleteTarget(null)
       toast.addToast(getErrorMessage(err), 'error')
     },
+  })
+
+  const pinMutation = useMutation({
+    mutationFn: ({ id, pin }: { id: string; pin: boolean }) => setPinned(id, pin),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ['org-feed', firstOrg?._id] })
+      qc.invalidateQueries({ queryKey: ['home-feed'] })
+      toast.addToast(v.pin ? 'Pinned to the top.' : 'Unpinned.', 'success')
+    },
+    onError: (err: unknown) => toast.addToast(getErrorMessage(err), 'error'),
   })
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -343,6 +353,16 @@ export default function AdminNewsPage() {
                           <button className="text-white/40 hover:text-white transition-colors">
                             <Share2 size={18} />
                           </button>
+                          {canManage && (
+                            <button
+                              onClick={() => pinMutation.mutate({ id: item._id, pin: !item.isPinned })}
+                              disabled={pinMutation.isPending}
+                              className={`flex items-center gap-1 text-[11px] font-chakra font-bold transition-colors ${item.isPinned ? 'text-[#FF8904]' : 'text-white/40 hover:text-white'}`}
+                              aria-label={item.isPinned ? 'Unpin' : 'Pin to top'}
+                            >
+                              <Pin size={16} /> {item.isPinned ? 'Unpin' : 'Pin'}
+                            </button>
+                          )}
                           {canManage && <button
                             onClick={() => setDeleteTarget(item)}
                             className="text-white/30 hover:text-red-400 transition-colors"

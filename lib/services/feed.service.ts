@@ -124,6 +124,11 @@ export async function deletePost(id: string): Promise<void> {
   await api.delete<unknown>(`/feed/${id}`)
 }
 
+// PATCH /feed/:id/pin — pin an item to the top of the feeds, or unpin it
+export async function setPinned(id: string, isPinned: boolean): Promise<void> {
+  await api.patch<unknown>(`/feed/${id}/pin`, { isPinned })
+}
+
 // POST /feed/:postId/like — like a post
 export async function likeFeedItem(id: string): Promise<{ message: string }> {
   const data = await api.post<{ message: string }>(`/feed/${id}/like`)
