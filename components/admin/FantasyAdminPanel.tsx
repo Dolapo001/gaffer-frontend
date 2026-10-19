@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw, CalendarPlus } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -29,6 +29,8 @@ interface Props {
 
 export function FantasyAdminPanel({ competitionId }: Props) {
   const router = useRouter()
+  // Gaffer HQ opens this same panel; its links stay inside HQ
+  const inHq = usePathname().startsWith('/hq')
   const qc = useQueryClient()
   const toast = useToastStore()
   const [isSyncing, setIsSyncing] = useState(false)
@@ -195,7 +197,7 @@ export function FantasyAdminPanel({ competitionId }: Props) {
       </div>
 
       <Link
-        href={`/admin/tournaments/${competitionId}/managers`}
+        href={inHq ? `/hq/tournaments/${competitionId}/managers` : `/admin/tournaments/${competitionId}/managers`}
         className="flex items-center justify-between rounded-2xl bg-gaffer-card border border-gaffer-border p-4"
       >
         <div>
@@ -283,7 +285,7 @@ export function FantasyAdminPanel({ competitionId }: Props) {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05 }}
-                onClick={() => router.push(`/admin/fantasy/${competitionId}/pricing/${t.teamId}`)}
+                onClick={() => router.push(inHq ? `/hq/fantasy/${competitionId}/pricing/${t.teamId}` : `/admin/fantasy/${competitionId}/pricing/${t.teamId}`)}
                 className="w-full bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center gap-4 group hover:border-gaffer-orange/30 transition-all"
                 >
                 <div className="w-12 h-12 rounded-xl bg-gaffer-surface flex items-center justify-center text-xl overflow-hidden shadow-inner">
