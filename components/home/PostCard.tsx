@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { track } from '@/lib/analytics'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Flame, MessageCircle, Repeat2, Share2, UserPlus, ShieldCheck } from 'lucide-react'
 import { likeFeedItem, unlikeFeedItem, repost, type FeedItem } from '@/lib/services/feed.service'
@@ -105,6 +106,7 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
     try {
       if (navigator.share) await navigator.share({ title: rootAuthor.name, text: root.body.slice(0, 100), url })
       else { await navigator.clipboard.writeText(url); addToast('Link copied', 'success') }
+      track('post_shared')
     } catch { /* cancelled */ }
   }
 

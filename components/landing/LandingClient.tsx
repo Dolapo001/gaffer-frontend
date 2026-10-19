@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { track } from '@/lib/analytics'
 import { useRouter } from 'next/navigation'
 import { isStandalone, isIOS, getDeferredPrompt, triggerInstallPrompt } from '@/lib/pwa'
 import { usePWAInstall } from '@/hooks/usePWAInstall'
@@ -115,6 +116,7 @@ export default function LandingClient() {
       ios: isIOS(),
       hasInstallPrompt: !!getDeferredPrompt(),
     })
+    if (href && /\/(auth|onboarding)\b/.test(href)) track('cta_get_started')
     if (action.type === 'navigate') return
     e.preventDefault()
     try { localStorage.setItem('gaffer-post-install-intent', action.intent) } catch { /* private mode */ }

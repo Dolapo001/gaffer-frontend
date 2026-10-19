@@ -1,4 +1,5 @@
 import { api, tokenStore } from '@/lib/api'
+import { track } from '@/lib/analytics'
 
 export interface AuthUser {
   id: string
@@ -81,6 +82,7 @@ export async function register(
 
   if (normalized) {
     tokenStore.set(normalized.accessToken)
+    track('signup_completed')
     return normalized
   }
 
@@ -98,6 +100,7 @@ export async function login(email: string, password: string): Promise<AuthRespon
   }
 
   tokenStore.set(normalized.accessToken)
+  track('login')
   return normalized
 }
 
@@ -159,5 +162,6 @@ export async function googleAuth(idToken: string): Promise<AuthResponse> {
     throw new Error('Google auth succeeded but returned an invalid auth payload.')
   }
   tokenStore.set(normalized.accessToken)
+  track('login')
   return normalized
 }

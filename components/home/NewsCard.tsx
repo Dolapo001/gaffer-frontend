@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { track } from '@/lib/analytics'
 import { motion } from 'framer-motion'
 import { Flame, Share2, Clock, ShieldCheck } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
@@ -184,6 +185,7 @@ export function NewsCard({
               if (navigator.share) {
                 try {
                   await navigator.share({ title, url })
+                  track('post_shared')
                   return
                 } catch {
                   // user cancelled or API unavailable — fall through to clipboard
@@ -191,6 +193,7 @@ export function NewsCard({
               }
               try {
                 await navigator.clipboard.writeText(url)
+                track('post_shared')
                 addToast('Link copied to clipboard!', 'success')
               } catch {
                 addToast('Could not copy link.', 'error')

@@ -1,4 +1,5 @@
 import { api, ApiError, tokenStore } from '@/lib/api'
+import { track } from '@/lib/analytics'
 
 export interface Competition {
   _id: string
@@ -196,12 +197,14 @@ export async function removeCompetitionGroup(
 // POST /competitions/join  (code-based — used by the "Join League" modal)
 export async function joinCompetition(code: string): Promise<Competition> {
   const data = await api.post<{ competition: Competition }>('/competitions/join', { code })
+  track('league_joined')
   return data.competition
 }
 
 // POST /competitions/:competitionId/join  (id-based — used when clicking a search result)
 export async function joinCompetitionById(competitionId: string): Promise<Competition> {
   const data = await api.post<{ competition: Competition }>(`/competitions/${competitionId}/join`)
+  track('league_joined')
   return data.competition
 }
 

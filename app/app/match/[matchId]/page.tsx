@@ -1,7 +1,8 @@
 'use client'
 
 import { slotLayout, zonesFromString } from '@/lib/lineupFormation'
-import { useState, useMemo } from 'react'
+import { track } from '@/lib/analytics'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
@@ -44,6 +45,7 @@ export default function MatchCenterPage() {
 
   // Score, status and commentary update live without a reload
   useLiveMatch(matchId)
+  useEffect(() => { track('match_viewed') }, [matchId])
 
   const { data: allEvents, isLoading: isEventsLoading } = useQuery({
     queryKey: ['match-events', matchId],
