@@ -11,6 +11,7 @@ import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useHasMinRole } from '@/hooks/useOrgRole'
+import { PollComposer } from '@/components/admin/PollComposer'
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime()
@@ -26,7 +27,7 @@ export default function AdminNewsPage() {
   const toast = useToastStore()
   
   // News: fans can only react. Post: fans can react, comment and repost. Fixed once published.
-  const [kind, setKind] = useState<'news' | 'post'>('news')
+  const [kind, setKind] = useState<'news' | 'post' | 'poll'>('news')
   const isPost = kind === 'post'
   const [title, setTitle] = useState('')
   const [newsContent, setNewsContent] = useState('')
@@ -143,12 +144,12 @@ export default function AdminNewsPage() {
         <div className="px-6 pt-12 space-y-8 max-w-2xl mx-auto">
           {/* Header */}
           {canManage && <>
-          <h2 className="font-chakra font-black text-xl text-white tracking-widest uppercase">{isPost ? 'Write a Post' : 'Post News'}</h2>
+          <h2 className="font-chakra font-black text-xl text-white tracking-widest uppercase">{kind === 'poll' ? 'Run a Poll' : isPost ? 'Write a Post' : 'Post News'}</h2>
 
           {/* What are you publishing? */}
           <div>
-            <div role="tablist" aria-label="What are you publishing?" className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-[#141523] border border-white/5">
-              {([['news', 'News'], ['post', 'Post']] as const).map(([k, label]) => (
+            <div role="tablist" aria-label="What are you publishing?" className="grid grid-cols-3 gap-1 p-1 rounded-2xl bg-[#141523] border border-white/5">
+              {([['news', 'News'], ['post', 'Post'], ['poll', 'Poll']] as const).map(([k, label]) => (
                 <button
                   key={k}
                   type="button"
@@ -162,13 +163,18 @@ export default function AdminNewsPage() {
               ))}
             </div>
             <p className="mt-2 text-xs font-chakra text-white/50">
-              {isPost
+              {kind === 'poll'
+                ? 'Fans vote once and see the results after they vote. Run Man of the Match for a game, or ask anything. You cannot change it after publishing.'
+                : isPost
                 ? 'Fans can like, comment and repost. It shows in the social feed. You cannot change this after publishing.'
                 : 'Fans can only like it. It shows in Top News. You cannot change this after publishing.'}
             </p>
           </div>
 
           {/* Posting Interface */}
+          {kind === 'poll' ? (
+            firstOrg ? <PollComposer orgId={firstOrg._id} competitions={(competitions ?? []).map((c) => ({ _id: c._id, name: c.name }))} /> : <p className="text-center text-white/40 text-xs font-chakra py-1">You need an organization to run a poll.</p>
+          ) : (
           <div className="space-y-4">
             <div className="bg-[#1E2032] border border-white/5 rounded-[24px] p-6 focus-within:border-white/10 transition-all shadow-2xl space-y-4">
               
@@ -277,6 +283,7 @@ export default function AdminNewsPage() {
               {postMutation.isPending ? 'Publishing...' : isPost ? 'Publish Post' : 'Post News'}
             </button>
           </div>
+          )}
           </>}
 
           {/* Feed Section */}
@@ -330,7 +337,7 @@ export default function AdminNewsPage() {
                           <CheckCircle2 size={14} className="text-[#FF8904] fill-[#FF8904]/10" />
                         </span>
                         <span className="ml-auto px-2.5 py-0.5 rounded-full border border-white/10 text-[10px] font-chakra font-black uppercase tracking-wider text-white/60">
-                          {item.type === 'post' ? 'Post' : 'News'}
+                          {item.type === 'post' ? 'Post' : item.type === 'poll' ? 'Poll' : 'News'}
                         </span>
                       </div>
 

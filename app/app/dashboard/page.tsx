@@ -11,6 +11,7 @@ import { getGlobalFeed, type FeedItem, type FeedPage } from '@/lib/services/feed
 import { nameOf } from '@/lib/displayName'
 import { NewsCard } from '@/components/home/NewsCard'
 import { PostCard } from '@/components/home/PostCard'
+import { PollCard } from '@/components/home/PollCard'
 import { LiveNowCard } from '@/components/home/LiveNowCard'
 import { toNewsCardProps } from '@/lib/newsCardProps'
 import { useInfiniteQuery } from '@tanstack/react-query'
@@ -43,7 +44,7 @@ export default function DashboardPage() {
     staleTime: 30_000,
   })
   const timeline = useMemo(() => {
-    const all = uniqueById((feedQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'news' || i.type === 'post' || i.type === 'repost'))
+    const all = uniqueById((feedQ.data?.pages ?? []).flatMap(itemsOf).filter((i) => i.type === 'news' || i.type === 'post' || i.type === 'repost' || i.type === 'poll'))
     const isTop = (i: FeedItem) => i.authorType === 'system' || !!i.isPinned
     const byNewest = (x: FeedItem, y: FeedItem) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime()
     return [...all.filter(isTop).sort(byNewest), ...all.filter((i) => !isTop(i)).sort(byNewest)]
@@ -128,7 +129,9 @@ export default function DashboardPage() {
             ) : timeline.length > 0 ? (
               <div className="space-y-4">
                 {timeline.map((item) =>
-                  item.type === 'news' ? (
+                  item.type === 'poll' ? (
+                    <PollCard key={item._id} item={item} />
+                  ) : item.type === 'news' ? (
                     <NewsCard key={item._id} {...toNewsCardProps(item)} size="large" onClick={() => router.push(`/app/news/${item._id}?returnTo=/app/dashboard`)} />
                   ) : (
                     <PostCard key={item._id} item={item} onOpen={() => router.push(`/app/news/${item.type === 'repost' && item.parentFeedId ? item.parentFeedId._id : item._id}?returnTo=/app/dashboard`)} />
