@@ -15,6 +15,7 @@ export type TrackedAction =
   | 'match_viewed'
   | 'comment_posted'
   | 'reaction_given'
+  | 'poll_voted'
   | 'repost_made'
   | 'post_shared'
   | 'app_installed'

@@ -20,7 +20,7 @@ export interface PopulatedAuthor {
 
 export interface FeedItem {
   _id: string
-  type: 'news' | 'post' | 'repost' | 'match_event'
+  type: 'news' | 'post' | 'repost' | 'match_event' | 'poll'
   authorType: 'org' | 'team' | 'user' | 'system'
   authorRef?: 'Org' | 'Team' | 'User' | null
   /** Display name for system posts where authorId is absent (e.g. "GAFFER") */
@@ -41,6 +41,16 @@ export interface FeedItem {
   isLiked?: boolean
   /** True when the signed-in viewer has already reposted this item */
   isReposted?: boolean
+  /** Polls: the question is body. Results are left out until the viewer has voted or the poll has closed. */
+  poll?: {
+    kind?: 'standard' | 'motm'
+    endsAt?: string | null
+    closed?: boolean
+    totalVotes?: number
+    options: { _id: string; text: string; votes?: number }[]
+  }
+  /** Polls: the option the viewer voted for */
+  myVote?: string | null
   parentFeedId?: FeedItem | null
   /** True on auto-generated welcome posts created by the backend */
   isDefault?: boolean
@@ -128,6 +138,28 @@ export async function deletePost(id: string): Promise<void> {
 // PATCH /feed/:id/pin — pin an item to the top of the feeds, or unpin it
 export async function setPinned(id: string, isPinned: boolean): Promise<void> {
   await api.patch<unknown>(`/feed/${id}/pin`, { isPinned })
+}
+
+// POST /feed/polls — publish a poll as an organisation
+export async function publishPoll(payload: {
+  orgId: string
+  question: string
+  options: string[]
+  endsAt?: string
+  motm?: boolean
+  fixtureId?: string
+}): Promise<FeedItem> {
+  const raw = await api.post<unknown>('/feed/polls', payload)
+  const r = raw as any
+  return r?.item ?? r
+}
+
+// POST /feed/:id/vote — one vote per person
+export async function votePoll(id: string, optionId: string): Promise<FeedItem> {
+  const raw = await api.post<unknown>(`/feed/${id}/vote`, { optionId })
+  track('poll_voted')
+  const r = raw as any
+  return r?.item ?? r
 }
 
 // POST /feed/:postId/like — like a post
