@@ -15,6 +15,7 @@ import { BottomNavbar } from '@/components/BottomNavbar'
 import { CompleteAccountPrompt } from '@/components/CompleteAccountPrompt'
 import { PushPrompt } from '@/components/notifications/PushPrompt'
 import { adjacentTab, startsInsideSideScroller, swipeDirection } from '@/lib/tabSwipe'
+import { pendingCoachToken } from '@/lib/services/coach.service'
 
 // Exact paths that mean the user has intentionally left the competition context.
 // Note: '/app/league/:id' is the league home and must NOT clear the context.
@@ -32,6 +33,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // not only pages that happen to render the NotificationBell
   useNotificationSocket()
   const { activeCompetitionId, clearActiveCompetition } = useUIStore()
+
+  // A coach invite opened before signing in is finished now that they are in
+  useEffect(() => {
+    if (!isReady) return
+    const pending = pendingCoachToken.get()
+    if (pending && !pathname.startsWith('/app/coach/join')) router.replace(`/app/coach/join/${pending}`)
+  }, [isReady, pathname, router])
 
   // Clear competition context when the user explicitly navigates away
   useEffect(() => {

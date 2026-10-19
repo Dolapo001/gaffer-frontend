@@ -10,6 +10,7 @@ import { useQuery, useMutation } from '@tanstack/react-query'
 import { listOrgs, deleteOrg } from '@/lib/services/org.service'
 import { updateProfile } from '@/lib/services/user.service'
 import { ConfirmDialog } from '../ConfirmDialog'
+import { getMyCoachTeams } from '@/lib/services/coach.service'
 
 // --- Custom Inline SVGs ---
 const CloseIcon = ({ className = "" }: { className?: string }) => (
@@ -61,6 +62,8 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
   const org = orgs?.[0]
+  const { data: coachTeams } = useQuery({ queryKey: ['coach-teams'], queryFn: getMyCoachTeams, enabled: !!user, staleTime: 60_000, meta: { suppressGlobalError: true } })
+  const isCoach = (coachTeams ?? []).length > 0
   // Only people who run an organisation switch between accounts. Everyone else is just a player.
   const isOrganiser = !!(org || user?.isOrgActive || currentRole === 'organization')
 
@@ -195,6 +198,15 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
           <HomeIcon className="text-white/40 group-hover:text-[#ff6b00] transition-colors" />
           <span className="font-black text-sm text-white/70 group-hover:text-white uppercase tracking-wider">Dashboard</span>
         </button>
+        {isCoach && currentRole === 'personal' && (
+          <button
+            onClick={() => { router.push('/app/coach'); onClose(); }}
+            className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-[#ff6b00]/15 border border-[#ff6b00]/40 hover:bg-[#ff6b00]/25 group transition-all"
+          >
+            <UserIcon className="text-[#ff6b00]" />
+            <span className="font-black text-sm text-white uppercase tracking-wider">Coach mode</span>
+          </button>
+        )}
         <button
           onClick={() => { router.push(currentRole === 'personal' ? '/app/profile' : '/admin/profile'); onClose(); }}
           className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-[#1E2032]/50 border border-white/5 hover:border-[#ff6b00]/30 hover:bg-[#ff6b00]/10 group transition-all"
