@@ -10,6 +10,8 @@ import { useUIStore } from '@/store/uiStore'
 import { Competition, removeCompetitionTeam } from '@/lib/services/competition.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
+import { createCoachInvite } from '@/lib/services/coach.service'
+import { getErrorMessage } from '@/lib/api'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -300,6 +302,21 @@ export function OrganiseDetails({
                 className="text-[10px] font-bold text-gaffer-orange pr-1 hover:opacity-80 transition-opacity uppercase tracking-widest"
               >
                 Copy Link
+              </button>
+              <button
+                onClick={async () => {
+                  if (!selectedTeam) return
+                  try {
+                    const r = await createCoachInvite(selectedTeam.id)
+                    await navigator.clipboard.writeText(r.link)
+                    toast.addToast(`Coach invite for ${r.teamName} copied. Send it to the coach. It works once and lasts 14 days.`, 'success')
+                  } catch (e) {
+                    toast.addToast(getErrorMessage(e), 'error')
+                  }
+                }}
+                className="text-[10px] font-bold text-white/70 pr-1 hover:opacity-80 transition-opacity uppercase tracking-widest"
+              >
+                Invite Coach
               </button>
             </div>
 
