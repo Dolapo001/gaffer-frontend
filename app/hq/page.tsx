@@ -44,7 +44,8 @@ export default function HqOverviewPage() {
   if (isLoading) return <p className="text-gaffer-muted font-body">Loading numbers…</p>
   if (error || !data) return <p role="alert" className="text-red-400 font-body">Could not load the numbers.</p>
 
-  const { users, organisations, leagues } = data
+  const { users, organisations, leagues, squad } = data
+  const joins = leagues.leagueJoins ?? leagues.playersJoined
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -62,7 +63,7 @@ export default function HqOverviewPage() {
       <section aria-labelledby="users-h" className="space-y-3">
         <h2 id="users-h" className="font-display font-bold text-xl">Users</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <Stat label="Total users" value={users.total} />
+          <Stat label="Total users" value={users.total} hint="Accounts that have signed up" />
           <Stat label="Joined today" value={users.today} />
           <Stat label="Last 7 days" value={users.last7Days} />
           <Stat label="Last 30 days" value={users.last30Days} />
@@ -77,9 +78,19 @@ export default function HqOverviewPage() {
         <h2 id="leagues-h" className="font-display font-bold text-xl">Leagues</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat label="Leagues" value={leagues.total} />
-          <Stat label="Players joined" value={leagues.playersJoined} hint="Total joins across leagues" />
-          <Stat label="Fantasy teams" value={leagues.fantasyTeams} />
           <Stat label="Live now" value={leagues.byStatus.live ?? 0} />
+          <Stat label="Fantasy teams" value={leagues.fantasyTeams} />
+        </div>
+      </section>
+
+      <section aria-labelledby="people-h" className="space-y-3">
+        <h2 id="people-h" className="font-display font-bold text-xl">Who is playing</h2>
+        <p className="text-sm text-gaffer-muted font-body">These are different counts of different things, so they do not match.</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {leagues.peopleInLeagues != null && <Stat label="People in a league" value={leagues.peopleInLeagues} hint="Accounts that joined at least one league" />}
+          <Stat label="League joins" value={joins} hint="One person in three leagues counts three times" />
+          {squad && <Stat label="Squad players" value={squad.players} hint="Players on team squads, with or without an account" />}
+          {squad && <Stat label="Squad players with an account" value={squad.withAccount} hint={`${squad.withoutAccount} are on squads without an account (added by an organiser or a recruitment link)`} />}
         </div>
       </section>
 

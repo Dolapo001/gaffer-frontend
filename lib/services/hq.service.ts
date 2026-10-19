@@ -6,7 +6,8 @@ export type LifecycleStatus = 'active' | 'inactive' | 'suspended' | 'deleted'
 export interface HqStats {
   users: { total: number; today: number; last7Days: number; last30Days: number; organisationOwners: number }
   organisations: { pending: number; approved: number; rejected: number; draft: number; suspended: number; deleted: number }
-  leagues: { total: number; byStatus: Record<string, number>; playersJoined: number; fantasyTeams: number }
+  leagues: { total: number; byStatus: Record<string, number>; playersJoined: number; leagueJoins?: number; peopleInLeagues?: number; fantasyTeams: number }
+  squad?: { players: number; withAccount: number; withoutAccount: number }
   signupsByDay: { date: string; signups: number }[]
 }
 
