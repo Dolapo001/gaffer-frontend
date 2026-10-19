@@ -1,4 +1,5 @@
 import { asArray } from '@/lib/asArray'
+import { track } from '@/lib/analytics'
 import { api, ApiError } from '@/lib/api'
 import type { SquadRules } from '@/lib/squadRules'
 import type { JerseyPattern } from '@/components/jersey/jerseyUtils'
@@ -355,7 +356,9 @@ export async function createFantasyTeam(
   competitionId: string,
   teamName: string,
 ): Promise<FantasyTeam> {
-  return api.post<FantasyTeam>(`/fantasy/${competitionId}/team`, { teamName })
+  const team = await api.post<FantasyTeam>(`/fantasy/${competitionId}/team`, { teamName })
+  track('fantasy_team_created')
+  return team
 }
 
 // GET /fantasy/:competitionId/team/me
@@ -413,7 +416,9 @@ export async function setSquad(
     viceCaptainId: string
   },
 ): Promise<FantasyTeam> {
-  return api.put<FantasyTeam>(`/fantasy/${competitionId}/team/squad`, payload)
+  const team = await api.put<FantasyTeam>(`/fantasy/${competitionId}/team/squad`, payload)
+  if (payload.captainId) track('captain_set')
+  return team
 }
 
 // POST /fantasy/:competitionId/team/transfers
@@ -429,7 +434,15 @@ export async function makeTransfer(
   coinCost?: number
   walletBalance?: number
 }> {
-  return api.post(`/fantasy/${competitionId}/team/transfers`, { playerInId, playerOutId })
+  const res = await api.post<{
+    message: string
+    cost: number
+    type: string
+    coinCost?: number
+    walletBalance?: number
+  }>(`/fantasy/${competitionId}/team/transfers`, { playerInId, playerOutId })
+  track('transfer_made')
+  return res
 }
 
 // POST /fantasy/:competitionId/team/chips

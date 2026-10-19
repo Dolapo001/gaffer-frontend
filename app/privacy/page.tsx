@@ -54,6 +54,7 @@ export default function PrivacyPage() {
       <section>
         <h2>Cookies and storage</h2>
         <p>We use a small number of cookies and browser storage to keep you signed in, remember whether you are using a player or organiser account, and remember settings on your device. We do not use advertising cookies.</p>
+        <p>We also count visits and what people do in the app, such as which pages are opened and which buttons are tapped, so we can see what works and what does not. This uses a random number stored on your own device. It is not linked to your name or phone number, no IP address is stored, and it is not shared with advertisers or anyone else. If you are signed in, the count is linked to your account so we can see what new players do first. We keep the detailed records for 13 months and the daily totals after that.</p>
       </section>
 
       <section>

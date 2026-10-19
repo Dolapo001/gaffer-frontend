@@ -3,6 +3,19 @@ import { api } from '@/lib/api'
 export type VerificationStatus = 'draft' | 'pending' | 'approved' | 'rejected'
 export type LifecycleStatus = 'active' | 'inactive' | 'suspended' | 'deleted'
 
+export interface HqTraffic {
+  days: number
+  today: { visitors: number; newVisitors: number; sessions: number; pageviews: number }
+  uniqueVisitors: number
+  pageviews: number
+  daily: { day: string; visitors: number; newVisitors: number; pageviews: number; sessions: number }[]
+  topPages: { path: string; views: number }[]
+  sources: { source: string; visitors: number }[]
+  devices: Record<string, number>
+  actions: { name: string; count: number; visitors: number }[]
+  funnel: { key: string; label: string; visitors: number; percentOfFirst: number }[]
+}
+
 export interface HqStats {
   users: { total: number; today: number; last7Days: number; last30Days: number; organisationOwners: number }
   organisations: { pending: number; approved: number; rejected: number; draft: number; suspended: number; deleted: number }
@@ -229,6 +242,7 @@ function qs(params: Record<string, string | number | undefined>) {
 export const hqService = {
   me: () => api.get<{ admin: { userId: string; email: string } }>('/platform/me'),
   stats: () => api.get<HqStats>('/platform/stats'),
+  traffic: (days = 30) => api.get<HqTraffic>(`/platform/traffic?days=${days}`),
 
   listOrgs: (f: { verificationStatus?: VerificationStatus; lifecycleStatus?: LifecycleStatus; q?: string; page?: number }) =>
     api.get<HqOrgList>(`/platform/orgs${qs(f)}`),

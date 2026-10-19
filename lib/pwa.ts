@@ -1,3 +1,4 @@
+import { track } from '@/lib/analytics'
 /**
  * PWA Utilities for GAFFER
  * Detects standalone mode and manages install prompts
@@ -67,6 +68,7 @@ export const triggerInstallPrompt = async (): Promise<boolean> => {
   await prompt.prompt()
   const { outcome } = await prompt.userChoice
   clearDeferredPrompt()
+  if (outcome === 'accepted') track('app_installed')
   return outcome === 'accepted'
 }
 

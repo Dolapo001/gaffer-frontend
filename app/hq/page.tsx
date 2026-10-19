@@ -40,6 +40,7 @@ function SignupChart({ data }: { data: { date: string; signups: number }[] }) {
 
 export default function HqOverviewPage() {
   const { data, isLoading, error } = useQuery({ queryKey: ['hq', 'stats'], queryFn: hqService.stats, refetchInterval: 60_000 })
+  const { data: traffic } = useQuery({ queryKey: ['hq', 'traffic', 7], queryFn: () => hqService.traffic(7), refetchInterval: 60_000 })
 
   if (isLoading) return <p className="text-gaffer-muted font-body">Loading numbers…</p>
   if (error || !data) return <p role="alert" className="text-red-400 font-body">Could not load the numbers.</p>
@@ -58,6 +59,18 @@ export default function HqOverviewPage() {
           <b>{organisations.pending}</b> {organisations.pending === 1 ? 'organisation is' : 'organisations are'} waiting for your approval. Review them.
         </Link>
       )}
+
+      <section aria-labelledby="visitors-h" className="space-y-3">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 id="visitors-h" className="font-display font-bold text-xl">Visitors</h2>
+          <Link href="/hq/traffic" className="text-sm font-body text-gaffer-orange">See traffic and what people do</Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <Stat label="Visitors today" value={traffic?.today?.visitors ?? 0} hint={`${traffic?.today?.newVisitors ?? 0} new`} />
+          <Stat label="Visitors, 7 days" value={traffic?.uniqueVisitors ?? 0} hint="Different people, landing page included" />
+          <Stat label="Page views, 7 days" value={traffic?.pageviews ?? 0} />
+        </div>
+      </section>
 
       <section aria-labelledby="users-h" className="space-y-3">
         <h2 id="users-h" className="font-display font-bold text-xl">Users</h2>

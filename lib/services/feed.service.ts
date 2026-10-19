@@ -1,4 +1,5 @@
 import { api } from '@/lib/api'
+import { track } from '@/lib/analytics'
 
 export interface MediaItem {
   url: string
@@ -127,6 +128,7 @@ export async function deletePost(id: string): Promise<void> {
 // POST /feed/:postId/like — like a post
 export async function likeFeedItem(id: string): Promise<{ message: string }> {
   const data = await api.post<{ message: string }>(`/feed/${id}/like`)
+  track('reaction_given')
   return data
 }
 
@@ -157,6 +159,7 @@ export async function getReplies(id: string, commentId: string, page: number = 1
 // POST /feed/:postId/comments — add a comment, or a reply when parentCommentId is given
 export async function addComment(id: string, body: string, parentCommentId?: string): Promise<FeedComment> {
   const raw = await api.post<unknown>(`/feed/${id}/comments`, { body, parentCommentId })
+  track('comment_posted')
   const r = raw as any
   return r?.comment ?? r
 }
@@ -255,6 +258,7 @@ export async function publishPost(payload: {
 // POST /feed/:id/repost
 export async function repost(id: string, body?: string): Promise<FeedItem> {
   const raw = await api.post<unknown>(`/feed/${id}/repost`, { body })
+  track('repost_made')
   const r = raw as any
   return r?.item ?? r
 }

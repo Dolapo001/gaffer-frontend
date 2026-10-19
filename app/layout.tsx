@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import { Chakra_Petch } from 'next/font/google'
 import { PWAProvider } from '@/components/PWAProvider'
+import { AnalyticsProvider } from '@/components/AnalyticsProvider'
 import { AuthProvider } from '@/components/AuthProvider'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { ToastContainer } from '@/components/ToastContainer'
@@ -85,6 +86,7 @@ export default function RootLayout({
         <GoogleAuthProvider>
         <QueryProvider>
           <PWAProvider>
+            <AnalyticsProvider />
             <AuthProvider>
               <BrowserProtection>
                 <ErrorBoundary>

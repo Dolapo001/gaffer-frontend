@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useEffect } from 'react'
+import { track } from '@/lib/analytics'
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -92,6 +93,7 @@ export function usePushNotifications() {
       await register(subscription)
 
       setIsSubscribed(true)
+      track('notifications_enabled')
       toast.addToast('Notifications enabled!', 'success')
       return true
     } catch (err) {
