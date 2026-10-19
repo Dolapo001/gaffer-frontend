@@ -4,7 +4,9 @@ import Link from 'next/link'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCompetition, updateCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
-import { listFixtures, updateFixture, deleteFixture, penaltiesSuffix, type Decider, type Fixture } from '@/lib/services/fixture.service'
+import { listFixtures, updateFixture, deleteFixture, createFixture, penaltiesSuffix, type Decider, type Fixture } from '@/lib/services/fixture.service'
+import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
+import { KnockoutBuilderCard } from '@/components/admin/KnockoutBuilderCard'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/services/team.service'
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
@@ -189,14 +191,114 @@ function Teams({ id }: { id: string }) {
   )
 }
 
+const TABS = [
+  { key: 'overview', label: 'Overview' },
+  { key: 'fixtures', label: 'Fixtures and schedule' },
+  { key: 'teams', label: 'Teams and players' },
+  { key: 'fantasy', label: 'Fantasy and rules' },
+] as const
+type TabKey = (typeof TABS)[number]['key']
+
+/** Schedule one match: pick the two teams, the time and the place. */
+function AddMatch({ id }: { id: string }) {
+  const qc = useQueryClient()
+  const { data: teams } = useQuery({ queryKey: ['hq', 'teams', id], queryFn: () => listCompetitionTeams(id) })
+  const [home, setHome] = useState('')
+  const [away, setAway] = useState('')
+  const [kickoff, setKickoff] = useState('')
+  const [venue, setVenue] = useState('')
+  const [stage, setStage] = useState<'league' | 'groups' | 'knockout'>('league')
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const add = useMutation({
+    mutationFn: () => createFixture(id, { homeTeamId: home, awayTeamId: away, kickoffAt: new Date(kickoff).toISOString(), stageType: stage, venue: venue || undefined }),
+    onSuccess: () => { setMsg({ ok: true, text: 'Match scheduled.' }); setHome(''); setAway(''); setKickoff(''); setVenue(''); qc.invalidateQueries({ queryKey: ['hq', 'fixtures', id] }) },
+    onError: (e) => setMsg({ ok: false, text: errorText(e) }),
+  })
+  const ok = !!home && !!away && home !== away && !!kickoff
+  return (
+    <section className="rounded-2xl bg-gaffer-card border border-gaffer-border p-4 space-y-3">
+      <h2 className="font-display font-bold text-xl">Schedule a match</h2>
+      <div className="grid md:grid-cols-5 gap-2">
+        <select aria-label="Home team" className={input} value={home} onChange={(e) => setHome(e.target.value)}>
+          <option value="">Home team</option>{(teams ?? []).map((t) => <option key={t.teamId} value={t.teamId}>{t.name}</option>)}
+        </select>
+        <select aria-label="Away team" className={input} value={away} onChange={(e) => setAway(e.target.value)}>
+          <option value="">Away team</option>{(teams ?? []).map((t) => <option key={t.teamId} value={t.teamId}>{t.name}</option>)}
+        </select>
+        <input type="datetime-local" aria-label="Kick-off" className={input} value={kickoff} onChange={(e) => setKickoff(e.target.value)} />
+        <input aria-label="Venue" className={input} placeholder="Venue" value={venue} onChange={(e) => setVenue(e.target.value)} />
+        <select aria-label="Stage" className={input} value={stage} onChange={(e) => setStage(e.target.value as typeof stage)}>
+          <option value="league">League</option><option value="groups">Groups</option><option value="knockout">Knockout</option>
+        </select>
+      </div>
+      <div className="flex items-center gap-3">
+        <ActionButton tone="good" label={add.isPending ? 'Scheduling…' : 'Schedule match'} onClick={() => add.mutate()} disabled={!ok || add.isPending} />
+        <Notice ok={msg?.ok ?? true} text={msg?.text ?? null} />
+      </div>
+    </section>
+  )
+}
+
+function Summary({ id }: { id: string }) {
+  const { data: fixtures } = useQuery({ queryKey: ['hq', 'fixtures', id], queryFn: () => listFixtures(id) })
+  const { data: teams } = useQuery({ queryKey: ['hq', 'teams', id], queryFn: () => listCompetitionTeams(id) })
+  const by = (s: string) => (fixtures ?? []).filter((f) => f.status === s).length
+  const tile = (label: string, value: number | string) => (
+    <div className="rounded-2xl bg-gaffer-card border border-gaffer-border p-4"><p className="text-xs uppercase tracking-wider text-gaffer-muted font-body">{label}</p><p className="font-chakra font-bold text-3xl text-white mt-1">{value}</p></div>
+  )
+  return (
+    <section aria-label="Summary" className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      {tile('Teams', teams?.length ?? 0)}
+      {tile('Matches', fixtures?.length ?? 0)}
+      {tile('Live now', by('live') + by('halftime'))}
+      {tile('Coming up', by('scheduled'))}
+      {tile('Played', by('completed'))}
+    </section>
+  )
+}
+
 export default function HqTournamentPage({ params }: { params: { id: string } }) {
+  const [tab, setTab] = useState<TabKey>('overview')
   return (
     <div className="space-y-6 max-w-5xl">
       <Link href="/hq/tournaments" className="text-sm font-body text-gaffer-muted hover:text-white">← All tournaments</Link>
       <p className="text-sm font-body text-gaffer-muted">You are managing this tournament as Gaffer HQ. Changes show up for everyone straight away and are recorded in the audit log.</p>
-      <Details id={params.id} />
-      <Fixtures id={params.id} />
-      <Teams id={params.id} />
+
+      <div role="tablist" aria-label="Tournament" className="flex gap-1 overflow-x-auto border-b border-gaffer-border">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
+            onClick={() => setTab(t.key)}
+            className={`px-4 h-11 shrink-0 font-body font-semibold text-sm border-b-2 -mb-px transition-colors ${tab === t.key ? 'border-gaffer-orange text-white' : 'border-transparent text-gaffer-muted hover:text-white'}`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && (<><Summary id={params.id} /><Details id={params.id} /></>)}
+      {tab === 'fixtures' && (
+        <>
+          <AddMatch id={params.id} />
+          <TournamentBuilder id={params.id} />
+          <Fixtures id={params.id} />
+        </>
+      )}
+      {tab === 'teams' && <Teams id={params.id} />}
+      {tab === 'fantasy' && (
+        <div className="space-y-2">
+          <p className="text-sm font-body text-gaffer-muted">Prices, how many players you can pick from one team in each round, scoring and transfers. Set the rules for each round here, for example 3 players per team up to the semi-finals and 5 after.</p>
+          <FantasyAdminPanel competitionId={params.id} />
+        </div>
+      )}
     </div>
   )
+}
+
+function TournamentBuilder({ id }: { id: string }) {
+  const { data: teams } = useQuery({ queryKey: ['hq', 'teams', id], queryFn: () => listCompetitionTeams(id) })
+  const { data: fixtures } = useQuery({ queryKey: ['hq', 'fixtures', id], queryFn: () => listFixtures(id) })
+  return <KnockoutBuilderCard competitionId={id} teamCount={teams?.length ?? 0} hasRounds={(fixtures ?? []).length > 0} />
 }
