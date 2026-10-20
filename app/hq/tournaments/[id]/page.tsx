@@ -10,6 +10,7 @@ import { KnockoutBuilderCard } from '@/components/admin/KnockoutBuilderCard'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/services/team.service'
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
+import { hqService } from '@/lib/services/hq.service'
 
 const input = 'rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white text-sm w-full'
 const toLocalInput = (iso?: string) => (iso ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '')
@@ -239,6 +240,34 @@ function AddMatch({ id }: { id: string }) {
   )
 }
 
+/** Switch the end-of-tournament Fantasy recap on: every manager sees it once, as a pop-up, the next time they open the app. */
+function RecapSwitch({ id }: { id: string }) {
+  const qc = useQueryClient()
+  const { data: comp } = useQuery({ queryKey: ['hq', 'comp', id], queryFn: () => getCompetition(id) })
+  const enabled = !!(comp as any)?.fantasyRecap?.enabled
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const toggle = useMutation({
+    mutationFn: () => hqService.setRecap(id, !enabled),
+    onSuccess: (r) => { setMsg({ ok: true, text: r.enabled ? `On. ${r.managers} managers will see their recap when they next open the app.` : 'Off.' }); qc.invalidateQueries({ queryKey: ['hq', 'comp', id] }) },
+    onError: (e) => setMsg({ ok: false, text: errorText(e) }),
+  })
+  return (
+    <section className="rounded-2xl bg-gaffer-card border border-gaffer-border p-4 space-y-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="font-display font-bold text-xl">Fantasy recap</h2>
+          <p className="text-sm text-gaffer-muted font-body mt-1">When the tournament is over, show every Fantasy manager a recap of their tournament. It pops up once, the next time they open the app.</p>
+        </div>
+        <Pill label={enabled ? 'On' : 'Off'} tone={enabled ? 'good' : 'neutral'} />
+      </div>
+      <div className="flex items-center gap-3">
+        <ActionButton tone={enabled ? 'bad' : 'good'} label={toggle.isPending ? 'Saving…' : enabled ? 'Turn off' : 'Show recap to managers'} onClick={() => { if (enabled || window.confirm('Show the Fantasy recap to every manager in this tournament?')) toggle.mutate() }} disabled={toggle.isPending} />
+        <Notice ok={msg?.ok ?? true} text={msg?.text ?? null} />
+      </div>
+    </section>
+  )
+}
+
 function Summary({ id }: { id: string }) {
   const { data: fixtures } = useQuery({ queryKey: ['hq', 'fixtures', id], queryFn: () => listFixtures(id) })
   const { data: teams } = useQuery({ queryKey: ['hq', 'teams', id], queryFn: () => listCompetitionTeams(id) })
@@ -278,7 +307,7 @@ export default function HqTournamentPage({ params }: { params: { id: string } })
         ))}
       </div>
 
-      {tab === 'overview' && (<><Summary id={params.id} /><Details id={params.id} /></>)}
+      {tab === 'overview' && (<><Summary id={params.id} /><Details id={params.id} /><RecapSwitch id={params.id} /></>)}
       {tab === 'fixtures' && (
         <>
           <AddMatch id={params.id} />

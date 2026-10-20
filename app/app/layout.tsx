@@ -16,6 +16,7 @@ import { CompleteAccountPrompt } from '@/components/CompleteAccountPrompt'
 import { PushPrompt } from '@/components/notifications/PushPrompt'
 import { adjacentTab, startsInsideSideScroller, swipeDirection } from '@/lib/tabSwipe'
 import { pendingCoachToken } from '@/lib/services/coach.service'
+import { FantasyRecapPopup } from '@/components/recap/FantasyRecapPopup'
 
 // Exact paths that mean the user has intentionally left the competition context.
 // Note: '/app/league/:id' is the league home and must NOT clear the context.
@@ -107,6 +108,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
         <PushPrompt />
         <CompleteAccountPrompt />
+      <FantasyRecapPopup />
       <BottomNavbar items={navItems} id="global-nav-bar" />
       </div>
   )
