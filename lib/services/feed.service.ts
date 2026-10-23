@@ -41,6 +41,8 @@ export interface FeedItem {
   isLiked?: boolean
   /** True when the signed-in viewer has already reposted this item */
   isReposted?: boolean
+  /** On a repost card: the people you follow who reposted it (several plain reposts are one card) */
+  repostedBy?: { id: string; name: string }[]
   /** Polls: the question is body. Results are left out until the viewer has voted or the poll has closed. */
   poll?: {
     kind?: 'standard' | 'motm'
@@ -160,6 +162,12 @@ export async function votePoll(id: string, optionId: string): Promise<FeedItem> 
   track('poll_voted')
   const r = raw as any
   return r?.item ?? r
+}
+
+// GET /feed/:id/reposts — who reposted a post
+export async function getReposters(id: string): Promise<{ userId: string; name: string; avatarUrl: string | null; quote: string | null; at: string }[]> {
+  const d = await api.get<{ reposters: { userId: string; name: string; avatarUrl: string | null; quote: string | null; at: string }[] }>(`/feed/${id}/reposts`)
+  return d.reposters ?? []
 }
 
 // POST /feed/:postId/like — like a post

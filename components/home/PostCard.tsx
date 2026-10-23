@@ -12,6 +12,8 @@ import { nameOf } from '@/lib/displayName'
 import { useFeedStats } from '@/lib/feedStats'
 import { FollowButton } from '@/components/FollowButton'
 import { CommentsSheet } from './CommentsSheet'
+import { RepostersSheet } from './RepostersSheet'
+import { repostedByText } from '@/lib/repostText'
 import { NewsImage } from './NewsImage'
 
 const compact = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(n))
@@ -76,7 +78,7 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
   // Fresh numbers from the server replace whatever we were holding for this post
   useEffect(() => { clearStats(root._id) }, [root._id, root.likesCount, root.repostCount, root.commentsCount, root.commentCount, root.isLiked, root.isReposted, clearStats])
   const refreshFeed = () => qc.invalidateQueries({ queryKey: ['home-feed'] })
-  const [sheet, setSheet] = useState<'comments' | 'repost' | 'quote' | null>(null)
+  const [sheet, setSheet] = useState<'comments' | 'repost' | 'quote' | 'reposters' | null>(null)
   const [quote, setQuote] = useState('')
 
   const like = useMutation({
@@ -115,7 +117,9 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
   return (
     <article className="rounded-3xl bg-[#1E2032] border border-white/5 p-4">
       {isRepost && (
-        <p className="flex items-center gap-1.5 text-xs text-white/50 mb-2 ml-1"><Repeat2 size={14} /> {reposter.name} reposted</p>
+        <button onClick={() => setSheet('reposters')} className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white mb-2 ml-1 text-left">
+          <Repeat2 size={14} /> {repostedByText(item.repostedBy?.map((x) => x.name) ?? [reposter.name])}
+        </button>
       )}
       {isRepost && item.body && <div className="mb-3"><Body text={item.body} /></div>}
 
@@ -155,6 +159,8 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
         </button>
         <button className={action} onClick={share} aria-label="Share"><Share2 size={18} /></button>
       </div>
+
+      {sheet === 'reposters' && <RepostersSheet postId={root._id} onClose={() => setSheet(null)} />}
 
       {sheet === 'comments' && (
         <CommentsSheet postId={root._id} allowComments={root.allowComments !== false} onClose={() => setSheet(null)} onAdded={() => { patch(root._id, { comments: comments + 1 }); refreshFeed() }} />
