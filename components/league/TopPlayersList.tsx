@@ -1,6 +1,7 @@
 'use client';
 
 import { ChevronRight } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 interface TopPlayersListProps {
@@ -16,6 +17,7 @@ interface TopPlayersListProps {
 }
 
 export function TopPlayersList({ title, players, statKey, statLabel, emptyText, onSeeAll, onSelectPlayer, maxDisplay }: TopPlayersListProps) {
+  const router = useRouter();
   const hasData = players && players.length > 0;
 
   const filtered = hasData ? players.filter((p) => (p?.[statKey] || (p as any)?.stats?.[statKey] || 0) > 0) : [];
@@ -98,7 +100,7 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: i * 0.04 }}
-              onClick={() => onSelectPlayer?.(player.id, player.raw)}
+              onClick={() => (onSelectPlayer ? onSelectPlayer(player.id, player.raw) : player.id && router.push(`/app/player/${player.id}`))}
               className="flex items-center py-2.5 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.06] rounded-xl transition-all group cursor-pointer"
             >
               {/* Rank */}

@@ -3,13 +3,14 @@
 import { useEffect, useState } from 'react'
 import { track } from '@/lib/analytics'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { Flame, MessageCircle, Repeat2, Share2, UserPlus, ShieldCheck } from 'lucide-react'
+import { Flame, MessageCircle, Repeat2, Share2, ShieldCheck } from 'lucide-react'
 import { likeFeedItem, unlikeFeedItem, repost, type FeedItem } from '@/lib/services/feed.service'
 import { useToast } from '@/store/toastStore'
 import { ApiError, getErrorMessage, getImageUrl } from '@/lib/api'
 import { timeAgo } from '@/lib/newsCardProps'
 import { nameOf } from '@/lib/displayName'
 import { useFeedStats } from '@/lib/feedStats'
+import { FollowButton } from '@/components/FollowButton'
 import { CommentsSheet } from './CommentsSheet'
 import { NewsImage } from './NewsImage'
 
@@ -77,7 +78,6 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
   const refreshFeed = () => qc.invalidateQueries({ queryKey: ['home-feed'] })
   const [sheet, setSheet] = useState<'comments' | 'repost' | 'quote' | null>(null)
   const [quote, setQuote] = useState('')
-  const [following, setFollowing] = useState(false)
 
   const like = useMutation({
     mutationFn: (next: boolean) => (next ? likeFeedItem(root._id) : unlikeFeedItem(root._id)),
@@ -131,10 +131,8 @@ export function PostCard({ item, onOpen }: { item: FeedItem; onOpen?: () => void
                 </p>
                 <p className="text-xs text-white/40 truncate">{rootAuthor.handle ? `@${rootAuthor.handle} · ` : ''}{timeAgo(root.createdAt)}</p>
               </div>
-              {!isRepost && (
-                <button onClick={() => setFollowing((v) => !v)} className={`flex items-center gap-1 px-3 h-8 rounded-full border text-xs font-semibold shrink-0 ${following ? 'border-orange-500/40 text-orange-300 bg-orange-500/10' : 'border-white/15 text-white/60'}`}>
-                  <UserPlus size={12} /> {following ? 'Following' : 'Follow'}
-                </button>
+              {!isRepost && root.authorId?._id && root.authorType !== 'system' && (
+                <FollowButton type={root.authorType as 'org' | 'team' | 'user'} id={root.authorId._id} />
               )}
             </div>
             <div className="mt-2" onClick={onOpen}>

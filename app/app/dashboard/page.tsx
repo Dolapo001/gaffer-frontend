@@ -4,7 +4,7 @@ import React, { useState, useLayoutEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/store/authStore'
-import { Menu, Newspaper as NewsIcon, User as UserIcon } from 'lucide-react'
+import { Menu, Newspaper as NewsIcon, Search as SearchIcon, User as UserIcon } from 'lucide-react'
 import { NotificationBell } from '@/components/notifications/NotificationBell'
 import { OrganizationSidebar } from '@/components/organization/OrganizationSidebar'
 import { getGlobalFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
@@ -98,6 +98,9 @@ export default function DashboardPage() {
               <span className="text-orange-500 text-sm">💰</span>
               <span className="text-[11px] font-chakra font-black text-white">{walletBalance ?? 0}</span>
             </motion.div>
+            <button onClick={() => router.push('/app/search')} aria-label="Search" className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-white transition-colors">
+              <SearchIcon size={22} />
+            </button>
             <NotificationBell />
             <button
               onClick={() => router.push('/app/profile')}

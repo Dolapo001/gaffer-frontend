@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { ArrowRight } from 'lucide-react'
 import { getImageUrl } from '@/lib/api'
 import { playerFullName } from '@/lib/playerName'
@@ -35,6 +36,7 @@ export function SubstitutesPanel({
   isAdmin?: boolean
   onPick?: (player: LineupPlayer, side: 'home' | 'away') => void
 }) {
+  const router = useRouter()
   const [side, setSide] = useState<'home' | 'away'>('home')
   const team = side === 'home' ? homeTeam : awayTeam
   const bench = team.bench ?? []
@@ -64,8 +66,8 @@ export function SubstitutesPanel({
     const showRating = minute != null
     return (
       <div
-        onClick={() => isAdmin && onPick?.(p, side)}
-        className={`flex items-center gap-3 py-3 border-b border-white/5 last:border-b-0 ${isAdmin ? 'cursor-pointer' : ''}`}
+        onClick={() => (isAdmin ? onPick?.(p, side) : router.push(`/app/player/${p.id}`))}
+        className="flex items-center gap-3 py-3 border-b border-white/5 last:border-b-0 cursor-pointer"
       >
         {p.photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
