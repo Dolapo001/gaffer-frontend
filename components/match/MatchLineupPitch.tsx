@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { PitchView, type PitchPlayerMarker } from './PitchView'
 import { SubstitutesPanel } from './SubstitutesPanel'
 import { calculatePlayerRating, eventsForPlayer, getRatingBadgeStyle } from '@/lib/ratingsEngine'
@@ -171,6 +172,7 @@ export function MatchLineupPitch({
     side: 'home' | 'away'
   } | null>(null)
   const [customInput, setCustomInput] = useState<string>('')
+  const router = useRouter()
 
   // Compute calculated rating per player incorporating match events
   const getPlayerRating = (player: LineupPlayer): number => {
@@ -234,7 +236,7 @@ export function MatchLineupPitch({
       goalsCount: stats.goalsCount,
       assistsCount: stats.assistsCount,
       isMotm: stats.isMotm,
-      onClick: () => setSelectedPlayer({ player, side: 'away' }),
+      onClick: () => (isAdmin ? setSelectedPlayer({ player, side: 'away' }) : router.push(`/app/player/${player.id}`)),
     }
   })
 
@@ -259,7 +261,7 @@ export function MatchLineupPitch({
       goalsCount: stats.goalsCount,
       assistsCount: stats.assistsCount,
       isMotm: stats.isMotm,
-      onClick: () => setSelectedPlayer({ player, side: 'home' }),
+      onClick: () => (isAdmin ? setSelectedPlayer({ player, side: 'home' }) : router.push(`/app/player/${player.id}`)),
     }
   })
 
