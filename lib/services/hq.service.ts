@@ -293,6 +293,7 @@ export const hqService = {
   listTournaments: (f: { q?: string; status?: string; hidden?: string; page?: number }) =>
     api.get<{ tournaments: HqTournament[]; total: number; page: number; pageSize: number }>(`/platform/tournaments${qs(f)}`),
   hideTournament: (id: string, reason?: string) => api.post<{ tournament: HqTournament }>(`/platform/tournaments/${id}/hide`, { reason }),
+  setRecap: (id: string, enabled: boolean) => api.post<{ name: string; enabled: boolean; managers: number }>(`/platform/tournaments/${id}/recap`, { enabled }),
   unhideTournament: (id: string) => api.post<{ tournament: HqTournament }>(`/platform/tournaments/${id}/unhide`),
   deleteTournament: (id: string, confirmName: string) => api.post<{ ok: boolean }>(`/platform/tournaments/${id}/delete`, { confirmName }),
 
