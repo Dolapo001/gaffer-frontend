@@ -172,8 +172,33 @@ export interface HqTournament {
   hiddenReason: string | null
   organisation: { id: string; name: string; handle: string } | null
   playersJoined: number
+  fantasyManagers?: number
   startDate: string | null
   createdAt: string
+}
+
+type Day = { day: string; count: number }
+
+export interface HqTournamentReport {
+  report: {
+    tournament: { id: string; name: string; status: string; startDate: string | null; endDate: string | null; organisation: string | null }
+    joins: { total: number; newAccounts: number; firstDay: Day | null; peakDay: Day | null; perDay: (Day & { cumulative: number })[] }
+    fantasy: {
+      teamsStarted: number; completeTeams: number; completionRate: number; joinedButNoTeam: number; perDay: Day[]
+      transfers: { total: number; managers: number }
+      chips: { total: number; managers: number; byType: Record<string, number> }
+      points: { average: number; median: number; highest: number; lowest: number }
+      rounds: { name: string; teamsScored: number; average: number; highest: number }[]
+      top: { rank: number; manager: string; team: string; points: number }[]
+    }
+    activity: { note: string; perDay: Day[]; peak: Day | null; averagePerDay: number; visitorsPerDay: Day[]; visitorsNote: string }
+    football: {
+      teams: number; groups: { name: string; teams: string[] }[]
+      matches: { total: number; completed: number; live: number; scheduled: number }
+      goals: number; avgGoals: number; draws: number; decidedByPenalties: number; matchDays: Day[]
+    }
+  }
+  summary: string
 }
 
 export interface HqPaymentsSummary {
@@ -243,6 +268,7 @@ function qs(params: Record<string, string | number | undefined>) {
 export const hqService = {
   me: () => api.get<{ admin: { userId: string; email: string } }>('/platform/me'),
   stats: () => api.get<HqStats>('/platform/stats'),
+  tournamentReport: (id: string) => api.get<HqTournamentReport>(`/platform/tournaments/${id}/report`),
   traffic: (days = 30) => api.get<HqTraffic>(`/platform/traffic?days=${days}`),
 
   listOrgs: (f: { verificationStatus?: VerificationStatus; lifecycleStatus?: LifecycleStatus; q?: string; page?: number }) =>

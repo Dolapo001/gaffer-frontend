@@ -55,7 +55,7 @@ export default function HqTournamentsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-display font-bold text-lg truncate">{t.name}</p>
-                    <p className="text-xs text-gaffer-muted font-body">{t.organisation ? `${t.organisation.name} (@${t.organisation.handle})` : 'No organisation'} · {t.playersJoined} {t.playersJoined === 1 ? 'player' : 'players'} joined</p>
+                    <p className="text-xs text-gaffer-muted font-body">{t.organisation ? `${t.organisation.name} (@${t.organisation.handle})` : 'No organisation'} · {t.playersJoined} {t.playersJoined === 1 ? 'player' : 'players'} joined{t.fantasyManagers != null ? ` · ${t.fantasyManagers} Fantasy ${t.fantasyManagers === 1 ? 'team' : 'teams'}` : ''}</p>
                     {t.hidden && t.hiddenReason && <p className="text-xs text-gaffer-muted font-body">Hidden: {t.hiddenReason}</p>}
                   </div>
                   <div className="flex gap-2"><Pill label={t.status} tone="neutral" />{t.hidden && <Pill label="Hidden" tone="bad" />}</div>
