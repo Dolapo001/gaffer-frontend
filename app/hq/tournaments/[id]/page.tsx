@@ -11,6 +11,7 @@ import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/services/team.service'
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
 import { hqService } from '@/lib/services/hq.service'
+import { TournamentReport } from '@/components/hq/TournamentReport'
 
 const input = 'rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white text-sm w-full'
 const toLocalInput = (iso?: string) => (iso ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '')
@@ -307,7 +308,7 @@ export default function HqTournamentPage({ params }: { params: { id: string } })
         ))}
       </div>
 
-      {tab === 'overview' && (<><Summary id={params.id} /><Details id={params.id} /><RecapSwitch id={params.id} /></>)}
+      {tab === 'overview' && (<><Summary id={params.id} /><TournamentReport id={params.id} /><Details id={params.id} /><RecapSwitch id={params.id} /></>)}
       {tab === 'fixtures' && (
         <>
           <AddMatch id={params.id} />
