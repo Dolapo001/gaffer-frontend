@@ -23,8 +23,13 @@ export const metadata: Metadata = {
   title: { default: `${SITE_NAME}: ${SITE_TAGLINE}`, template: `%s` },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
-  alternates: { canonical: '/' },
+  authors: [{ name: SITE_NAME }],
+  category: 'Sports',
   manifest: '/manifest.json',
+  icons: {
+    icon: '/icons/icon-192x192.png',
+    apple: '/icons/icon-180x180.png',
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
@@ -40,13 +45,13 @@ export const metadata: Metadata = {
     url: SITE_URL,
     siteName: SITE_NAME,
     locale: 'en_NG',
-    images: [{ url: '/og-gaffer.png', width: 1200, height: 630, alt: `${SITE_NAME}: ${SITE_TAGLINE}` }],
+    images: [{ url: '/og-gaffer.webp', width: 1200, height: 630, alt: `${SITE_NAME}: ${SITE_TAGLINE}` }],
   },
   twitter: {
     card: 'summary_large_image',
     title: `${SITE_NAME}: ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
-    images: ['/og-gaffer.png'],
+    images: ['/og-gaffer.webp'],
   },
 }
 
@@ -64,9 +69,32 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        name: SITE_NAME,
+        alternateName: ['The Gaffer', 'Gaffer Football'],
+        url: SITE_URL,
+        logo: `${SITE_URL}/og-gaffer.webp`,
+      },
+      { '@type': 'WebSite', name: SITE_NAME, alternateName: 'The Gaffer', url: SITE_URL },
+      {
+        '@type': 'SoftwareApplication',
+        name: SITE_NAME,
+        applicationCategory: 'SportsApplication',
+        operatingSystem: 'Web',
+        description: SITE_DESCRIPTION,
+        url: SITE_URL,
+      },
+    ],
+  }
+
   return (
     <html lang="en" className={chakraPetch.variable}>
       <head>
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }} />
         {/* Barlow & Poppins still loaded via Google Fonts link for font-display / font-body overrides */}
         {/* eslint-disable-next-line @next/next/no-page-custom-font */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

@@ -11,9 +11,10 @@
 import { OrgOnboardingClient } from './OnboardingClient'
 
 interface PageProps {
-  searchParams: { token?: string }
+  searchParams: Promise<{ token?: string }>
 }
 
-export default function OrgOnboardingPage({ searchParams }: PageProps) {
-  return <OrgOnboardingClient token={searchParams.token ?? ''} />
+export default async function OrgOnboardingPage({ searchParams }: PageProps) {
+  const { token } = await searchParams
+  return <OrgOnboardingClient token={token ?? ''} />
 }

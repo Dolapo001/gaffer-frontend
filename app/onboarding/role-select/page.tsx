@@ -37,7 +37,7 @@ export default function RoleSelectPage() {
       {/* Background with explicit color and image */}
       <div className="absolute inset-0">
         <img
-          src="/images/hero-bg.jpg"
+          src="/images/hero-bg.webp"
           alt="hero bg"
           className="absolute inset-0 w-full h-full object-cover opacity-80"
         />
@@ -81,7 +81,7 @@ export default function RoleSelectPage() {
             title="Personal"
             description="Manage your personal Spoting activities"
             icon={null} // We'll use the image in circular container now
-            imageSrc="/images/hero-bg.jpg"
+            imageSrc="/images/hero-bg.webp"
             selected={selectedRole === 'personal'}
             onSelect={() => setSelectedRole('personal')}
           />
@@ -89,7 +89,7 @@ export default function RoleSelectPage() {
             title="Organization"
             description="Manage your Sports organization or activities"
             icon={null}
-            imageSrc="/images/handshake_news.png"
+            imageSrc="/images/handshake_news.webp"
             selected={selectedRole === 'organization'}
             onSelect={() => setSelectedRole('organization')}
           />

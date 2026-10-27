@@ -37,7 +37,7 @@ export const RealisticJersey: React.FC<RealisticJerseyProps> = ({
   const finalWidth = width ?? size
   const finalHeight = height ?? Math.round(size * 1) // Using 1:1 aspect for the 3D render
 
-  const shaderPath = '/assets/kits/master_shade_3_4.png'
+  const shaderPath = '/assets/kits/master_shade_3_4.webp'
    const jerseyPath = 'M33,10 Q50,5 67,10 L81,18 L91,48 L73,52 L73,106 Q50,110 27,106 L27,52 L9,48 L19,18 Z'
   const uid = useId()
   const maskId = `kit-mask-${uid}`
@@ -77,7 +77,7 @@ export const RealisticJersey: React.FC<RealisticJerseyProps> = ({
 
             {/* 2. MAIN LOGO — Shifted down slightly for better proportions */}
             <image 
-              href="/images/gaffer-logo.png" 
+              href="/images/gaffer-logo.webp"
               x="42" y="31" width="32" height="8.8"
               style={{ opacity: 0.95 }}
             />

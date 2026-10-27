@@ -8,7 +8,7 @@ export const mockCompetition = {
   gender: 'male',
   startDate: new Date().toISOString(),
   endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-  bannerUrl: '/images/fantasy_bg.png',
+  bannerUrl: '/images/fantasy_bg.webp',
   status: 'live',
   format: 'league_knockout',
   stages: [

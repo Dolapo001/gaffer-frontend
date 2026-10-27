@@ -14,9 +14,10 @@
 import { OnboardingClient } from './OnboardingClient'
 
 interface PageProps {
-  searchParams: { token?: string }
+  searchParams: Promise<{ token?: string }>
 }
 
-export default function PlayerOnboardingPage({ searchParams }: PageProps) {
-  return <OnboardingClient token={searchParams.token ?? ''} />
+export default async function PlayerOnboardingPage({ searchParams }: PageProps) {
+  const { token } = await searchParams
+  return <OnboardingClient token={token ?? ''} />
 }

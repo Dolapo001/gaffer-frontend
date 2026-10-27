@@ -55,7 +55,7 @@ export const PickTeamOnboarding: React.FC<PickTeamOnboardingProps> = ({ onBack, 
       {/* Background */}
       <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }}
+        style={{ backgroundImage: 'url("/images/fantasy_bg.webp")' }}
       />
 
       {/* Header */}

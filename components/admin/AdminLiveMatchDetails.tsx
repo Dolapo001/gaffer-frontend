@@ -918,7 +918,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                       <div className="p-8 border-b border-white/5 flex items-center justify-between text-white">
                          <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-full border border-white/10 bg-[#0F111A] overflow-hidden flex items-center justify-center">
-                               <img src={(isSelectingPlayer.team === 'home' ? teamA : teamB)?.logoUrl || "/images/mc_logo.png"} className="w-full h-full object-cover" alt="" />
+                               <img src={(isSelectingPlayer.team === 'home' ? teamA : teamB)?.logoUrl || "/images/mc_logo.webp"} className="w-full h-full object-cover" alt="" />
                             </div>
                             <div className="space-y-1">
                                <h3 className="font-inter font-bold text-lg uppercase tracking-tight">Assign Player</h3>
@@ -1237,8 +1237,8 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                       {/* What is being recorded: a small header above the options (never a picture behind them) */}
                       {(selectedCategory === 'GOAL' || selectedCategory === 'SUBSTITUTION' || selectedCategory === 'PENALTY') && flowStep !== 'category' && (
                         <div className="flex items-center gap-3 self-start" aria-live="polite">
-                          {selectedCategory === 'GOAL' && <img src="/images/commentary/goal.png" className="w-12 h-12 object-contain" alt="" />}
-                          {selectedCategory === 'SUBSTITUTION' && <img src="/images/commentary/substitution.png" className="w-12 h-12 object-contain" alt="" />}
+                          {selectedCategory === 'GOAL' && <img src="/images/commentary/goal.webp" className="w-12 h-12 object-contain" alt="" />}
+                          {selectedCategory === 'SUBSTITUTION' && <img src="/images/commentary/substitution.webp" className="w-12 h-12 object-contain" alt="" />}
                           <h2 className="text-2xl font-inter font-bold uppercase italic" style={{ color: '#FFF', textShadow: '0 2px 0 #EA580C' }}>
                             {selectedCategory === 'GOAL' ? 'Goal' : selectedCategory === 'SUBSTITUTION' ? 'Substitution' : 'Penalty'}
                           </h2>

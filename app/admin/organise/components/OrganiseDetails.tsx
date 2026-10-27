@@ -261,7 +261,7 @@ export function OrganiseDetails({
         {selectedTeam && (
           <div className="mt-3 w-10 h-10 rounded-full overflow-hidden bg-[#1a1b2a] border border-white/10 shadow-lg p-1.5 backdrop-blur-sm">
              <img
-               src={selectedTeam.logo || '/images/mc_logo.png'}
+               src={selectedTeam.logo || '/images/mc_logo.webp'}
                className="w-full h-full object-contain"
                alt=""
              />

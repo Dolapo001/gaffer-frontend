@@ -20,10 +20,17 @@ on(window, 'scroll', () => { const n = $('#nav'); if (n) n.classList.toggle('scr
 const S = (src, hold) => ({ src, hold: hold || 3600 });
 const TL = (src) => ({ src, tall: true, nav: true });
 const phones = [];
-phones.push(Phone.mount($('#hA'), [TL('/landing/screens/my-team-tall.png'), S('/landing/screens/chips.png')], { pips: false }));
+phones.push(Phone.mount($('#hA'), [TL('/landing/screens/my-team-tall.webp'), S('/landing/screens/chips.webp')], { pips: false }));
 cleanups.push(() => phones.forEach((p) => p.destroy && p.destroy()));
-later(() => phones.push(Phone.mount($('#hB'), [TL('/landing/screens/match-tall.png'), S('/landing/screens/lineup.png')], { pips: false })), 700);
-later(() => phones.push(Phone.mount($('#hC'), [TL('/landing/screens/league-tall.png'), S('/landing/screens/standings.png')], { pips: false })), 1400);
+// The first phone is the LCP visual. Defer the other two until the browser is idle.
+const mountSecondaryPhones = () => {
+  phones.push(Phone.mount($('#hB'), [TL('/landing/screens/match-tall.webp'), S('/landing/screens/lineup.webp')], { pips: false }));
+  phones.push(Phone.mount($('#hC'), [TL('/landing/screens/league-tall.webp'), S('/landing/screens/standings.webp')], { pips: false }));
+};
+if ('requestIdleCallback' in window) {
+  const id = requestIdleCallback(mountSecondaryPhones, { timeout: 4500 });
+  cleanups.push(() => cancelIdleCallback(id));
+} else later(mountSecondaryPhones, 3000);
 
 // glass reflection + a little tilt that follow the pointer
 if (!reduce) {
@@ -49,13 +56,16 @@ $('#track').innerHTML = tk + tk + tk + tk;
 // story: the phone stays fixed and plays a tour of the real app for each step
 const Tp = '/landing/screens/tour/';
 const frames = {
-  home: { src: Tp + 's1-home.png' }, team: { src: Tp + 's1-teamfull-T.png', tall: true, h: 1155, nav: true }, player: { src: Tp + 's1-player.png' },
-  capToast: { src: Tp + 's1-captain-toast.png' }, teamC: { src: Tp + 's1-captain-team-T.png', tall: true, h: 1155, nav: true },
-  chips: { src: Tp + 's2-chips.png' }, tc: { src: Tp + 's2-tcdetail.png' }, active: { src: Tp + 's2-active.png' }, banner: { src: Tp + 's2-banner.png' },
-  fixtures: { src: Tp + 's3-fixtures.png' }, match: { src: Tp + 's3-match-T.png', tall: true, h: 1222, nav: true },
-  homeTall: { src: '/landing/screens/fantasy-home-tall.png', tall: true, h: 3196, nav: true }, league: { src: Tp + 's4-league.png' },
+  home: { src: Tp + 's1-home.webp' }, team: { src: Tp + 's1-teamfull-T.webp', tall: true, h: 1155, nav: true }, player: { src: Tp + 's1-player.webp' },
+  capToast: { src: Tp + 's1-captain-toast.webp' }, teamC: { src: Tp + 's1-captain-team-T.webp', tall: true, h: 1155, nav: true },
+  chips: { src: Tp + 's2-chips.webp' }, tc: { src: Tp + 's2-tcdetail.webp' }, active: { src: Tp + 's2-active.webp' }, banner: { src: Tp + 's2-banner.webp' },
+  fixtures: { src: Tp + 's3-fixtures.webp' }, match: { src: Tp + 's3-match-T.webp', tall: true, h: 1222, nav: true },
+  homeTall: { src: '/landing/screens/fantasy-home-tall.webp', tall: true, h: 3196, nav: true }, league: { src: Tp + 's4-league.webp' },
 };
-const tour = Tour.mount($('#storySc'), { frames, steps: [
+let tour;
+function mountTour() {
+  if (tour) return tour;
+  tour = Tour.mount($('#storySc'), { frames, steps: [
   [{ show: 'home' }, { wait: 900 }, { tap: [103, 113] }, { go: 'team', how: 'slide' }, { wait: 700 }, { reveal: [56, 754], ms: 1700 }, { wait: 300 }, { tap: [56, 754] }, { go: 'player', how: 'up' }, { wait: 2600 }],
   [{ show: 'teamC' }, { reveal: [56, 754], ms: 1200 }, { wait: 300 }, { tap: [56, 754] }, { go: 'player', how: 'up' }, { wait: 900 }, { tap: [81, 817] }, { go: 'capToast', how: 'fade', ms: 250 }, { wait: 1300 },
    { go: 'teamC', how: 'fade' }, { reveal: [313, 1103], ms: 1500 }, { wait: 300 }, { tap: [313, 1103] }, { go: 'chips', how: 'up' }, { wait: 800 }, { tap: [195, 739] }, { go: 'tc', how: 'slide' }, { wait: 900 },
@@ -63,16 +73,27 @@ const tour = Tour.mount($('#storySc'), { frames, steps: [
   [{ show: 'home' }, { wait: 900 }, { tap: [179, 113] }, { go: 'fixtures', how: 'slide' }, { wait: 900 }, { tap: [195, 306] }, { go: 'match', how: 'slide' }, { wait: 900 }, { scroll: 9999, ms: 5200 }, { wait: 600 }],
   [{ show: 'homeTall' }, { wait: 800 }, { scroll: 2150, ms: 3600 }, { wait: 900 }, { tap: [242, 813] }, { go: 'league', how: 'slide' }, { wait: 2600 }],
 ] });
-cleanups.push(() => tour.stop());
+  return tour;
+}
+cleanups.push(() => tour && tour.stop());
 const steps = $$('.step'), rail = $('#rail');
 function setStep(i) {
   steps.forEach((s) => s.classList.toggle('on', +s.dataset.i === i));
   const last = steps[i], host = $('#steps');
   rail.style.height = (last.offsetTop + last.offsetHeight / 2 - rail.offsetTop) + 'px';
-  tour.play(i);
+  if (tour) tour.play(i);
 }
 const so = watch(new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) setStep(+e.target.dataset.i); }), { rootMargin: '-45% 0px -45% 0px' }));
 steps.forEach((s) => so.observe(s));
+const story = $('#story');
+const storyObserver = watch(new IntersectionObserver((es, observer) => es.forEach((e) => {
+  if (!e.isIntersecting) return;
+  mountTour();
+  const active = $('.step.on');
+  if (active) tour.play(+active.dataset.i);
+  observer.disconnect();
+}), { rootMargin: '300px 0px' }));
+storyObserver.observe(story);
 
 // spotlight on step panels and chip cards
 $$('.chipc').forEach((c) => c.addEventListener('pointermove', (e) => { const r = c.getBoundingClientRect(); c.style.setProperty('--x', (e.clientX - r.left) + 'px'); c.style.setProperty('--y', (e.clientY - r.top) + 'px'); }));

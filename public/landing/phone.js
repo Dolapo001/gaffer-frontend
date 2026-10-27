@@ -9,7 +9,7 @@
  */
 (function () {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const NAV = '/landing/screens/nav.png';
+  const NAV = '/landing/screens/nav.webp';
   const EASE = 'cubic-bezier(.45,0,.2,1)';
 
   function mount(el, screens, opts) {

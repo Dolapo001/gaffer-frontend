@@ -84,7 +84,7 @@ export default function SignUpPage() {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <img
-          src="/images/hero-bg.jpg"
+          src="/images/hero-bg.webp"
           alt=""
           className="w-full h-full object-cover"
         />

@@ -69,7 +69,7 @@ function ArticleContent() {
 
   const isSystem = item.authorType === 'system'
   const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
-  const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg'
+  const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp'
   const authorDisplayName = item.authorName
     ?? (typeof item.orgId === 'object' ? (item.orgId as any)?.name : null)
     ?? item.authorId?.name

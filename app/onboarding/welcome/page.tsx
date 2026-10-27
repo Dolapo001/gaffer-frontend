@@ -26,7 +26,7 @@ export default function WelcomePage() {
       {/* Background */}
       <div className="absolute inset-0">
         <img
-          src="/images/hero-bg.jpg"
+          src="/images/hero-bg.webp"
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
         />

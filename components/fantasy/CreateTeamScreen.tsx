@@ -110,7 +110,7 @@ export const CreateTeamScreen: React.FC<CreateTeamScreenProps> = ({ onComplete }
       {/* Background Image Overlay */}
       <div
         className="absolute inset-0 z-0 opacity-40 bg-cover bg-center pointer-events-none"
-        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }}
+        style={{ backgroundImage: 'url("/images/fantasy_bg.webp")' }}
       />
 
       <header className="px-6 pt-12 pb-4 relative z-10">
@@ -343,7 +343,7 @@ const PlayerSearchOverlay: React.FC<PlayerOverlayProps & { competitionId: string
                 <div className="absolute inset-0 bg-gradient-to-b from-[#1a1b2e]/60 via-transparent to-[#1a1b2e]" />
                 <div 
                     className="absolute inset-0 bg-cover bg-center opacity-70 pointer-events-none"
-                    style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
+                    style={{ backgroundImage: 'url("/images/fantasy_bg.webp")' }}
                 />
             </div>
 

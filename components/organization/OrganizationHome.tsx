@@ -191,7 +191,7 @@ export function OrganizationHome() {
             ) : (
                 <div className="bg-[#1E2032] rounded-[24px] border border-white/5 p-6 flex flex-col items-center text-center space-y-6">
                   <div className="w-full h-40 rounded-2xl overflow-hidden bg-white/5 flex items-center justify-center grayscale">
-                     <img src="/images/empty_tournament.png" className="w-full h-full object-cover opacity-60" alt="" />
+                     <img src="/images/empty_tournament.webp" className="w-full h-full object-cover opacity-60" alt="" />
                   </div>
                   <p className="text-white font-chakra font-bold text-lg">You Don&apos;t have any Tournament</p>
                   <button

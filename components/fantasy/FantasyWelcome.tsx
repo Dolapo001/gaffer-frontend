@@ -29,7 +29,7 @@ export const FantasyWelcome: React.FC<FantasyWelcomeProps> = ({ onGetStarted }) 
       {/* Background Image Overlay - Maximum visibility */}
       <div 
         className="absolute inset-0 z-0 opacity-100 bg-cover bg-center transition-opacity duration-300 ease-out"
-        style={{ backgroundImage: 'url("/images/fantasy_bg.png")' }} 
+        style={{ backgroundImage: 'url("/images/fantasy_bg.webp")' }}
       />
       
       {/* Soft Cinematic Gradient for visibility */}

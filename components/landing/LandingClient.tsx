@@ -11,8 +11,6 @@ import { InstallHelp } from './InstallHelp'
 import { ctaAction } from './ctaGate'
 import { landingMarkup } from './landingMarkup'
 
-const STYLES = ['/landing/phone.css', '/landing/device.css', '/landing/landing.css']
-
 type LandingWindow = Window & { Phone?: unknown; Tour?: unknown; __gafferLanding?: { destroy: () => void } }
 
 // The element is registered with `bucket` before it loads, so cleanup removes it even if the page is left mid-load.
@@ -27,22 +25,8 @@ function loadScript(src: string, bucket: HTMLElement[]) {
   })
 }
 
-function loadStyle(href: string, bucket: HTMLElement[]) {
-  return new Promise<void>((resolve) => {
-    const l = document.createElement('link')
-    l.rel = 'stylesheet'
-    l.href = href
-    // a stylesheet that fails to load should not block the page; it just renders unstyled
-    l.onload = () => resolve()
-    l.onerror = () => resolve()
-    bucket.push(l)
-    document.head.appendChild(l)
-  })
-}
-
 export default function LandingClient() {
   const router = useRouter()
-  const [checking, setChecking] = useState(true)
 
   // Initialize PWA hook to capture install prompt event early
   const { handleInstall, showIOSModal, closeIOSModal } = usePWAInstall()
@@ -65,12 +49,10 @@ export default function LandingClient() {
       router.replace('/onboarding/splash')
       return
     }
-    setChecking(false)
   }, [router])
 
   // The landing page owns its own stylesheet and motion scripts; attach them only while it is on screen.
   useEffect(() => {
-    if (checking) return
     let cancelled = false
     const added: HTMLElement[] = []
     const w = window as LandingWindow
@@ -79,12 +61,11 @@ export default function LandingClient() {
     document.documentElement.style.background = '#090A14'
     ;(async () => {
       try {
-        // measure layout only after the styles are in, otherwise the scripts read unstyled sizes
-        await Promise.all(STYLES.map((href) => loadStyle(href, added)))
-        if (cancelled) return
-        if (!w.Phone) await loadScript('/landing/phone.js', added)
-        if (cancelled) return
-        if (!w.Tour) await loadScript('/landing/tour.js', added)
+        // Styles are server-rendered below. Load the independent animation helpers in parallel.
+        await Promise.all([
+          w.Phone ? Promise.resolve() : loadScript('/landing/phone.js', added),
+          w.Tour ? Promise.resolve() : loadScript('/landing/tour.js', added),
+        ])
         if (cancelled) return
         await loadScript('/landing/landing.js', added)
         if (cancelled) w.__gafferLanding?.destroy()
@@ -102,7 +83,7 @@ export default function LandingClient() {
       document.documentElement.style.background = ''
       document.body.classList.remove('ready')
     }
-  }, [checking])
+  }, [])
 
   // Gaffer only runs as an installed app: the auth pages send any normal browser tab straight back to '/'.
   // So a tap on a sign-up / log-in button in a browser starts the install instead of a navigation that would bounce.
@@ -125,12 +106,12 @@ export default function LandingClient() {
     else setHelpIntent(action.intent)
   }
 
-  if (checking) {
-    return <div style={{ minHeight: '100vh', background: '#090A14' }} aria-busy="true" />
-  }
-
   return (
     <>
+      {/* Keep the landing page visible and styled in the server response. */}
+      <link rel="stylesheet" href="/landing/phone.css" />
+      <link rel="stylesheet" href="/landing/device.css" />
+      <link rel="stylesheet" href="/landing/landing.css" />
       <div onClick={onMarkupClick} dangerouslySetInnerHTML={{ __html: landingMarkup }} />
       <IOSInstallModal isOpen={showIOSModal} onClose={closeIOSModal} />
       <InstallHelp

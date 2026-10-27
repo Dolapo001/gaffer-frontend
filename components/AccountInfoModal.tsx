@@ -17,14 +17,14 @@ const modalContent = {
     description:
       'Personal accounts are designed for players, fans, and individual sports enthusiasts. Join leagues, track your stats, and build your dream team.',
     cta: 'Continue as Personal',
-    image: '/images/messi.png',
+    image: '/images/messi.webp',
   },
   organization: {
     title: 'Organization Account',
     description:
       'Organization accounts are designed for sport academies, clubs, competitions organizers, federations, Teams, Schools, and Companies.',
     cta: 'Continue as Organization',
-    image: '/images/handshake_news.png',
+    image: '/images/handshake_news.webp',
   },
 }
 

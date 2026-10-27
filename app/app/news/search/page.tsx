@@ -28,7 +28,7 @@ function toNewsCardProps(item: FeedItem) {
   const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
   return {
     id: item._id,
-    image: rawImage ?? '/images/news-hero.jpg',
+    image: rawImage ?? '/images/news-hero.webp',
     source: { name: 'GAFFER', verified: true },
     title,
     excerpt: body.length > 120 ? body.slice(0, 160) + '...' : undefined,
@@ -48,7 +48,7 @@ function toArticleProps(item: FeedItem) {
     id: item._id,
     title: item.title ?? splitHeadline(body).title,
     content: body,
-    image: rawImage ?? '/images/news-hero.jpg',
+    image: rawImage ?? '/images/news-hero.webp',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,

@@ -11,9 +11,10 @@
 import { RecruitmentPageClient } from './RecruitmentPageClient'
 
 interface PageProps {
-  params: { token: string }
+  params: Promise<{ token: string }>
 }
 
-export default function RecruitPage({ params }: PageProps) {
-  return <RecruitmentPageClient token={params.token} />
+export default async function RecruitPage({ params }: PageProps) {
+  const { token } = await params
+  return <RecruitmentPageClient token={token} />
 }

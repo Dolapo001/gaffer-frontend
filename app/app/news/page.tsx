@@ -26,7 +26,7 @@ function toArticleProps(item: FeedItem) {
     id: item._id,
     title: item.title ?? splitHeadline(body).title,
     content: body,
-    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
+    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp',
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,

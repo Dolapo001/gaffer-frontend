@@ -37,7 +37,7 @@
     // preload every image once
     const urls = {};
     Object.entries(cfg.frames).forEach(([k, f]) => { const i = new Image(); i.src = f.src; urls[k] = i; });
-    const navImg = new Image(); navImg.src = cfg.nav || '/landing/screens/nav.png';
+    const navImg = new Image(); navImg.src = cfg.nav || '/landing/screens/nav.webp';
 
     function makeLayer(name) {
       const f = cfg.frames[name];

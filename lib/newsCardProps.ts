@@ -40,7 +40,7 @@ export function toNewsCardProps(item: FeedItem) {
   const preview = item.title ? body.trim() : split!.rest
   return {
     id: item._id,
-    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.jpg',
+    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp',
     source: {
       name: isSystem ? (item.authorName ?? 'GAFFER') : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER'),
       verified: true,

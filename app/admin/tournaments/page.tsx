@@ -75,7 +75,7 @@ export default function TournamentsPage() {
             >
               <div className="w-full h-44 rounded-2xl overflow-hidden bg-white/5">
                 <img 
-                    src="/images/empty_tournament.png" 
+                    src="/images/empty_tournament.webp"
                     className="w-full h-full object-cover opacity-80" 
                     alt="No Tournaments"
                 />
