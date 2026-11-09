@@ -49,7 +49,7 @@ export async function deleteAccount(): Promise<{ message: string }> {
 }
 
 // PATCH /users/avatar — upload avatar via Cloudinary
-export async function uploadAvatar(file: File): Promise<{ success: boolean; data: { imageUrl: string; publicId: string } }> {
+export async function uploadAvatar(file: File): Promise<{ message: string; user: { avatarUrl?: string | null } }> {
   const formData = new FormData()
   formData.append('file', file)
   return api.patch('/users/avatar', formData)
