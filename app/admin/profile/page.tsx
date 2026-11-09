@@ -47,7 +47,7 @@ export default function ProfilePage() {
   const uploadAvatarMutation = useMutation({
     mutationFn: (file: File) => uploadAvatar(file),
     onSuccess: (res) => {
-      const updatedProfile = { ...profile, avatarUrl: res.data.imageUrl } as UserProfile
+      const updatedProfile = { ...profile, avatarUrl: res.user?.avatarUrl ?? profile?.avatarUrl } as UserProfile
       queryClient.setQueryData(['profile'], updatedProfile)
       setProfile(updatedProfile)
     },

@@ -96,7 +96,7 @@ export async function deleteOrg(orgId: string): Promise<{ message: string }> {
 }
 
 // PATCH /orgs/:orgId/logo — upload via Cloudinary (multipart/form-data)
-export async function updateOrgLogo(orgId: string, file: File): Promise<{ success: boolean; data: { imageUrl: string; publicId: string }; org: Org }> {
+export async function updateOrgLogo(orgId: string, file: File): Promise<{ message: string; org: Org }> {
   const formData = new FormData()
   formData.append('file', file)
   return api.patch(`/orgs/${orgId}/logo`, formData)

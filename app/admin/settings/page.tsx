@@ -38,9 +38,9 @@ export default function AdminSettingsPage() {
       toast.addToast({ type: 'success', message: 'Logo updated successfully' })
       setLogoPreview(null)
       setSelectedFile(null)
-      // Update displayed logo from returned imageUrl
-      if (res.data?.imageUrl) {
-        setLogoPreview(res.data.imageUrl)
+      // Update displayed logo from the returned organisation
+      if (res.org?.logoUrl) {
+        setLogoPreview(res.org.logoUrl)
       }
     },
     onError: (err) => {
