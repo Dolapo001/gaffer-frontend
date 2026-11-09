@@ -82,7 +82,7 @@ export default function CoachLineupPage() {
               >
                 <span className={`w-6 h-6 rounded-md border flex items-center justify-center shrink-0 ${on ? 'bg-orange-500 border-orange-500 text-black' : 'border-white/30'}`}>{on && <Check size={16} />}</span>
                 <span className="w-8 text-center text-white/40 text-sm font-bold">{p.jerseyNumber ?? ''}</span>
-                <span className="flex-1 min-w-0 text-white text-sm font-semibold truncate">{p.name}</span>
+                <span className="flex-1 min-w-0 text-white text-sm font-semibold truncate">{p.name}{p.fullName && p.fullName !== p.name && <span className="block text-xs font-normal text-white/45 truncate">{p.fullName}</span>}</span>
                 {p.position && <span className="text-xs text-white/50 uppercase">{p.position}</span>}
               </button>
             </li>
