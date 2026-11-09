@@ -44,6 +44,8 @@ export default function PlayerRecruitmentForm() {
     firstName:    '',
     lastName:     '',
     displayName:  '',
+    email:        '',
+    phone:        '',
     position:     '',
     jerseyNumber: '',
     role:         'player' as 'player' | 'captain' | 'coach',
@@ -81,7 +83,9 @@ export default function PlayerRecruitmentForm() {
       const payload: AddPlayerPayload = {
         firstName:    form.firstName,
         lastName:     form.lastName,
-        displayName:  form.displayName.trim() || undefined,
+        displayName:  form.displayName.trim(),
+        email:        form.email.trim() || undefined,
+        phone:        form.phone.trim() || undefined,
         position:     form.position    || undefined,
         jerseyNumber: form.jerseyNumber ? parseInt(form.jerseyNumber) : undefined,
         role:         form.role,
@@ -114,8 +118,16 @@ export default function PlayerRecruitmentForm() {
       toast.addToast('First and last name are required', 'error')
       return
     }
-    if (form.displayName.trim() && (form.displayName.trim().length < 2 || form.displayName.trim().length > 30)) {
-      toast.addToast('The name we call you must be 2 to 30 characters', 'error')
+    if (form.displayName.trim().length < 2 || form.displayName.trim().length > 30) {
+      toast.addToast('Your nickname must be 2 to 30 characters', 'error')
+      return
+    }
+    if (!form.email.trim() && !form.phone.trim()) {
+      toast.addToast('Enter an email address or a phone number', 'error')
+      return
+    }
+    if (!photoFile) {
+      toast.addToast('Add a photo of yourself', 'error')
       return
     }
     registerMutation.mutate()
@@ -248,7 +260,7 @@ export default function PlayerRecruitmentForm() {
                   ) : (
                     <div className="flex flex-col items-center gap-1">
                       <Camera size={18} className="text-white/20 group-hover:text-gaffer-orange/60 transition-colors" />
-                      <span className="text-[7px] font-black uppercase tracking-widest text-white/20 group-hover:text-gaffer-orange/60 transition-colors">Photo</span>
+                      <span className="text-[7px] font-black uppercase tracking-widest text-white/20 group-hover:text-gaffer-orange/60 transition-colors">Photo *</span>
                     </div>
                   )}
                 </button>
@@ -280,9 +292,16 @@ export default function PlayerRecruitmentForm() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-[9px] font-chakra font-black text-white/30 uppercase tracking-[0.2em] ml-1">What should we call you?</label>
-              <input type="text" value={form.displayName} maxLength={30} onChange={e => setForm({ ...form, displayName: e.target.value })} placeholder="e.g. Chrissy" className={inputCls(false)} />
-              <p className="text-[10px] text-white/30 ml-1">This is the name fans see and the name that goes on lineup sheets. Leave it empty to use your first and last name.</p>
+              <label className="text-[9px] font-chakra font-black text-white/30 uppercase tracking-[0.2em] ml-1">Nickname</label>
+              <input type="text" required value={form.displayName} maxLength={30} onChange={e => setForm({ ...form, displayName: e.target.value })} placeholder="What everyone calls you, e.g. Pogba" className={inputCls(false)} />
+              <p className="text-[10px] text-white/30 ml-1">Fans see this on lineups and in the match commentary. Your full name stays on your profile.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[9px] font-chakra font-black text-white/30 uppercase tracking-[0.2em] ml-1">Email or phone number</label>
+              <input type="email" inputMode="email" autoComplete="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="Email" className={inputCls(false)} />
+              <input type="tel" inputMode="tel" autoComplete="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="Phone number" className={inputCls(false)} />
+              <p className="text-[10px] text-white/30 ml-1">Give at least one. It lets us recognise you in your next tournament, so your stats stay on one profile.</p>
             </div>
 
             {/* Role */}

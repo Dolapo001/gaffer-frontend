@@ -24,6 +24,7 @@ import { PositionFilterBar, type PositionFilterValue } from '@/components/Positi
 import { CommentaryIcon } from '@/components/CommentaryIcon'
 import { calculatePlayerRating, eventsForPlayer } from '@/lib/ratingsEngine'
 import { getCompetition } from '@/lib/services/competition.service'
+import { playerBothNames, playerShortName } from '@/lib/playerName'
 import { ZONES, ZONE_LABEL, parseFormation, formationString, slotLayout, zoneOfSlot, moveSlot, growZone, shrinkZone, applyFormation, suggestedFormations, type Zone } from '@/lib/lineupFormation'
 
 const POSITION_NORMALIZE: Record<string, PositionFilterValue> = {
@@ -633,7 +634,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                 })
                 .map(s => (
                   <span key={(s as any)._id} className="text-[11px] font-inter font-bold text-white whitespace-nowrap">
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? playerShortName(s.playerId as any) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
                   </span>
                 ))}
               {events
@@ -645,7 +646,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                 .map(s => (
                   <span key={`rc-${(s as any)._id}`} className="text-[11px] font-inter font-bold text-red-400 whitespace-nowrap flex items-center gap-1">
                     <span className="inline-block w-2 h-3 bg-red-500 rounded-[1px]" />
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || ''} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? playerShortName(s.playerId as any) : (s as any).playerName || ''} {s.minute}&apos;
                   </span>
                 ))}
             </div>
@@ -659,7 +660,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                 })
                 .map(s => (
                   <span key={(s as any)._id} className="text-[11px] font-inter font-bold text-white whitespace-nowrap">
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? playerShortName(s.playerId as any) : (s as any).playerName || 'Player'}{(s as any).rawType === 'penalty_scored' ? ' (P)' : (s as any).rawType === 'own_goal' ? ' (OG)' : ''} {s.minute}&apos;
                   </span>
                 ))}
               {events
@@ -670,7 +671,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                 })
                 .map(s => (
                   <span key={`rc-${(s as any)._id}`} className="text-[11px] font-inter font-bold text-red-400 whitespace-nowrap flex items-center justify-end gap-1">
-                    {(s.playerId && typeof s.playerId === 'object') ? ((s.playerId as any).lastName || (s.playerId as any).firstName) : (s as any).playerName || ''} {s.minute}&apos;
+                    {(s.playerId && typeof s.playerId === 'object') ? playerShortName(s.playerId as any) : (s as any).playerName || ''} {s.minute}&apos;
                     <span className="inline-block w-2 h-3 bg-red-500 rounded-[1px]" />
                   </span>
                 ))}
@@ -819,7 +820,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                               {r.toFixed(1)}
                             </span>
                             <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
-                              {player.lastName || player.firstName}
+                              {playerShortName(player)}
                             </span>
                           </div>
                         )}
@@ -878,7 +879,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                               {r.toFixed(1)}
                             </span>
                             <span className="text-[7px] font-bold text-white/80 uppercase text-center leading-none max-w-[36px] truncate drop-shadow-sm">
-                              {player.lastName || player.firstName}
+                              {playerShortName(player)}
                             </span>
                           </div>
                         )}
@@ -969,7 +970,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                     </div>
                                   </div>
                                   <div className="flex-1 text-left">
-                                    <h4 className="font-inter font-bold text-white text-base uppercase leading-tight">{player.firstName} {player.lastName}</h4>
+                                    <h4 className="font-inter font-bold text-white text-base uppercase leading-tight">{playerBothNames(player)}</h4>
                                     <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">
                                       {player.position || player.role || 'PLAYER'}
                                       {suspendedIds.includes(String(player._id)) && <span className="text-red-400 ml-2">• Suspended (red card last match)</span>}
@@ -1006,7 +1007,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="font-inter font-bold text-white text-base uppercase leading-tight truncate">
-                            {slotContextMenu.player.firstName} {slotContextMenu.player.lastName}
+                            {playerBothNames(slotContextMenu.player)}
                           </h4>
                           <p className="text-[10px] text-white/30 uppercase font-inter font-bold tracking-widest mt-0.5">
                             #{slotContextMenu.player.jerseyNumber || '?'} · Slot {slotContextMenu.idx + 1}
@@ -1491,7 +1492,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                                 }}
                                 className="flex items-center justify-between w-full max-w-[240px] px-4 py-2.5 bg-[#4A4646] rounded-[14px] border border-white/5 text-white"
                               >
-                                <span className="font-inter font-bold text-[13px] uppercase">{player.firstName} {player.lastName}</span>
+                                <span className="font-inter font-bold text-[13px] uppercase">{playerBothNames(player)}</span>
                                 <span className="text-[10px] font-bold text-white/40 uppercase pl-3">{player.position || 'PLR'}</span>
                               </motion.button>
                             ))}
