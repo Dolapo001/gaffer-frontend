@@ -10,6 +10,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 import { useUIStore } from '@/store/uiStore'
+import { PictureField } from '@/components/PictureField'
 
 interface EditTournamentModalProps {
   competition: Competition
@@ -52,6 +53,9 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
     }
   })
 
+  const [picture, setPicture] = useState<string | null>(competition.bannerUrl || null)
+  const orgId = typeof competition.orgId === 'object' && competition.orgId ? (competition.orgId as { _id: string })._id : (competition.orgId as string | undefined)
+
   const { hideNavbar, showNavbar } = useUIStore()
 
   useEffect(() => {
@@ -80,6 +84,7 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
     const sizeChanged = playersPerSide !== (competition.gameFormat?.playersPerSide ?? 11)
     updateMutation.mutate({
       ...rest,
+      ...(picture !== (competition.bannerUrl || null) ? { bannerUrl: picture } : {}),
       // Only sent when changed: the server refuses a change once managers have built Fantasy teams
       ...(sizeChanged || cardsChanged
         ? { gameFormat: { ...(sizeChanged ? { playersPerSide } : {}), ...(cardsChanged ? { cardRules: cardRulesPayload(cardRules) } : {}) } }
@@ -114,6 +119,7 @@ export function EditTournamentModal({ competition, onClose }: EditTournamentModa
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+          <PictureField orgId={orgId} value={picture} onChange={setPicture} label="Tournament picture" fallback={form.name.slice(0, 2).toUpperCase()} />
           {/* Name */}
           <div className="space-y-2">
             <label className="text-[10px] font-display font-black text-gaffer-subtle uppercase tracking-widest ml-1">Tournament Name</label>
