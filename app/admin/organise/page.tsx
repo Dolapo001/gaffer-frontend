@@ -760,6 +760,7 @@ export default function OrganizePage() {
                 }}
                 orgName={orgs?.[0]?.name}
                 orgLogoUrl={orgs?.[0]?.logoUrl}
+                orgId={orgId || undefined}
               />
             )}
 

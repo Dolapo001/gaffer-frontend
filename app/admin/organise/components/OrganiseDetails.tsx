@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { PictureField } from '@/components/PictureField'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, ChevronUp, ChevronDown, Check, Plus, User, Trophy, Copy, Camera, X, Pencil, Trash2, ImageIcon, Mail, Link2 } from 'lucide-react'
 import type { Team, Group, Player } from '../types'
@@ -41,6 +42,7 @@ interface Props {
   onUpdatePlayer?: (playerId: string, payload: any) => void
   orgName?: string
   orgLogoUrl?: string
+  orgId?: string
 }
 
 // ── Avatar helper ─────────────────────────────────────────────────────────────
@@ -93,6 +95,7 @@ export function OrganiseDetails({
   onUpdatePlayer,
   orgName,
   orgLogoUrl,
+  orgId,
 }: Props) {
   const toast = useToastStore()
 
@@ -101,6 +104,7 @@ export function OrganiseDetails({
   const [showEditTeam, setShowEditTeam] = useState(false)
   const [editTeamName, setEditTeamName] = useState('')
   const [editMaxPlayers, setEditMaxPlayers] = useState(25)
+  const [editLogo, setEditLogo] = useState<string | null>(null)
   const [showPhotos, setShowPhotos] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [isGeneratingLink, setIsGeneratingLink] = useState(false)
@@ -376,6 +380,7 @@ export function OrganiseDetails({
                   onClick={() => {
                     setEditTeamName(selectedTeam?.name || '')
                     setEditMaxPlayers(selectedTeamDetail?.maxPlayers || (selectedTeam as any)?.maxPlayers || 25)
+                    setEditLogo((selectedTeamDetail as any)?.logoUrl || null)
                     setShowEditTeam(true)
                   }}
                   className="flex-1 flex items-center justify-center gap-1.5 h-10 bg-[#1C1E2B] border border-white/[0.03] rounded-xl text-white/40 hover:text-white hover:border-white/10 transition-all"
@@ -605,6 +610,7 @@ export function OrganiseDetails({
                 <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Edit Team</p>
                 <button onClick={() => setShowEditTeam(false)} className="text-white/20 hover:text-white"><X size={16} /></button>
               </div>
+              <PictureField orgId={orgId} value={editLogo} onChange={setEditLogo} label="Team logo" fallback={editTeamName.slice(0, 2).toUpperCase()} />
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Team Name</label>
                 <input
@@ -629,7 +635,7 @@ export function OrganiseDetails({
               <button
                 onClick={() => {
                   if (!editTeamName.trim()) return
-                  onUpdateTeam?.({ name: editTeamName.trim(), maxPlayers: editMaxPlayers || 25 })
+                  onUpdateTeam?.({ name: editTeamName.trim(), maxPlayers: editMaxPlayers || 25, ...(editLogo !== ((selectedTeamDetail as any)?.logoUrl || null) ? { logoUrl: editLogo || '' } : {}) })
                   setShowEditTeam(false)
                 }}
                 disabled={!editTeamName.trim()}
