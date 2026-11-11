@@ -265,10 +265,52 @@ function qs(params: Record<string, string | number | undefined>) {
   return s ? `?${s}` : ''
 }
 
+export interface HqDupPlayer {
+  id: string
+  name: string
+  nickname: string | null
+  email: string | null
+  phone: string | null
+  photoUrl: string | null
+  position: string | null
+  hasAccount: boolean
+  teams: { team: string; tournament: string | null }[]
+  matches: number
+  goals: number
+  createdAt: string
+}
+
+export interface HqDuplicatePair {
+  a: HqDupPlayer
+  b: HqDupPlayer
+  reasons: ('email' | 'phone' | 'name')[]
+  strength: 'strong' | 'name only'
+  canMerge: boolean
+  sharedTournaments: string[]
+}
+
+export interface HqPlayerMerge {
+  id: string
+  keepId: string
+  keepName: string
+  mergedName: string
+  reasons: string[]
+  by: string | null
+  at: string
+  undoneAt: string | null
+  canUndo: boolean
+}
+
 export const hqService = {
   me: () => api.get<{ admin: { userId: string; email: string } }>('/platform/me'),
   stats: () => api.get<HqStats>('/platform/stats'),
   tournamentReport: (id: string) => api.get<HqTournamentReport>(`/platform/tournaments/${id}/report`),
+  duplicatePlayers: (page = 1) => api.get<{ pairs: HqDuplicatePair[]; total: number; page: number; pageSize: number }>(`/platform/players/duplicates?page=${page}`),
+  playerMerges: () => api.get<{ merges: HqPlayerMerge[] }>('/platform/players/merges'),
+  mergePlayers: (keepId: string, mergeId: string, reasons: string[]) =>
+    api.post<{ mergeId: string; kept: { id: string; name: string }; merged: { id: string; name: string }; moved: number }>('/platform/players/merge', { keepId, mergeId, reasons }),
+  undoPlayerMerge: (id: string) => api.post<{ message: string }>(`/platform/players/merges/${id}/undo`),
+  dismissDuplicate: (a: string, b: string) => api.post<{ message: string }>('/platform/players/duplicates/dismiss', { a, b }),
   traffic: (days = 30) => api.get<HqTraffic>(`/platform/traffic?days=${days}`),
 
   listOrgs: (f: { verificationStatus?: VerificationStatus; lifecycleStatus?: LifecycleStatus; q?: string; page?: number }) =>
