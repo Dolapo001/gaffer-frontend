@@ -198,9 +198,9 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
           <HomeIcon className="text-white/40 group-hover:text-[#ff6b00] transition-colors" />
           <span className="font-black text-sm text-white/70 group-hover:text-white uppercase tracking-wider">Dashboard</span>
         </button>
-        {isCoach && currentRole === 'personal' && (
+        {isCoach && (
           <button
-            onClick={() => { router.push('/app/coach'); onClose(); }}
+            onClick={() => { router.push('/coach'); onClose(); }}
             className="flex items-center gap-4 px-5 py-3.5 rounded-2xl bg-[#ff6b00]/15 border border-[#ff6b00]/40 hover:bg-[#ff6b00]/25 group transition-all"
           >
             <UserIcon className="text-[#ff6b00]" />

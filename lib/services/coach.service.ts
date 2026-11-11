@@ -41,7 +41,7 @@ export const pendingCoachToken = {
 
 // GET /coach/invites/:token — public: what the invite is for
 export const peekCoachInvite = (token: string) =>
-  api.get<{ teamName: string; logoUrl: string | null; orgName: string | null }>(`/coach/invites/${token}`, { public: true })
+  api.get<{ teamName: string; logoUrl: string | null; orgName: string | null; emailHint: string | null }>(`/coach/invites/${token}`, { public: true })
 
 // POST /coach/invites/:token/accept
 export const acceptCoachInvite = (token: string) =>
@@ -62,5 +62,5 @@ export const submitCoachLineup = (fixtureId: string, starters: string[]) =>
   api.post<{ message: string; starters: number }>(`/coach/fixtures/${fixtureId}/lineup`, { starters })
 
 // Organisation side: POST /coach/teams/:teamId/invite
-export const createCoachInvite = (teamId: string) =>
-  api.post<{ link: string; expiresAt: string; teamName: string }>(`/coach/teams/${teamId}/invite`)
+export const createCoachInvite = (teamId: string, email: string) =>
+  api.post<{ link: string; expiresAt: string; teamName: string; email: string; emailed: boolean }>(`/coach/teams/${teamId}/invite`, { email })

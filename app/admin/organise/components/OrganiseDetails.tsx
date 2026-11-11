@@ -105,6 +105,7 @@ export function OrganiseDetails({
   const [editTeamName, setEditTeamName] = useState('')
   const [editMaxPlayers, setEditMaxPlayers] = useState(25)
   const [editLogo, setEditLogo] = useState<string | null>(null)
+  const [coachInvite, setCoachInvite] = useState<{ open: boolean; email: string; busy: boolean; result: { link: string; email: string; emailed: boolean } | null }>({ open: false, email: '', busy: false, result: null })
   const [showPhotos, setShowPhotos] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [isGeneratingLink, setIsGeneratingLink] = useState(false)
@@ -308,16 +309,7 @@ export function OrganiseDetails({
                 Copy Link
               </button>
               <button
-                onClick={async () => {
-                  if (!selectedTeam) return
-                  try {
-                    const r = await createCoachInvite(selectedTeam.id)
-                    await navigator.clipboard.writeText(r.link)
-                    toast.addToast(`Coach invite for ${r.teamName} copied. Send it to the coach. It works once and lasts 14 days.`, 'success')
-                  } catch (e) {
-                    toast.addToast(getErrorMessage(e), 'error')
-                  }
-                }}
+                onClick={() => { if (selectedTeam) setCoachInvite({ open: true, email: '', busy: false, result: null }) }}
                 className="text-[10px] font-bold text-white/70 pr-1 hover:opacity-80 transition-opacity uppercase tracking-widest"
               >
                 Invite Coach
@@ -590,6 +582,56 @@ export function OrganiseDetails({
         }}
         onCancel={() => setDeletePhotoTarget(null)}
       />
+
+      {/* ── Invite Coach Modal ── */}
+      <AnimatePresence>
+        {coachInvite.open && selectedTeam && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center px-6">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/80 backdrop-blur-[10px]" onClick={() => setCoachInvite((c) => ({ ...c, open: false }))} />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="relative w-full max-w-[360px] bg-[#1C1D2B] border border-white/10 rounded-[32px] shadow-2xl p-7 space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-white/40 uppercase tracking-wider">Invite a coach for {selectedTeam.name}</p>
+                <button onClick={() => setCoachInvite((c) => ({ ...c, open: false }))} aria-label="Close" className="text-white/20 hover:text-white"><X size={16} /></button>
+              </div>
+              {!coachInvite.result ? (
+                <form
+                  className="space-y-4"
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    setCoachInvite((c) => ({ ...c, busy: true }))
+                    try {
+                      const r = await createCoachInvite(selectedTeam.id, coachInvite.email.trim())
+                      setCoachInvite((c) => ({ ...c, busy: false, result: { link: r.link, email: r.email, emailed: r.emailed } }))
+                    } catch (err) {
+                      setCoachInvite((c) => ({ ...c, busy: false }))
+                      toast.addToast(getErrorMessage(err), 'error')
+                    }
+                  }}
+                >
+                  <label className="block space-y-2">
+                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Coach's email</span>
+                    <input type="email" required autoFocus value={coachInvite.email} onChange={(e) => setCoachInvite((c) => ({ ...c, email: e.target.value }))} placeholder="coach@example.com"
+                      className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30" />
+                  </label>
+                  <p className="text-xs text-white/40">Only this person can accept. If they already have a Gaffer account with this email, coaching is added to it.</p>
+                  <button type="submit" disabled={coachInvite.busy || !coachInvite.email.trim()} className="w-full h-12 rounded-2xl bg-gaffer-orange text-white font-black uppercase tracking-widest text-sm disabled:opacity-40">
+                    {coachInvite.busy ? 'Sending…' : 'Send invite'}
+                  </button>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  <p className="text-sm text-white/80">{coachInvite.result.emailed ? `Invite emailed to ${coachInvite.result.email}.` : `Invite ready for ${coachInvite.result.email}. The email could not be sent, so send them the link yourself.`} It works once and lasts 14 days.</p>
+                  <button
+                    onClick={async () => { await navigator.clipboard.writeText(coachInvite.result!.link); toast.addToast('Invite link copied', 'success') }}
+                    className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm">Copy the link (to send on WhatsApp)</button>
+                  <button onClick={() => setCoachInvite((c) => ({ ...c, open: false }))} className="w-full h-11 text-white/50 text-sm">Done</button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* ── Edit Team Modal ── */}
       <AnimatePresence>

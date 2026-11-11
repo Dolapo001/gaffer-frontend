@@ -4,16 +4,24 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { isStandalone } from '@/lib/pwa'
 
+// The app's own top-level sections (same list as middleware.ts). Any other first segment is the
+// /[competition]/[team] player sign-up link, which players open from WhatsApp in an ordinary browser.
+const APP_SECTIONS = ['auth', 'admin', 'app', 'onboarding', 'organization', 'player', 'recruit', 'hq', 'coach']
+
 /**
  * Returns true immediately (synchronously) for routes that never need the
  * PWA-standalone check, so no blocking overlay is ever painted on them.
  */
 function isAlwaysAllowed(pathname: string): boolean {
+  const first = pathname.split('/').filter(Boolean)[0]
+  if (first && !APP_SECTIONS.includes(first)) return true
   return (
     pathname === '/' ||
     pathname.startsWith('/onboarding/') ||
     // Gaffer HQ is used in an ordinary browser tab
     pathname.startsWith('/hq') ||
+    // Coach mode is used in an ordinary browser tab too, even when the app is installed
+    pathname.startsWith('/coach') ||
     // Password links (forgot password, organisation invites) are opened from email in a browser
     pathname.startsWith('/auth/reset-password') ||
     // Public invite + recruitment routes — must work in a regular browser
