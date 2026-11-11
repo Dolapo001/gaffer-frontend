@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCompetition, updateCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
@@ -287,7 +288,8 @@ function Summary({ id }: { id: string }) {
   )
 }
 
-export default function HqTournamentPage({ params }: { params: { id: string } }) {
+export default function HqTournamentPage() {
+  const params = useParams<{ id: string }>()
   const [tab, setTab] = useState<TabKey>('overview')
   return (
     <div className="space-y-6 max-w-5xl">

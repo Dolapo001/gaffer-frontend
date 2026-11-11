@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 
 /** Coach mode moved to /coach so it opens in any browser. */
-export default function Moved({ params }: { params: Record<string, string> }) {
-  redirect(`/coach/join/${params.token}`)
+export default async function Moved({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params
+  redirect(`/coach/join/${token}`)
 }
