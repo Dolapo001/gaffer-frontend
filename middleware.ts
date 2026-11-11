@@ -25,6 +25,7 @@ const RESERVED_TOP_SEGMENTS = [
   'player',
   'recruit',
   'hq',
+  'coach',
 ]
 
 /**
@@ -43,6 +44,9 @@ export function middleware(request: NextRequest) {
     (r) => pathname === r || pathname.startsWith(r + '/')
   )
   if (isPublic) return NextResponse.next()
+
+  // A coach invite shows who it is for before signing in; accepting needs a session
+  if (pathname.startsWith('/coach/join/')) return NextResponse.next()
 
   // Recruitment links are fully public — the token is the URL segment itself
   if (pathname.startsWith(RECRUIT_PREFIX)) return NextResponse.next()

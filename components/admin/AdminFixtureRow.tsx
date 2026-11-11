@@ -34,14 +34,21 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
   const dateLabel = kickoff.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })
   const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
+
+  // The server may still refuse when a lineup is missing; show the same choice
+  const missingFrom = (err: any): string[] | null =>
+    err?.code === 'LINEUPS_MISSING' ? ((err.details?.missing ?? []) as { name: string }[]).map((t) => t.name) : null
+
   const toggleMutation = useMutation({
-    mutationFn: (next: boolean) => (next ? startMatch(fixture._id) : cancelLive(fixture._id)),
-    onSuccess: (_, next) => {
+    mutationFn: ({ next, force }: { next: boolean; force?: boolean }) => (next ? startMatch(fixture._id, force) : cancelLive(fixture._id)),
+    onSuccess: (_, { next }) => {
       qc.invalidateQueries({ queryKey: ['fixtures'] })
       addToast(next ? 'Match is now LIVE!' : 'Match set back to scheduled.', 'success')
     },
     onError: (err: any) => {
       setLive((v) => !v)
+      const missing = missingFrom(err)
+      if (missing) return setMissingLineups(missing)
       addToast(err?.message || 'Failed to update match status', 'error')
     },
   })
@@ -56,9 +63,9 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
     onError: (err: any) => addToast(err?.message || 'Failed to delete fixture', 'error'),
   })
 
-  const goLive = (next: boolean) => {
+  const goLive = (next: boolean, force = false) => {
     setLive(next)
-    toggleMutation.mutate(next)
+    toggleMutation.mutate({ next, force })
   }
 
   const handleToggle = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -129,13 +136,13 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
 
       <ConfirmDialog
         open={!!missingLineups}
-        title="No confirmed lineup"
-        message={`No confirmed lineup for ${(missingLineups ?? []).join(' and ')}. Fantasy appearance and clean-sheet points can't be calculated without one. Start anyway?`}
+        title="No starting lineup"
+        message={`${(missingLineups ?? []).join(' and ')} ${(missingLineups ?? []).length > 1 ? 'have' : 'has'} no starting lineup. Pick it for them, or start anyway (Fantasy appearance and clean-sheet points can't be worked out without one).`}
         cancelLabel="Add lineup"
         confirmLabel="Start anyway"
         onCancel={() => { setMissingLineups(null); onClick() }}
         onDismiss={() => setMissingLineups(null)}
-        onConfirm={() => { setMissingLineups(null); goLive(true) }}
+        onConfirm={() => { setMissingLineups(null); goLive(true, true) }}
       />
 
       <AnimatePresence>

@@ -16,6 +16,7 @@ import { GoogleIcon } from '@/components/icons/GoogleIcon'
 import { useGoogleLogin } from '@react-oauth/google'
 import { googleAuth } from '@/lib/services/auth.service'
 import { useGoBack } from '@/hooks/useGoBack'
+import { afterAuthPath } from '@/lib/afterAuth'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -32,7 +33,7 @@ export default function LoginPage() {
       try {
         await googleAuth(tokenResponse.access_token)
         const { role } = useAuthStore.getState()
-        router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
+        router.replace(afterAuthPath(role))
       } catch {
         // error handled by store
       }
@@ -58,7 +59,7 @@ export default function LoginPage() {
     try {
       await login(data.email, data.password)
       const { role } = useAuthStore.getState()
-      router.replace(role === 'organization' ? '/admin' : '/app/dashboard')
+      router.replace(afterAuthPath(role))
     } catch {
       // Error is displayed from store
     } finally {

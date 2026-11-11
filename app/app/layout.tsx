@@ -39,7 +39,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!isReady) return
     const pending = pendingCoachToken.get()
-    if (pending && !pathname.startsWith('/app/coach/join')) router.replace(`/app/coach/join/${pending}`)
+    if (pending) router.replace(`/coach/join/${pending}`)
   }, [isReady, pathname, router])
 
   // Clear competition context when the user explicitly navigates away

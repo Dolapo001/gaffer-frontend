@@ -16,6 +16,7 @@ import { GoogleIcon } from '@/components/icons/GoogleIcon'
 import { useGoogleLogin } from '@react-oauth/google'
 import { googleAuth } from '@/lib/services/auth.service'
 import { useGoBack } from '@/hooks/useGoBack'
+import { afterAuthPath } from '@/lib/afterAuth'
 
 export default function SignUpPage() {
   const router = useRouter()
@@ -32,7 +33,7 @@ export default function SignUpPage() {
       try {
         await googleAuth(tokenResponse.access_token)
         const currentRole = useAuthStore.getState().role
-        router.replace(currentRole === 'organization' ? '/admin' : '/app/dashboard')
+        router.replace(afterAuthPath(currentRole))
       } catch {
         // error handled by store
       }
@@ -71,7 +72,7 @@ export default function SignUpPage() {
           lastRole: 'personal',
       })
 
-      router.replace('/app/dashboard')
+      router.replace(afterAuthPath('personal'))
     } catch {
       // Error displayed from store
     } finally {

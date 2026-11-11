@@ -245,8 +245,9 @@ export async function deleteFixture(fixtureId: string): Promise<{ message: strin
 }
 
 // POST /fixtures/:fixtureId/start
-export async function startMatch(fixtureId: string): Promise<Fixture> {
-  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/start`)
+// The server refuses (LINEUPS_MISSING) while a team has no starting lineup, unless force is set.
+export async function startMatch(fixtureId: string, force = false): Promise<Fixture> {
+  const data = await api.post<{ fixture: Fixture }>(`/fixtures/${fixtureId}/start`, force ? { force: true } : undefined)
   return data.fixture
 }
 
@@ -445,7 +446,8 @@ export async function teamsWithoutApprovedLineup(
   names: { home: string; away: string },
 ): Promise<string[]> {
   const lineups = await listLineups(fixtureId).catch(() => null)
-  const approved = (side: any) => side?.status === 'approved' && (side?.players?.length ?? 0) > 0
+  // A lineup waiting for approval (e.g. sent by the coach) is approved at kick-off, so it counts
+  const approved = (side: any) => (side?.players?.length ?? 0) > 0
   const missing: string[] = []
   // Anything but the { homeTeam, awayTeam } shape means we can't confirm either side
   if (!lineups || Array.isArray(lineups)) return [names.home, names.away]

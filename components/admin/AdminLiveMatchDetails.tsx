@@ -140,18 +140,27 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   const [missingLineups, setMissingLineups] = useState<string[] | null>(null)
   const [checkingLineups, setCheckingLineups] = useState(false)
 
+
+  // The server may still refuse when a lineup is missing; show the same choice
+  const missingFrom = (err: any): string[] | null =>
+    err?.code === 'LINEUPS_MISSING' ? ((err.details?.missing ?? []) as { name: string }[]).map((t) => t.name) : null
+
   const toggleMutation = useMutation({
-    mutationFn: async (live: boolean) => {
+    mutationFn: async ({ live, force }: { live: boolean; force?: boolean }) => {
       if (live) {
-        return startMatch(id)
+        return startMatch(id, force)
       }
       return cancelLive(id)
     },
-    onSuccess: (_, live) => {
+    onSuccess: (_, { live }) => {
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       addToast(live ? "Match is now LIVE!" : "Match scheduled.", "success")
     },
-    onError: (err: any) => addToast(err?.message || "Failed to update status", "error")
+    onError: (err: any) => {
+      const missing = missingFrom(err)
+      if (missing) return setMissingLineups(missing)
+      addToast(err?.message || "Failed to update status", "error")
+    }
   })
 
   const handleGoLiveToggle = async (next: boolean) => {
@@ -161,7 +170,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
         addToast('This match has events recorded. End it with Full time instead of switching it off.', 'error')
         return
       }
-      return toggleMutation.mutate(false)
+      return toggleMutation.mutate({ live: false })
     }
     setCheckingLineups(true)
     const names = {
@@ -171,7 +180,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
     const missing = await teamsWithoutApprovedLineup(id, names)
     setCheckingLineups(false)
     if (missing.length) setMissingLineups(missing)
-    else toggleMutation.mutate(true)
+    else toggleMutation.mutate({ live: true })
   }
 
   // 2.1 Save Lineup — POST /fixtures/:id/lineups (once per team)
@@ -1682,13 +1691,13 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       </AnimatePresence>
       <ConfirmDialog
         open={!!missingLineups}
-        title="No confirmed lineup"
-        message={`No confirmed lineup for ${(missingLineups ?? []).join(' and ')}. Fantasy appearance and clean-sheet points can't be calculated without one. Start anyway?`}
+        title="No starting lineup"
+        message={`${(missingLineups ?? []).join(' and ')} ${(missingLineups ?? []).length > 1 ? 'have' : 'has'} no starting lineup. Pick it for them, or start anyway (Fantasy appearance and clean-sheet points can't be worked out without one).`}
         cancelLabel="Add lineup"
         confirmLabel="Start anyway"
         onCancel={() => { setMissingLineups(null); setActiveTab('lineup') }}
         onDismiss={() => setMissingLineups(null)}
-        onConfirm={() => { setMissingLineups(null); toggleMutation.mutate(true) }}
+        onConfirm={() => { setMissingLineups(null); toggleMutation.mutate({ live: true, force: true }) }}
       />
     </div>
   )
