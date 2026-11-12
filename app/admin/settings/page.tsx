@@ -98,6 +98,8 @@ export default function AdminSettingsPage() {
     const reader = new FileReader()
     reader.onload = () => setLogoPreview(reader.result as string)
     reader.readAsDataURL(file)
+    // Save straight away: a preview alone looked saved, so logos were often never uploaded
+    if (org) uploadMutation.mutate({ orgId: org._id, file })
   }
 
   const handleUpload = () => {
@@ -190,7 +192,7 @@ export default function AdminSettingsPage() {
                 ) : (
                   <>
                     <Check size={15} />
-                    Upload Logo
+                    Try the upload again
                   </>
                 )}
               </button>
