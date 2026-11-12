@@ -55,7 +55,7 @@ export const useAuthStore = create<AuthState>()(
         if (user === null || (user && currentUser && user.id !== currentUser.id)) {
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
-            queryClient.clear()
+            queryClient.resetQueries()
             // Persisted fantasy draft/onboarding flags belong to the old user too
             const { useFantasyStore } = require('@/store/fantasyStore')
             useFantasyStore.getState().clearUserData()
@@ -95,7 +95,7 @@ export const useAuthStore = create<AuthState>()(
             try {
               // eslint-disable-next-line @typescript-eslint/no-var-requires
               const { queryClient } = require('@/lib/queryClient')
-              queryClient.clear()
+              queryClient.resetQueries()
             } catch {
               // SSR or bundler tree-shaking may strip this — ignore
             }
@@ -176,7 +176,7 @@ export const useAuthStore = create<AuthState>()(
 
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
-            queryClient.clear()
+            queryClient.resetQueries()
           }
 
           set({
@@ -213,7 +213,7 @@ export const useAuthStore = create<AuthState>()(
           }
           if (typeof window !== 'undefined') {
             const { queryClient } = require('@/lib/queryClient')
-            queryClient.clear()
+            queryClient.resetQueries()
             const { useFantasyStore } = require('@/store/fantasyStore')
             useFantasyStore.getState().clearUserData()
           }
