@@ -254,7 +254,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
       queryClient.invalidateQueries({ queryKey: ['lineups', id] })
       queryClient.invalidateQueries({ queryKey: ['fixture', id] })
       setIsLineupDirty(false)
-      addToast('Squad saved', 'success')
+      addToast('Lineups saved', 'success')
     },
     onError: (err: any) => addToast(err?.message || "Failed to save changes", "error")
   })
@@ -910,14 +910,21 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
               </div>
 
               <div className="pb-10 pt-4 px-2">
-                 <GradientButton
-                   onClick={() => saveLineupMutation.mutate()}
-                   loading={saveLineupMutation.isPending}
-                   disabled={saveLineupMutation.isPending || !isLineupDirty}
-                   className="h-14 w-full rounded-xl font-inter font-bold text-lg uppercase tracking-wider"
-                 >
-                   {saveLineupMutation.isPending ? 'Saving...' : isLineupDirty ? 'Save Squad' : 'Squad Saved'}
-                 </GradientButton>
+                 {isLineupDirty || saveLineupMutation.isPending ? (
+                   <GradientButton
+                     onClick={() => saveLineupMutation.mutate()}
+                     loading={saveLineupMutation.isPending}
+                     disabled={saveLineupMutation.isPending}
+                     className="h-14 w-full rounded-xl font-body text-[17px] font-bold"
+                   >
+                     {saveLineupMutation.isPending ? 'Saving…' : 'Save lineups'}
+                   </GradientButton>
+                 ) : (
+                   /* Nothing to save: a quiet status, not a button that looks pressable */
+                   <p className="flex h-14 w-full items-center justify-center gap-2 rounded-xl border border-white/10 font-body text-[15px] font-medium text-white/55">
+                     <span aria-hidden className="text-[#16A34A]">✓</span> Lineups saved
+                   </p>
+                 )}
               </div>
 
               <AnimatePresence>

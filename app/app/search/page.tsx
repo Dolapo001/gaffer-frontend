@@ -7,6 +7,7 @@ import { ChevronLeft, Search as SearchIcon, X } from 'lucide-react'
 import { searchEverything, type SearchType } from '@/lib/services/profile.service'
 import { FollowButton } from '@/components/FollowButton'
 import { getImageUrl } from '@/lib/api'
+import { formatShortDate } from '@/lib/dates'
 
 const TABS: { key: SearchType; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -128,7 +129,7 @@ export default function SearchPage() {
             <button key={m.id} onClick={() => open(`/app/match/${m.id}`)} className={row}>
               <span className="flex-1 min-w-0 text-white text-sm">
                 <span className="block font-semibold truncate">{m.home?.name} {m.score ? `${m.score.home} - ${m.score.away}` : 'v'} {m.away?.name}</span>
-                <span className="block text-xs text-white/45 truncate">{[m.tournament, new Date(m.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })].filter(Boolean).join(' · ')}</span>
+                <span className="block text-xs text-white/45 truncate">{[m.tournament, formatShortDate(m.date)].filter(Boolean).join(' · ')}</span>
               </span>
             </button>
           ))}

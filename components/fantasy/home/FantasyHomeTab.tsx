@@ -23,6 +23,8 @@ import { listCompetitionTeams } from '@/lib/services/competition.service'
 import { getGameweekState, getCurrentGameweek, computeGameweekDeadline, type GameweekState } from '@/lib/gameweekState'
 import { useFantasyStore } from '@/store/fantasyStore'
 import { PointsInfo } from '@/components/fantasy/PointsInfo'
+import { PickSquadCard } from '@/components/fantasy/PickSquadCard'
+import { formatDateTime } from '@/lib/dates'
 
 const STATE_LABELS: Record<GameweekState, string> = {
   no_fixtures: 'Not Scheduled',
@@ -48,7 +50,7 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
     queryFn: () => listCompetitionTeams(competitionId),
   })
 
-  const { data: myTeam } = useQuery({
+  const { data: myTeam, isFetched: myTeamFetched } = useQuery({
     queryKey: ['fantasy-team-me', competitionId],
     queryFn: () => getMyFantasyTeam(competitionId),
   })
@@ -135,8 +137,8 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
   }
   const kickoff = nextMatch?.kickoffAt ? new Date(nextMatch.kickoffAt) : null
   const kickoffValid = !!kickoff && !isNaN(kickoff.getTime())
-  const kickoffTime = kickoffValid ? kickoff!.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }) : '--:--'
-  const kickoffDay = kickoffValid ? `${kickoff!.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()} ${kickoffTime}` : 'TBD'
+  const kickoffTime = kickoffValid ? kickoff!.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }) : ''
+  const kickoffDay = kickoffValid ? kickoff!.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : ''
   const nextRound = nextMatch && typeof nextMatch.roundId === 'object' ? (nextMatch.roundId as any)?.name : undefined
 
   return (
@@ -150,24 +152,28 @@ export function FantasyHomeTab({ competitionId }: { competitionId: string }) {
         </div>
       )}
 
-      <FantasyHeaderCard
-        teamName={myTeam?.teamName || 'My Team'}
-        gameweekCurrent={gameweeksPlayed}
-        gameweekTotal={sortedGameweeks.length || undefined}
-        totalPoints={myTeam ? (myTeam.totalPoints ?? 0) : undefined}
-        globalRank={myRank}
-        teamValue={(myTeam as any)?.teamValue ?? null}
-        activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
-        activeGameweekPoints={activeGwPoints}
-        activePlayers={myTeam ? squadCount : undefined}
-        totalPlayers={squadRules.squadSize}
-        highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
-        deadline={activeGwDeadline ? format(activeGwDeadline, 'do MMM · HH:mm') : null}
-        onPrevGameweek={() => setActiveGwIndex(Math.max(0, gwIndex - 1))}
-        onNextGameweek={() => setActiveGwIndex(Math.min(sortedGameweeks.length - 1, gwIndex + 1))}
-        onPointsClick={() => router.push(`/app/fantasy/${competitionId}/team`)}
-        onHighestClick={() => router.push(`/app/fantasy/${competitionId}/stats`)}
-      />
+      {myTeamFetched && !myTeam ? (
+        <PickSquadCard competitionId={competitionId} squadSize={squadRules.squadSize} deadline={activeGwDeadline} />
+      ) : (
+        <FantasyHeaderCard
+          teamName={myTeam?.teamName || 'My Team'}
+          gameweekCurrent={gameweeksPlayed}
+          gameweekTotal={sortedGameweeks.length || undefined}
+          totalPoints={myTeam ? (myTeam.totalPoints ?? 0) : undefined}
+          globalRank={myRank}
+          teamValue={(myTeam as any)?.teamValue ?? null}
+          activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
+          activeGameweekPoints={activeGwPoints}
+          activePlayers={myTeam ? squadCount : undefined}
+          totalPlayers={squadRules.squadSize}
+          highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
+          deadline={activeGwDeadline ? formatDateTime(activeGwDeadline) : null}
+          onPrevGameweek={() => setActiveGwIndex(Math.max(0, gwIndex - 1))}
+          onNextGameweek={() => setActiveGwIndex(Math.min(sortedGameweeks.length - 1, gwIndex + 1))}
+          onPointsClick={() => router.push(`/app/fantasy/${competitionId}/team`)}
+          onHighestClick={() => router.push(`/app/fantasy/${competitionId}/stats`)}
+        />
+      )}
 
       {!gameweeks?.length ? (
         <div className="bg-gaffer-surface border border-gaffer-border rounded-2xl shadow-card p-4 text-center">

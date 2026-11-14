@@ -2,6 +2,7 @@
 
 import { Bell, BellOff } from 'lucide-react'
 import { penaltiesSuffix } from '@/lib/services/fixture.service'
+import { formatShortDate, formatTime } from '@/lib/dates'
 
 interface CompactFixtureRowProps {
   fixture: any
@@ -29,10 +30,10 @@ export function CompactFixtureRow({ fixture, onClick }: CompactFixtureRowProps) 
   const home = fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId : { name: 'Home' }
   const away = fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId : { name: 'Away' }
   const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date()
-  const dateLabel = kickoff.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const dateLabel = formatShortDate(kickoff)
   const isFinished = fixture.status === 'completed'
   const isLive = fixture.status === 'live'
-  const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+  const time = formatTime(kickoff)
 
   return (
     <button

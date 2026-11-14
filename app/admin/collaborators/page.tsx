@@ -18,6 +18,7 @@ import { getErrorMessage } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
 import { useUIStore } from '@/store/uiStore'
 import { useEffect } from 'react'
+import { formatDate } from '@/lib/dates'
 
 const ROLE_DESCRIPTIONS: Record<string, string> = {
   admin:   'Manage members & billing',
@@ -278,7 +279,7 @@ export default function CollaboratorsPage() {
 
                   <div className="flex items-center justify-between pt-2 border-t border-white/5">
                     <span className="text-[11px] text-white/20 uppercase font-bold tracking-widest">
-                      Joined {new Date(member.joinedAt || member.createdAt).toLocaleDateString()}
+                      Joined {formatDate(member.joinedAt || member.createdAt)}
                     </span>
                     <button
                       onClick={() => {

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { hqService } from '@/lib/services/hq.service'
+import { formatDateTime } from '@/lib/dates'
 
 const LABEL: Record<string, string> = {
   'org.approve': 'Approved organisation',
@@ -56,7 +57,7 @@ export default function HqAuditPage() {
                   {e.targetLabel ? `: ${e.targetLabel}` : ''}
                 </p>
                 <p className="text-gaffer-muted">
-                  {e.actorEmail || 'unknown'} · {new Date(e.createdAt).toLocaleString()}
+                  {e.actorEmail || 'unknown'} · {formatDateTime(e.createdAt)}
                   {typeof e.metadata?.reason === 'string' ? ` · reason: ${e.metadata.reason}` : ''}
                 </p>
               </li>

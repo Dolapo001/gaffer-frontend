@@ -1,8 +1,7 @@
 'use client';
 
-import { ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { Avatar } from '@/components/match/PitchKit';
 
 interface TopPlayersListProps {
   title: string;
@@ -29,7 +28,7 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
     const firstName = playerObj?.firstName || '';
     const lastName = playerObj?.lastName || '';
     const fullName = playerObj?.displayName?.trim() || (firstName ? `${firstName} ${lastName}`.trim() : (p?.playerName || 'Player'));
-    const teamName = teamObj?.shortName || teamObj?.name || '';
+    const teamName = teamObj?.name || teamObj?.shortName || '';
 
     return {
       id: playerObj?._id || p?._id,
@@ -43,100 +42,45 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
 
   if (list.length === 0) {
     return (
-      <div
-        className="bg-[#1a1b2e]/60 rounded-[28.03px] p-10 backdrop-blur-md border border-white/5 flex flex-col items-center justify-center text-center w-full mb-6"
-        style={{
-          fontFamily: "'Poppins', sans-serif"
-        }}
-      >
-        <p className="text-white/20 font-black uppercase tracking-widest text-[11px] mb-2">{title}</p>
-        <p className="text-white/10 font-bold uppercase tracking-widest text-[10px]">{emptyText ?? 'No stats recorded yet'}</p>
-      </div>
+      <section className="mb-6 w-full rounded-2xl bg-[#1B1D25] px-6 py-10 text-center">
+        <h2 className="mb-1 font-body text-[15px] font-semibold text-white">{title}</h2>
+        <p className="font-body text-sm text-white/50">{emptyText ?? 'Nothing recorded yet.'}</p>
+      </section>
     );
   }
 
   return (
-    <div
-      className="bg-[#1a1b2e]/60 rounded-[28.03px] p-6 backdrop-blur-md shadow-2xl flex flex-col w-full mb-6"
-      style={{
-        border: '1.31px solid rgba(255,255,255,0.08)',
-        fontFamily: "'Poppins', sans-serif"
-      }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-white text-[15.3px] font-bold tracking-tight">
-          {title}
-        </h2>
+    <section className="mb-6 w-full overflow-hidden rounded-2xl bg-[#1B1D25]">
+      <div className="flex items-center justify-between px-4 pb-2 pt-4">
+        <h2 className="font-body text-[17px] font-semibold text-white">{title}</h2>
         {onSeeAll && (
-          <button
-            onClick={onSeeAll}
-            className="text-[#D2B5FF] text-[13px] font-medium hover:text-white transition-colors"
-          >
-            See All
-          </button>
+          <button onClick={onSeeAll} className="font-body text-[13px] font-medium text-gaffer-orange">See all</button>
         )}
       </div>
-
-      <div className="flex items-center text-[#94a3b8] mb-4 text-[11px] font-bold uppercase tracking-widest px-1">
-        <span className="w-8 text-left">#</span>
-        <span className="flex-1">Player</span>
-        <span className="w-12 text-right">{statLabel}</span>
+      <div className="flex items-center gap-3 px-4 pb-1.5 font-body text-[12px] font-medium text-white/45">
+        <span className="w-5 shrink-0 text-center">#</span>
+        <span className="min-w-0 flex-1">Player</span>
+        <span className="shrink-0 text-right">{statLabel}</span>
       </div>
-
-      <div className="flex flex-col gap-1.5 overflow-hidden">
-        {list.map((player, i) => {
-          const rankColor =
-            i === 0
-              ? 'text-yellow-400 font-black'
-              : i === 1
-                ? 'text-slate-300 font-bold'
-                : i === 2
-                  ? 'text-amber-600 font-bold'
-                  : 'text-white/40';
-
-          return (
-            <motion.div
-              key={player.id || i}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.04 }}
+      <ol>
+        {list.map((player, i) => (
+          <li key={player.id || i} className="border-t border-white/[0.06]">
+            <button
+              type="button"
               onClick={() => (onSelectPlayer ? onSelectPlayer(player.id, player.raw) : player.id && router.push(`/app/player/${player.id}`))}
-              className="flex items-center py-2.5 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.06] rounded-xl transition-all group cursor-pointer"
+              className="flex w-full items-center gap-3 px-4 py-2.5 text-left"
             >
-              {/* Rank */}
-              <span className={`w-8 text-xs font-chakra ${rankColor}`}>
-                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`}
+              <span className={`w-5 shrink-0 text-center font-body text-[13px] tabular-nums ${i < 3 ? 'font-semibold text-white' : 'text-white/55'}`}>{i + 1}</span>
+              <Avatar photoUrl={player.photo || undefined} size={36} />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="truncate font-body text-[15px] font-medium text-white">{player.name}</span>
+                {player.teamName && <span className="truncate font-body text-[12px] text-white/50">{player.teamName}</span>}
               </span>
-
-              {/* Player Avatar & Details */}
-              <div className="flex-1 flex items-center gap-3 min-w-0">
-                <div className="w-9 h-9 rounded-full overflow-hidden bg-[#10111d] border border-white/10 flex items-center justify-center shrink-0 shadow-inner">
-                  {player.photo ? (
-                    <img src={player.photo} className="w-full h-full object-cover object-top" alt="" />
-                  ) : (
-                    <span className="text-white/40 text-[10px] uppercase font-black">{player.name[0]}</span>
-                  )}
-                </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-white text-[13px] font-bold truncate tracking-wide uppercase group-hover:text-gaffer-orange transition-colors">
-                    {player.name}
-                  </span>
-                  {player.teamName && (
-                    <span className="text-white/40 text-[10px] font-chakra font-medium truncate">
-                      {player.teamName}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Stat Value */}
-              <span className="text-[14px] font-black text-white w-12 text-right tracking-tight italic">
-                {player.value}
-              </span>
-            </motion.div>
-          );
-        })}
-      </div>
-    </div>
+              <span className="shrink-0 font-body text-[17px] font-semibold tabular-nums text-white">{player.value}</span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </section>
   );
 }

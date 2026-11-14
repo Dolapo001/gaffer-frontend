@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqUser } from '@/lib/services/hq.service'
 import { ActionButton, Pager, Pill, ReasonDialog, errorText } from '@/components/hq/ui'
+import { formatDate, formatDateTime } from '@/lib/dates'
 
 const STATUS: Record<HqUser['status'], { label: string; tone: 'good' | 'warn' | 'bad' | 'neutral' }> = {
   active: { label: 'Active', tone: 'good' },
@@ -50,8 +51,8 @@ function UserDetail({ id, onClose }: { id: string; onClose: () => void }) {
       </div>
 
       <dl className="grid md:grid-cols-3 gap-3 text-sm font-body">
-        <div><dt className="text-gaffer-muted">Joined Gaffer</dt><dd>{new Date(user.createdAt).toLocaleDateString()}</dd></div>
-        <div><dt className="text-gaffer-muted">Last login</dt><dd>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Never'}</dd></div>
+        <div><dt className="text-gaffer-muted">Joined Gaffer</dt><dd>{formatDate(user.createdAt)}</dd></div>
+        <div><dt className="text-gaffer-muted">Last login</dt><dd>{user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}</dd></div>
         <div><dt className="text-gaffer-muted">Coins</dt><dd className="font-chakra font-bold text-lg">{wallet.balance}</dd></div>
       </dl>
 
@@ -70,7 +71,7 @@ function UserDetail({ id, onClose }: { id: string; onClose: () => void }) {
         </div>
         <div>
           <p className="text-gaffer-muted mb-1">Latest coin movements</p>
-          {transactions.length ? <ul className="space-y-1">{transactions.map((t) => <li key={t.id}>{t.type === 'credit' ? '+' : '−'}{t.coins} <span className="text-gaffer-muted">· {t.source.replace('_', ' ')} · {new Date(t.createdAt).toLocaleDateString()}</span></li>)}</ul> : <p>None.</p>}
+          {transactions.length ? <ul className="space-y-1">{transactions.map((t) => <li key={t.id}>{t.type === 'credit' ? '+' : '−'}{t.coins} <span className="text-gaffer-muted">· {t.source.replace('_', ' ')} · {formatDate(t.createdAt)}</span></li>)}</ul> : <p>None.</p>}
         </div>
       </div>
 
@@ -137,7 +138,7 @@ export default function HqUsersPage() {
                 <button onClick={() => setSelected(u.id)} className={`w-full text-left rounded-2xl bg-gaffer-card border p-3 flex items-center justify-between gap-3 hover:border-gaffer-orange ${selected === u.id ? 'border-gaffer-orange' : 'border-gaffer-border'}`}>
                   <span className="min-w-0">
                     <span className="block font-display font-bold text-lg truncate">{u.fullName || u.email}</span>
-                    <span className="block text-xs text-gaffer-muted font-body truncate">{u.email} · joined {new Date(u.createdAt).toLocaleDateString()} · {u.leaguesJoined ?? 0} {u.leaguesJoined === 1 ? 'league' : 'leagues'}{u.isOrgOwner ? ' · organisation owner' : ''}{u.platformRole ? ' · HQ' : ''}</span>
+                    <span className="block text-xs text-gaffer-muted font-body truncate">{u.email} · joined {formatDate(u.createdAt)} · {u.leaguesJoined ?? 0} {u.leaguesJoined === 1 ? 'league' : 'leagues'}{u.isOrgOwner ? ' · organisation owner' : ''}{u.platformRole ? ' · HQ' : ''}</span>
                   </span>
                   <Pill label={STATUS[u.status].label} tone={STATUS[u.status].tone} />
                 </button>

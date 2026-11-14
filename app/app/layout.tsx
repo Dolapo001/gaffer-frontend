@@ -93,7 +93,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-clip" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         <ErrorBoundary>
           <motion.main
             initial={{ opacity: 0, y: 8 }}

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { hqService } from '@/lib/services/hq.service'
 import { Pager, Pill } from '@/components/hq/ui'
+import { formatDateTime } from '@/lib/dates'
 
 const naira = (n: number) => `₦${n.toLocaleString()}`
 
@@ -83,7 +84,7 @@ export default function HqPaymentsPage() {
             <ul className="space-y-2">
               {purchases.data.purchases.map((p) => (
                 <li key={p.id} className="rounded-2xl bg-gaffer-card border border-gaffer-border p-3 flex items-center justify-between gap-3 font-body text-sm">
-                  <span className="min-w-0"><span className="block font-semibold truncate">{p.user?.email ?? 'Unknown user'}</span><span className="block text-xs text-gaffer-muted">{p.coins} coins · {naira(p.amountNaira)} · {new Date(p.createdAt).toLocaleString()}</span></span>
+                  <span className="min-w-0"><span className="block font-semibold truncate">{p.user?.email ?? 'Unknown user'}</span><span className="block text-xs text-gaffer-muted">{p.coins} coins · {naira(p.amountNaira)} · {formatDateTime(p.createdAt)}</span></span>
                   <Pill label={p.status} tone={TONE[p.status]} />
                 </li>
               ))}
@@ -100,7 +101,7 @@ export default function HqPaymentsPage() {
             <ul className="space-y-2">
               {txs.data.transactions.map((t) => (
                 <li key={t.id} className="rounded-2xl bg-gaffer-card border border-gaffer-border p-3 flex items-center justify-between gap-3 font-body text-sm">
-                  <span className="min-w-0"><span className="block font-semibold truncate">{t.user?.email ?? 'Unknown user'}</span><span className="block text-xs text-gaffer-muted">{t.source.replace('_', ' ')} · balance after {t.balanceAfter} · {new Date(t.createdAt).toLocaleString()}</span></span>
+                  <span className="min-w-0"><span className="block font-semibold truncate">{t.user?.email ?? 'Unknown user'}</span><span className="block text-xs text-gaffer-muted">{t.source.replace('_', ' ')} · balance after {t.balanceAfter} · {formatDateTime(t.createdAt)}</span></span>
                   <span className={`font-chakra font-bold ${t.type === 'credit' ? 'text-green-300' : 'text-red-300'}`}>{t.type === 'credit' ? '+' : '−'}{t.coins}</span>
                 </li>
               ))}

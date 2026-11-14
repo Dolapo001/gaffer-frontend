@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { motion } from 'framer-motion'
+import { TeamBadge } from '@/components/ui/TeamBadge'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Bell, BellOff } from 'lucide-react'
 import { getStandings } from '@/lib/services/standings.service'
@@ -26,7 +26,7 @@ function TeamFollowButton({
     <button
       onClick={(e) => { e.stopPropagation(); onToggle() }}
       disabled={isPending || !teamId}
-      className="w-7 h-7 flex items-center justify-center rounded-full bg-white/5 border border-white/10 transition-colors hover:bg-white/10 disabled:opacity-30"
+      className="flex h-8 w-7 items-center justify-center disabled:opacity-30"
       aria-label={isFollowing ? 'Unfollow team' : 'Follow team'}
     >
       {isFollowing
@@ -82,7 +82,7 @@ export default function LeagueStandingsPage() {
   const statsByTeamId = new Map(
     (standingsData?.standings ?? []).map((s) => [
       s.teamId?._id,
-      { w: s.won ?? 0, d: s.drawn ?? 0, l: s.lost ?? 0, pts: s.points ?? 0 },
+      { p: s.played ?? 0, w: s.won ?? 0, d: s.drawn ?? 0, l: s.lost ?? 0, gf: s.goalsFor ?? 0, gd: s.goalDifference ?? 0, pts: s.points ?? 0, logoUrl: s.teamId?.logoUrl },
     ]),
   )
 
@@ -90,8 +90,8 @@ export default function LeagueStandingsPage() {
   for (const t of compTeams ?? []) {
     const groupName = t.groupName || 'Ungrouped'
     if (!groupsMap[groupName]) groupsMap[groupName] = []
-    const stats = statsByTeamId.get(t.teamId) ?? { w: 0, d: 0, l: 0, pts: 0 }
-    groupsMap[groupName].push({ teamId: t.teamId ?? t._id ?? '', name: t.name || 'Team', ...stats })
+    const stats = statsByTeamId.get(t.teamId) ?? { p: 0, w: 0, d: 0, l: 0, gf: 0, gd: 0, pts: 0, logoUrl: undefined }
+    groupsMap[groupName].push({ teamId: t.teamId ?? t._id ?? '', name: t.name || 'Team', ...stats, logoUrl: stats.logoUrl || (t as any).logoUrl })
   }
 
   // Display the admin's real group name as-is (uppercased for consistent
@@ -101,8 +101,8 @@ export default function LeagueStandingsPage() {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([groupName, teams]) => ({
       id: groupName,
-      name: groupName.toUpperCase(),
-      teams: [...teams].sort((a, b) => b.pts - a.pts),
+      name: groupName === 'Ungrouped' ? 'Table' : groupName,
+      teams: [...teams].sort((a, b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name)),
     }))
 
   if (isLoading) {
@@ -116,72 +116,63 @@ export default function LeagueStandingsPage() {
   if (processedGroups.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 px-10 text-center">
-        <h2 className="text-white text-lg font-bold mb-2 uppercase tracking-tight">No Teams Yet</h2>
-        <p className="text-gaffer-muted text-sm max-w-xs">No teams have been added to this tournament yet.</p>
+        <h2 className="mb-2 font-body text-[17px] font-semibold text-white">No teams yet</h2>
+        <p className="max-w-xs font-body text-sm text-white/55">The table appears once the organiser adds teams to this tournament.</p>
       </div>
     )
   }
 
+  const cols = 'w-[22px] shrink-0 text-center tabular-nums'
+
   return (
-    <div className="px-5 space-y-8 py-6 max-w-md mx-auto">
-      {processedGroups.map((group, groupIdx) => (
-        <div key={groupIdx} className="bg-gaffer-surface border border-gaffer-border rounded-2xl shadow-card p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)]" />
-            <span className="text-white text-[14px] font-black uppercase tracking-widest">{group.name}</span>
+    <div className="mx-auto max-w-md space-y-4 px-3 py-4">
+      {allZeroStats && (
+        <p className="text-center font-body text-[13px] text-white/50">No matches played yet.</p>
+      )}
+      {processedGroups.map((group) => (
+        <section key={group.id} className="overflow-hidden rounded-2xl bg-[#1B1D25]">
+          <h2 className="px-4 pb-2 pt-4 font-body text-[15px] font-semibold text-white">{group.name}</h2>
+
+          <div className="flex items-center gap-1 px-3 pb-1.5 font-body text-[12px] font-medium text-white/45">
+            <span className="w-5 shrink-0 text-center">#</span>
+            <span className="min-w-0 flex-1 pl-1">Team</span>
+            <span className={cols}>P</span>
+            <span className={`${cols} hidden min-[400px]:block`}>W</span>
+            <span className={`${cols} hidden min-[400px]:block`}>D</span>
+            <span className={`${cols} hidden min-[400px]:block`}>L</span>
+            <span className="w-[30px] shrink-0 text-center">GD</span>
+            <span className="w-[28px] shrink-0 text-center">Pts</span>
+            <span className="w-7 shrink-0" aria-hidden />
           </div>
 
-          {allZeroStats && groupIdx === 0 && (
-            <p className="text-gaffer-muted text-[10px] font-medium uppercase tracking-widest text-center mb-4">
-              No matches played yet
-            </p>
-          )}
-
-          <div className="flex items-center text-gaffer-muted text-[11px] font-black uppercase tracking-[0.2em] mb-4">
-            <span className="flex-1">Club</span>
-            <div className="flex items-center gap-4">
-              <span className="w-6 text-center">W</span>
-              <span className="w-6 text-center">D</span>
-              <span className="w-6 text-center">L</span>
-              <span className="w-10 text-right">Pts</span>
-              <span className="w-7 text-center">Alert</span>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-4">
+          <ol>
             {group.teams.map((team: any, i: number) => {
               const isFollowing = followedTeams.includes(team.teamId)
               const isPending = pendingTeamId === team.teamId
               return (
-                <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 + groupIdx * 0.1 }}
-                  className="flex items-center py-2 border-b border-white/5 last:border-0"
-                >
-                  <div className="flex-1 flex items-center gap-3 min-w-0">
-                    <span className="text-white text-[14px] font-black uppercase tracking-wider truncate">{team.name}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-[14px] font-bold text-white/90">
-                    <span className="w-6 text-center">{team.w}</span>
-                    <span className="w-6 text-center">{team.d}</span>
-                    <span className="w-6 text-center">{team.l}</span>
-                    <span className="w-10 text-right font-black text-white">{team.pts}</span>
-                    <div className="w-7 flex justify-center">
-                      <TeamFollowButton
-                        teamId={team.teamId}
-                        isFollowing={isFollowing}
-                        isPending={isPending}
-                        onToggle={() => followTeamMutation.mutate({ teamId: team.teamId, following: isFollowing })}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
+                <li key={team.teamId || i} className="flex h-12 items-center gap-1 border-t border-white/[0.06] px-3 font-body text-[14px] text-white">
+                  <span className="w-5 shrink-0 text-center text-[13px] tabular-nums text-white/60">{i + 1}</span>
+                  <span className="flex min-w-0 flex-1 items-center gap-2 pl-1">
+                    <TeamBadge name={team.name} logoUrl={team.logoUrl} size={22} />
+                    <span className="truncate font-medium">{team.name}</span>
+                  </span>
+                  <span className={`${cols} text-white/70`}>{team.p}</span>
+                  <span className={`${cols} hidden text-white/70 min-[400px]:block`}>{team.w}</span>
+                  <span className={`${cols} hidden text-white/70 min-[400px]:block`}>{team.d}</span>
+                  <span className={`${cols} hidden text-white/70 min-[400px]:block`}>{team.l}</span>
+                  <span className="w-[30px] shrink-0 text-center tabular-nums text-white/70">{team.gd > 0 ? `+${team.gd}` : team.gd}</span>
+                  <span className="w-[28px] shrink-0 text-center font-semibold tabular-nums">{team.pts}</span>
+                  <TeamFollowButton
+                    teamId={team.teamId}
+                    isFollowing={isFollowing}
+                    isPending={isPending}
+                    onToggle={() => followTeamMutation.mutate({ teamId: team.teamId, following: isFollowing })}
+                  />
+                </li>
               )
             })}
-          </div>
-        </div>
+          </ol>
+        </section>
       ))}
     </div>
   )

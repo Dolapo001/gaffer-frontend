@@ -4,7 +4,7 @@ import React, { useState } from 'react'
 import Link from 'next/link'
 import { useQuery } from '@tanstack/react-query'
 import { fetchPlayerStats, type PlayerStatEntry } from '@/lib/services/stats.service'
-import { ChevronRight } from 'lucide-react'
+import { Avatar } from '@/components/match/PitchKit'
 
 export interface StatsWidgetProps {
   leagueId: string
@@ -29,127 +29,75 @@ function getStatValue(entry: PlayerStatEntry, statType: string): number {
 }
 
 function getDisplayName(player: any): string {
-  if (player?.displayName?.trim()) return player.displayName.trim()
-  if (player?.firstName) {
-    return player.firstName.trim()
-  }
-  if (player?.name) return player.name.trim()
-  if (player?.fullName) return player.fullName.trim()
-  return 'Player'
+  const nick = player?.displayName?.trim()
+  if (nick) return nick
+  const full = [player?.firstName, player?.lastName].filter(Boolean).join(' ').trim()
+  return full || player?.fullName?.trim() || player?.name?.trim() || 'Player'
 }
 
-function getInitials(name: string): string {
-  if (!name) return 'P'
-  return name.substring(0, 2).toUpperCase()
-}
-
-export function StatsWidget({
-  leagueId,
-  statType = 'goals',
-}: StatsWidgetProps) {
+/** The top six for goals or assists, with a toggle between the two and a link to the full list. */
+export function StatsWidget({ leagueId, statType = 'goals' }: StatsWidgetProps) {
   const [activeSectionId, setActiveSectionId] = useState(statType)
-
   const activeSection = STAT_SECTIONS.find((s) => s.id === activeSectionId) || STAT_SECTIONS[0]
-  const collapsedSections = STAT_SECTIONS.filter((s) => s.id !== activeSection.id)
 
   const { data: players = [], isLoading } = useQuery({
     queryKey: ['stats-widget', leagueId, activeSection.id],
     queryFn: () => fetchPlayerStats(leagueId, activeSection.id, 6),
     enabled: Boolean(leagueId),
   })
-
   const displayPlayers = players.slice(0, 6)
 
   return (
-    <div className="w-full max-w-[380px] mx-auto mt-6 font-chakra flex flex-col gap-3">
-      {/* Active Expanded Card */}
-      <div className="w-full bg-[#1c2230] rounded-[20px] p-5 border border-white/5 shadow-xl flex flex-col">
-        {/* Top Header */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-white text-[16px] font-bold tracking-wide">
-            {activeSection.title}
-          </h3>
-          <Link
-            href={`/app/league/${leagueId}/stats/${activeSection.linkType}`}
-            className="text-[#a78bfa] text-[13px] font-medium hover:underline flex items-center gap-0.5"
+    <section className="mx-auto mt-6 w-full max-w-[380px] overflow-hidden rounded-2xl bg-[#1B1D25]">
+      <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-4">
+        <h3 className="font-body text-[17px] font-semibold text-white">Top players</h3>
+        <Link href={`/app/league/${leagueId}/stats/${activeSection.linkType}`} className="font-body text-[13px] font-medium text-gaffer-orange">
+          See all
+        </Link>
+      </div>
+      <div className="mx-4 mb-2 grid grid-cols-2 rounded-full bg-white/[0.06] p-1" role="tablist">
+        {STAT_SECTIONS.map((sec) => (
+          <button
+            key={sec.id}
+            role="tab"
+            aria-selected={sec.id === activeSection.id}
+            onClick={() => setActiveSectionId(sec.id)}
+            className={`rounded-full py-2 font-body text-[13px] font-semibold ${sec.id === activeSection.id ? 'bg-white text-black' : 'text-white/60'}`}
           >
-            <span>See All</span>
-          </Link>
-        </div>
-
-        {/* Column Headers */}
-        <div className="flex justify-between items-center text-white/70 text-[12px] font-medium mb-2 px-1">
-          <span>Player Name</span>
-          <span>{activeSection.label}</span>
-        </div>
-
-        {/* List of Players */}
-        <div className="flex flex-col">
-          {isLoading ? (
-            <div className="py-4 space-y-3">
-              {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-8 bg-white/5 rounded animate-pulse" />
-              ))}
-            </div>
-          ) : displayPlayers.length === 0 ? (
-            <div className="py-6 text-center text-[#94a3b8] text-[12px]">
-              No {activeSection.label.toLowerCase()} recorded yet
-            </div>
-          ) : (
-            displayPlayers.map((entry, idx) => {
-              const player = entry.playerId || (entry as any)
-              const name = getDisplayName(player)
-              const photo = player?.photoUrl
-              const val = getStatValue(entry, activeSection.id)
-              const initials = getInitials(name)
-
-              return (
-                <div
-                  key={player?._id || idx}
-                  className="flex items-center justify-between py-3 border-b border-white/5 last:border-b-0 hover:bg-[#242c3d]/30 px-1 transition rounded-md cursor-pointer"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full overflow-hidden bg-[#242c3d] flex items-center justify-center flex-shrink-0 border border-white/10 shadow-sm">
-                      {photo ? (
-                        <img
-                          src={photo}
-                          alt={name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-white text-[10px] font-bold">
-                          {initials}
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-white text-[13px] font-medium truncate">
-                      {name}
-                    </span>
-                  </div>
-
-                  <span className="text-white text-[14px] font-bold font-chakra ml-2">
-                    {val}
-                  </span>
-                </div>
-              )
-            })
-          )}
-        </div>
+            {sec.label}
+          </button>
+        ))}
       </div>
 
-      {/* Collapsed Section Bars (Figma Accordion Buttons) */}
-      {collapsedSections.map((sec) => (
-        <div
-          key={sec.id}
-          onClick={() => setActiveSectionId(sec.id)}
-          className="w-full bg-[#1c2230] rounded-[16px] p-4 border border-white/5 flex justify-between items-center cursor-pointer transition hover:bg-[#242c3d] shadow-md group"
-        >
-          <span className="text-white text-[14px] font-bold tracking-wide">
-            {sec.title}
-          </span>
-          <ChevronRight size={16} className="text-white/70 group-hover:translate-x-0.5 transition-transform" />
+      {isLoading ? (
+        <div className="space-y-3 px-4 py-4">
+          {[1, 2, 3, 4].map((i) => <div key={i} className="h-9 animate-pulse rounded bg-white/5" />)}
         </div>
-      ))}
-    </div>
+      ) : displayPlayers.length === 0 ? (
+        <p className="px-4 pb-6 pt-3 text-center font-body text-sm text-white/50">No {activeSection.label.toLowerCase()} recorded yet.</p>
+      ) : (
+        <ol>
+          {displayPlayers.map((entry, idx) => {
+            const player = entry.playerId || (entry as any)
+            const team = (entry as any).teamId
+            return (
+              <li key={player?._id || idx} className="border-t border-white/[0.06] first:border-t-0">
+                <Link href={`/app/player/${player?._id}`} className="flex items-center gap-3 px-4 py-2.5">
+                  <span className={`w-4 shrink-0 text-center font-body text-[13px] tabular-nums ${idx < 3 ? 'font-semibold text-white' : 'text-white/55'}`}>{idx + 1}</span>
+                  <Avatar photoUrl={player?.photoUrl} size={34} />
+                  <span className="flex min-w-0 flex-1 flex-col">
+                    <span className="truncate font-body text-[15px] font-medium text-white">{getDisplayName(player)}</span>
+                    {team && typeof team === 'object' && (team.name || team.shortName) && (
+                      <span className="truncate font-body text-[12px] text-white/50">{team.name || team.shortName}</span>
+                    )}
+                  </span>
+                  <span className="shrink-0 font-body text-[17px] font-semibold tabular-nums text-white">{getStatValue(entry, activeSection.id)}</span>
+                </Link>
+              </li>
+            )
+          })}
+        </ol>
+      )}
+    </section>
   )
 }

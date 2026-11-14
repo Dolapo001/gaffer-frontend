@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqContentItem } from '@/lib/services/hq.service'
 import { ActionButton, Pager, Pill, ReasonDialog, errorText } from '@/components/hq/ui'
+import { formatDateTime } from '@/lib/dates'
 
 function Comments({ id }: { id: string }) {
   const qc = useQueryClient()
@@ -21,7 +22,7 @@ function Comments({ id }: { id: string }) {
       {error && <li role="alert" className="text-sm text-red-400 font-body">{error}</li>}
       {data.comments.map((c) => (
         <li key={c.id} className="rounded-xl border border-gaffer-border p-2 text-sm font-body flex items-start justify-between gap-3">
-          <span className="min-w-0"><span className="block whitespace-pre-line">{c.body}</span><span className="block text-xs text-gaffer-muted">{c.user?.email ?? 'Unknown'} · {new Date(c.createdAt).toLocaleString()}</span></span>
+          <span className="min-w-0"><span className="block whitespace-pre-line">{c.body}</span><span className="block text-xs text-gaffer-muted">{c.user?.email ?? 'Unknown'} · {formatDateTime(c.createdAt)}</span></span>
           <ActionButton tone="bad" label="Remove" onClick={() => remove.mutate(c.id)} disabled={remove.isPending} />
         </li>
       ))}
@@ -99,7 +100,7 @@ export default function HqContentPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-display font-bold text-lg">{i.title || '(no headline)'}</p>
-                    <p className="text-xs text-gaffer-muted font-body">{i.author}{i.organisation ? ` · ${i.organisation}` : ''} · {new Date(i.createdAt).toLocaleString()}</p>
+                    <p className="text-xs text-gaffer-muted font-body">{i.author}{i.organisation ? ` · ${i.organisation}` : ''} · {formatDateTime(i.createdAt)}</p>
                   </div>
                   <Pill label={i.type} tone="neutral" />
                 </div>

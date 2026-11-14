@@ -58,7 +58,7 @@ function Pair({ pair }: { pair: HqDuplicatePair }) {
         <PlayerCard p={pair.b} chosen={keep === 'b'} onChoose={() => setKeep('b')} disabled={!pair.canMerge} />
       </div>
       {!pair.canMerge ? (
-        <p className="text-sm font-body text-yellow-300">Both are in {pair.sharedTournaments.join(', ')}, so they can't be merged. If it's the same person, the organiser should remove the extra one from the squad.</p>
+        <p className="text-sm font-body text-yellow-300">Both are in {pair.sharedTournaments.join(', ')}, so they can&apos;t be merged. If it&apos;s the same person, the organiser should remove the extra one from the squad.</p>
       ) : confirm ? (
         <div className="rounded-xl border border-gaffer-orange/40 bg-gaffer-orange/10 p-3 space-y-2">
           <p className="text-sm font-body">Merge <b>{label(other)}</b> into <b>{label(kept)}</b>? Their teams, matches, stats, Fantasy and followers move to the kept record. You can undo this for 30 days.</p>

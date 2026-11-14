@@ -37,7 +37,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-hidden">
+    <div className="min-h-screen bg-[#181928] flex flex-col overflow-x-clip">
       <OrgStatusBanner />
       <ErrorBoundary>
         <motion.main

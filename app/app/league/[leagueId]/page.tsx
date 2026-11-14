@@ -21,8 +21,10 @@ import { NewsFeedWidget } from '@/components/fantasy/NewsFeedWidget'
 import { TableStandings } from '@/components/league/TableStandings'
 import { NextMatchCard } from '@/components/league/NextMatchCard'
 import { NextMatchWidget } from '@/components/league/NextMatchWidget'
+import { PickSquadCard } from '@/components/fantasy/PickSquadCard'
 import { StatsWidget } from '@/components/stats/StatsWidget'
 import { TeamOfTheWeekWidget } from '@/components/totw/TeamOfTheWeekWidget'
+import { formatDateTime } from '@/lib/dates'
 
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime()
@@ -176,7 +178,7 @@ export default function LeagueOverviewPage() {
     refetchOnMount: true,
   })
 
-  const { data: fantasyTeam = null } = useQuery({
+  const { data: fantasyTeam = null, isFetched: fantasyTeamFetched } = useQuery({
     queryKey: ['fantasy-team-me', realCompId],
     queryFn: () => getMyFantasyTeam(realCompId),
     retry: false,
@@ -229,12 +231,13 @@ export default function LeagueOverviewPage() {
   const nextMatchAway = nextMatch ? getTeamInfo(nextMatch.awayTeamId) : null
 
   const nextMatchDateTime = useMemo(() => {
-    if (!nextMatch?.kickoffAt) return { day: 'TBD', time: '--:--' }
+    if (!nextMatch?.kickoffAt) return { day: '', time: '' }
     const d = new Date(nextMatch.kickoffAt)
-    if (isNaN(d.getTime())) return { day: 'TBD', time: '--:--' }
-    const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()
-    const timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-    return { day: `${dayStr} ${timeStr}`, time: timeStr }
+    if (isNaN(d.getTime())) return { day: '', time: '' }
+    return {
+      day: d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }),
+      time: d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false }),
+    }
   }, [nextMatch])
 
   const nextMatchGameweekLabel = useMemo(() => {
@@ -262,7 +265,7 @@ export default function LeagueOverviewPage() {
   const activeGw = sortedGameweeks[activeGwIndex] ?? featuredGameweek
 
   const activeGwDeadline = activeGw ? computeGameweekDeadline(activeGw, allFixtures) : null
-  const deadlineLabel = activeGwDeadline ? format(activeGwDeadline, "do MMM · HH:mm") : null
+  const deadlineLabel = activeGwDeadline ? formatDateTime(activeGwDeadline) : null
 
   const gameweeksPlayed = gameweeks.filter((gw) => getGameweekState(gw, allFixtures) === 'completed').length
   const activeGwState = activeGw ? getGameweekState(activeGw, allFixtures) : 'upcoming'
@@ -307,25 +310,29 @@ export default function LeagueOverviewPage() {
       {/* Live match gradient cards — self-hides when nothing is live */}
       <LiveMatchWidget fixtures={allFixtures} onMatchClick={(id) => router.push(`/app/match/${id}`)} />
 
-      <FantasyHeaderCard
-        teamName={fantasyTeam?.teamName || 'My Team'}
-        gameweekCurrent={gameweeksPlayed}
-        gameweekTotal={sortedGameweeks.length || undefined}
-        totalPoints={fantasyTeam ? (fantasyTeam.totalPoints ?? 0) : undefined}
-        globalRank={myRank}
-        teamValue={(fantasyTeam as any)?.teamValue ?? null}
-        activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
-        activeGameweekPoints={activeGwPoints}
-        activePlayers={fantasyTeam ? activePlayers : undefined}
-        totalPlayers={15 /* squad size */}
-        // Only meaningful once a gameweek has been scored
-        highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
-        deadline={deadlineLabel}
-        onPrevGameweek={() => setActiveGwIndex((i) => Math.max(0, i - 1))}
-        onNextGameweek={() => setActiveGwIndex((i) => Math.min(sortedGameweeks.length - 1, i + 1))}
-        onPointsClick={() => router.push(`/app/fantasy/${leagueId}/team`)}
-        onHighestClick={() => router.push(`/app/fantasy/${leagueId}/stats`)}
-      />
+      {fantasyTeamFetched && !fantasyTeam ? (
+        <PickSquadCard competitionId={leagueId} deadline={activeGwDeadline} />
+      ) : (
+        <FantasyHeaderCard
+          teamName={fantasyTeam?.teamName || 'My Team'}
+          gameweekCurrent={gameweeksPlayed}
+          gameweekTotal={sortedGameweeks.length || undefined}
+          totalPoints={fantasyTeam ? (fantasyTeam.totalPoints ?? 0) : undefined}
+          globalRank={myRank}
+          teamValue={(fantasyTeam as any)?.teamValue ?? null}
+          activeGameweekLabel={activeGw?.name ?? 'Gameweek'}
+          activeGameweekPoints={activeGwPoints}
+          activePlayers={fantasyTeam ? activePlayers : undefined}
+          totalPlayers={15 /* squad size */}
+          // Only meaningful once a gameweek has been scored
+          highestScore={gameweeksPlayed > 0 ? (fantasyStats?.highestSC ?? null) : null}
+          deadline={deadlineLabel}
+          onPrevGameweek={() => setActiveGwIndex((i) => Math.max(0, i - 1))}
+          onNextGameweek={() => setActiveGwIndex((i) => Math.min(sortedGameweeks.length - 1, i + 1))}
+          onPointsClick={() => router.push(`/app/fantasy/${leagueId}/team`)}
+          onHighestClick={() => router.push(`/app/fantasy/${leagueId}/stats`)}
+        />
+      )}
 
       {nextMatch && (
         <NextMatchWidget
