@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
 import { createCoachInvite } from '@/lib/services/coach.service'
 import { getErrorMessage } from '@/lib/api'
+import { duplicateNumbers } from '@/components/match/LineupEditor'
 
 const slugify = (text: string) => text.toLowerCase().trim().replace(/ /g, '-').replace(/[^\w-]+/g, '')
 
@@ -474,6 +475,20 @@ export function OrganiseDetails({
                  </button>
                </div>
             </div>
+
+            {/* Two players wearing the same number confuse lineups and the match page: say so, but don't block it */}
+            {(() => {
+              const dupes = duplicateNumbers(
+                players
+                  .filter((p) => p.role !== 'coach')
+                  .map((p) => ({ name: p.name, jerseyNumber: p.jerseyNumber === undefined || p.jerseyNumber === '' ? null : Number(p.jerseyNumber) })),
+              )
+              return dupes.length ? (
+                <p className="mx-2 rounded-2xl bg-white/[0.06] p-3 font-body text-[13px] leading-snug text-white/70">
+                  Shirt numbers used twice: {dupes.map((d) => `${d.number} (${d.names.join(', ')})`).join('; ')}. Tap a player to change their number.
+                </p>
+              ) : null
+            })()}
 
             {/* Player Roster */}
             {players.length > 0 ? (
