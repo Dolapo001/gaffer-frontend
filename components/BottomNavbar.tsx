@@ -72,7 +72,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
             <Link
               key={item.href}
               href={item.href}
-              className="flex-1 min-w-0 px-1 flex flex-col items-center justify-center gap-1 transition-all relative"
+              className={`flex-1 min-w-0 ${items.length > 5 ? 'px-0' : 'px-1'} flex flex-col items-center justify-center gap-1 transition-all relative`}
             >
               <div className="flex items-center justify-center">
                 <item.icon
@@ -84,7 +84,7 @@ export function BottomNavbar({ items, id }: BottomNavbarProps) {
               </div>
 
               <span
-                className={`text-[12px] font-medium tracking-tight truncate max-w-full px-0.5 transition-colors duration-200 ${
+                className={`${items.length > 5 ? 'text-[11px]' : 'text-[12px]'} whitespace-nowrap font-medium tracking-tight truncate max-w-full transition-colors duration-200 ${
                   isActive ? 'text-[#ff6b00]' : 'text-[#7A8293] hover:text-[#9EA5B4]'
                 }`}
               >

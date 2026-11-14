@@ -633,7 +633,7 @@ export default function OrganizePage() {
           className="flex items-center px-4 md:px-6 pb-4 border-b border-white/10 shrink-0"
           style={{ paddingTop: 'max(env(safe-area-inset-top), 1rem)' }}
         >
-          <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Organize</h1>
+          <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Teams</h1>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center px-8 text-center space-y-8">
           <div className="w-20 h-20 bg-orange-500/10 rounded-full flex items-center justify-center">
