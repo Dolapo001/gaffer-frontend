@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqNews, type HqNewsStatus } from '@/lib/services/hq.service'
 import { ImageField } from '@/components/hq/ImageField'
 import { ApiError } from '@/lib/api'
+import { formatDateTime } from '@/lib/dates'
 
 const TABS: { id: HqNewsStatus; label: string }[] = [
   { id: 'active', label: 'Live' },
@@ -50,7 +51,7 @@ function Composer({ editing, onDone }: { editing: HqNews | null; onDone: () => v
         return 'Saved.'
       }
       const res = await hqService.createNews({ title: title.trim() || undefined, body: body.trim(), imageUrl: imageUrl || undefined, pinned, push, publishAt })
-      if (res.news.status === 'scheduled') return `Scheduled for ${new Date(res.news.publishAt!).toLocaleString()}.`
+      if (res.news.status === 'scheduled') return `Scheduled for ${formatDateTime(res.news.publishAt!)}.`
       return res.sent ? `Sent. ${res.sent.notified} people were notified and ${res.sent.pushed} phones got a push.` : 'Published.'
     },
     onSuccess: (message) => {
@@ -165,7 +166,7 @@ export default function HqNewsPage() {
                   <div className="min-w-0">
                     <p className="font-display font-bold text-lg">{n.title || '(no headline)'}{n.isPinned && <span className="ml-2 text-xs font-body font-semibold text-gaffer-orange border border-gaffer-orange/50 rounded-full px-2 py-0.5">Pinned</span>}</p>
                     <p className="text-sm font-body text-gaffer-muted">
-                      {n.status === 'scheduled' ? `Goes out ${new Date(n.publishAt!).toLocaleString()}` : new Date(n.createdAt).toLocaleString()}
+                      {n.status === 'scheduled' ? `Goes out ${formatDateTime(n.publishAt!)}` : formatDateTime(n.createdAt)}
                       {n.push ? ' · with notification' : ''}
                     </p>
                   </div>

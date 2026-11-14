@@ -9,6 +9,7 @@ import { getPlayerHistory } from '@/lib/services/fantasy.service';
 import { formatSquadValue } from '@/lib/format';
 
 import { useFantasyStore } from '@/store/fantasyStore';
+import { formatDate, formatTime } from '@/lib/dates'
 
 interface CreateTeamPlayerDrawerProps {
   player: FantasySquadPlayer | null;
@@ -146,10 +147,10 @@ const CreateTeamPlayerDrawer: React.FC<CreateTeamPlayerDrawerProps> = ({
                       
                       <div className="flex flex-col items-center gap-1 relative z-10">
                         <span className="text-white/20 text-[9px] font-black tracking-widest uppercase truncate max-w-[80px]">
-                          {new Date(fixture.kickoff).toLocaleDateString([], { weekday: 'short', hour: '2-digit', minute: '2-digit' }).toUpperCase()}
+                          {formatDate(fixture.kickoff)}
                         </span>
                         <div className="bg-[#2a2d3e] rounded-xl px-4 py-2 font-mono font-bold text-white text-[15px] shadow-inner tracking-widest border border-white/5">
-                           {new Date(fixture.kickoff).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                           {formatTime(fixture.kickoff)}
                         </div>
                       </div>
                       

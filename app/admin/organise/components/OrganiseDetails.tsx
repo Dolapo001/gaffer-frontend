@@ -625,7 +625,7 @@ export function OrganiseDetails({
                   }}
                 >
                   <label className="block space-y-2">
-                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Coach's email</span>
+                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Coach&apos;s email</span>
                     <input type="email" required autoFocus value={coachInvite.email} onChange={(e) => setCoachInvite((c) => ({ ...c, email: e.target.value }))} placeholder="coach@example.com"
                       className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30" />
                   </label>

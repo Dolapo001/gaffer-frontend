@@ -123,6 +123,10 @@ export interface LineupPlayer {
   isCaptain?: boolean
   isSubstituted?: boolean
   photoUrl?: string
+  firstName?: string
+  lastName?: string
+  displayName?: string
+  fullName?: string
 }
 
 export interface TeamLineupData {

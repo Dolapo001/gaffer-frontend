@@ -20,6 +20,7 @@ import { AdminFixtureRow } from '@/components/admin/AdminFixtureRow'
 import { CreateRoundModal } from '@/components/admin/CreateRoundModal'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { setRoundDecider, type Decider } from '@/lib/services/fixture.service'
+import { formatDate } from '@/lib/dates'
 
 export default function SchedulePage() {
   const router = useRouter()
@@ -367,7 +368,7 @@ export default function SchedulePage() {
                     <select value={formFirstLegId} onChange={(e) => setFormFirstLegId(e.target.value)} className="w-full h-14 bg-[#1E2032] border border-white/5 rounded-2xl px-6 text-white text-sm focus:outline-none appearance-none font-medium">
                       <option value="">{formHomeTeamId && formAwayTeamId ? (firstLegChoices.length ? 'Pick the first leg' : 'No first leg between these teams yet') : 'Pick both teams first'}</option>
                       {firstLegChoices.map((f: any) => (
-                        <option key={f._id} value={f._id}>{`${typeof f.homeTeamId === 'object' ? f.homeTeamId.name : 'Home'} v ${typeof f.awayTeamId === 'object' ? f.awayTeamId.name : 'Away'} · ${new Date(f.kickoffAt).toLocaleDateString()}`}</option>
+                        <option key={f._id} value={f._id}>{`${typeof f.homeTeamId === 'object' ? f.homeTeamId.name : 'Home'} v ${typeof f.awayTeamId === 'object' ? f.awayTeamId.name : 'Away'} · ${formatDate(f.kickoffAt)}`}</option>
                       ))}
                     </select>
                     <ChevronDown size={18} className="absolute right-5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />

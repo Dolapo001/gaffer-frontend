@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqOrg, type NewOrgInput } from '@/lib/services/hq.service'
 import { ApiError } from '@/lib/api'
 import { TypeNameDialog } from '@/components/hq/ui'
+import { formatDate, formatDateTime } from '@/lib/dates'
 
 type Tab = 'pending' | 'approved' | 'rejected' | 'suspended' | 'deleted' | 'all'
 const TABS: { id: Tab; label: string }[] = [
@@ -180,7 +181,7 @@ function OrgDetail({ id, onClose }: { id: string; onClose: () => void }) {
         {suspended && org.suspension?.reason && (
           <div className="md:col-span-2"><dt className="text-gaffer-muted">Suspension reason</dt><dd>{org.suspension.reason}</dd></div>
         )}
-        <div><dt className="text-gaffer-muted">Applied</dt><dd>{app.submittedAt ? new Date(app.submittedAt).toLocaleString() : new Date(org.createdAt).toLocaleString()}</dd></div>
+        <div><dt className="text-gaffer-muted">Applied</dt><dd>{app.submittedAt ? formatDateTime(app.submittedAt) : formatDateTime(org.createdAt)}</dd></div>
         <div><dt className="text-gaffer-muted">Players joined</dt><dd>{playersJoined}</dd></div>
       </dl>
 
@@ -384,7 +385,7 @@ function Organisations() {
                 >
                   <span className="min-w-0">
                     <span className="block font-display font-bold text-lg truncate">{o.name}</span>
-                    <span className="block text-xs text-gaffer-muted font-body truncate">@{o.handle} · {o.owner?.email || 'no owner email'} · applied {new Date(o.application?.submittedAt || o.createdAt).toLocaleDateString()}</span>
+                    <span className="block text-xs text-gaffer-muted font-body truncate">@{o.handle} · {o.owner?.email || 'no owner email'} · applied {formatDate(o.application?.submittedAt || o.createdAt)}</span>
                   </span>
                   <StatusPill org={o} />
                 </button>

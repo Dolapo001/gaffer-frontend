@@ -67,25 +67,27 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
   }
 
   const TABS = [
-    { key: 'goals', label: 'Golden Boot ⚽', statKey: 'goals', statLabel: 'Goals', data: scorers },
-    { key: 'assists', label: 'Top Assists 🅰️', statKey: 'assists', statLabel: 'Assists', data: assisters },
+    { key: 'goals', label: 'Goals', title: 'Top scorers', statKey: 'goals', statLabel: 'Goals', data: scorers },
+    { key: 'assists', label: 'Assists', title: 'Top assists', statKey: 'assists', statLabel: 'Assists', data: assisters },
     // Golden Glove: goalkeepers only (the backend credits keepers who played)
-    { key: 'cleanSheets', label: 'Clean Sheets 🧤', statKey: 'cleanSheets', statLabel: 'GK Clean Sheets', emptyText: 'No goalkeeper clean sheets yet', data: cleanSheets },
-    { key: 'discipline', label: 'Discipline 🟨', statKey: 'yellowCards', statLabel: 'Cards', data: discipline },
+    { key: 'cleanSheets', label: 'Clean sheets', title: 'Clean sheets', statKey: 'cleanSheets', statLabel: 'GK Clean Sheets', emptyText: 'No goalkeeper clean sheets yet', data: cleanSheets },
+    { key: 'discipline', label: 'Cards', title: 'Discipline', statKey: 'yellowCards', statLabel: 'Cards', data: discipline },
   ] as const
 
   const currentTabInfo = TABS.find((t) => t.key === tab)!
 
   return (
     <div className="p-4 space-y-4">
-      {/* Tab Filter Pills */}
-      <div className="flex bg-gaffer-surface border border-gaffer-border p-1 rounded-2xl gap-1 overflow-x-auto no-scrollbar">
+      {/* Which list: four equal segments that always fit the screen */}
+      <div className="flex gap-1 rounded-full bg-white/[0.06] p-1" role="tablist">
         {TABS.map((t) => (
           <button
             key={t.key}
+            role="tab"
+            aria-selected={tab === t.key}
             onClick={() => setTab(t.key)}
-            className={`px-3.5 py-2 rounded-xl text-xs font-chakra font-black uppercase tracking-wider whitespace-nowrap transition-all ${
-              tab === t.key ? 'bg-gaffer-orange text-black shadow-md' : 'text-gaffer-muted hover:text-white'
+            className={`flex-auto whitespace-nowrap rounded-full px-2 py-2 font-body text-[13px] font-semibold leading-tight transition-colors ${
+              tab === t.key ? 'bg-white text-black' : 'text-white/60'
             }`}
           >
             {t.label}
@@ -95,7 +97,7 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
 
       {/* Leaderboard Table */}
       <TopPlayersList
-        title={currentTabInfo.label}
+        title={currentTabInfo.title}
         players={currentTabInfo.data}
         statKey={currentTabInfo.statKey as any}
         statLabel={currentTabInfo.statLabel}

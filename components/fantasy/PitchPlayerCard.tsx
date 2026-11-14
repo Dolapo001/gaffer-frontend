@@ -120,10 +120,10 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
         <div
           className="absolute z-10 w-full flex flex-col items-center shadow-lg"
           style={{
-            top: 49.13,
-            left: 0,
-            width: 51.3,
-            height: 23,
+            top: 47,
+            left: (51.3 - 64) / 2,
+            width: 64,
+            height: 30,
             borderRadius: '0 0 4px 4px',
             overflow: 'hidden',
             borderTop: '0.5px solid rgba(0,0,0,0.1)',
@@ -132,8 +132,8 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           {/* Top Half: Player Name */}
           <div className="w-full bg-white flex items-center justify-center" style={{ height: '52%' }}>
             <p
-              className="w-full text-center truncate font-black leading-none px-1.5"
-              style={{ fontSize: 8.2, color: '#310b42' }}
+              className="w-full truncate px-1 text-center font-body font-bold leading-none"
+              style={{ fontSize: 11, color: '#22102c' }}
             >
               {playerName || 'Player'}
             </p>
@@ -142,15 +142,15 @@ export const PitchPlayerCard: React.FC<PitchPlayerCardProps> = ({
           <div className="w-full bg-[#f3f0f5] flex items-center justify-center border-t border-black/5" style={{ height: '48%' }}>
             {points != null ? (
               <p
-                className="w-full text-center truncate font-black leading-none"
-                style={{ fontSize: 8.5, color: '#ff6b00' }}
+                className="w-full truncate text-center font-body font-bold leading-none"
+                style={{ fontSize: 10.5, color: '#e35d00' }}
               >
                 {points} pts
               </p>
             ) : (
               <p
-                className="w-full text-center truncate font-extrabold uppercase leading-none px-1"
-                style={{ fontSize: 6.8, color: '#4a0e63', opacity: 0.9 }}
+                className="w-full truncate px-1 text-center font-body font-semibold leading-none"
+                style={{ fontSize: 10, color: '#4a3556' }}
               >
                 {fixture || 'TBC'}
               </p>

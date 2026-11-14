@@ -207,11 +207,6 @@ export default function ShopPage() {
                 {/* Visual Accent */}
                 <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-gaffer-orange to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 
-                {idx === 2 && (
-                  <div className="absolute -top-1 -right-10 bg-gaffer-orange text-white text-[7px] font-black py-4 px-12 rotate-45 uppercase tracking-widest shadow-xl">
-                    Best Value
-                  </div>
-                )}
 
                 <div className="flex items-center gap-4">
                   <div className="w-14 h-14 rounded-[20px] bg-gradient-to-br from-white/10 to-transparent flex items-center justify-center relative flex-shrink-0">
@@ -221,14 +216,16 @@ export default function ShopPage() {
                     <h4 className="font-chakra font-black text-lg text-white uppercase tracking-tight leading-none">
                       {pack.coins} <span className="text-gaffer-orange">Coins</span>
                     </h4>
-                    <p className="text-[9px] text-white/30 font-chakra font-bold uppercase tracking-widest mt-1">
-                      {pack.coins} Credits
-                    </p>
+                    {idx === 2 ? (
+                      <span className="mt-1.5 inline-block rounded-full bg-gaffer-orange/15 px-2 py-0.5 font-body text-[11px] font-semibold text-gaffer-orange">Best value</span>
+                    ) : (
+                      <p className="mt-1 font-body text-[12px] text-white/45">{pack.coins} credits</p>
+                    )}
                   </div>
                 </div>
                 
-                <div className="flex flex-col items-end gap-1.5 min-w-[100px]">
-                  <div className="w-full py-2.5 bg-white text-black rounded-xl font-chakra font-black text-xs uppercase shadow-white-glow group-hover:bg-gaffer-orange group-hover:text-white transition-all text-center">
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <div className="whitespace-nowrap rounded-xl bg-white px-4 py-2.5 text-center font-body text-[14px] font-bold text-black transition-all group-hover:bg-gaffer-orange group-hover:text-white">
                     {formatNaira(pack.priceAmount ?? 0)}
                   </div>
                   <div className="flex items-center gap-1 text-[8px] text-gaffer-orange font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">

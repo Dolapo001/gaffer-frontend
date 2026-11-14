@@ -6,8 +6,9 @@ import { ChevronLeft, Link2, Check, ChevronRight, Users } from 'lucide-react'
 import { confirmSquad, getMyCoachTeams, type CoachFixture, type CoachTeam } from '@/lib/services/coach.service'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage, getImageUrl } from '@/lib/api'
+import { formatDateTime } from '@/lib/dates'
 
-const when = (iso: string) => new Date(iso).toLocaleString(undefined, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+const when = (iso: string) => formatDateTime(iso)
 
 function lineupChip(f: CoachFixture) {
   if (f.status !== 'scheduled') return { text: 'Match started', cls: 'bg-white/10 text-white/60' }
