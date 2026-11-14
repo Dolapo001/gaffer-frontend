@@ -1,312 +1,125 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
-import { PitchMarkings } from '@/components/fantasy/PitchLayout'
-import { PitchPlayerCard, type JerseyProps } from '@/components/fantasy/PitchPlayerCard'
-import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+/**
+ * Team of the Week: the best XI of a gameweek on one clean half-pitch (attack at the top, goalkeeper at the
+ * bottom). Each player has a photo with a rating pill on its lower edge, their club's crest, and an
+ * "I. Agbaje" label. A star marks the best player; the team's average rating sits in the header.
+ */
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { getTOTW, type TOTWPlayer } from '@/lib/services/stats.service'
-import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
+import { Avatar, PitchMarkings, RatingPill, ratingColour } from '@/components/match/PitchKit'
+import { TeamBadge } from '@/components/ui/TeamBadge'
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-function toJersey(player: TOTWPlayer): JerseyProps {
-  const jc = normalizeJerseyConfig(
-    player.jersey ?? { primaryColor: '#4a5568', secondaryColor: '#718096', jerseyPattern: 'solid' },
-  )
-  return {
-    primaryColor: jc.primaryColor,
-    secondaryColor: jc.secondaryColor,
-    jerseyPattern: jc.jerseyPattern,
-  }
+function shortName(p: TOTWPlayer): string {
+  const parts = (p.fullName || p.name || '').trim().split(/\s+/)
+  return parts.length >= 2 ? `${parts[0][0]}. ${parts.slice(1).join(' ')}` : p.name || 'Player'
 }
-
-function displayName(player: TOTWPlayer): string {
-  const parts = (player.fullName || player.name).trim().split(' ')
-  if (parts.length >= 2) {
-    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`
-  }
-  return player.name
-}
-
-// ── Component ────────────────────────────────────────────────────────────────
 
 export interface TeamOfTheWeekWidgetProps {
   leagueId: string
 }
 
-interface TOTWState {
-  loading: boolean
-  fetching: boolean
-  error: string | null
-  players: TOTWPlayer[]
-  formation: string
-}
-
 export function TeamOfTheWeekWidget({ leagueId }: TeamOfTheWeekWidgetProps) {
-  const [selectedGameweek, setSelectedGameweek] = useState<number>(1)
-  const [maxGameweek, setMaxGameweek] = useState<number>(1)
-  const [hasInitialized, setHasInitialized] = useState<boolean>(false)
-
-  const [state, setState] = useState<TOTWState>({
-    loading: true,
-    fetching: false,
-    error: null,
-    players: [],
-    formation: '',
-  })
-
-  // Fetch TOTW for leagueId and target gameweek
-  const fetchTOTWData = (gw?: number) => {
-    if (!leagueId) return
-    setState((prev) => ({ ...prev, fetching: true }))
-
-    getTOTW(leagueId, gw)
-      .then((data) => {
-        const activeGw = data.selectedGameweek ?? gw ?? 1
-        const maxGw = Math.max(1, data.maxGameweek ?? activeGw)
-
-        if (!hasInitialized) {
-          setSelectedGameweek(activeGw)
-          setMaxGameweek(maxGw)
-          setHasInitialized(true)
-        } else if (data.maxGameweek && data.maxGameweek > maxGameweek) {
-          setMaxGameweek(data.maxGameweek)
-        }
-
-        setState({
-          loading: false,
-          fetching: false,
-          error: null,
-          players: data.results,
-          formation: data.formation,
-        })
-      })
-      .catch((err) => {
-        setState((prev) => ({
-          ...prev,
-          loading: false,
-          fetching: false,
-          error: err?.message || 'Failed to load',
-        }))
-      })
-  }
+  const router = useRouter()
+  const [gw, setGw] = useState<number | undefined>(undefined)
+  const [maxGw, setMaxGw] = useState(1)
+  const [players, setPlayers] = useState<TOTWPlayer[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchTOTWData(hasInitialized ? selectedGameweek : undefined)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [leagueId, selectedGameweek])
+    if (!leagueId) return
+    let cancelled = false
+    setLoading(true)
+    getTOTW(leagueId, gw)
+      .then((data) => {
+        if (cancelled) return
+        setPlayers(data.results)
+        setMaxGw((m) => Math.max(m, data.maxGameweek ?? 1))
+        if (gw === undefined) setGw(data.selectedGameweek ?? 1)
+        setError(null)
+      })
+      .catch((err) => !cancelled && setError(err?.message || 'Couldn’t load the Team of the Week.'))
+      .finally(() => !cancelled && setLoading(false))
+    return () => { cancelled = true }
+  }, [leagueId, gw])
 
-  const handleGameweekChange = (newGw: number) => {
-    if (newGw < 1 || newGw > maxGameweek || newGw === selectedGameweek || state.fetching) return
-    setSelectedGameweek(newGw)
-  }
+  const current = gw ?? 1
+  const rated = players.filter((p) => p.rating != null)
+  const avg = rated.length ? rated.reduce((s, p) => s + (p.rating as number), 0) / rated.length : null
+  const top = rated.length ? Math.max(...rated.map((p) => p.rating as number)) : null
+  const bestId = top != null && rated.filter((p) => p.rating === top).length === 1 ? rated.find((p) => p.rating === top)?.id : undefined
 
-  // ── Loading skeleton (Initial load) ─────────────────────────────────────────
-  if (state.loading) {
-    return (
-      <div className="w-full px-4 mb-6">
-        <div className="flex items-center justify-between mb-3 px-1">
-          <h2 className="text-white font-display font-bold text-sm uppercase tracking-wide">
-            Team of the Week
-          </h2>
-        </div>
-        <div className="relative rounded-[24px] overflow-hidden animate-pulse" style={{ minHeight: 280, background: '#111a2e', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-white/20 font-chakra font-black uppercase tracking-widest text-[11px]">
-              Loading TOTW…
-            </span>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ── Calculate Team Stats ───────────────────────────────────────────────────
-  const avgTeamRating = state.players.length
-    ? (state.players.reduce((sum, p) => sum + (p.rating ?? 6.5), 0) / state.players.length).toFixed(2)
-    : null
-
-  const topPlayerId = state.players.length
-    ? [...state.players].sort((a, b) => (b.rating ?? 6.5) - (a.rating ?? 6.5))[0]?.id
-    : null
-
-  // ── Group players into positional rows ─────────────────────────────────────
-  const gks  = state.players.filter((p) => p.position === 'GK')
-  const defs = state.players.filter((p) => p.position === 'DEF')
-  const mids = state.players.filter((p) => p.position === 'MID')
-  const fwds = state.players.filter((p) => p.position === 'FWD')
-
-  const rows = [
-    { key: 'fwd', players: fwds },
-    { key: 'mid', players: mids },
-    { key: 'def', players: defs },
-    { key: 'gk',  players: gks  },
-  ].filter((r) => r.players.length > 0)
+  const rows = (['FWD', 'MID', 'DEF', 'GK'] as const)
+    .map((pos) => players.filter((p) => p.position === pos))
+    .filter((r) => r.length)
 
   return (
-    <div className="w-full px-4 mb-6">
-      {/* Section Header */}
-      <div className="flex items-center justify-between mb-2 px-1">
-        <h2 className="text-white font-display font-bold text-sm uppercase tracking-wide flex items-center gap-2">
-          Team of the Week
-          {avgTeamRating && (
-            <span className="text-[10px] font-chakra font-extrabold text-[#22c55e] bg-[#22c55e]/10 border border-[#22c55e]/30 px-2 py-0.5 rounded-full flex items-center gap-1">
-              ⭐ {avgTeamRating}
-            </span>
-          )}
-        </h2>
-        {state.formation && (
-          <span className="text-white/40 text-[10px] font-chakra font-black uppercase tracking-widest bg-white/5 border border-white/10 px-2 py-0.5 rounded-full">
-            {state.formation}
+    <section className="mb-6 w-full overflow-hidden rounded-2xl bg-[#1B1D25]">
+      <header className="flex items-center gap-3 px-4 pb-3 pt-4">
+        <h2 className="flex-1 font-body text-[17px] font-semibold text-white">Team of the Week</h2>
+        {avg != null && (
+          <span className="flex items-center gap-1.5 font-body text-[13px] text-white/60">
+            Avg
+            <span className="rounded-[3px] px-1.5 py-px text-[12px] font-bold tabular-nums text-white" style={{ background: ratingColour(avg) }}>{avg.toFixed(1)}</span>
           </span>
         )}
-      </div>
+      </header>
 
-      {/* Gameweek Navigation Control Bar */}
-      <div className="flex items-center justify-between bg-[#111a2e] border border-white/10 rounded-xl px-3 py-1.5 mb-3 shadow-md">
+      <div className="flex items-center justify-between px-3 pb-3">
         <button
-          onClick={() => handleGameweekChange(selectedGameweek - 1)}
-          disabled={selectedGameweek <= 1 || state.fetching}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-20 disabled:pointer-events-none transition-colors"
-          aria-label="Previous Gameweek"
+          onClick={() => setGw(current - 1)}
+          disabled={current <= 1 || loading}
+          aria-label="Previous gameweek"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white disabled:opacity-25"
         >
-          <ChevronLeft size={16} />
+          <ChevronLeft size={18} />
         </button>
-
-        <div className="flex items-center gap-3">
-          <span className="text-[11px] font-chakra font-black uppercase text-white/60 tracking-wider">
-            Gameweek
-          </span>
-          <select
-            value={selectedGameweek}
-            onChange={(e) => handleGameweekChange(Number(e.target.value))}
-            disabled={state.fetching}
-            className="bg-[#1c2842] text-xs font-chakra font-bold text-[#FF5C00] outline-none cursor-pointer border border-[#FF5C00]/30 rounded-lg px-2 py-1 shadow-inner focus:border-[#FF5C00]"
-          >
-            {Array.from({ length: maxGameweek }, (_, i) => i + 1).map((gw) => (
-              <option key={gw} value={gw} className="bg-[#111a2e] text-white">
-                GW {gw}
-              </option>
-            ))}
-          </select>
-          {state.formation && (
-            <span className="text-white/50 text-[12px] font-mono ml-1">
-              Formation: {state.formation}
-            </span>
-          )}
-        </div>
-
+        <span className="font-body text-[14px] font-semibold text-white">Gameweek {current}</span>
         <button
-          onClick={() => handleGameweekChange(selectedGameweek + 1)}
-          disabled={selectedGameweek >= maxGameweek || state.fetching}
-          className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-20 disabled:pointer-events-none transition-colors"
-          aria-label="Next Gameweek"
+          onClick={() => setGw(current + 1)}
+          disabled={current >= maxGw || loading}
+          aria-label="Next gameweek"
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.06] text-white disabled:opacity-25"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={18} />
         </button>
       </div>
 
-      {/* Pitch Card Container */}
-      <div className="relative w-full rounded-[24px] overflow-hidden shadow-2xl" style={{ minHeight: 480, background: '#0e1626' }}>
-        <PitchMarkings />
-
-        {/* Loading Overlay while changing Gameweeks */}
-        {state.fetching && (
-          <div className="absolute inset-0 z-30 bg-black/60 backdrop-blur-[2px] flex items-center justify-center transition-opacity">
-            <div className="flex items-center gap-2 bg-[#111a2e] border border-white/10 px-4 py-2 rounded-full shadow-2xl">
-              <Loader2 size={16} className="text-[#FF5C00] animate-spin" />
-              <span className="text-white text-xs font-chakra font-bold uppercase tracking-wider">
-                Loading GW {selectedGameweek}…
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Empty / No data state */}
-        {!state.players.length && !state.fetching ? (
-          <div className="absolute inset-0 flex items-center justify-center p-6 text-center z-10">
-            <p className="text-white/40 font-chakra font-bold uppercase tracking-widest text-[11px]">
-              {state.error ?? `No TOTW data for Gameweek ${selectedGameweek}`}
-            </p>
+      <div className={`relative mx-2 mb-2 bg-[#15171e] transition-opacity ${loading && players.length ? 'opacity-50' : ''}`}>
+        <PitchMarkings half />
+        {loading && !players.length ? (
+          <div className="flex h-[300px] items-center justify-center font-body text-sm text-white/40">Loading…</div>
+        ) : !players.length ? (
+          <div className="flex h-[300px] items-center justify-center px-8 text-center font-body text-sm text-white/50">
+            {error ?? `No Team of the Week for gameweek ${current} yet. It appears once that gameweek's matches are played.`}
           </div>
         ) : (
-          /* Dynamic Positional Rows using Tailwind Flexbox */
-          <div className="absolute inset-0 flex flex-col justify-between py-6 px-2">
-            {/* Row 1 (FWD): Forwards */}
-            <div className="flex justify-around items-center w-full px-8">
-              {fwds.map((player) => (
-                <PitchPlayerCard
-                  key={player.id}
-                  playerName={displayName(player)}
-                  fixture={player.teamName}
-                  jersey={toJersey(player)}
-                  rating={player.rating}
-                  status={
-                    player.status === 'suspended' ? 'injured'
-                    : player.status === 'warning' ? 'warning'
-                    : 'fit'
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Row 2 (MID): Midfielders */}
-            <div className="flex justify-around items-center w-full px-2">
-              {mids.map((player) => (
-                <PitchPlayerCard
-                  key={player.id}
-                  playerName={displayName(player)}
-                  fixture={player.teamName}
-                  jersey={toJersey(player)}
-                  rating={player.rating}
-                  status={
-                    player.status === 'suspended' ? 'injured'
-                    : player.status === 'warning' ? 'warning'
-                    : 'fit'
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Row 3 (DEF): Defenders */}
-            <div className="flex justify-around items-center w-full px-2">
-              {defs.map((player) => (
-                <PitchPlayerCard
-                  key={player.id}
-                  playerName={displayName(player)}
-                  fixture={player.teamName}
-                  jersey={toJersey(player)}
-                  rating={player.rating}
-                  status={
-                    player.status === 'suspended' ? 'injured'
-                    : player.status === 'warning' ? 'warning'
-                    : 'fit'
-                  }
-                />
-              ))}
-            </div>
-
-            {/* Row 4 (GK): Goalkeeper */}
-            <div className="flex justify-center items-center w-full">
-              {gks.map((player) => (
-                <PitchPlayerCard
-                  key={player.id}
-                  playerName={displayName(player)}
-                  fixture={player.teamName}
-                  jersey={toJersey(player)}
-                  rating={player.rating}
-                  status={
-                    player.status === 'suspended' ? 'injured'
-                    : player.status === 'warning' ? 'warning'
-                    : 'fit'
-                  }
-                />
-              ))}
-            </div>
+          <div className="relative py-4">
+            {rows.map((row, i) => (
+              <div key={i} className="flex h-[96px] items-start justify-evenly">
+                {row.map((p) => (
+                  <button key={p.id} onClick={() => router.push(`/app/player/${p.id}`)} className="flex min-w-0 max-w-[96px] flex-1 flex-col items-center px-0.5">
+                    <span className="relative">
+                      <Avatar photoUrl={p.photoUrl || undefined} size={40} />
+                      <span className="absolute -right-[7px] -top-[3px]">
+                        <TeamBadge name={p.teamName} logoUrl={p.logoUrl} size={16} className="ring-1 ring-[#15171e]" />
+                      </span>
+                      {p.rating != null && <RatingPill rating={p.rating} best={bestId === p.id} className="top-[29px]" />}
+                    </span>
+                    <span className={`max-w-full truncate font-body text-[12px] font-medium leading-[15px] text-white ${p.rating != null ? 'mt-[10px]' : 'mt-[5px]'}`}>
+                      {shortName(p)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ))}
           </div>
         )}
       </div>
-    </div>
+    </section>
   )
 }
 

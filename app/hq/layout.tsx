@@ -51,7 +51,7 @@ export default function HqLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-gaffer-bg text-white md:flex">
+    <div className="min-h-screen bg-gaffer-bg text-white md:flex [&_button]:whitespace-nowrap">
       <aside className="md:w-60 md:min-h-screen md:border-r border-b md:border-b-0 border-gaffer-border bg-gaffer-surface">
         <div className="flex items-center justify-between md:block px-4 py-4">
           <div>

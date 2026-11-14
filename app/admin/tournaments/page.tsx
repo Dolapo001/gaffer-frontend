@@ -8,6 +8,7 @@ import { Search, ChevronRight, CheckCircle2, Plus } from 'lucide-react'
 import { CreateTournamentModal } from '@/components/tournament/CreateTournamentModal'
 import { listOrgs } from '@/lib/services/org.service'
 import { listCompetitions } from '@/lib/services/competition.service'
+import { formatDate } from '@/lib/dates'
 
 export default function TournamentsPage() {
   const router = useRouter()
@@ -119,7 +120,7 @@ export default function TournamentsPage() {
                         <CheckCircle2 size={16} className="text-[#FF8904] fill-[#FF8904]/10" />
                     </div>
                     <p className="text-white/40 text-[11px] font-chakra font-bold uppercase tracking-wide">
-                        {new Date(comp.startDate).toLocaleDateString()} - {new Date(comp.endDate).toLocaleDateString()}
+                        {formatDate(comp.startDate)} - {formatDate(comp.endDate)}
                     </p>
                     <p className={`text-[10px] font-chakra font-black uppercase mt-1 tracking-wider ${
                       comp.status === 'live' ? 'text-green-500' : 

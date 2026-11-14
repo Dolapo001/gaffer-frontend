@@ -12,3 +12,6 @@ build
 e2e/results/
 e2e/.state.json
 playwright-report/
+
+# layout check output
+/layout-check

@@ -8,12 +8,13 @@ import { getPlayerFantasy, getPlayerMatches, getPlayerProfile, type PlayerFantas
 import { FollowButton } from '@/components/FollowButton'
 import { getImageUrl } from '@/lib/api'
 import { getRatingBadgeStyle } from '@/lib/ratingsEngine'
+import { formatShortDate } from '@/lib/dates'
 
 const TABS = ['Overview', 'Matches', 'Tournaments', 'Fantasy'] as const
 type Tab = (typeof TABS)[number]
 
 const card = 'rounded-3xl bg-[#1E2032] border border-white/5 p-4'
-const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit', year: '2-digit' })
+const fmtDate = (iso: string) => formatShortDate(iso)
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
@@ -245,9 +246,9 @@ export default function PlayerPage() {
         </div>
       </header>
 
-      <div role="tablist" aria-label="Player" className="flex px-5 border-b border-white/10 overflow-x-auto">
+      <div role="tablist" aria-label="Player" className="grid grid-cols-4 border-b border-white/10 px-2">
         {TABS.map((t) => (
-          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`px-4 h-12 shrink-0 font-semibold text-sm border-b-2 -mb-px ${tab === t ? 'border-orange-500 text-white' : 'border-transparent text-white/50'}`}>{t}</button>
+          <button key={t} role="tab" aria-selected={tab === t} onClick={() => setTab(t)} className={`-mb-px h-12 min-w-0 border-b-2 px-1 font-body text-[14px] font-semibold ${tab === t ? 'border-orange-500 text-white' : 'border-transparent text-white/50'}`}>{t}</button>
         ))}
       </div>
 

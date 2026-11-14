@@ -1,11 +1,10 @@
 'use client'
 
-import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { listRounds, listFixtures, type Round, type Fixture, penaltiesSuffix } from '@/lib/services/fixture.service'
-import { getImageUrl } from '@/lib/api'
-import { Trophy, Lock } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { usePathname, useRouter } from 'next/navigation'
+import { Trophy } from 'lucide-react'
+import { TeamBadge } from '@/components/ui/TeamBadge'
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -29,19 +28,20 @@ function toTeamLogo(side: Fixture['homeTeamId']): string | undefined {
   return (side as any).logoUrl ?? undefined
 }
 
+function toTeamName(side: Fixture['homeTeamId']): string {
+  if (!side || typeof side === 'string') return 'To be decided'
+  return side.name ?? side.shortName ?? 'To be decided'
+}
+
 function toRoundId(fixture: Fixture): string {
   const r = fixture.roundId
   return typeof r === 'string' ? r : r?._id ?? ''
 }
 
-/** Returns true if the fixture has kicked off — used for the UX lock overlay. */
-function isKickedOff(fixture: Fixture): boolean {
-  if (fixture.status !== 'scheduled') return true
-  return Date.now() >= new Date(fixture.kickoffAt).getTime()
-}
-
+/** "Sat 14 Nov": the date part of the app's one date format. */
 function formatKickoffDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+  const d = new Date(iso)
+  return Number.isNaN(d.getTime()) ? 'Date to come' : d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 const THIRD_PLACE_RE = /3rd|third[\s-]?place|bronze/i
@@ -102,7 +102,7 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
 
   if (roundsLoading || fixturesLoading) {
     return (
-      <div className="bg-black/20 rounded-3xl border border-white/5 p-4 space-y-4 min-h-[280px]">
+      <div className="rounded-2xl bg-[#15171e] p-4 space-y-4 min-h-[280px]">
         {[4, 2, 1].map((count, i) => (
           <div key={i} className="flex justify-center gap-2">
             {Array.from({ length: count }).map((_, j) => (
@@ -128,15 +128,9 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
 
   if (knockoutRounds.length === 0) {
     return (
-      <div className="py-12 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
-        <Trophy
-          size={32}
-          strokeWidth={1}
-          className="mx-auto text-gaffer-subtle mb-3 opacity-20"
-        />
-        <p className="text-xs font-body text-gaffer-subtle font-bold uppercase tracking-widest">
-          No knockout rounds scheduled yet
-        </p>
+      <div className="rounded-2xl bg-[#15171e] px-6 py-12 text-center">
+        <Trophy size={28} strokeWidth={1.5} className="mx-auto mb-3 text-white/25" />
+        <p className="font-body text-[14px] text-white/55">The knockout draw appears here once its rounds are scheduled.</p>
       </div>
     )
   }
@@ -245,24 +239,18 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="bg-black/20 rounded-3xl border border-white/5 overflow-hidden">
-      {/* Header row */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
-        <p className="text-[10px] font-display font-black text-gaffer-subtle uppercase tracking-widest">
-          Knockout Bracket
-        </p>
+    <div className="overflow-hidden rounded-2xl bg-[#15171e]">
+      <div className="flex items-center justify-between px-4 pb-1 pt-4">
+        <h2 className="font-body text-[17px] font-semibold text-white">Knockout</h2>
         {teamsInBracket.size > 0 && (
-          <span
-            className="text-[9px] font-display font-black text-gaffer-orange bg-gaffer-orange/10 px-2.5 py-1 rounded-full border border-gaffer-orange/20 uppercase tracking-wide"
-            title="Estimated from completed fixture scores — not an authoritative elimination record. See BACKEND_CONTRACT.md §1."
-          >
-            ~{teamsRemaining} teams remaining
+          <span className="font-body text-[13px] text-white/55">
+            {teamsRemaining} {teamsRemaining === 1 ? 'team' : 'teams'} left
           </span>
         )}
       </div>
 
-      {/* Fits the screen width — cards shrink rather than scroll horizontally */}
-      <div className="overflow-y-auto max-h-[75vh] px-3 py-6">
+      {/* Fits the screen width: cards shrink rather than scroll sideways */}
+      <div className="px-2 pb-6 pt-4">
         <div className="flex flex-col items-center w-full">
           {/* ── Top half: widest round first, narrowing down toward the Final ── */}
           {preFinalRounds.map((round, ri) => {
@@ -270,7 +258,7 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
             const nextCount = ri < preFinalRounds.length - 1 ? topMatches[ri + 1].length : 1
             return (
               <div key={`top-${round._id}`} className="w-full flex flex-col items-center">
-                <p className="text-[9px] font-display font-black text-white/30 uppercase tracking-[0.15em] mb-2.5">
+                <p className="mb-2 font-body text-[12px] font-semibold text-white/50">
                   {round.name}
                 </p>
                 <div className="flex justify-center w-full" style={{ gap: `${GAP_PCT}%` }}>
@@ -291,14 +279,12 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
 
           {/* ── Final (+ third place, floated beside it) ── */}
           <div className="w-full flex flex-col items-center">
-            <p className="text-[9px] font-display font-black text-white/30 uppercase tracking-[0.15em] mb-2.5">
+            <p className="mb-2 font-body text-[12px] font-semibold text-white/50">
               {finalRound?.name ?? 'Final'}
             </p>
             <div className="flex items-center justify-center gap-3.5 w-full">
               {/* Left Trophy Icon */}
-              <div className="flex items-center justify-center shrink-0 pr-1">
-                <Trophy size={26} className="text-gaffer-orange drop-shadow-[0_0_12px_rgba(255,107,0,0.6)]" />
-              </div>
+              <Trophy size={22} className="shrink-0 text-[#E3B341]" aria-hidden />
 
               {/* Center Final Match Card */}
               {finalMatch ? (
@@ -332,7 +318,7 @@ export function TournamentBracket({ competitionId }: TournamentBracketProps) {
                       bottomCount={matches.length || 1}
                       centerXFor={centerXFor}
                     />
-                    <p className="text-[9px] font-display font-black text-white/30 uppercase tracking-[0.15em] mb-2.5">
+                    <p className="mb-2 font-body text-[12px] font-semibold text-white/50">
                       {round.name}
                     </p>
                     <div className="flex justify-center w-full" style={{ gap: `${GAP_PCT}%` }}>
@@ -369,7 +355,7 @@ function BracketConnector({
   centerXFor: (count: number, index: number) => number
 }) {
   const midY = CONNECTOR_H / 2
-  const stroke = 'rgba(255,255,255,0.14)'
+  const stroke = 'rgba(255,255,255,0.18)'
   // Coordinates are in % (0-100) on the X axis and px on the Y axis — the
   // viewBox maps 100 units to the container's actual width, and
   // vectorEffect keeps stroke widths at a constant screen size despite the
@@ -382,7 +368,7 @@ function BracketConnector({
     className: 'overflow-visible block',
     'aria-hidden': true as const,
   }
-  const lineProps = { stroke, strokeWidth: 1.5, vectorEffect: 'non-scaling-stroke' as const }
+  const lineProps = { stroke, strokeWidth: 1, vectorEffect: 'non-scaling-stroke' as const }
 
   if (topCount === bottomCount) {
     const x = centerXFor(topCount, 0)
@@ -407,7 +393,6 @@ function BracketConnector({
               <line x1={x2} y1={0} x2={x2} y2={midY} {...lineProps} />
               <line x1={x1} y1={midY} x2={x2} y2={midY} {...lineProps} />
               <line x1={xm} y1={midY} x2={xm} y2={CONNECTOR_H} {...lineProps} />
-              <circle cx={xm} cy={midY} r={2.5} fill="rgba(255,107,0,0.5)" vectorEffect="non-scaling-stroke" />
             </g>
           )
         })}
@@ -429,7 +414,6 @@ function BracketConnector({
               <line x1={x1} y1={midY} x2={x2} y2={midY} {...lineProps} />
               <line x1={x1} y1={midY} x2={x1} y2={CONNECTOR_H} {...lineProps} />
               <line x1={x2} y1={midY} x2={x2} y2={CONNECTOR_H} {...lineProps} />
-              <circle cx={xm} cy={midY} r={2.5} fill="rgba(255,107,0,0.5)" vectorEffect="non-scaling-stroke" />
             </g>
           )
         })}
@@ -442,31 +426,18 @@ function BracketConnector({
 }
 
 // ─── BracketMatch ─────────────────────────────────────────────────────────────
+// One tie: the two crests side by side, each team's score under its crest (the winner bright, the loser dimmed),
+// or the date when it hasn't been played. Tapping it opens the match in the fan app.
 
-function LogoAvatar({ side, large }: { side: Fixture['homeTeamId']; large?: boolean }) {
-  const logoUrl = toTeamLogo(side)
-  const label = toTeamLabel(side)
-  const [imgFailed, setImgFailed] = useState(false)
-  const showImage = logoUrl && !imgFailed
-
+function Side({ side, score, state, size }: { side: Fixture['homeTeamId']; score?: number; state: 'won' | 'lost' | 'even'; size: number }) {
+  const name = toTeamName(side)
   return (
-    <div
-      className={`rounded-full overflow-hidden bg-gaffer-surface border border-white/15 flex items-center justify-center shrink-0 ${
-        large ? 'w-8 h-8' : 'w-7 h-7'
-      }`}
-    >
-      {showImage ? (
-        <img
-          src={getImageUrl(logoUrl)}
-          alt=""
-          className="w-full h-full object-cover"
-          loading="lazy"
-          onError={() => setImgFailed(true)}
-        />
-      ) : (
-        <span className={`font-display font-black text-white/70 uppercase leading-none ${large ? 'text-[9px]' : 'text-[8px]'}`}>
-          {label.slice(0, 3)}
-        </span>
+    <div className="flex min-w-0 flex-1 flex-col items-center gap-1" title={name}>
+      <span className={state === 'lost' ? 'opacity-45' : ''}>
+        <TeamBadge name={side && typeof side !== 'string' ? (side.shortName || side.name || '?') : '?'} logoUrl={toTeamLogo(side)} size={size} />
+      </span>
+      {score != null && (
+        <span className={`font-body text-[15px] font-bold leading-none tabular-nums ${state === 'lost' ? 'text-white/40' : 'text-white'}`}>{score}</span>
       )}
     </div>
   )
@@ -474,121 +445,58 @@ function LogoAvatar({ side, large }: { side: Fixture['homeTeamId']; large?: bool
 
 function BracketMatch({
   fixture,
-  isFinal,
   isThirdPlace,
   widthPct,
   large,
 }: {
   fixture: Fixture
-  isFinal?: boolean
   isThirdPlace?: boolean
   widthPct: number
   large?: boolean
 }) {
+  const router = useRouter()
+  const inFanApp = (usePathname() || '').startsWith('/app')
   const isCompleted = fixture.status === 'completed'
   const isLive = fixture.status === 'live' || fixture.status === 'halftime'
+  const played = isCompleted || isLive
   const winnerId = fixture.winnerTeamId ? String(fixture.winnerTeamId) : null
   const homeWon = isCompleted && (winnerId ? winnerId === toTeamId(fixture.homeTeamId) : fixture.score.home > fixture.score.away)
   const awayWon = isCompleted && (winnerId ? winnerId === toTeamId(fixture.awayTeamId) : fixture.score.away > fixture.score.home)
-  const locked = isKickedOff(fixture)
-
-  const homeLabel = toTeamLabel(fixture.homeTeamId)
-  const awayLabel = toTeamLabel(fixture.awayTeamId)
+  const pens = penaltiesSuffix(fixture)
+  const size = large ? 32 : 26
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      className={`relative flex flex-col items-center justify-center gap-1.5 p-2.5 bg-[#181C28] border rounded-2xl shrink-0 min-w-0 max-w-[140px] shadow-lg ${
-        isLive ? 'border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.15)]' : 'border-white/10'
-      }`}
-      style={{ width: `${widthPct}%` }}
+    <button
+      type="button"
+      onClick={inFanApp ? () => router.push(`/app/match/${fixture._id}`) : undefined}
+      className={`relative flex min-w-0 max-w-[140px] shrink-0 flex-col items-center gap-1.5 rounded-xl bg-[#1F222B] px-1.5 pb-2 pt-2.5 text-left ${inFanApp ? '' : 'cursor-default'}`}
+      style={{ width: `${widthPct}%`, boxShadow: isLive ? 'inset 0 0 0 1px rgba(239,68,68,0.55)' : undefined }}
     >
-      {isFinal && (
-        <Trophy size={large ? 22 : 16} className="absolute -left-8 top-1/2 -translate-y-1/2 text-gaffer-orange shrink-0 drop-shadow-[0_0_8px_rgba(255,107,0,0.5)]" />
-      )}
-
-      {isLive && (
-        <div className="absolute top-1.5 right-1.5 z-10">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-ping inline-block" />
-        </div>
-      )}
-      {locked && !isLive && !isCompleted && (
-        <div className="absolute top-1.5 right-1.5 z-10">
-          <Lock size={8} className="text-white/30" />
-        </div>
-      )}
-
-      {/* Team Columns (Logo Avatar + Centered Team Short Code/Name) */}
-      <div className="flex items-start justify-around w-full gap-1">
-        {/* Home Team Column */}
-        <div className="flex flex-col items-center flex-1 min-w-0 gap-1">
-          <LogoAvatar side={fixture.homeTeamId} large={large} />
-          <span
-            className={`font-display font-black uppercase text-[10px] truncate max-w-full text-center ${
-              homeWon ? 'text-white font-black' : isCompleted ? 'text-white/40' : 'text-white/80'
-            }`}
-            title={homeLabel}
-          >
-            {homeLabel.slice(0, 4)}
-          </span>
-        </div>
-
-        {/* Away Team Column */}
-        <div className="flex flex-col items-center flex-1 min-w-0 gap-1">
-          <LogoAvatar side={fixture.awayTeamId} large={large} />
-          <span
-            className={`font-display font-black uppercase text-[10px] truncate max-w-full text-center ${
-              awayWon ? 'text-white font-black' : isCompleted ? 'text-white/40' : 'text-white/80'
-            }`}
-            title={awayLabel}
-          >
-            {awayLabel.slice(0, 4)}
-          </span>
-        </div>
+      <div className="flex w-full items-start justify-around gap-1">
+        <Side side={fixture.homeTeamId} score={played ? fixture.score?.home ?? 0 : undefined} state={homeWon ? 'won' : awayWon ? 'lost' : 'even'} size={size} />
+        <Side side={fixture.awayTeamId} score={played ? fixture.score?.away ?? 0 : undefined} state={awayWon ? 'won' : homeWon ? 'lost' : 'even'} size={size} />
       </div>
-
-      {/* Bottom: Kickoff Date when scheduled, Live Score when live, or Final Score when completed */}
       {isLive ? (
-        <div className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 px-2 py-0.5 rounded-full">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
-          <span className="font-display font-black tabular-nums text-red-400 text-[11px] tracking-wider">
-            {fixture.score?.home ?? 0} : {fixture.score?.away ?? 0}
-          </span>
-        </div>
+        <span className="font-body text-[11px] font-semibold text-[#ef4444]">Live</span>
       ) : isCompleted ? (
-        <span className="font-display font-black tabular-nums text-white text-[12px] tracking-wider bg-black/40 px-2 py-0.5 rounded-full border border-white/5">
-          {fixture.score?.home ?? 0} : {fixture.score?.away ?? 0}
-          {penaltiesSuffix(fixture) && <span className="ml-1 text-white/60 text-[9px]">{penaltiesSuffix(fixture)}</span>}
-        </span>
+        pens ? <span className="font-body text-[10.5px] text-white/50">{pens.replace(/[()]/g, '')}</span> : null
       ) : (
-        <span className="font-chakra font-bold text-white/50 text-[9px] uppercase tracking-widest bg-black/20 px-2 py-0.5 rounded-md border border-white/5">
-          {formatKickoffDate(fixture.kickoffAt)}
-        </span>
+        <span className="font-body text-[11px] text-white/50">{formatKickoffDate(fixture.kickoffAt)}</span>
       )}
-      {isThirdPlace && (
-        <span className="text-[7px] font-body font-semibold text-gaffer-subtle/70 uppercase tracking-wide">
-          3rd place
-        </span>
-      )}
-    </motion.div>
+      {isThirdPlace && <span className="font-body text-[10.5px] text-white/45">3rd place</span>}
+    </button>
   )
 }
 
 // ─── TBDCard ──────────────────────────────────────────────────────────────────
 
-function TBDCard({ widthPct, isFinal, isThirdPlace }: { widthPct: number; isFinal?: boolean; isThirdPlace?: boolean }) {
+function TBDCard({ widthPct, isThirdPlace }: { widthPct: number; isThirdPlace?: boolean }) {
   return (
     <div
-      className="relative bg-[#181C28] border border-dashed border-white/10 rounded-2xl p-2.5 text-center shrink-0 flex flex-col items-center justify-center min-h-[76px] max-w-[140px]"
+      className="flex min-h-[72px] max-w-[140px] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-white/[0.12] p-2 text-center"
       style={{ width: `${widthPct}%` }}
     >
-      {isFinal && (
-        <Trophy size={18} className="absolute -left-8 top-1/2 -translate-y-1/2 text-gaffer-orange shrink-0 drop-shadow-[0_0_8px_rgba(255,107,0,0.5)]" />
-      )}
-      <p className="text-[9px] text-gaffer-subtle font-chakra font-bold uppercase tracking-widest">
-        {isThirdPlace ? '3rd Place' : 'TBD'}
-      </p>
+      <p className="font-body text-[11px] text-white/45">{isThirdPlace ? '3rd place' : 'To be decided'}</p>
     </div>
   )
 }

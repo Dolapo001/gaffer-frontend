@@ -125,7 +125,7 @@ export default function MatchCenterPage() {
     : { name: 'Away', shortName: 'AWY', logoUrl: null }
 
   return (
-    <div className="min-h-screen bg-[#10111d] text-white pb-32">
+    <div className="min-h-screen bg-[#10111d] text-white pb-6">
       <MatchHeader
         home={{ name: homeTeam.name, shortName: homeTeam.shortName, logoUrl: homeTeam.logoUrl }}
         away={{ name: awayTeam.name, shortName: awayTeam.shortName, logoUrl: awayTeam.logoUrl }}

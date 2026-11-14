@@ -199,7 +199,7 @@ export default function LoginPage() {
           <p className="mt-6 pb-8 text-center text-white/40 font-chakra text-xs">
             By continuing you agree to our{' '}
             <a href="/terms" className="underline hover:text-white/70">Terms</a> and{' '}
-            <a href="/privacy" className="underline hover:text-white/70">Privacy Policy</a>.
+            <a href="/privacy" className="whitespace-nowrap underline hover:text-white/70">Privacy Policy</a>.
           </p>
         </motion.div>
       </div>

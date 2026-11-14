@@ -197,8 +197,11 @@ export function PitchLayout({
     .filter((r) => (selectionMode ? r.totalSlots > 0 || r.players.length > 0 : r.players.length > 0))
 
   return (
-    <div className={className ?? "relative w-full aspect-[4/5]"}>
+    // A grid cell holding both a 4:5 spacer and the rows: the pitch keeps its shape, but grows when the rows
+    // need more room instead of letting the bottom row spill off it.
+    <div className={className ?? "relative grid w-full grid-cols-[minmax(0,1fr)]"}>
       <PitchMarkings />
+      {!className && <div aria-hidden className="col-start-1 row-start-1 aspect-[4/5] w-full" />}
 
       {/* Player rows */}
       {/*
@@ -208,9 +211,9 @@ export function PitchLayout({
         pt-6 pb-8       — leaves the goal area and centre circle visible
         gap-2 per row   — 8 px between players; 5×64 + 4×8 = 352px fits 360px screens
       */}
-      <div className="absolute inset-0 flex flex-col justify-around gap-[6px] pt-6 pb-8 px-2">
+      <div className={className ? "absolute inset-0 flex flex-col justify-around gap-[6px] pt-6 pb-8 px-2" : "relative col-start-1 row-start-1 flex flex-col justify-around gap-3 pt-6 pb-8 px-1"}>
         {rows.map((rowData, ri) => (
-          <div key={ri} className="flex flex-row justify-center gap-2 w-full">
+          <div key={ri} className="flex w-full flex-row justify-center gap-1.5">
             {selectionMode ? (
               // In selection mode, we show all slots
               Array.from({ length: rowData.totalSlots }).map((_, si) => {

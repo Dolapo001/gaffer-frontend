@@ -148,6 +148,7 @@ export interface TOTWPlayer {
   redCards: number
   teamName: string
   logoUrl?: string | null
+  photoUrl?: string | null
   jersey: {
     primaryColor: string
     secondaryColor: string

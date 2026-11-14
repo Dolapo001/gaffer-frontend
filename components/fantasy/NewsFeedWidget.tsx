@@ -103,24 +103,12 @@ function HeroCard({ item, returnPath }: { item: FeedItem; returnPath?: string })
       onClick={handleArticleClick}
       className="w-full rounded-[16px] bg-[#242539]/80 backdrop-blur-md border border-white/5 overflow-hidden shadow-lg flex flex-col cursor-pointer transition hover:bg-[#242539]"
     >
-      {/* Smart Cover Image */}
-      <div className="w-full h-[180px] relative bg-[#181E32] overflow-hidden rounded-t-[16px]">
-        {heroImage ? (
-          <img src={heroImage} alt="News Thumbnail" className="w-full h-full object-cover object-top" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#2C355A] to-[#1a1b2e]">
-            <span className="text-white/20 text-xs uppercase tracking-widest">No Image</span>
-          </div>
-        )}
-
-        {/* Timestamp Overlay */}
-        <div className="absolute bottom-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-black/40 backdrop-blur-sm rounded-md border border-white/5">
-          <Clock className="text-white/70" size={12} />
-          <span className="text-white/70 text-[11px] font-medium tracking-wide">
-            {timeAgo(item.createdAt)}
-          </span>
+      {/* Cover image: only when the post has one. Text-only posts go straight to the words. */}
+      {heroImage && (
+        <div className="relative h-[180px] w-full overflow-hidden rounded-t-[16px] bg-[#181E32]">
+          <img src={heroImage} alt="" className="h-full w-full object-cover object-top" />
         </div>
-      </div>
+      )}
 
       {/* Content Container */}
       <div className="p-4 flex flex-col gap-2">
@@ -141,6 +129,10 @@ function HeroCard({ item, returnPath }: { item: FeedItem; returnPath?: string })
             strokeWidth={2}
             stroke="white"
           />
+          <span className="ml-auto flex shrink-0 items-center gap-1 font-body text-[12px] text-white/50">
+            <Clock size={12} />
+            {timeAgo(item.createdAt)}
+          </span>
         </div>
 
         {/* Headline */}

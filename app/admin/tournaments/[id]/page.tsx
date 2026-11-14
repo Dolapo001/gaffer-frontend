@@ -32,6 +32,7 @@ import { TournamentBracket } from '@/components/admin/TournamentBracket'
 import { EditTournamentModal } from '@/components/tournament/EditTournamentModal'
 import { RecordEventModal } from '@/components/admin/RecordEventModal'
 import { GroupedFixturesView } from '@/components/league/GroupedFixturesView'
+import { TeamBadge } from '@/components/ui/TeamBadge'
 
 function teamLabel(side: Fixture['homeTeamId']) {
   if (!side || typeof side === 'string') return 'TBD'
@@ -477,70 +478,56 @@ export default function TournamentDetailPage() {
                 )}
 
                 {/* ── ROSTER LIST ── */}
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between px-2 mb-4">
-                    <h3 className="font-display font-black text-[11px] text-gaffer-subtle uppercase tracking-widest">
-                      Tournament Roster
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-3 px-1">
+                    <h3 className="font-body text-[17px] font-semibold text-white">
+                      Teams <span className="font-normal text-white/50">{compTeams?.length || 0}</span>
                     </h3>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setShowEnrollModal(true)}
-                        className="text-[9px] font-display font-black text-gaffer-orange bg-gaffer-orange/10 px-3 py-1.5 rounded-full border border-gaffer-orange/20 uppercase hover:bg-gaffer-orange/20 transition-all active:scale-95"
-                      >
-                        Enroll Existing Team
-                      </button>
-                      <div className="text-[9px] font-body font-black text-white/50 bg-white/5 px-3 py-1.5 rounded-full border border-white/10 uppercase tracking-tighter">
-                        {compTeams?.length || 0} teams
-                      </div>
-                    </div>
+                    <button
+                      onClick={() => setShowEnrollModal(true)}
+                      className="shrink-0 whitespace-nowrap rounded-full bg-gaffer-orange/15 px-3.5 py-2 font-body text-[13px] font-semibold text-gaffer-orange"
+                    >
+                      Add a team
+                    </button>
                   </div>
 
-                  <div className="space-y-2">
-                    {compTeams?.map((tm) => {
-                      const isAssigned = !!tm.groupName
-                      return (
-                        <div key={tm._id} className="bg-gaffer-card border border-gaffer-border rounded-2xl p-4 flex items-center gap-4 hover:bg-white/[0.02] transition-colors">
-                          <div className="w-12 h-12 rounded-xl bg-gaffer-surface border border-gaffer-border p-2.5 shrink-0">
-                            <img src={getImageUrl(tm.logoUrl) || `https://api.dicebear.com/7.x/avataaars/svg?seed=${tm.name}`} alt="" className="w-full h-full object-contain" />
+                  <div className="overflow-hidden rounded-2xl bg-gaffer-card">
+                    {compTeams?.map((tm) => (
+                        <div key={tm._id} className="flex items-center gap-3 border-t border-white/[0.06] px-3 py-3 first:border-t-0">
+                          <TeamBadge name={tm.name} logoUrl={tm.logoUrl} size={40} />
+
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-body text-[15px] font-semibold text-white">
+                              {tm.name}
+                              {tm.seed ? <span className="ml-1.5 font-normal text-white/45">#{tm.seed}</span> : null}
+                            </p>
+                            <p className="truncate font-body text-[12px] text-white/50">
+                              {tm.playerCount || 0} of {tm.maxPlayers || 25} players{tm.groupName ? ` · ${tm.groupName}` : ''}
+                            </p>
                           </div>
 
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-body font-bold text-sm text-white truncate uppercase">{tm.name}</p>
-                              {tm.seed && <span className="text-[9px] font-display font-black text-gaffer-subtle">#{tm.seed}</span>}
-                            </div>
-                            <p className="text-[11px] font-body text-gaffer-muted">@{tm.handle}</p>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <div className="bg-gaffer-surface border border-gaffer-border rounded-xl px-4 py-2 flex flex-col items-center justify-center min-w-[70px]">
-                              <p className="font-display font-black text-sm text-white leading-none">
-                                {tm.playerCount || 0}
-                                <span className="text-gaffer-subtle font-body font-bold text-[10px] ml-1">/ {tm.maxPlayers || 25}</span>
-                              </p>
-                              <p className="text-[8px] font-display font-black text-gaffer-subtle uppercase tracking-widest mt-1 opacity-60">Players</p>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
-                                const compName = competition?.slug || slugify(competition?.name || 'tournament')
-                                const groupName = tm.groupName && tm.groupName !== 'unassigned' ? slugify(tm.groupName) : null
-                                const teamHandle = tm.handle || tm.teamId
-                                const link = groupName ? `${baseUrl}/${compName}/${groupName}/${teamHandle}` : `${baseUrl}/${compName}/${teamHandle}`
-                                navigator.clipboard.writeText(link)
-                                toast.addToast(`Recruitment link for ${tm.name} copied!`, 'success')
-                              }}
-                              className="w-10 h-10 rounded-xl bg-gaffer-surface border border-gaffer-border flex items-center justify-center text-gaffer-subtle hover:text-white transition-all shadow-lg active:scale-95 group"
-                              title="Copy recruitment link"
-                            >
-                              <Copy size={16} className="group-hover:text-gaffer-orange transition-colors" />
-                            </button>
-                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              const baseUrl = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000')
+                              const compName = competition?.slug || slugify(competition?.name || 'tournament')
+                              const groupName = tm.groupName && tm.groupName !== 'unassigned' ? slugify(tm.groupName) : null
+                              const teamHandle = tm.handle || tm.teamId
+                              const link = groupName ? `${baseUrl}/${compName}/${groupName}/${teamHandle}` : `${baseUrl}/${compName}/${teamHandle}`
+                              navigator.clipboard.writeText(link)
+                              toast.addToast(`Sign-up link for ${tm.name} copied`, 'success')
+                            }}
+                            className="flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-white/[0.06] px-3 font-body text-[13px] font-medium text-white/80"
+                            title="Copy this team's player sign-up link"
+                          >
+                            <Copy size={14} />
+                            Link
+                          </button>
                         </div>
-                      )
-                    })}
+                    ))}
+                  </div>
 
+                  <div>
                     {(!compTeams || compTeams.length === 0) && (
                       <div className="py-12 text-center bg-white/5 rounded-3xl border border-dashed border-white/10">
                         <Users size={32} strokeWidth={1} className="mx-auto text-gaffer-subtle mb-3 opacity-20" />
