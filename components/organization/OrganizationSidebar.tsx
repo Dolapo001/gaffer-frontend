@@ -11,6 +11,7 @@ import { listOrgs, deleteOrg } from '@/lib/services/org.service'
 import { updateProfile } from '@/lib/services/user.service'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { getMyCoachTeams } from '@/lib/services/coach.service'
+import { getProfile } from '@/lib/services/user.service'
 
 // --- Custom Inline SVGs ---
 const CloseIcon = ({ className = "" }: { className?: string }) => (
@@ -82,9 +83,11 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
       ? org.name
       : user?.fullName || user?.email?.split('@')[0] || 'Gaffer'
 
+  // The sign-in session doesn't carry the photo, so read it from the profile
+  const { data: profile } = useQuery({ queryKey: ['profile'], queryFn: getProfile, enabled: !!user, staleTime: 60_000, meta: { suppressGlobalError: true } })
   const displayImage = currentRole === 'organization' && org?.logoUrl
       ? org.logoUrl
-      : user?.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
+      : profile?.avatarUrl || user?.avatarUrl || "https://api.dicebear.com/7.x/avataaars/svg?seed=Lucky"
 
   const handleRoleSwitch = (role: 'personal' | 'organization') => {
     if (role === currentRole) {

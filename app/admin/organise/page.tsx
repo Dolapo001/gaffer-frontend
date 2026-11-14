@@ -13,7 +13,7 @@ import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   listTeams, createTeam, getTeam, updateTeam, deleteTeam,
-  listPlayers, updatePlayer, addPlayer, uploadPlayerPhoto,
+  listPlayers, updatePlayer, removePlayer, addPlayer, uploadPlayerPhoto,
   getTeamPhotos, uploadTeamPhoto, deleteTeamPhoto,
   registerTeamForCompetition,
   Team as BackendTeam, type TeamPhoto,
@@ -510,6 +510,20 @@ export default function OrganizePage() {
     })
   }
 
+  const removePlayerMutation = useMutation({
+    mutationFn: ({ teamId, playerId }: { teamId: string; playerId: string }) => removePlayer(teamId, playerId),
+    onSuccess: () => {
+      addToast('Player removed from the squad', 'success')
+      queryClient.invalidateQueries({ queryKey: ['players', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['teams', orgId] })
+      queryClient.invalidateQueries({ queryKey: ['team-detail', selectedTeam?.id] })
+      queryClient.invalidateQueries({ queryKey: ['competition-teams'] })
+      queryClient.invalidateQueries({ queryKey: ['comp-team-counts'] })
+    },
+    onError: (err) => addToast(getErrorMessage(err), 'error'),
+    meta: { suppressGlobalError: true },
+  })
+
   const updatePlayerMutation = useMutation({
     mutationFn: ({ teamId, playerId, payload }: { teamId: string, playerId: string, payload: any }) => updatePlayer(teamId, playerId, payload),
     onSuccess: () => {
@@ -747,6 +761,9 @@ export default function OrganizePage() {
                 }}
                 onRegisterTeam={(competitionId) => {
                   if (selectedTeam) registerTeamMutation.mutate({ teamId: selectedTeam.id, competitionId })
+                }}
+                onRemovePlayer={(playerId: string) => {
+                  if (selectedTeam) removePlayerMutation.mutate({ teamId: selectedTeam.id, playerId })
                 }}
                 onUpdatePlayer={(playerId: string, payload: any) => {
                   if (!selectedTeam) return

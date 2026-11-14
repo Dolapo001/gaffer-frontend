@@ -40,6 +40,7 @@ interface Props {
   onDeleteTeam?: () => void
   onDeleteGroup?: () => void
   onUpdatePlayer?: (playerId: string, payload: any) => void
+  onRemovePlayer?: (playerId: string) => void
   orgName?: string
   orgLogoUrl?: string
   orgId?: string
@@ -93,6 +94,7 @@ export function OrganiseDetails({
   onDeleteTeam,
   onDeleteGroup,
   onUpdatePlayer,
+  onRemovePlayer,
   orgName,
   orgLogoUrl,
   orgId,
@@ -133,6 +135,7 @@ export function OrganiseDetails({
   const teamPhotoInputRef = useRef<HTMLInputElement>(null)
   const displayHeading = selectedTeam?.name || selectedGroup?.name || 'Detail'
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<Player | null>(null)
   const [editForm, setEditForm] = useState({ firstName: '', lastName: '', position: '', jerseyNumber: '', nationality: '' })
   const [tempPrice, setTempPrice] = useState('')
   const [showRecruitment, setShowRecruitment] = useState(false)
@@ -545,6 +548,18 @@ export function OrganiseDetails({
       </div>
 
       <ConfirmDialog
+        open={!!removeTarget}
+        title="Remove player?"
+        message={`Remove ${removeTarget?.name ?? 'this player'} from ${selectedTeam?.name ?? 'the squad'}? Their past matches and stats stay on their profile. You can add them back later.`}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          if (removeTarget) onRemovePlayer?.(removeTarget.id)
+          setRemoveTarget(null)
+        }}
+        onCancel={() => setRemoveTarget(null)}
+      />
+
+      <ConfirmDialog
         open={showDeleteTeamConfirm}
         title="Delete Team?"
         message={`This will permanently delete "${selectedTeam?.name}" and all its squad members, invites, and tournament registrations.`}
@@ -852,6 +867,14 @@ export function OrganiseDetails({
                   >
                     Save Changes
                   </button>
+                  {onRemovePlayer && (
+                    <button
+                      onClick={() => { setRemoveTarget(editingPlayer); setEditingPlayer(null) }}
+                      className="w-full h-12 rounded-[18px] border border-red-500/30 text-red-400 font-bold text-xs uppercase tracking-[0.2em] hover:bg-red-500/10 transition-all"
+                    >
+                      Remove from squad
+                    </button>
+                  )}
                 </div>
              </motion.div>
           </div>
