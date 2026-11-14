@@ -22,7 +22,9 @@ import { useToastStore } from '@/store/toastStore'
 import { useAuthStore } from '@/store/authStore'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { CommentaryIcon } from '@/components/CommentaryIcon'
-import { MatchLineupPitch, type TeamLineupData, type LineupPlayer } from '@/components/match/MatchLineupPitch'
+import { type TeamLineupData, type LineupPlayer } from '@/components/match/MatchLineupPitch'
+import { LineupBoard } from '@/components/match/LineupBoard'
+import { MatchHeader } from '@/components/match/MatchHeader'
 
 export default function MatchCenterPage() {
   const router = useRouter()
@@ -123,116 +125,47 @@ export default function MatchCenterPage() {
     : { name: 'Away', shortName: 'AWY', logoUrl: null }
 
   return (
-    <div className="min-h-screen bg-[#10111d] text-white pb-10">
-      {/* Header */}
-      <header className="px-6 pt-12 pb-4 flex items-center justify-between sticky top-0 bg-[#10111d] z-50">
-        <button onClick={goBack} className="text-white p-1">
-          <ChevronLeft size={28} />
-        </button>
-        <h1 className="text-[18px] font-bold tracking-tight">
-          {isCompleted ? 'Final Score' : isLive ? 'Live Match' : 'Match Schedule'}
-        </h1>
-        {/* Follow match — POST/DELETE /notifications/follow/match/:matchId */}
-        <button
-          onClick={() => followMutation.mutate()}
-          disabled={followMutation.isPending}
-          className="p-1 transition-colors disabled:opacity-40"
-          aria-label={isFollowing ? 'Unfollow match' : 'Follow match'}
-        >
-          {isFollowing
-            ? <Bell size={20} className="text-gaffer-orange" fill="currentColor" />
-            : <BellOff size={20} className="text-white/40 hover:text-white" />
-          }
-        </button>
-      </header>
-
-      {/* Score Section */}
-      <section className="mt-4 px-6 mb-10 flex flex-col items-center">
-         <span className={`text-[13px] font-black uppercase tracking-widest mb-8 ${isCompleted ? 'text-[#00D1FF]' : 'text-red-500 font-black'}`}>
-            {isCompleted ? 'Full Time' : 'Live'}
-         </span>
-
-         <div className="flex items-center justify-between w-full max-w-[340px] px-2 mb-8">
-            <div className="flex flex-col items-center gap-3 w-[100px]">
-               <div className="w-16 h-16 flex items-center justify-center bg-white/5 rounded-full p-2">
-                  {homeTeam.logoUrl ? (
-                    <img src={getImageUrl(homeTeam.logoUrl)} alt="" className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="text-white/20 font-black text-xl">{homeTeam.name[0]}</div>
-                  )}
-               </div>
-               <span className="text-white text-[12px] font-black uppercase tracking-wider text-center line-clamp-1">{homeTeam.shortName || homeTeam.name}</span>
-            </div>
-
-            <div className="flex items-center gap-4">
-               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score?.home ?? 0}</span>
-               <span className="text-[32px] font-black italic tracking-widest text-white/10">-</span>
-               <span className="text-[48px] font-black italic tracking-tighter leading-none">{fixture.score?.away ?? 0}</span>
-            </div>
-
-            <div className="flex flex-col items-center gap-3 w-[100px]">
-               <div className="w-16 h-16 flex items-center justify-center bg-white/5 rounded-full p-2">
-                  {awayTeam.logoUrl ? (
-                    <img src={getImageUrl(awayTeam.logoUrl)} alt="" className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="text-white/20 font-black text-xl">{awayTeam.name[0]}</div>
-                  )}
-               </div>
-               <span className="text-white text-[12px] font-black uppercase tracking-wider text-center line-clamp-1">{awayTeam.shortName || awayTeam.name}</span>
-            </div>
-         </div>
-
-         {/* Extra time / penalties */}
-         {(phaseLabel(fixture as any) || penaltiesSuffix(fixture as any)) && (
-            <div className="-mt-4 mb-4 text-center space-y-1">
-               {phaseLabel(fixture as any) && <p className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-400 animate-pulse">{phaseLabel(fixture as any)}</p>}
-               {penaltiesSuffix(fixture as any) && <p className="text-[12px] font-bold uppercase tracking-widest text-white/60">{penaltiesSuffix(fixture as any)}</p>}
-            </div>
-         )}
-
-         {/* Scorers List */}
-         <div className="w-full max-w-[350px] flex justify-between px-2 opacity-80 min-h-[40px]">
-            <div className="flex flex-col gap-1">
-               {scorers.home.map((s: any, i: number) => (
-                  <span key={i} className="text-[11px] font-bold text-white/80 uppercase">{s.name} {s.minute}</span>
-               ))}
-            </div>
-            <div className="flex flex-col gap-1 items-end">
-               {scorers.away.map((s: any, i: number) => (
-                  <span key={i} className="text-[11px] font-bold text-white/80 uppercase">{s.name} {s.minute}</span>
-               ))}
-            </div>
-         </div>
-      </section>
+    <div className="min-h-screen bg-[#10111d] text-white pb-32">
+      <MatchHeader
+        home={{ name: homeTeam.name, shortName: homeTeam.shortName, logoUrl: homeTeam.logoUrl }}
+        away={{ name: awayTeam.name, shortName: awayTeam.shortName, logoUrl: awayTeam.logoUrl }}
+        score={{ home: fixture.score?.home ?? 0, away: fixture.score?.away ?? 0 }}
+        status={fixture.status}
+        phase={(fixture as any).phase}
+        kickoffAt={(fixture as any).kickoffAt}
+        penalties={penaltiesSuffix(fixture as any) || undefined}
+        scorers={scorers}
+        isFollowing={isFollowing}
+        followPending={followMutation.isPending}
+        onFollow={() => followMutation.mutate()}
+        onBack={goBack}
+        tabs={
+          <div className="flex border-b border-white/[0.08] px-4" role="tablist">
+            {(['lineup', 'commentary'] as const).map((tab) => (
+              <button
+                key={tab}
+                role="tab"
+                aria-selected={activeTab === tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative flex-1 py-3.5 text-[14px] font-semibold transition-colors ${activeTab === tab ? 'text-white' : 'text-white/45'}`}
+              >
+                {tab === 'lineup' ? 'Lineups' : 'Commentary'}
+                {activeTab === tab && <motion.div layoutId="matchTab" className="absolute bottom-[-1px] left-6 right-6 h-[3px] rounded-t bg-gaffer-orange" />}
+              </button>
+            ))}
+          </div>
+        }
+      />
 
       {/* Penalty shootout, kick by kick */}
       {((fixture as any).phase === 'penalties' || (fixture as any).decidedBy === 'penalties') && (
-         <div className="px-6 mb-6"><ShootoutView fixture={fixture as any} /></div>
+         <div className="px-4 pt-4"><ShootoutView fixture={fixture as any} /></div>
       )}
 
-      {/* Tabs */}
-      <div className="px-6 mb-6">
-         <div className="flex border-b border-white/5 relative">
-            {(['lineup', 'commentary'] as const).map((tab) => (
-               <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`flex-1 py-3 text-[14px] font-black uppercase tracking-[0.2em] relative transition-colors ${activeTab === tab ? 'text-white' : 'text-white/30'}`}
-               >
-                  {tab === 'lineup' ? 'Line-up' : 'Commentary'}
-                  {activeTab === tab && (
-                     <motion.div 
-                        layoutId="matchTab"
-                        className="absolute bottom-[-1px] left-0 right-0 h-[3px] bg-gaffer-orange z-10"
-                     />
-                  )}
-               </button>
-            ))}
-         </div>
-      </div>
+      <div className="h-4" />
 
       {/* Tab Content */}
-      <div className="px-4">
+      <div className="px-3">
          <AnimatePresence mode="wait">
             {activeTab === 'lineup' ? (
                <motion.div
@@ -240,7 +173,7 @@ export default function MatchCenterPage() {
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.98 }}
-                  className="flex flex-col gap-4 px-1"
+                  className="flex flex-col gap-4"
                >
                   {(() => {
                      // Resolve Home & Away Lineups safely
@@ -284,8 +217,8 @@ export default function MatchCenterPage() {
                            const pid = p?._id || p?.id || (typeof item.playerId === 'string' ? item.playerId : null)
                            const slot = pid ? slotMap.get(String(pid)) : null
 
-                           const isRed = events.some((e: any) => (e.type === 'red_card' || (e.metadata as any)?.isSecondYellow) && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
-                           const isYellow = events.some((e: any) => e.type === 'yellow_card' && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
+                           const isRed = events.some((e: any) => cardColour(e) === 'red' && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
+                           const isYellow = events.some((e: any) => cardColour(e) === 'yellow' && (typeof e.playerId === 'object' ? e.playerId?._id === pid : e.playerId === pid))
                            const isSubbed = events.some((e: any) => ['sub', 'substitution'].includes(e.type) && ([e.playerInId, e.playerOutId].some((x: any) => (typeof x === 'object' && x ? String(x._id) : String(x)) === String(pid))))
 
                            const itemRating = slot?.rating != null ? slot.rating : (item.rating != null ? item.rating : (p?.rating != null ? p?.rating : (item.stats?.rating ?? undefined)))
@@ -301,6 +234,10 @@ export default function MatchCenterPage() {
                               isCaptain: item.isCaptain || p?.isCaptain || false,
                               isSubstituted: isSubbed,
                               photoUrl: p?.photoUrl || p?.photo,
+                              firstName,
+                              lastName,
+                              displayName: nickname,
+                              fullName: (firstName + ' ' + lastName).trim() || fullName,
                            }
                         })
                      }
@@ -336,10 +273,10 @@ export default function MatchCenterPage() {
                      }
 
                      return (
-                        <MatchLineupPitch
-                           homeTeam={homeTeamData}
-                           awayTeam={awayTeamData}
-                           matchEvents={events}
+                        <LineupBoard
+                           home={homeTeamData}
+                           away={awayTeamData}
+                           events={events}
                            isLive={['live', 'halftime'].includes(fixture.status)}
                         />
                      )
@@ -375,6 +312,16 @@ export default function MatchCenterPage() {
       </div>
     </div>
   )
+}
+
+/** The match feed calls every booking "card"; the colour is only in the wording. */
+function cardColour(e: any): 'yellow' | 'red' | null {
+   const t = String(e.rawType || e.type || '').toLowerCase()
+   if (t === 'red_card' || e.metadata?.isSecondYellow) return 'red'
+   if (t === 'yellow_card') return 'yellow'
+   if (t !== 'card') return null
+   const text = String(e.commentaryText || e.description || e.text || '').toLowerCase()
+   return /red card|second yellow|sent off/.test(text) ? 'red' : 'yellow'
 }
 
 function CommentaryCard({ event, matchId }: { event: MatchEvent; matchId: string }) {
