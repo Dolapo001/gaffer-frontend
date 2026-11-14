@@ -16,7 +16,19 @@ export interface CoachFixture {
   status: 'scheduled' | 'live' | 'halftime'
   home: boolean
   opponent: { name: string; shortName?: string; logoUrl: string | null } | null
-  lineup: { starters: string[]; status: 'pending' | 'approved' } | null
+  /** How many play on each side in this tournament (11 unless it is a small-sided game) */
+  playersPerSide?: number
+  /** The formation saved for this team in this match, e.g. "4-4-2" */
+  formation?: string | null
+  lineup: {
+    starters: string[]
+    /** Which spot on the pitch each starter takes (0 is the goalkeeper) */
+    slots?: { playerId: string; positionIndex: number }[]
+    status: 'pending' | 'approved'
+    /** Who saved it last: this coach, or the organiser */
+    setBy?: 'coach' | 'organiser'
+    updatedAt?: string
+  } | null
 }
 
 export interface CoachTeam {
@@ -58,8 +70,11 @@ export const confirmSquad = (teamId: string) =>
   api.post<{ squadConfirmedAt: string; players: number }>(`/coach/teams/${teamId}/confirm-squad`)
 
 // POST /coach/fixtures/:fixtureId/lineup
-export const submitCoachLineup = (fixtureId: string, starters: string[]) =>
-  api.post<{ message: string; starters: number }>(`/coach/fixtures/${fixtureId}/lineup`, { starters })
+export const submitCoachLineup = (
+  fixtureId: string,
+  starters: string[],
+  shape?: { formation: string; slots: { playerId: string; positionIndex: number }[] },
+) => api.post<{ message: string; starters: number; formation: string | null }>(`/coach/fixtures/${fixtureId}/lineup`, { starters, ...(shape ?? {}) })
 
 // Organisation side: POST /coach/teams/:teamId/invite
 export const createCoachInvite = (teamId: string, email: string) =>
