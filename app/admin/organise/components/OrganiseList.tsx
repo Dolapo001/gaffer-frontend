@@ -70,7 +70,7 @@ export function OrganiseList({
         >
           <div>
             <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">
-              {activeComp ? activeComp.name : 'Organize'}
+              {activeComp ? activeComp.name : 'Teams'}
             </h1>
             {!activeComp && (
               <p className="text-xs text-[#A1A1AA] font-chakra font-medium mt-0.5">

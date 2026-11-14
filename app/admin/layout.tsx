@@ -15,8 +15,8 @@ import { OrgStatusBanner } from '@/components/organization/OrgStatusBanner'
 const NAV_ITEMS = [
   { href: '/admin', icon: Home, label: 'Home' },
   { href: '/admin/tournaments', icon: Trophy, label: 'League' },
-  { href: '/admin/schedule', icon: CalendarClock, label: 'Schedule' },
-  { href: '/admin/organise', icon: Award, label: 'Organize' },
+  { href: '/admin/schedule', icon: CalendarClock, label: 'Matches' },
+  { href: '/admin/organise', icon: Award, label: 'Teams' },
   { href: '/admin/collaborators', icon: Users, label: 'Staff' },
   { href: '/admin/news', icon: FileText, label: 'News' },
 ]

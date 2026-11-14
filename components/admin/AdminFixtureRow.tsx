@@ -7,6 +7,7 @@ import { Trash2 } from 'lucide-react'
 import { startMatch, cancelLive, deleteFixture, teamsWithoutApprovedLineup, penaltiesSuffix } from '@/lib/services/fixture.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToast } from '@/store/toastStore'
+import { formatShortDate } from '@/lib/dates'
 
 interface AdminFixtureRowProps {
   fixture: any
@@ -31,7 +32,7 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
   const home = fixture.homeTeamId && typeof fixture.homeTeamId === 'object' ? fixture.homeTeamId : { name: 'Home' }
   const away = fixture.awayTeamId && typeof fixture.awayTeamId === 'object' ? fixture.awayTeamId : { name: 'Away' }
   const kickoff = fixture.kickoffAt ? new Date(fixture.kickoffAt) : new Date()
-  const dateLabel = kickoff.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  const dateLabel = formatShortDate(kickoff)
   const time = kickoff.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
 
 

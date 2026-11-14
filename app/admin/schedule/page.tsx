@@ -184,7 +184,7 @@ export default function SchedulePage() {
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Your Schedule</h1>
+              <h1 className="text-xl font-chakra font-black text-white uppercase tracking-tighter">Matches</h1>
             </div>
           </div>
           
