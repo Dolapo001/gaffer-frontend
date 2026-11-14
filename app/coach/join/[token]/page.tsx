@@ -65,7 +65,7 @@ export default function CoachJoinPage() {
           <ul className="text-left text-sm text-white/70 space-y-2 bg-white/5 rounded-2xl p-4">
             <li>Send your players the recruitment link and watch your squad fill up.</li>
             <li>Confirm your squad when it is complete.</li>
-            <li>Before each match, pick your starting lineup. We remind you from 3 hours before kick-off until it is in, and the match can't start without one.</li>
+            <li>Before each match, pick your starting lineup. We remind you from 3 hours before kick-off until it is in, and the match can&apos;t start without one.</li>
           </ul>
           {invite.data.emailHint && (
             <p className="text-sm text-white/60">This invite is for <span className="text-white font-semibold">{invite.data.emailHint}</span>.</p>
@@ -80,7 +80,7 @@ export default function CoachJoinPage() {
           ) : (
             <div className="space-y-3">
               <button onClick={() => router.push('/auth/login')} className="w-full h-12 rounded-full bg-orange-500 text-black font-black text-sm">I have a Gaffer account: sign in</button>
-              <button onClick={() => router.push('/onboarding/role-select')} className="w-full h-12 rounded-full border border-white/20 text-white font-bold text-sm">I'm new: create an account</button>
+              <button onClick={() => router.push('/onboarding/role-select')} className="w-full h-12 rounded-full border border-white/20 text-white font-bold text-sm">I&apos;m new: create an account</button>
               <p className="text-xs text-white/40">Use the email address the invite was sent to. You come straight back here afterwards.</p>
             </div>
           )}

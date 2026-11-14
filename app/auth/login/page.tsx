@@ -17,6 +17,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import { googleAuth } from '@/lib/services/auth.service'
 import { useGoBack } from '@/hooks/useGoBack'
 import { afterAuthPath } from '@/lib/afterAuth'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -198,8 +199,8 @@ export default function LoginPage() {
           </div>
           <p className="mt-6 pb-8 text-center text-white/40 font-chakra text-xs">
             By continuing you agree to our{' '}
-            <a href="/terms" className="underline hover:text-white/70">Terms</a> and{' '}
-            <a href="/privacy" className="whitespace-nowrap underline hover:text-white/70">Privacy Policy</a>.
+            <Link href="/terms" className="underline hover:text-white/70">Terms</Link> and{' '}
+            <Link href="/privacy" className="whitespace-nowrap underline hover:text-white/70">Privacy Policy</Link>.
           </p>
         </motion.div>
       </div>
