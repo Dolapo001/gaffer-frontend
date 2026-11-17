@@ -187,14 +187,19 @@ export default function PlayerRecruitmentForm() {
 
   // ── Main Form ──────────────────────────────────────────────────────────────
   return (
-    <div className="fixed inset-0 bg-[#11121C] text-white overflow-hidden flex flex-col items-center justify-center">
+    // The page scrolls: on a short phone the form is taller than the screen, and before, its top and the
+    // Confirm button were cut off with no way to reach them
+    <div className="fixed inset-0 overflow-y-auto overscroll-contain bg-[#11121C] text-white">
       {/* Background glows */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] bg-gaffer-orange/10 blur-[150px] rounded-full opacity-50 animate-pulse" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[60%] h-[60%] bg-[#E7000B]/10 blur-[150px] rounded-full opacity-50 animate-pulse" style={{ animationDelay: '1.2s' }} />
       </div>
 
-      <div className="relative w-full max-w-[430px] mx-auto px-5 flex flex-col gap-4">
+      <div
+        className="relative mx-auto flex min-h-full w-full max-w-[430px] flex-col justify-center gap-4 px-5"
+        style={{ paddingTop: 'calc(24px + env(safe-area-inset-top, 0px))', paddingBottom: 'calc(32px + env(safe-area-inset-bottom, 0px))' }}
+      >
 
         {/* ── Hero ── */}
         <div className="text-center flex flex-col items-center gap-2">
