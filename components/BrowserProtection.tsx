@@ -3,6 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { isStandalone } from '@/lib/pwa'
+import { pendingCoachToken } from '@/lib/services/coach.service'
 
 // The app's own top-level sections (same list as middleware.ts). Any other first segment is the
 // /[competition]/[team] player sign-up link, which players open from WhatsApp in an ordinary browser.
@@ -12,9 +13,12 @@ const APP_SECTIONS = ['auth', 'admin', 'app', 'onboarding', 'organization', 'pla
  * Returns true immediately (synchronously) for routes that never need the
  * PWA-standalone check, so no blocking overlay is ever painted on them.
  */
-function isAlwaysAllowed(pathname: string): boolean {
+export function isAlwaysAllowed(pathname: string): boolean {
   const first = pathname.split('/').filter(Boolean)[0]
   if (first && !APP_SECTIONS.includes(first)) return true
+  // Someone who opened a coach invite in their browser signs in or creates an account here, then goes back to the
+  // invite: coaching happens in the browser, so they must not be sent away to install the app first
+  if (pathname.startsWith('/auth') && hasPendingCoachInvite()) return true
   return (
     pathname === '/' ||
     pathname.startsWith('/onboarding/') ||
@@ -30,6 +34,11 @@ function isAlwaysAllowed(pathname: string): boolean {
     pathname.startsWith('/player/onboarding') ||
     pathname.startsWith('/organization/onboarding')
   )
+}
+
+function hasPendingCoachInvite(): boolean {
+  if (typeof window === 'undefined') return false
+  return !!pendingCoachToken.get()
 }
 
 export function BrowserProtection({ children }: { children: ReactNode }) {
