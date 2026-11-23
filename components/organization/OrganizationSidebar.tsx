@@ -7,7 +7,7 @@ import { useAuthStore } from '@/store/authStore'
 import { useToast } from '@/store/toastStore'
 import { AccountUpgradeModal } from '../AccountUpgradeModal'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { listOrgs, deleteOrg } from '@/lib/services/org.service'
+import { listOrgs, deleteOrg, activeOrg } from '@/lib/services/org.service'
 import { updateProfile } from '@/lib/services/user.service'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { getMyCoachTeams } from '@/lib/services/coach.service'
@@ -185,10 +185,31 @@ export function OrganizationSidebar({ onClose }: OrganizationSidebarProps) {
             {displayName}
           </h3>
           <p className="text-[10px] font-bold text-[#FF8A00] uppercase tracking-widest mt-1 opacity-80">
-             {currentRole === 'organization' ? 'Admin / Manager' : 'Personal Account'}
+             {currentRole === 'organization' ? (org ? `${org.name}${org.myRole && org.myRole !== 'owner' ? ` · ${org.myRole}` : ''}` : 'Admin / Manager') : 'Personal Account'}
           </p>
         </div>
       </div>
+
+      {/* Someone on the staff of several organisations picks which one to work in */}
+      {currentRole === 'organization' && orgs && orgs.length > 1 && (
+        <div className="flex flex-col gap-2 mb-8 w-full relative z-10">
+          <h4 className="text-[10px] font-black tracking-widest text-white/30 uppercase mb-1 px-2">Organisation</h4>
+          {orgs.map((o) => (
+            <button
+              key={o._id}
+              onClick={() => { if (o._id !== org?._id) { activeOrg.set(o._id); window.location.assign('/admin') } else onClose() }}
+              aria-current={o._id === org?._id ? 'true' : undefined}
+              className={`flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border text-left ${o._id === org?._id ? 'border-[#ff6b00]/50 bg-[#ff6b00]/10' : 'border-white/5 bg-[#1E2032]/50 hover:border-white/20'}`}
+            >
+              <span className="min-w-0">
+                <span className="block text-sm font-bold text-white truncate">{o.name}</span>
+                <span className="block text-[11px] text-white/40 capitalize">{o.myRole || 'member'}</span>
+              </span>
+              {o._id === org?._id && <span className="text-[11px] font-bold text-[#ff6b00] shrink-0">Current</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Navigation Links */}
       <nav className="flex flex-col gap-3 mb-10 w-full relative z-10">

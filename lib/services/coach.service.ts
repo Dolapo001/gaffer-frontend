@@ -77,5 +77,5 @@ export const submitCoachLineup = (
 ) => api.post<{ message: string; starters: number; formation: string | null }>(`/coach/fixtures/${fixtureId}/lineup`, { starters, ...(shape ?? {}) })
 
 // Organisation side: POST /coach/teams/:teamId/invite
-export const createCoachInvite = (teamId: string, email: string) =>
-  api.post<{ link: string; expiresAt: string; teamName: string; email: string; emailed: boolean }>(`/coach/teams/${teamId}/invite`, { email })
+export const createCoachInvite = (teamId: string, email = '') =>
+  api.post<{ link: string; expiresAt: string; teamName: string; email: string | null; emailed: boolean }>(`/coach/teams/${teamId}/invite`, { email })

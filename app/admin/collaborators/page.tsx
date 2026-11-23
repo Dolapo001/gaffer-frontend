@@ -12,6 +12,7 @@ import {
   resendInvite, updateMemberRole, removeMember,
 } from '@/lib/services/member.service'
 import { listOrgs } from '@/lib/services/org.service'
+import { StaffInviteLinkCard } from '@/components/admin/StaffInviteLinkCard'
 import { BrowserProtection } from '@/components/BrowserProtection'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
@@ -59,6 +60,9 @@ export default function CollaboratorsPage() {
 
   const { data: orgs } = useQuery({ queryKey: ['orgs'], queryFn: listOrgs, enabled: !!user })
   const orgId = orgs?.[0]?._id
+  const orgName = orgs?.[0]?.name
+  // Only the owner and admins manage who joins
+  const canInvite = !orgs?.[0]?.myRole || ['owner', 'admin'].includes(orgs[0].myRole)
 
   const { data: members, isLoading: isLoadingMembers } = useQuery({
     queryKey: ['members', orgId],
@@ -187,6 +191,8 @@ export default function CollaboratorsPage() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {orgId && canInvite && <StaffInviteLinkCard orgId={orgId} orgName={orgName} />}
 
           {/* Active Members */}
           <section className="space-y-4">

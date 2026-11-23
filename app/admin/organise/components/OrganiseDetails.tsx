@@ -12,6 +12,7 @@ import { Competition, removeCompetitionTeam } from '@/lib/services/competition.s
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
 import { createCoachInvite } from '@/lib/services/coach.service'
+import { onThisSite } from '@/lib/siteLink'
 import { getErrorMessage } from '@/lib/api'
 import { duplicateNumbers } from '@/components/match/LineupEditor'
 
@@ -108,7 +109,7 @@ export function OrganiseDetails({
   const [editTeamName, setEditTeamName] = useState('')
   const [editMaxPlayers, setEditMaxPlayers] = useState(25)
   const [editLogo, setEditLogo] = useState<string | null>(null)
-  const [coachInvite, setCoachInvite] = useState<{ open: boolean; email: string; busy: boolean; result: { link: string; email: string; emailed: boolean } | null }>({ open: false, email: '', busy: false, result: null })
+  const [coachInvite, setCoachInvite] = useState<{ open: boolean; email: string; busy: boolean; result: { link: string; email: string | null; emailed: boolean } | null }>({ open: false, email: '', busy: false, result: null })
   const [showPhotos, setShowPhotos] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [isGeneratingLink, setIsGeneratingLink] = useState(false)
@@ -632,7 +633,7 @@ export function OrganiseDetails({
                     setCoachInvite((c) => ({ ...c, busy: true }))
                     try {
                       const r = await createCoachInvite(selectedTeam.id, coachInvite.email.trim())
-                      setCoachInvite((c) => ({ ...c, busy: false, result: { link: r.link, email: r.email, emailed: r.emailed } }))
+                      setCoachInvite((c) => ({ ...c, busy: false, result: { link: onThisSite(r.link), email: r.email, emailed: r.emailed } }))
                     } catch (err) {
                       setCoachInvite((c) => ({ ...c, busy: false }))
                       toast.addToast(getErrorMessage(err), 'error')
@@ -640,18 +641,18 @@ export function OrganiseDetails({
                   }}
                 >
                   <label className="block space-y-2">
-                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Coach&apos;s email</span>
-                    <input type="email" required autoFocus value={coachInvite.email} onChange={(e) => setCoachInvite((c) => ({ ...c, email: e.target.value }))} placeholder="coach@example.com"
+                    <span className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] ml-1">Coach&apos;s email (optional)</span>
+                    <input type="email" autoFocus value={coachInvite.email} onChange={(e) => setCoachInvite((c) => ({ ...c, email: e.target.value }))} placeholder="coach@example.com"
                       className="w-full bg-[#11121C] border border-white/5 rounded-2xl py-3.5 px-4 text-[13px] font-bold text-white outline-none focus:border-gaffer-orange/30" />
                   </label>
-                  <p className="text-xs text-white/40">Only this person can accept. If they already have a Gaffer account with this email, coaching is added to it.</p>
-                  <button type="submit" disabled={coachInvite.busy || !coachInvite.email.trim()} className="w-full h-12 rounded-2xl bg-gaffer-orange text-white font-black uppercase tracking-widest text-sm disabled:opacity-40">
-                    {coachInvite.busy ? 'Sending…' : 'Send invite'}
+                  <p className="text-xs text-white/40">Leave it empty to just get a link you can send on WhatsApp: the first person to open it becomes the coach. With an email, only that person can accept.</p>
+                  <button type="submit" disabled={coachInvite.busy} className="w-full h-12 rounded-2xl bg-gaffer-orange text-white font-black uppercase tracking-widest text-sm disabled:opacity-40">
+                    {coachInvite.busy ? 'Making link…' : coachInvite.email.trim() ? 'Send invite' : 'Get coach link'}
                   </button>
                 </form>
               ) : (
                 <div className="space-y-4">
-                  <p className="text-sm text-white/80">{coachInvite.result.emailed ? `Invite emailed to ${coachInvite.result.email}.` : `Invite ready for ${coachInvite.result.email}. The email could not be sent, so send them the link yourself.`} It works once and lasts 14 days.</p>
+                  <p className="text-sm text-white/80">{!coachInvite.result.email ? 'Coach link ready. Send it to the coach.' : coachInvite.result.emailed ? `Invite emailed to ${coachInvite.result.email}.` : `Invite ready for ${coachInvite.result.email}. The email could not be sent, so send them the link yourself.`} It works once and lasts 14 days.</p>
                   <button
                     onClick={async () => { await navigator.clipboard.writeText(coachInvite.result!.link); toast.addToast('Invite link copied', 'success') }}
                     className="w-full h-12 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm">Copy the link (to send on WhatsApp)</button>

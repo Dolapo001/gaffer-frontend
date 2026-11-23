@@ -26,6 +26,8 @@ const RESERVED_TOP_SEGMENTS = [
   'recruit',
   'hq',
   'coach',
+  'join',
+  'invite',
 ]
 
 /**
@@ -47,6 +49,8 @@ export function middleware(request: NextRequest) {
 
   // A coach invite shows who it is for before signing in; accepting needs a session
   if (pathname.startsWith('/coach/join/')) return NextResponse.next()
+  // A staff invite link shows which organisation it is for before signing in; joining needs a session
+  if (pathname.startsWith('/join/') || pathname.startsWith('/invite/accept')) return NextResponse.next()
 
   // Recruitment links are fully public — the token is the URL segment itself
   if (pathname.startsWith(RECRUIT_PREFIX)) return NextResponse.next()

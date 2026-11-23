@@ -10,6 +10,8 @@ export interface Org {
   logoUrl?: string
   sports?: string[]
   ownerId: string
+  /** The signed-in person's role here: owner, or their staff role */
+  myRole?: 'owner' | 'admin' | 'manager' | 'staff' | 'viewer'
   lifecycleStatus: string
   verificationStatus: string
   /** What the organisation told Gaffer, and HQ's decision (see Gaffer HQ). */
@@ -55,9 +57,20 @@ export interface CreateOrgPayload {
 }
 
 // GET /orgs
+/** The organisation this person last chose to work in (they can belong to several). */
+const ACTIVE_ORG_KEY = 'gaffer-active-org'
+export const activeOrg = {
+  get: (): string | null => { try { return localStorage.getItem(ACTIVE_ORG_KEY) } catch { return null } },
+  set: (id: string) => { try { localStorage.setItem(ACTIVE_ORG_KEY, id) } catch { /* private mode */ } },
+}
+
+// GET /orgs — the chosen organisation comes first, because the organiser side works on the first one
 export async function listOrgs(): Promise<Org[]> {
   const data = await api.get<{ orgs: Org[] }>('/orgs')
-  return data.orgs
+  const orgs = data.orgs ?? []
+  const chosen = activeOrg.get()
+  const i = chosen ? orgs.findIndex((o) => o._id === chosen) : -1
+  return i > 0 ? [orgs[i], ...orgs.slice(0, i), ...orgs.slice(i + 1)] : orgs
 }
 
 // GET /orgs/handle/:handle
