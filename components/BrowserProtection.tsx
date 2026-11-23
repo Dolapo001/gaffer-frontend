@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { isStandalone } from '@/lib/pwa'
 import { pendingCoachToken } from '@/lib/services/coach.service'
+import { pendingStaffCode } from '@/lib/services/member.service'
 
 // The app's own top-level sections (same list as middleware.ts). Any other first segment is the
 // /[competition]/[team] player sign-up link, which players open from WhatsApp in an ordinary browser.
@@ -31,6 +32,9 @@ export function isAlwaysAllowed(pathname: string): boolean {
     // Public invite + recruitment routes — must work in a regular browser
     // without the PWA being installed (shared links, email links, etc.)
     pathname.startsWith('/recruit/') ||
+    // Staff invite links are shared on WhatsApp etc. and opened in a browser
+    pathname.startsWith('/join/') ||
+    pathname.startsWith('/invite/accept') ||
     pathname.startsWith('/player/onboarding') ||
     pathname.startsWith('/organization/onboarding')
   )
@@ -38,7 +42,7 @@ export function isAlwaysAllowed(pathname: string): boolean {
 
 function hasPendingCoachInvite(): boolean {
   if (typeof window === 'undefined') return false
-  return !!pendingCoachToken.get()
+  return !!pendingCoachToken.get() || !!pendingStaffCode.get()
 }
 
 export function BrowserProtection({ children }: { children: ReactNode }) {

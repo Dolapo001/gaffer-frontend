@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { hqService, type HqOrg, type NewOrgInput } from '@/lib/services/hq.service'
 import { ApiError } from '@/lib/api'
 import { TypeNameDialog } from '@/components/hq/ui'
+import { OrgInviteLinks } from '@/components/hq/OrgInviteLinks'
 import { formatDate, formatDateTime } from '@/lib/dates'
 
 type Tab = 'pending' | 'approved' | 'rejected' | 'suspended' | 'deleted' | 'all'
@@ -197,6 +198,8 @@ function OrgDetail({ id, onClose }: { id: string; onClose: () => void }) {
           </ul>
         )}
       </div>
+
+      {!deleted && <OrgInviteLinks orgId={id} orgName={org.name} competitions={competitions} />}
 
       {error && !dialog && <p role="alert" className="text-sm text-red-400 font-body">{error}</p>}
 

@@ -68,3 +68,47 @@ export async function updateMemberRole(
 export async function removeMember(orgId: string, userId: string): Promise<void> {
   await api.delete(`/orgs/${orgId}/members/${userId}`)
 }
+
+// ── Staff invite link: one shareable link per organisation ──────────────────
+
+export interface StaffInviteLink {
+  id: string
+  url: string
+  code: string
+  role: 'admin' | 'manager' | 'staff' | 'viewer'
+  uses: number
+  createdAt: string
+}
+
+// GET /orgs/:orgId/invite-link
+export async function getInviteLink(orgId: string): Promise<StaffInviteLink | null> {
+  const data = await api.get<{ link: StaffInviteLink | null }>(`/orgs/${orgId}/invite-link`)
+  return data.link
+}
+
+// POST /orgs/:orgId/invite-link — makes a new link; the old one stops working
+export async function createInviteLink(orgId: string, role: string): Promise<StaffInviteLink> {
+  const data = await api.post<{ link: StaffInviteLink }>(`/orgs/${orgId}/invite-link`, { role })
+  return data.link
+}
+
+// DELETE /orgs/:orgId/invite-link
+export async function revokeInviteLink(orgId: string): Promise<void> {
+  await api.delete(`/orgs/${orgId}/invite-link`)
+}
+
+// GET /invite/link/:code — public
+export const peekStaffLink = (code: string) =>
+  api.get<{ orgName: string; logoUrl: string | null; invitedBy: string | null; role: string }>(`/invite/link/${code}`, { public: true })
+
+// POST /invite/link/:code/join
+export const joinStaffLink = (code: string) =>
+  api.post<{ orgId: string; orgName: string; role: string; alreadyMember: boolean }>(`/invite/link/${code}/join`)
+
+/** A staff link opened before signing in: kept so the person comes back to it after signing in or up. */
+const PENDING_STAFF_KEY = 'gaffer-pending-staff-link'
+export const pendingStaffCode = {
+  get: (): string | null => { try { return localStorage.getItem(PENDING_STAFF_KEY) } catch { return null } },
+  set: (c: string) => { try { localStorage.setItem(PENDING_STAFF_KEY, c) } catch { /* private mode */ } },
+  clear: () => { try { localStorage.removeItem(PENDING_STAFF_KEY) } catch { /* private mode */ } },
+}

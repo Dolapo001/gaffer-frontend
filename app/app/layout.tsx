@@ -16,6 +16,7 @@ import { CompleteAccountPrompt } from '@/components/CompleteAccountPrompt'
 import { PushPrompt } from '@/components/notifications/PushPrompt'
 import { adjacentTab, startsInsideSideScroller, swipeDirection } from '@/lib/tabSwipe'
 import { pendingCoachToken } from '@/lib/services/coach.service'
+import { pendingStaffCode } from '@/lib/services/member.service'
 import { FantasyRecapPopup } from '@/components/recap/FantasyRecapPopup'
 
 // Exact paths that mean the user has intentionally left the competition context.
@@ -38,6 +39,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // A coach invite opened before signing in is finished now that they are in
   useEffect(() => {
     if (!isReady) return
+    const staff = pendingStaffCode.get()
+    if (staff) { router.replace(`/join/${staff}`); return }
     const pending = pendingCoachToken.get()
     if (pending) router.replace(`/coach/join/${pending}`)
   }, [isReady, pathname, router])
