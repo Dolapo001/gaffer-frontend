@@ -13,6 +13,7 @@ import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/servi
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
 import { hqService } from '@/lib/services/hq.service'
 import { TournamentReport } from '@/components/hq/TournamentReport'
+import { FantasyInsights } from '@/components/hq/FantasyInsights'
 
 const input = 'rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white text-sm w-full'
 const toLocalInput = (iso?: string) => (iso ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '')
@@ -310,7 +311,7 @@ export default function HqTournamentPage() {
         ))}
       </div>
 
-      {tab === 'overview' && (<><Summary id={params.id} /><TournamentReport id={params.id} /><Details id={params.id} /><RecapSwitch id={params.id} /></>)}
+      {tab === 'overview' && (<><Summary id={params.id} /><TournamentReport id={params.id} /><FantasyInsights id={params.id} /><Details id={params.id} /><RecapSwitch id={params.id} /></>)}
       {tab === 'fixtures' && (
         <>
           <AddMatch id={params.id} />

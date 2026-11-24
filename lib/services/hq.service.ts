@@ -301,9 +301,26 @@ export interface HqPlayerMerge {
   canUndo: boolean
 }
 
+export interface HqInsightRow { playerId: string; name: string; team: string | null; position: string | null; count: number; pct: number }
+
+export interface HqFantasyInsights {
+  tournament: string
+  gameweeks: { id: string; number: number; name: string; locked: boolean; deadline: string }[]
+  /** The gameweek the lists are for. `frozen` numbers come from squads saved at the deadline and never change; `live` ones are still moving. */
+  gameweek: { id: string; number: number; name: string; basis: 'frozen' | 'live' } | null
+  managers: number
+  transferCount?: number
+  mostOwned: HqInsightRow[]
+  mostCaptained: HqInsightRow[]
+  transfersIn: HqInsightRow[]
+  transfersOut: HqInsightRow[]
+}
+
 export const hqService = {
   me: () => api.get<{ admin: { userId: string; email: string } }>('/platform/me'),
   stats: () => api.get<HqStats>('/platform/stats'),
+  fantasyInsights: (id: string, gameweekId?: string) =>
+    api.get<HqFantasyInsights>(`/platform/tournaments/${id}/fantasy-insights${gameweekId ? `?gameweek=${gameweekId}` : ''}`),
   tournamentReport: (id: string) => api.get<HqTournamentReport>(`/platform/tournaments/${id}/report`),
   duplicatePlayers: (page = 1) => api.get<{ pairs: HqDuplicatePair[]; total: number; page: number; pageSize: number }>(`/platform/players/duplicates?page=${page}`),
   playerMerges: () => api.get<{ merges: HqPlayerMerge[] }>('/platform/players/merges'),
