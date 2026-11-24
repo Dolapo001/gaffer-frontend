@@ -7,6 +7,8 @@ import { acceptCoachInvite, peekCoachInvite, pendingCoachToken } from '@/lib/ser
 import { useToast } from '@/store/toastStore'
 import { ApiError, getErrorMessage, getImageUrl } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { authUrlForInvite } from '@/lib/afterAuth'
+import { isIOS, isStandalone } from '@/lib/pwa'
 
 /** The page a coach invite link opens: who it is for, and one button to accept. */
 export default function CoachJoinPage() {
@@ -18,10 +20,17 @@ export default function CoachJoinPage() {
   const signedIn = useAuthStore((st) => st.isAuthenticated)
   const myEmail = useAuthStore((st) => st.user?.email ?? null)
 
+  // Opened in a browser tab (a shared link never opens the installed app on iPhone): everything is finished right here
+  const [inBrowser, setInBrowser] = useState(false)
+  useEffect(() => { setInBrowser(!isStandalone()) }, [])
+
   const invite = useQuery({ queryKey: ['coach-invite', token], queryFn: () => peekCoachInvite(token), retry: false })
 
   // Keep the token until it has been accepted, so a coach who still has to sign up can finish afterwards
   useEffect(() => { pendingCoachToken.set(token) }, [token])
+
+  // A used, expired or withdrawn invite must not stay waiting: it would pull the next sign-in back to this dead page
+  useEffect(() => { if (invite.isError) pendingCoachToken.clear() }, [invite.isError])
 
   const accept = async () => {
     setBusy(true)
@@ -46,7 +55,11 @@ export default function CoachJoinPage() {
         <div className="max-w-sm space-y-3">
           <h1 className="text-white text-xl font-black">This invite is not valid</h1>
           <p className="text-white/60 text-sm">{getErrorMessage(invite.error)}</p>
-          <button onClick={() => { pendingCoachToken.clear(); router.replace('/app/dashboard') }} className="mt-2 px-6 h-12 rounded-full border border-white/20 text-white font-bold text-sm">Go to the app</button>
+          {inBrowser ? (
+            <p className="text-white/40 text-xs">Ask the organiser to send you a new invite link. You can close this page.</p>
+          ) : (
+            <button onClick={() => { pendingCoachToken.clear(); router.replace('/app/dashboard') }} className="mt-2 px-6 h-12 rounded-full border border-white/20 text-white font-bold text-sm">Go to the app</button>
+          )}
         </div>
       )}
 
@@ -79,10 +92,13 @@ export default function CoachJoinPage() {
             </>
           ) : (
             <div className="space-y-3">
-              <button onClick={() => router.push('/auth/login')} className="w-full h-12 rounded-full bg-orange-500 text-black font-black text-sm">I have a Gaffer account: sign in</button>
-              <button onClick={() => router.push('/auth/signup')} className="w-full h-12 rounded-full border border-white/20 text-white font-bold text-sm">I&apos;m new: create an account</button>
+              <button onClick={() => router.push(authUrlForInvite('/auth/login', `/coach/join/${token}`))} className="w-full h-12 rounded-full bg-orange-500 text-black font-black text-sm">I have a Gaffer account: sign in</button>
+              <button onClick={() => router.push(authUrlForInvite('/auth/signup', `/coach/join/${token}`))} className="w-full h-12 rounded-full border border-white/20 text-white font-bold text-sm">I&apos;m new: create an account</button>
               <p className="text-xs text-white/40">{invite.data.emailHint ? 'Use the email address the invite was sent to. ' : ''}You come straight back here afterwards.</p>
             </div>
+          )}
+          {inBrowser && isIOS() && (
+            <p className="text-xs text-white/50 rounded-xl bg-white/5 p-3">Opened in Safari: that is fine. Coaching works right here in your browser. Later, open the Gaffer app from your home screen and sign in with the same account to find coach mode in the menu.</p>
           )}
           <p className="text-xs text-white/40">If you already have a Gaffer account with this email, coaching is added to it. You can switch between your personal account and coach mode from the menu.</p>
         </div>

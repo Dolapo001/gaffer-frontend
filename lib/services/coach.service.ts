@@ -79,3 +79,18 @@ export const submitCoachLineup = (
 // Organisation side: POST /coach/teams/:teamId/invite
 export const createCoachInvite = (teamId: string, email = '') =>
   api.post<{ link: string; expiresAt: string; teamName: string; email: string | null; emailed: boolean }>(`/coach/teams/${teamId}/invite`, { email })
+
+export interface TeamCoachRow { userId: string; name: string; email: string | null; squadConfirmedAt: string | null; since?: string }
+export interface PendingCoachInvite { id: string; email: string | null; createdAt: string; expiresAt: string }
+
+// Organisation side: GET /coach/teams/:teamId/coaches — who coaches the team, and invites still waiting
+export const getTeamCoaches = (teamId: string) =>
+  api.get<{ coaches: TeamCoachRow[]; invites?: PendingCoachInvite[] }>(`/coach/teams/${teamId}/coaches`)
+
+// Organisation side: DELETE /coach/teams/:teamId/coaches/:coachUserId — takes the coach's access away at once
+export const removeTeamCoach = (teamId: string, coachUserId: string) =>
+  api.delete<{ message: string }>(`/coach/teams/${teamId}/coaches/${coachUserId}`)
+
+// Organisation side: DELETE /coach/teams/:teamId/invites/:inviteId — the invite link stops working
+export const revokeCoachInvite = (teamId: string, inviteId: string) =>
+  api.delete<{ message: string }>(`/coach/teams/${teamId}/invites/${inviteId}`)

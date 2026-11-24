@@ -11,13 +11,13 @@ import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { SkeletonCard } from '@/components/home/SkeletonCard'
 import { getNewsFeed, getGlobalFeed, getOrgFeed, type FeedItem, type FeedPage } from '@/lib/services/feed.service'
 import { listJoinedCompetitions } from '@/lib/services/competition.service'
-import { getImageUrl } from '@/lib/api'
+import { pickNewsImage } from '@/lib/newsImage'
 import { useUIStore } from '@/store/uiStore'
 import { toNewsCardProps, splitHeadline } from '@/lib/newsCardProps'
 
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
+  const picture = pickNewsImage(item)
   const body = item.body ?? ''
   const authorDisplayName = isSystem
     ? (item.authorName ?? 'GAFFER')
@@ -26,7 +26,8 @@ function toArticleProps(item: FeedItem) {
     id: item._id,
     title: item.title ?? splitHeadline(body).title,
     content: body,
-    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp',
+    image: picture.src,
+    imageIsLogo: picture.isLogo,
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,

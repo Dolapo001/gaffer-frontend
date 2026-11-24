@@ -18,6 +18,8 @@ interface ArticleDetailProps {
     title: string
     content: string
     image: string
+    /** The picture is the publisher's logo (the post had none of its own) */
+    imageIsLogo?: boolean
     date: string
     likes: number
     commentsCount?: number
@@ -155,7 +157,7 @@ export function ArticleDetail({ onBack, article }: ArticleDetailProps) {
 
         {/* Expanded Article Image Layout - Fill Container Completely */}
         <div className="px-4 mb-6">
-          <NewsImage src={article.image} alt={article.title} ratio="4 / 3" className="rounded-[16px] border border-white/5 shadow-xl" />
+          <NewsImage src={article.image} alt={article.title} isLogo={article.imageIsLogo} ratio="4 / 3" className="rounded-[16px] border border-white/5 shadow-xl" />
         </div>
 
         {/* Actions + date */}

@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
 import { getFeedItem } from '@/lib/services/feed.service'
-import { getImageUrl } from '@/lib/api'
+import { pickNewsImage } from '@/lib/newsImage'
 import { ChevronLeft } from 'lucide-react'
 import { useGoBack } from '@/hooks/useGoBack'
 
@@ -68,8 +68,7 @@ function ArticleContent() {
   }
 
   const isSystem = item.authorType === 'system'
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
-  const imageUrl = rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp'
+  const picture = pickNewsImage(item)
   const authorDisplayName = item.authorName
     ?? (typeof item.orgId === 'object' ? (item.orgId as any)?.name : null)
     ?? item.authorId?.name
@@ -81,7 +80,8 @@ function ArticleContent() {
     id: item._id,
     title: item.title ?? splitHeadline(item.body).title,
     content: item.body,
-    image: imageUrl,
+    image: picture.src,
+    imageIsLogo: picture.isLogo,
     date: formatDate(item.createdAt),
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,

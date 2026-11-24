@@ -3,8 +3,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { isStandalone } from '@/lib/pwa'
-import { pendingCoachToken } from '@/lib/services/coach.service'
-import { pendingStaffCode } from '@/lib/services/member.service'
+import { inviteInProgress } from '@/lib/afterAuth'
 
 // The app's own top-level sections (same list as middleware.ts). Any other first segment is the
 // /[competition]/[team] player sign-up link, which players open from WhatsApp in an ordinary browser.
@@ -42,7 +41,8 @@ export function isAlwaysAllowed(pathname: string): boolean {
 
 function hasPendingCoachInvite(): boolean {
   if (typeof window === 'undefined') return false
-  return !!pendingCoachToken.get() || !!pendingStaffCode.get()
+  // The address (?next=/coach/join/…) is checked as well as storage: iOS Safari can lose storage between pages
+  return inviteInProgress()
 }
 
 export function BrowserProtection({ children }: { children: ReactNode }) {
