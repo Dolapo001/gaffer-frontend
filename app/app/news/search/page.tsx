@@ -1,6 +1,6 @@
 'use client'
 
-import { splitHeadline } from '@/lib/newsCardProps'
+import { splitHeadline, toNewsCardProps } from '@/lib/newsCardProps'
 import { useState, useEffect, useRef, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { useGoBack } from '@/hooks/useGoBack'
@@ -9,38 +9,15 @@ import { Search, X, ArrowLeft, TrendingUp } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { NewsCard } from '@/components/home/NewsCard'
 import { ArticleDetail } from '@/components/home/ArticleDetail'
+import { pickNewsImage } from '@/lib/newsImage'
 import { getGlobalFeed, searchFeedItems, type FeedItem } from '@/lib/services/feed.service'
 
 const HOT_TOPICS = ['Football', 'Transfer News', 'League', 'Champions League', 'Results', 'Fantasy']
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 60) return `${m}m ago`
-  const h = Math.floor(m / 60)
-  if (h < 24) return `${h}h ago`
-  return `${Math.floor(h / 24)}d ago`
-}
-
-function toNewsCardProps(item: FeedItem) {
-  const body = item.body ?? ''
-  const title = item.title ?? splitHeadline(body).title
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
-  return {
-    id: item._id,
-    image: rawImage ?? '/images/news-hero.webp',
-    source: { name: 'GAFFER', verified: true },
-    title,
-    excerpt: body.length > 120 ? body.slice(0, 160) + '...' : undefined,
-    likes: item.likesCount,
-    timeAgo: timeAgo(item.createdAt),
-  }
-}
-
 function toArticleProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
   const body = item.body ?? ''
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
+  const picture = pickNewsImage(item)
   const authorDisplayName = isSystem
     ? (item.authorName ?? 'GAFFER')
     : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER')
@@ -48,7 +25,8 @@ function toArticleProps(item: FeedItem) {
     id: item._id,
     title: item.title ?? splitHeadline(body).title,
     content: body,
-    image: rawImage ?? '/images/news-hero.webp',
+    image: picture.src,
+    imageIsLogo: picture.isLogo,
     date: new Date(item.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
     likes: item.likesCount,
     commentsCount: item.commentCount ?? item.commentsCount,

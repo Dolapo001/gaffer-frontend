@@ -12,6 +12,8 @@ import { Competition, removeCompetitionTeam } from '@/lib/services/competition.s
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
 import { createCoachInvite } from '@/lib/services/coach.service'
+import { TeamCoachesPanel, teamCoachesKey } from '@/components/admin/TeamCoachesPanel'
+import { useQueryClient } from '@tanstack/react-query'
 import { onThisSite } from '@/lib/siteLink'
 import { getErrorMessage } from '@/lib/api'
 import { duplicateNumbers } from '@/components/match/LineupEditor'
@@ -102,6 +104,7 @@ export function OrganiseDetails({
   orgId,
 }: Props) {
   const toast = useToastStore()
+  const qc = useQueryClient()
 
   const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false)
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
@@ -320,6 +323,9 @@ export function OrganiseDetails({
                 Invite Coach
               </button>
             </div>
+
+            {/* Who coaches this team, and invites still waiting: remove or withdraw either */}
+            <TeamCoachesPanel teamId={selectedTeam.id} teamName={selectedTeam.name} />
 
              {/* Recruitment Link */}
             <AnimatePresence>
@@ -633,6 +639,7 @@ export function OrganiseDetails({
                     setCoachInvite((c) => ({ ...c, busy: true }))
                     try {
                       const r = await createCoachInvite(selectedTeam.id, coachInvite.email.trim())
+                      qc.invalidateQueries({ queryKey: teamCoachesKey(selectedTeam.id) })
                       setCoachInvite((c) => ({ ...c, busy: false, result: { link: onThisSite(r.link), email: r.email, emailed: r.emailed } }))
                     } catch (err) {
                       setCoachInvite((c) => ({ ...c, busy: false }))

@@ -93,6 +93,11 @@ export function middleware(request: NextRequest) {
   // Authenticated user visiting auth pages → redirect to their home
   // Exception: Let them finish organization signup if that's where they are
   if (isAuthRoute && authToken && pathname !== '/auth/signup/organization') {
+    // Someone who opened an invite link and is already signed in goes back to the invite, not to the home screen
+    const next = request.nextUrl.searchParams.get('next')
+    if (next && /^\/(coach\/join|join)\/[A-Za-z0-9_-]+$/.test(next)) {
+      return NextResponse.redirect(new URL(next, request.url))
+    }
     const destination =
       userRole === 'organization' ? '/admin' : '/app/dashboard'
     return NextResponse.redirect(new URL(destination, request.url))

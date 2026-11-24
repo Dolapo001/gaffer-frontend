@@ -9,6 +9,7 @@ import { activeOrg } from '@/lib/services/org.service'
 import { useToast } from '@/store/toastStore'
 import { getErrorMessage, getImageUrl } from '@/lib/api'
 import { useAuthStore } from '@/store/authStore'
+import { authUrlForInvite } from '@/lib/afterAuth'
 
 const ROLE_TEXT: Record<string, string> = {
   admin: 'Admin: run everything, including the staff list',
@@ -55,9 +56,10 @@ export default function StaffJoinPage() {
     if (pendingStaffCode.get() === code) { autoTried.current = true; join() }
   }, [signedIn, invite.data, code, join])
 
-  const goAuth = (path: string) => {
+  const goAuth = (path: '/auth/login' | '/auth/signup') => {
     pendingStaffCode.set(code)
-    router.push(path)
+    // The invite is also named in the address, so it survives browsers that drop storage between pages
+    router.push(authUrlForInvite(path, `/join/${code}`))
   }
 
   return (

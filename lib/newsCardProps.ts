@@ -1,4 +1,4 @@
-import { getImageUrl } from '@/lib/api'
+import { pickNewsImage } from '@/lib/newsImage'
 import type { FeedItem } from '@/lib/services/feed.service'
 
 export function timeAgo(iso: string) {
@@ -33,14 +33,15 @@ export function splitHeadline(body: string): { title: string; rest: string } {
 /** What a NewsCard needs, from a feed item. Shared by the home page and the News page so both look the same. */
 export function toNewsCardProps(item: FeedItem) {
   const isSystem = item.authorType === 'system'
-  const rawImage = item.imageUrl ?? item.media?.find((m) => m.type === 'image')?.url
+  const picture = pickNewsImage(item)
   const body = item.body ?? ''
   const split = item.title ? null : splitHeadline(body)
   const title = item.title ?? split!.title
   const preview = item.title ? body.trim() : split!.rest
   return {
     id: item._id,
-    image: rawImage ? getImageUrl(rawImage) : '/images/news-hero.webp',
+    image: picture.src,
+    imageIsLogo: picture.isLogo,
     source: {
       name: isSystem ? (item.authorName ?? 'GAFFER') : (item.authorId?.name ?? item.authorId?.fullName ?? 'GAFFER'),
       verified: true,

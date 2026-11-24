@@ -12,6 +12,8 @@ import { NewsImage } from './NewsImage'
 export interface NewsCardProps {
   id: string
   image: string
+  /** The picture is the publisher's logo (the post had none of its own) */
+  imageIsLogo?: boolean
   source: {
     name: string
     avatar?: string
@@ -31,6 +33,7 @@ export interface NewsCardProps {
 export function NewsCard({
   id,
   image,
+  imageIsLogo = false,
   source,
   title,
   excerpt,
@@ -76,7 +79,7 @@ export function NewsCard({
         {/* Thumbnail */}
         <div className="flex-shrink-0 w-20 h-16 rounded-xl overflow-hidden bg-gaffer-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={image} alt={title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          <img src={image} alt={title} className={`w-full h-full group-hover:scale-105 transition-transform duration-300 ${imageIsLogo ? 'object-contain p-1.5' : 'object-cover'}`} />
         </div>
         {/* Content */}
         <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
@@ -119,7 +122,7 @@ export function NewsCard({
       className="bg-gaffer-card border border-gaffer-border rounded-2xl overflow-hidden cursor-pointer group"
     >
       {/* Hero Image */}
-      <NewsImage src={image} alt={title}>
+      <NewsImage src={image} alt={title} isLogo={imageIsLogo}>
         {/* Time badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-black/50 backdrop-blur-sm rounded-full px-2.5 py-1">
           <Clock size={10} className="text-white/70" />
