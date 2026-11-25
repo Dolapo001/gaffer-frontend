@@ -71,7 +71,7 @@ export function FantasyStatsTab({ competitionId }: { competitionId: string }) {
     { key: 'assists', label: 'Assists', title: 'Top assists', statKey: 'assists', statLabel: 'Assists', data: assisters },
     // Golden Glove: goalkeepers only (the backend credits keepers who played)
     { key: 'cleanSheets', label: 'Clean sheets', title: 'Clean sheets', statKey: 'cleanSheets', statLabel: 'GK Clean Sheets', emptyText: 'No goalkeeper clean sheets yet', data: cleanSheets },
-    { key: 'discipline', label: 'Cards', title: 'Discipline', statKey: 'yellowCards', statLabel: 'Cards', data: discipline },
+    { key: 'discipline', label: 'Cards', title: 'Discipline', statKey: 'cards', statLabel: 'Yellow · Red', data: discipline },
   ] as const
 
   const currentTabInfo = TABS.find((t) => t.key === tab)!

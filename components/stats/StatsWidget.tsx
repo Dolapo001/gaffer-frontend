@@ -22,9 +22,6 @@ function getStatValue(entry: PlayerStatEntry, statType: string): number {
   const norm = statType.toLowerCase()
   if (norm.includes('assist')) return entry.assists ?? 0
   if (norm.includes('clean')) return entry.cleanSheets ?? 0
-  if (norm.includes('card') || norm.includes('discipline')) {
-    return (entry.yellowCards ?? 0) + (entry.redCards ?? 0)
-  }
   return entry.goals ?? 0
 }
 
