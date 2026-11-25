@@ -239,9 +239,35 @@ export async function updateFixture(
   return data.fixture
 }
 
-// DELETE /fixtures/:fixtureId
-export async function deleteFixture(fixtureId: string): Promise<{ message: string }> {
-  return api.delete<{ message: string }>(`/fixtures/${fixtureId}`)
+/** What deleting a match would undo (GET /fixtures/:fixtureId/deletion-preview). */
+export interface FixtureDeletionPreview {
+  match: { id: string; home: string; away: string; status: string; score: { home: number; away: number } | null; kickoffAt: string }
+  /** True once the match has started or finished: deleting it removes its result, stats and Fantasy points */
+  played: boolean
+  undoes: {
+    events: number
+    goals: number
+    yellowCards: number
+    redCards: number
+    resultInTable: boolean
+    fantasyPointRows: number
+    fantasyGameweek: { name: string; completed: boolean } | null
+  }
+  /** Player price changes already made for a finished gameweek are not undone */
+  keepsPriceChanges: boolean
+  /** Why the match cannot be deleted right now, if it cannot */
+  blockedReason: string | null
+  /** The word to type to confirm deleting a played match (null when no confirmation is needed) */
+  confirmWord: string | null
+}
+
+export const previewFixtureDeletion = (fixtureId: string) =>
+  api.get<FixtureDeletionPreview>(`/fixtures/${fixtureId}/deletion-preview`)
+
+// DELETE /fixtures/:fixtureId — a played match needs the confirmation word from the preview
+export async function deleteFixture(fixtureId: string, confirm?: string): Promise<{ message: string; played?: boolean }> {
+  const qs = confirm ? `?confirm=${encodeURIComponent(confirm)}` : ''
+  return api.delete<{ message: string; played?: boolean }>(`/fixtures/${fixtureId}${qs}`)
 }
 
 // POST /fixtures/:fixtureId/start

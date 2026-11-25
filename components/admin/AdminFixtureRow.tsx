@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
-import { startMatch, cancelLive, deleteFixture, teamsWithoutApprovedLineup, penaltiesSuffix } from '@/lib/services/fixture.service'
+import { startMatch, cancelLive, teamsWithoutApprovedLineup, penaltiesSuffix } from '@/lib/services/fixture.service'
+import { DeleteMatchDialog } from '@/components/admin/DeleteMatchDialog'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToast } from '@/store/toastStore'
 import { formatShortDate } from '@/lib/dates'
@@ -52,16 +52,6 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
       if (missing) return setMissingLineups(missing)
       addToast(err?.message || 'Failed to update match status', 'error')
     },
-  })
-
-  const deleteMutation = useMutation({
-    mutationFn: () => deleteFixture(fixture._id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['fixtures'] })
-      addToast('Fixture deleted.', 'success')
-      setShowDeleteConfirm(false)
-    },
-    onError: (err: any) => addToast(err?.message || 'Failed to delete fixture', 'error'),
   })
 
   const goLive = (next: boolean, force = false) => {
@@ -146,42 +136,13 @@ export function AdminFixtureRow({ fixture, onClick }: AdminFixtureRowProps) {
         onConfirm={() => { setMissingLineups(null); goLive(true, true) }}
       />
 
-      <AnimatePresence>
-        {showDeleteConfirm && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[200] flex items-center justify-center px-6"
-            onClick={() => setShowDeleteConfirm(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-gaffer-card border border-gaffer-border rounded-2xl p-6 w-full max-w-sm space-y-4"
-            >
-              <h3 className="font-chakra font-black text-white text-lg uppercase tracking-tight">Delete Fixture?</h3>
-              <p className="text-gaffer-muted text-sm">
-                Are you sure you want to delete <span className="text-white font-bold">{home.name} vs {away.name}</span>? This action cannot be undone.
-              </p>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 py-3 rounded-xl border border-gaffer-border text-gaffer-muted font-bold text-sm uppercase hover:bg-white/5 transition-colors">
-                  Cancel
-                </button>
-                <button
-                  onClick={() => deleteMutation.mutate()}
-                  disabled={deleteMutation.isPending}
-                  className="flex-1 py-3 rounded-xl bg-red-600 text-white font-bold text-sm uppercase hover:bg-red-500 transition-colors disabled:opacity-50"
-                >
-                  {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showDeleteConfirm && (
+        <DeleteMatchDialog
+          fixtureId={fixture._id}
+          onClose={() => setShowDeleteConfirm(false)}
+          onDeleted={(message) => addToast(message, 'success')}
+        />
+      )}
     </>
   )
 }
