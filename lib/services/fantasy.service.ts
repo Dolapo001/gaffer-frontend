@@ -36,6 +36,9 @@ export interface FantasyGameweek {
   roundId: string
   name: string
   deadline: string
+  /** When squad changes for this gameweek close, worked out by the server from the first match's kickoff and the
+   *  organiser's lead time. Every countdown shows this. */
+  lockAt?: string | null
   lockStatus: 'open' | 'locked'
   // Scoring lifecycle — 'completed' is the reliable signal that a gameweek's
   // points are final. The backend never transitions lockStatus away from

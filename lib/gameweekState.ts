@@ -59,6 +59,12 @@ export function computeGameweekDeadline(
 ): Date | null {
   const roundFixtures = getRoundFixtures(gw, fixtures)
   if (roundFixtures.length === 0) return null
+  // The server's time is the one that actually closes squads (it follows reschedules and the organiser's lead
+  // time). The local estimate below is only for an older server that does not send it.
+  if (gw.lockAt) {
+    const at = new Date(gw.lockAt)
+    if (!isNaN(at.getTime())) return at
+  }
   const earliestKickoff = Math.min(...roundFixtures.map((f) => new Date(f.kickoffAt).getTime()))
   return new Date(earliestKickoff - bufferMinutes * 60_000)
 }
@@ -87,7 +93,8 @@ export function getEditableGameweek(
     if (gw.completionStatus === 'completed' || gw.lockStatus === 'locked') return false
     // Same as the server: a round with no fixtures yet has no real deadline, so it is still open
     if (getGameweekState(gw, fixtures) === 'no_fixtures') return true
-    return !(gw.deadline && now.getTime() >= new Date(gw.deadline).getTime() - LOCK_BEFORE_DEADLINE_MS)
+    const lockAt = gw.lockAt ? new Date(gw.lockAt) : gw.deadline ? new Date(new Date(gw.deadline).getTime() - LOCK_BEFORE_DEADLINE_MS) : null
+    return !(lockAt && now.getTime() >= lockAt.getTime())
   })
 }
 
