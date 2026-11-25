@@ -4,13 +4,15 @@ import React, { useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, User, Check, Zap } from 'lucide-react'
+import { ChevronLeft, User, Check, Zap, UserX } from 'lucide-react'
 import {
   getPlayerPricing,
   setPlayerPrice,
   finalizeTeamPricing,
+  removeFantasyPlayer,
   type FantasyPlayer
 } from '@/lib/services/fantasy.service'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { useToastStore } from '@/store/toastStore'
 import { getErrorMessage } from '@/lib/api'
 
@@ -58,6 +60,8 @@ export default function TeamPricingPage() {
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null)
   const [priceInputValue, setPriceInputValue] = useState('')
   const [bulkLoading, setBulkLoading] = useState(false)
+  // The player the organiser is about to take out of Fantasy (e.g. a coach who signed up as a player by mistake)
+  const [excluding, setExcluding] = useState<{ id: string; name: string } | null>(null)
 
   const { data: pricing, isLoading } = useQuery({
     queryKey: ['player-pricing', competitionId, teamId],
@@ -70,6 +74,23 @@ export default function TeamPricingPage() {
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: ['player-pricing', competitionId, teamId] })
       setCheckedPlayers(prev => new Set(Array.from(prev).concat(variables.playerId)))
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  const excludeMutation = useMutation({
+    mutationFn: (fantasyPlayerId: string) => removeFantasyPlayer(competitionId, fantasyPlayerId),
+    onSuccess: (r, _id) => {
+      qc.invalidateQueries({ queryKey: ['player-pricing', competitionId, teamId] })
+      qc.invalidateQueries({ queryKey: ['fantasy-removed-players', competitionId] })
+      qc.invalidateQueries({ queryKey: ['fantasy-players', competitionId] })
+      toast.addToast(
+        r.managersTold
+          ? `${excluding?.name ?? 'Player'} is out of Fantasy. ${r.managersTold} ${r.managersTold === 1 ? 'manager was' : 'managers were'} told to replace them for free.`
+          : `${excluding?.name ?? 'Player'} is out of Fantasy.`,
+        'success',
+      )
+      setExcluding(null)
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
@@ -223,6 +244,16 @@ export default function TeamPricingPage() {
         </div>
       </div>
 
+      <ConfirmDialog
+        open={!!excluding}
+        destructive
+        title={`Remove ${excluding?.name ?? 'this player'} from Fantasy?`}
+        message="Nobody will be able to pick them and they will score no points. Managers who already have them keep them and can replace them for free (no transfer used, full price back), and are told. They stay on the team's squad. You can bring them back from Players out of Fantasy."
+        confirmLabel={excludeMutation.isPending ? 'Removing…' : 'Remove from Fantasy'}
+        onConfirm={() => { if (excluding && !excludeMutation.isPending) excludeMutation.mutate(excluding.id) }}
+        onCancel={() => setExcluding(null)}
+      />
+
       {/* ── Player List ── */}
       <div className="flex-1 overflow-y-auto px-4 space-y-2.5 pb-44 no-scrollbar">
         {players.map((p: any, i: number) => {
@@ -266,6 +297,13 @@ export default function TeamPricingPage() {
                       : p.squadStatus === 'injured' ? 'bg-yellow-500/10 text-yellow-500'
                       : 'bg-red-500/10 text-red-500'
                     }`}>{p.squadStatus || 'Active'}</span>
+                    <button
+                      onClick={() => setExcluding({ id: p._id, name: `${p.playerId?.firstName ?? ''} ${p.playerId?.lastName ?? ''}`.trim() || 'This player' })}
+                      aria-label="Remove from Fantasy"
+                      className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded text-red-300/80 hover:text-red-300 hover:bg-red-500/10"
+                    >
+                      <UserX size={10} /> Remove from Fantasy
+                    </button>
                   </div>
                 </div>
 
