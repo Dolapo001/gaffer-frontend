@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
-import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw, CalendarPlus } from 'lucide-react'
+import { Rocket, CheckCircle2, AlertCircle, ChevronRight, DollarSign, Users, RefreshCw, CalendarPlus, Trash2 } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getFantasySeason,
@@ -21,6 +21,7 @@ import { SquadRulesCard } from '@/components/admin/SquadRulesCard'
 import Link from 'next/link'
 import { ScoringCard } from '@/components/admin/ScoringCard'
 import { RoundSettingsCard } from '@/components/admin/RoundSettingsCard'
+import { DeleteGameweekDialog } from '@/components/admin/DeleteGameweekDialog'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -33,6 +34,7 @@ export function FantasyAdminPanel({ competitionId }: Props) {
   const inHq = usePathname().startsWith('/hq')
   const qc = useQueryClient()
   const toast = useToastStore()
+  const [deletingGameweekId, setDeletingGameweekId] = useState<string | null>(null)
   const [isSyncing, setIsSyncing] = useState(false)
 
   const { data: season, isLoading: isLoadingSeason } = useQuery({
@@ -233,10 +235,12 @@ export function FantasyAdminPanel({ competitionId }: Props) {
         const roundCount = rounds?.length ?? 0
         const gameweekCount = gameweeks?.length ?? 0
         const pendingCount = Math.max(0, roundCount - gameweekCount)
-        if (roundCount === 0) return null
+        if (roundCount === 0 && gameweekCount === 0) return null
+        const sortedGws = [...(gameweeks ?? [])].sort((a, b) => a.gameweekNumber - b.gameweekNumber)
 
         return (
-          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-6 flex flex-col md:flex-row items-center gap-6">
+          <div className="bg-gaffer-card border border-gaffer-border rounded-2xl p-6 space-y-4">
+          <div className="flex flex-col md:flex-row items-center gap-6">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
                 <div className={`w-2 h-2 rounded-full ${pendingCount === 0 ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-yellow-500 animate-pulse'}`} />
@@ -262,8 +266,37 @@ export function FantasyAdminPanel({ competitionId }: Props) {
               {generateGameweeksMutation.isPending ? 'Generating...' : pendingCount === 0 ? 'Up to date' : `Generate ${pendingCount} Gameweek${pendingCount === 1 ? '' : 's'}`}
             </button>
           </div>
+
+          {/* Each gameweek, with a way to delete it (its matches, points and linked data go with it) */}
+          {sortedGws.length > 0 && (
+            <ul className="divide-y divide-white/5 border-t border-white/5">
+              {sortedGws.map((gw) => (
+                <li key={gw._id} className="flex items-center gap-3 py-2.5">
+                  <span className="w-10 shrink-0 text-gaffer-muted text-xs font-bold">GW{gw.gameweekNumber}</span>
+                  <span className="flex-1 min-w-0 truncate text-white text-sm">{gw.name}</span>
+                  <button
+                    onClick={() => setDeletingGameweekId(gw._id)}
+                    aria-label={`Delete Gameweek ${gw.gameweekNumber}`}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-widest text-red-300 border border-red-500/30 hover:bg-red-500/10"
+                  >
+                    <Trash2 size={12} /> Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          </div>
         )
       })()}
+
+      {deletingGameweekId && (
+        <DeleteGameweekDialog
+          competitionId={competitionId}
+          gameweekId={deletingGameweekId}
+          onClose={() => setDeletingGameweekId(null)}
+          onDeleted={(message) => toast.addToast(message, 'success')}
+        />
+      )}
 
       {teams.length === 0 ? (
         <div className="bg-gaffer-card border border-gaffer-border border-dashed rounded-3xl p-10 text-center space-y-4">
