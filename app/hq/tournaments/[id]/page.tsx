@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { getCompetition, updateCompetition, listCompetitionTeams } from '@/lib/services/competition.service'
-import { listFixtures, updateFixture, deleteFixture, createFixture, penaltiesSuffix, type Decider, type Fixture } from '@/lib/services/fixture.service'
+import { listFixtures, updateFixture, createFixture, penaltiesSuffix, type Decider, type Fixture } from '@/lib/services/fixture.service'
 import { FantasyAdminPanel } from '@/components/admin/FantasyAdminPanel'
 import { KnockoutBuilderCard } from '@/components/admin/KnockoutBuilderCard'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
@@ -13,6 +13,7 @@ import { listPlayers, updatePlayer, removePlayer, updateTeam } from '@/lib/servi
 import { ActionButton, Pill, errorText } from '@/components/hq/ui'
 import { hqService } from '@/lib/services/hq.service'
 import { TournamentReport } from '@/components/hq/TournamentReport'
+import { DeleteMatchDialog } from '@/components/admin/DeleteMatchDialog'
 import { FantasyInsights } from '@/components/hq/FantasyInsights'
 
 const input = 'rounded-xl bg-gaffer-bg border border-gaffer-border px-3 py-2 font-body text-white text-sm w-full'
@@ -74,11 +75,7 @@ function FixtureRow({ f }: { f: Fixture }) {
     onSuccess: () => { setMsg({ ok: true, text: 'Saved' }); qc.invalidateQueries({ queryKey: ['hq', 'fixtures'] }) },
     onError: (e) => setMsg({ ok: false, text: errorText(e) }),
   })
-  const remove = useMutation({
-    mutationFn: () => deleteFixture(f._id),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['hq', 'fixtures'] }),
-    onError: (e) => setMsg({ ok: false, text: errorText(e) }),
-  })
+  const [deleting, setDeleting] = useState(false)
   return (
     <li className="rounded-2xl bg-gaffer-bg border border-gaffer-border p-3 space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -98,7 +95,8 @@ function FixtureRow({ f }: { f: Fixture }) {
       <div className="flex flex-wrap items-center gap-2">
         <ActionButton tone="good" label={save.isPending ? 'Saving…' : 'Save'} onClick={() => save.mutate()} disabled={save.isPending || f.status === 'completed'} />
         <Link href={`/hq/match/${f._id}`} className="px-3 py-2 rounded-xl text-sm font-body font-semibold border border-gaffer-border hover:bg-gaffer-card">Open match console</Link>
-        {!started && <ActionButton tone="bad" label="Delete" onClick={() => { if (window.confirm('Delete this fixture?')) remove.mutate() }} disabled={remove.isPending} />}
+        <ActionButton tone="bad" label="Delete" onClick={() => setDeleting(true)} />
+        {deleting && <DeleteMatchDialog fixtureId={f._id} onClose={() => setDeleting(false)} />}
         <Notice ok={msg?.ok ?? true} text={msg?.text ?? null} />
       </div>
     </li>
