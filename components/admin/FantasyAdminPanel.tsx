@@ -22,6 +22,7 @@ import Link from 'next/link'
 import { ScoringCard } from '@/components/admin/ScoringCard'
 import { RoundSettingsCard } from '@/components/admin/RoundSettingsCard'
 import { DeleteGameweekDialog } from '@/components/admin/DeleteGameweekDialog'
+import { RemovedFantasyPlayersCard } from '@/components/admin/RemovedFantasyPlayersCard'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -288,6 +289,8 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           </div>
         )
       })()}
+
+      <RemovedFantasyPlayersCard competitionId={competitionId} />
 
       {deletingGameweekId && (
         <DeleteGameweekDialog

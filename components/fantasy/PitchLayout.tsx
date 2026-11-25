@@ -23,6 +23,7 @@ function toJersey(player: FantasySquadPlayer): JerseyProps {
  * (e.g. the squad-builder screen, which isn't scoped to any gameweek).
  */
 function getFixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Record<string, string | null>): string {
+  if (player.isRemoved) return 'Left'
   if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
     return fixtureLabelByTeamId[player.teamId!] ?? player.teamCode
   }

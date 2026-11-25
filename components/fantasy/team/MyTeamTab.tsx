@@ -242,6 +242,33 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
         onSelectGameweek={setSelectedGameweekId}
       />
 
+      {/* Players who left Fantasy: they score nothing, so offer the free replacement */}
+      {(() => {
+        const gone = players.filter((p) => p.isRemoved)
+        if (!gone.length) return null
+        return (
+          <div role="status" className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 space-y-2">
+            <p className="text-white text-sm font-semibold">
+              {gone.map((p) => p.name).join(', ')} {gone.length === 1 ? 'is' : 'are'} no longer in Fantasy and will score no points.
+            </p>
+            <p className="text-gaffer-muted text-xs">
+              Replacing {gone.length === 1 ? 'them' : 'each one'} is free: it does not use a transfer and you get back everything you paid.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {gone.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => { setTransferPlayerOutId(p.id); setTransfersOpen(true) }}
+                  className="px-3 py-1.5 rounded-full bg-gaffer-orange text-white text-xs font-bold"
+                >
+                  Replace {p.shortName}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
       {seasonStats && (
         <div className="bg-gaffer-surface border border-gaffer-border rounded-2xl shadow-card p-4 flex justify-around">
           <div className="flex flex-col items-center">
