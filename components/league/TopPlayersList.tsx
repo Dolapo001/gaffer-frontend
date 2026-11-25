@@ -2,11 +2,14 @@
 
 import { useRouter } from 'next/navigation';
 import { Avatar } from '@/components/match/PitchKit';
+import { CardCounts } from '@/components/stats/CardCounts';
+import { hasCards } from '@/lib/cards';
 
 interface TopPlayersListProps {
   title: string;
   players?: any[];
-  statKey: 'goals' | 'assists' | 'cleanSheets' | 'yellowCards' | 'redCards';
+  /** 'cards' shows yellow and red cards as two separate counts */
+  statKey: 'goals' | 'assists' | 'cleanSheets' | 'yellowCards' | 'redCards' | 'cards';
   statLabel: string;
   /** Shown when there are no rows (defaults to a generic message) */
   emptyText?: string;
@@ -19,7 +22,10 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
   const router = useRouter();
   const hasData = players && players.length > 0;
 
-  const filtered = hasData ? players.filter((p) => (p?.[statKey] || (p as any)?.stats?.[statKey] || 0) > 0) : [];
+  const isCards = statKey === 'cards';
+  const filtered = hasData
+    ? players.filter((p) => (isCards ? hasCards(p) : (p?.[statKey] || (p as any)?.stats?.[statKey] || 0) > 0))
+    : [];
   const displayItems = maxDisplay ? filtered.slice(0, maxDisplay) : filtered;
 
   const list = displayItems.map((p, i) => {
@@ -34,7 +40,7 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
       id: playerObj?._id || p?._id,
       name: fullName,
       teamName,
-      value: p?.[statKey] ?? (p as any)?.stats?.[statKey] ?? 0,
+      value: isCards ? 0 : (p?.[statKey] ?? (p as any)?.stats?.[statKey] ?? 0),
       photo: playerObj?.photoUrl || null,
       raw: p,
     };
@@ -76,7 +82,11 @@ export function TopPlayersList({ title, players, statKey, statLabel, emptyText, 
                 <span className="truncate font-body text-[15px] font-medium text-white">{player.name}</span>
                 {player.teamName && <span className="truncate font-body text-[12px] text-white/50">{player.teamName}</span>}
               </span>
-              <span className="shrink-0 font-body text-[17px] font-semibold tabular-nums text-white">{player.value}</span>
+              {isCards ? (
+                <span className="shrink-0 font-body"><CardCounts entry={player.raw} /></span>
+              ) : (
+                <span className="shrink-0 font-body text-[17px] font-semibold tabular-nums text-white">{player.value}</span>
+              )}
             </button>
           </li>
         ))}

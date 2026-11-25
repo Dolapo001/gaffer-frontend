@@ -7,23 +7,24 @@ import { useQuery } from '@tanstack/react-query'
 import { fetchPlayerStats, type PlayerStatEntry } from '@/lib/services/stats.service'
 import { getCompetition } from '@/lib/services/competition.service'
 import { ChevronLeft, Triangle, Minus } from 'lucide-react'
+import { CardCounts } from '@/components/stats/CardCounts'
 
 function getStatValue(entry: PlayerStatEntry, statType: string): number {
   const norm = statType.toLowerCase()
   if (norm.includes('assist')) return entry.assists ?? 0
   if (norm.includes('clean')) return entry.cleanSheets ?? 0
-  if (norm.includes('card') || norm.includes('discipline')) {
-    return (entry.yellowCards ?? 0) + (entry.redCards ?? 0)
-  }
   return entry.goals ?? 0
 }
+
+/** Discipline is shown as two counts (yellow and red), never added into one number. */
+const isCardsType = (statType: string) => /card|discipline/i.test(statType)
 
 function getStatTitleAndLabel(statType: string): { title: string; label: string } {
   const norm = statType.toLowerCase()
   if (norm.includes('assist')) return { title: 'Top Assists', label: 'Assists' }
   // Golden Glove: goalkeepers only
   if (norm.includes('clean')) return { title: 'Clean Sheets', label: 'GK Clean Sheets' }
-  if (norm.includes('card') || norm.includes('discipline')) return { title: 'Discipline', label: 'Cards' }
+  if (isCardsType(norm)) return { title: 'Discipline', label: 'Yellow · Red' }
   return { title: 'Top Scorers', label: 'Goals' }
 }
 
@@ -122,7 +123,7 @@ export default function StatTypeLeaderboardPage() {
                       {label}
                     </span>
                     <span className="text-[#e25f05] font-chakra text-[38px] font-black leading-none">
-                      {getStatValue(topPlayer, statType)}
+                      {isCardsType(statType) ? <CardCounts entry={topPlayer} size="lg" /> : getStatValue(topPlayer, statType)}
                     </span>
                   </div>
                 </div>
@@ -211,7 +212,7 @@ export default function StatTypeLeaderboardPage() {
 
                       {/* Right: Stat Number */}
                       <span className="text-white font-chakra text-[15px] font-bold ml-2">
-                        {val}
+                        {isCardsType(statType) ? <CardCounts entry={entry} /> : val}
                       </span>
                     </div>
                   )
