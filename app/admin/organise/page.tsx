@@ -8,7 +8,7 @@ import { OrganiseCreateSheet } from './components/OrganiseCreateSheet'
 import { OrganiseDetails } from './components/OrganiseDetails'
 import { OrganiseShare } from './components/OrganiseShare'
 import { OrganiseSelectTeam } from './components/OrganiseSelectTeam'
-import type { Team, Group, Player, OrganiseView, JerseyFormConfig } from './types'
+import { DEFAULT_JERSEY_FORM, type Team, type Group, type Player, type OrganiseView, type JerseyFormConfig } from './types'
 import { useUIStore } from '@/store/uiStore'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -316,10 +316,7 @@ export default function OrganizePage() {
     meta: { suppressGlobalError: true },
   })
 
-  const [jerseyConfig, setJerseyConfig] = useState<JerseyFormConfig>({
-    home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
-    away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
-  })
+  const [jerseyConfig, setJerseyConfig] = useState<JerseyFormConfig>(DEFAULT_JERSEY_FORM)
 
   // ── Mappings ─────────────────────────────────────────────────────────────
 
@@ -439,10 +436,7 @@ export default function OrganizePage() {
       setTeamName('')
       setLogoPreview(null)
       setSelectedTeamsForGroup([])
-      setJerseyConfig({
-        home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
-        away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
-      })
+      setJerseyConfig(DEFAULT_JERSEY_FORM)
     } catch (err) {
       addToast(getErrorMessage(err), 'error')
     }

@@ -13,6 +13,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog'
 import { InvitePlayerModal } from '@/components/InvitePlayerModal'
 import { createCoachInvite } from '@/lib/services/coach.service'
 import { TeamCoachesPanel, teamCoachesKey } from '@/components/admin/TeamCoachesPanel'
+import { EditKitModal } from '@/components/admin/EditKitModal'
 import { useQueryClient } from '@tanstack/react-query'
 import { onThisSite } from '@/lib/siteLink'
 import { getErrorMessage } from '@/lib/api'
@@ -105,6 +106,7 @@ export function OrganiseDetails({
 }: Props) {
   const toast = useToastStore()
   const qc = useQueryClient()
+  const [showEditKit, setShowEditKit] = useState(false)
 
   const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false)
   const [showDeleteGroupConfirm, setShowDeleteGroupConfirm] = useState(false)
@@ -322,7 +324,23 @@ export function OrganiseDetails({
               >
                 Invite Coach
               </button>
+              <button
+                onClick={() => setShowEditKit(true)}
+                className="text-[10px] font-bold text-white/70 pr-1 hover:opacity-80 transition-opacity uppercase tracking-widest"
+              >
+                Edit Kit
+              </button>
             </div>
+
+            {showEditKit && (
+              <EditKitModal
+                teamId={selectedTeam.id}
+                teamName={selectedTeam.name}
+                current={selectedTeamDetail?.jersey}
+                orgId={orgId}
+                onClose={() => setShowEditKit(false)}
+              />
+            )}
 
             {/* Who coaches this team, and invites still waiting: remove or withdraw either */}
             <TeamCoachesPanel teamId={selectedTeam.id} teamName={selectedTeam.name} />

@@ -1,4 +1,5 @@
 import type { FantasyGameweek } from '@/lib/services/fantasy.service'
+import { teamCodeOf } from '@/lib/teamCode'
 import type { Fixture } from '@/lib/services/fixture.service'
 
 // A gameweek maps 1:1 to a competition Round. Everything here is derived
@@ -113,11 +114,11 @@ export function getTeamFixtureInRound(
     const awayId = teamIdOf(f.awayTeamId)
     if (homeId === teamId) {
       const away = f.awayTeamId as any
-      return { opponentCode: away?.shortName || away?.handle?.slice(0, 3).toUpperCase() || 'AWA', isHome: true, status: f.status }
+      return { opponentCode: teamCodeOf(away), isHome: true, status: f.status }
     }
     if (awayId === teamId) {
       const home = f.homeTeamId as any
-      return { opponentCode: home?.shortName || home?.handle?.slice(0, 3).toUpperCase() || 'HOM', isHome: false, status: f.status }
+      return { opponentCode: teamCodeOf(home), isHome: false, status: f.status }
     }
   }
   return null

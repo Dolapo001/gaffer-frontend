@@ -19,11 +19,20 @@ export function readableTextOn(hex: string | undefined | null): '#111111' | '#ff
   return (r * 299 + g * 587 + b * 114) / 1000 > 150 ? '#111111' : '#ffffff'
 }
 
+/**
+ * "CHE (H)" or "ARS (A)": the opponent and whether the player's team is at home. The converter fills in the opponent
+ * and venue from team ids; only fixtures without them (old or mock data) fall back to comparing the team's code.
+ */
+export function fixtureLabel(fixture: NextFixture | undefined, teamCode?: string): string | null {
+  if (!fixture) return null
+  if (fixture.opponentCode && fixture.isHome !== undefined) return `${fixture.opponentCode} (${fixture.isHome ? 'H' : 'A'})`
+  if (!teamCode) return null
+  if (fixture.homeCode === teamCode) return `${fixture.awayCode} (H)`
+  if (fixture.awayCode === teamCode) return `${fixture.homeCode} (A)`
+  return null
+}
+
 /** The player's next opponent as "CHE (H)" or "ARS (A)", or null when no match is scheduled. */
 export function nextOpponentLabel(teamCode: string | undefined, fixtures: NextFixture[] | undefined): string | null {
-  const next = fixtures?.[0]
-  if (!next || !teamCode) return null
-  if (next.homeCode === teamCode) return `${next.awayCode} (H)`
-  if (next.awayCode === teamCode) return `${next.homeCode} (A)`
-  return null
+  return fixtureLabel(fixtures?.[0], teamCode)
 }

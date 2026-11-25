@@ -5,6 +5,7 @@ import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
 import { EmptySlotCard } from './EmptySlotCard'
 import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
 import { STANDARD_RULES, type SquadRules } from '@/lib/squadRules'
+import { fixtureLabel } from '@/lib/playerDisplay'
 
 /** Always returns a JerseyProps — uses team.jersey if present, falls back to teamColor solid kit */
 function toJersey(player: FantasySquadPlayer): JerseyProps {
@@ -25,11 +26,7 @@ function getFixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Reco
   if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
     return fixtureLabelByTeamId[player.teamId!] ?? player.teamCode
   }
-  const next = player.nextFixtures[0]
-  if (!next) return player.teamCode
-  const oppCode = next.awayCode === player.teamCode ? next.homeCode : next.awayCode
-  const isHome = next.homeCode === player.teamCode
-  return `${oppCode} (${isHome ? 'H' : 'A'})`
+  return fixtureLabel(player.nextFixtures[0], player.teamCode) ?? player.teamCode
 }
 
 // ─── Pitch SVG markings ───────────────────────────────────────────────────────

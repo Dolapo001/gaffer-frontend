@@ -12,6 +12,8 @@ export type JerseyEditorValue = JerseyFormConfig
 interface JerseyEditorProps {
   value: JerseyFormConfig
   onChange: (next: JerseyFormConfig) => void
+  /** Edit one kit only (no home/away tabs). A team keeps a single kit; its away colours are worked out per match. */
+  singleKit?: boolean
 }
 
 // ─── Preset Colors ────────────────────────────────────────────────────────────
@@ -86,7 +88,7 @@ function HexInput({
  * Client component — admin jersey colour editor with live preview.
  * Supports home and away kit tabs. Designed for OrganiseCreateSheet and team edit forms.
  */
-export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
+export function JerseyEditor({ value, onChange, singleKit = false }: JerseyEditorProps) {
   const [activeKit, setActiveKit] = useState<'home' | 'away'>('home')
 
   const currentJersey = value[activeKit]
@@ -103,7 +105,7 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
       <label className="block text-gray-300 text-sm font-medium ml-1">Kit Design</label>
 
       {/* Kit Tabs */}
-      <div className="flex gap-2 p-1 bg-[#181928] rounded-xl border border-white/5">
+      {!singleKit && <div className="flex gap-2 p-1 bg-[#181928] rounded-xl border border-white/5">
         {(['home', 'away'] as const).map((kit) => (
           <button
             key={kit}
@@ -118,7 +120,7 @@ export function JerseyEditor({ value, onChange }: JerseyEditorProps) {
             {kit} Kit
           </button>
         ))}
-      </div>
+      </div>}
 
       {/* Live Preview */}
       <div className="flex items-center justify-center py-4 bg-black/20 rounded-2xl border border-white/5 relative overflow-hidden group">

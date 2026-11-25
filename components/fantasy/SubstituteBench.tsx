@@ -3,6 +3,7 @@
 import { type FantasySquadPlayer, getJerseyUrl } from '@/lib/fantasyMockData'
 import { PitchPlayerCard, type JerseyProps } from './PitchPlayerCard'
 import { normalizeJerseyConfig } from '@/components/jersey/jerseyUtils'
+import { fixtureLabel as nextFixtureLabel } from '@/lib/playerDisplay'
 
 function toJersey(player: FantasySquadPlayer): JerseyProps {
   const jc = normalizeJerseyConfig(
@@ -23,11 +24,7 @@ function fixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Record<
   if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
     return fixtureLabelByTeamId[player.teamId!] ?? 'TBC'
   }
-  const f = player.nextFixtures[0]
-  if (!f) return 'TBC'
-  const opp = f.awayCode === player.teamCode ? f.homeCode : f.awayCode
-  const venue = f.homeCode === player.teamCode ? 'H' : 'A'
-  return `${opp} (${venue})`
+  return nextFixtureLabel(player.nextFixtures[0], player.teamCode) ?? 'TBC'
 }
 
 interface SubstituteBenchProps {
