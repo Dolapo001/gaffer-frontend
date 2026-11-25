@@ -86,6 +86,10 @@ export function getStageRules(stage?: string): StageRules {
 
 export interface FantasyPlayer {
   _id: string
+  /** False once the player is out of Fantasy (left their squad, or taken out by the organiser) */
+  isAvailable?: boolean
+  removedAt?: string | null
+  removedReason?: 'left_squad' | 'organiser' | null
   playerId: {
     _id: string
     firstName: string
@@ -657,3 +661,29 @@ export const SQUAD_RULES = {
   benchSlot4: 'GK' as const, // last bench slot must be GK
 } as const
 
+/** A player out of Fantasy, as the organiser sees them. */
+export interface RemovedFantasyPlayer {
+  id: string
+  name: string
+  team: string | null
+  position: string
+  /** left_squad: left their team's squad (comes back if they rejoin). organiser: taken out by the organiser. */
+  reason: 'left_squad' | 'organiser' | null
+  removedAt: string
+  /** Managers who still have the player in their squad (they can replace them for free) */
+  managersWithPlayer: number
+}
+
+// GET /fantasy/:competitionId/players/removed (organisers)
+export async function listRemovedFantasyPlayers(competitionId: string): Promise<RemovedFantasyPlayer[]> {
+  const res = await api.get<{ data: RemovedFantasyPlayer[] }>(`/fantasy/${competitionId}/players/removed`)
+  return res.data ?? []
+}
+
+// POST /fantasy/:competitionId/players/:fantasyPlayerId/remove — take a player out of Fantasy (organisers)
+export const removeFantasyPlayer = (competitionId: string, fantasyPlayerId: string) =>
+  api.post<{ removed: number; managersTold: number }>(`/fantasy/${competitionId}/players/${fantasyPlayerId}/remove`)
+
+// POST /fantasy/:competitionId/players/:fantasyPlayerId/restore — bring a removed player back (organisers)
+export const restoreFantasyPlayer = (competitionId: string, fantasyPlayerId: string) =>
+  api.post<{ restored: number }>(`/fantasy/${competitionId}/players/${fantasyPlayerId}/restore`)

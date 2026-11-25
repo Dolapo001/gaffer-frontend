@@ -21,6 +21,7 @@ function toJersey(player: FantasySquadPlayer): JerseyProps {
 // "does this team play this round" — only fall back to "next fixture
 // anywhere" when no map was supplied at all.
 function fixtureLabel(player: FantasySquadPlayer, fixtureLabelByTeamId?: Record<string, string | null>): string {
+  if (player.isRemoved) return 'Left'
   if (fixtureLabelByTeamId && player.teamId && player.teamId in fixtureLabelByTeamId) {
     return fixtureLabelByTeamId[player.teamId!] ?? 'TBC'
   }
@@ -99,6 +100,7 @@ export function SubstituteBench({
               <PitchPlayerCard
                 playerName={player.shortName}
                 fixture={fixtureLabel(player, fixtureLabelByTeamId)}
+                status={player.status || 'fit'}
                 jersey={toJersey(player)}
                 selected={selectedId === player.id}
                 highlightMode={

@@ -126,6 +126,8 @@ export function mapApiPlayer(
     sellPrice: p.sellPrice ?? (purchasePrices[p._id] ?? p.price),
     pitchRow: posMap[p.position] ?? 1,
     isOnPitch,
+    // Out of Fantasy: shown with a red plate and replaceable for free
+    ...((p as any).isAvailable === false ? { isRemoved: true, status: 'injured' as const } : {}),
     isCaptain,
     isViceCaptain,
     goals: 0,

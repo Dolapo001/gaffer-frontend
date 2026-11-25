@@ -226,7 +226,10 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-white font-body font-medium text-sm truncate">{playerName(p)}</p>
-                          <p className="text-gaffer-muted text-xs font-body">{teamName(p)}</p>
+                          <p className="text-gaffer-muted text-xs font-body">
+                            {teamName(p)}
+                            {p.isAvailable === false && <span className="ml-1.5 text-red-400 font-semibold">· Left Fantasy, replace free</span>}
+                          </p>
                         </div>
                         <p className="text-gaffer-orange font-display font-bold text-sm flex-shrink-0">
                           {formatSquadValue((p as any).sellPrice ?? p.price)}
@@ -244,6 +247,9 @@ export function TransfersPanel({ competitionId, initialPlayerOutId, onClose }: T
                     <div className="flex-1 min-w-0">
                       <p className="text-red-400 text-xs font-body">Transferring out:</p>
                       <p className="text-white font-body font-medium text-sm">{playerName(playerOut)}</p>
+                      {playerOut.isAvailable === false && (
+                        <p className="text-green-300 text-[11px] font-body">Free: no transfer used, full price back</p>
+                      )}
                     </div>
                     <div className="text-right flex-shrink-0">
                       <span className="text-gaffer-orange font-display font-bold text-sm block">

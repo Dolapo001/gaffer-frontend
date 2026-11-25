@@ -50,6 +50,8 @@ export interface FantasySquadPlayer {
   /** 0=GK, 1=DEF, 2=MID, 3=FWD */
   pitchRow: number
   isOnPitch: boolean
+  /** Out of Fantasy (left their squad): scores nothing, and can be replaced for free */
+  isRemoved?: boolean
   isCaptain: boolean
   isViceCaptain: boolean
   goals: number
