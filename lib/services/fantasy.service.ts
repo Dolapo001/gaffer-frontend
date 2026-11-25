@@ -263,6 +263,33 @@ export async function getFantasySyncStatus(competitionId: string): Promise<Fanta
 // Backend returns { data: FantasyGameweek[] } — one new gameweek per round
 // that doesn't already have one; rounds that already have a gameweek are
 // silently skipped (safe to call repeatedly as new rounds get added).
+/** What deleting a gameweek would remove, and how later gameweeks would be renumbered. */
+export interface GameweekDeletionPreview {
+  gameweek: { id: string; number: number; name: string }
+  removes: {
+    matches: number
+    playedMatches: number
+    managersWithPoints: number
+    transfers: number
+    chipsGivenBack: number
+    priceChanges: boolean
+  }
+  renumbers: { from: number; to: number; name: string; newName: string }[]
+  roundMissing: boolean
+  blockedReason: string | null
+  confirmWord: string
+}
+
+// GET /fantasy/:competitionId/gameweeks/:gameweekId/deletion-preview (organisation admins)
+export const previewGameweekDeletion = (competitionId: string, gameweekId: string) =>
+  api.get<GameweekDeletionPreview>(`/fantasy/${competitionId}/gameweeks/${gameweekId}/deletion-preview`)
+
+// DELETE /fantasy/:competitionId/gameweeks/:gameweekId?confirm=… — removes its matches, points and linked data
+export const deleteGameweek = (competitionId: string, gameweekId: string, confirm: string) =>
+  api.delete<{ message: string; renumbered: { from: number; to: number }[] }>(
+    `/fantasy/${competitionId}/gameweeks/${gameweekId}?confirm=${encodeURIComponent(confirm)}`,
+  )
+
 export async function createGameweeks(competitionId: string): Promise<FantasyGameweek[]> {
   const res = await api.post<{ data: FantasyGameweek[] }>(`/fantasy/${competitionId}/gameweeks`)
   return res.data
@@ -629,3 +656,4 @@ export const SQUAD_RULES = {
   maxPerTeam: 3,
   benchSlot4: 'GK' as const, // last bench slot must be GK
 } as const
+
