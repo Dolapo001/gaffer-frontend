@@ -17,6 +17,11 @@ export interface NextFixture {
   awayTeam: string
   homeCode: string
   awayCode: string
+  /** The other team, worked out from the player's own team id (never from comparing codes) */
+  opponentName?: string
+  opponentCode?: string
+  /** True when the player's own team is the home side */
+  isHome?: boolean
   kickoff: string
   gameweek: number
 }

@@ -242,7 +242,7 @@ export function PlayerDetailDrawer({ player, gameweekId, onClose, onTransfer }: 
     if (!player) return []
     const seen = new Set<string>()
     return (player.nextFixtures ?? []).filter((f) => {
-      const key = `${f.homeCode}-${f.awayCode}`
+      const key = `${f.homeTeam}-${f.awayTeam}-${f.kickoff}`
       if (seen.has(key)) return false
       seen.add(key)
       return true

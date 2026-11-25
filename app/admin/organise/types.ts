@@ -15,6 +15,12 @@ export type JerseyFormConfig = {
   }
 }
 
+/** The kit a new team starts with in the editor. */
+export const DEFAULT_JERSEY_FORM: JerseyFormConfig = {
+  home: { primaryColor: '#1D4ED8', secondaryColor: '#ffffff', jerseyPattern: 'solid' },
+  away: { primaryColor: '#ffffff', secondaryColor: '#1D4ED8', jerseyPattern: 'solid' },
+}
+
 export type Player = {
   id: string
   name: string

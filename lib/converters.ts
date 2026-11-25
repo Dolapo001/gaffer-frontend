@@ -1,4 +1,5 @@
 import { FantasyPlayer, FantasyTeam } from './services/fantasy.service'
+import { teamCodeOf, type TeamLike } from '@/lib/teamCode'
 import { FantasySquadPlayer, Position, NextFixture } from './fantasyMockData'
 import { Fixture } from './services/fixture.service'
 import { getImageUrl } from '@/lib/api'
@@ -83,17 +84,22 @@ export function mapApiPlayer(
     })
     .sort((a, b) => new Date(a.kickoffAt).getTime() - new Date(b.kickoffAt).getTime())
     .map(f => {
-      const home = (f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId : { name: 'Home', handle: 'HOM' }
-      const away = (f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId : { name: 'Away', handle: 'AWA' }
+      const home = ((f.homeTeamId && typeof f.homeTeamId === 'object') ? f.homeTeamId : {}) as TeamLike
+      const away = ((f.awayTeamId && typeof f.awayTeamId === 'object') ? f.awayTeamId : {}) as TeamLike
 
       const homeId = (f.homeTeamId && typeof f.homeTeamId === 'object') ? (f.homeTeamId as any)._id : f.homeTeamId
       const isHome = homeId === playerTeamId
 
+      // The opponent and the venue come from the team ids, never from comparing codes
+      const opponent = isHome ? away : home
       return {
-        homeTeam: (home as any).name,
-        awayTeam: (away as any).name,
-        homeCode: (home as any).shortName || (home as any).handle?.slice(0, 3).toUpperCase() || 'HOM',
-        awayCode: (away as any).shortName || (away as any).handle?.slice(0, 3).toUpperCase() || 'AWA',
+        homeTeam: home.name ?? '',
+        awayTeam: away.name ?? '',
+        homeCode: teamCodeOf(home),
+        awayCode: teamCodeOf(away),
+        opponentName: opponent.name ?? '',
+        opponentCode: teamCodeOf(opponent),
+        isHome,
         kickoff: f.kickoffAt,
         gameweek: f.roundId && typeof f.roundId === 'object' ? ((f.roundId as any).order ?? 1) : 1
       }
