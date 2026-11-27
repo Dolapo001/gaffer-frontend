@@ -10,6 +10,8 @@ import {
   setPlayerPrice,
   finalizeTeamPricing,
   removeFantasyPlayer,
+  setFantasyPosition,
+  type FantasyPosition,
   type FantasyPlayer
 } from '@/lib/services/fantasy.service'
 import { ConfirmDialog } from '@/components/ConfirmDialog'
@@ -91,6 +93,18 @@ export default function TeamPricingPage() {
         'success',
       )
       setExcluding(null)
+    },
+    onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
+  })
+
+  // The Fantasy position (what squads are built on). The server refuses a change that would leave managers' squads
+  // with the wrong number of players in a position, and says why.
+  const positionMutation = useMutation({
+    mutationFn: ({ id, position }: { id: string; position: FantasyPosition }) => setFantasyPosition(competitionId, id, position),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ['player-pricing', competitionId, teamId] })
+      qc.invalidateQueries({ queryKey: ['fantasy-position-problems', competitionId] })
+      if (r.changed) toast.addToast(`Fantasy position is now ${r.position}.`, 'success')
     },
     onError: (err) => toast.addToast(getErrorMessage(err), 'error'),
   })
@@ -297,6 +311,15 @@ export default function TeamPricingPage() {
                       : p.squadStatus === 'injured' ? 'bg-yellow-500/10 text-yellow-500'
                       : 'bg-red-500/10 text-red-500'
                     }`}>{p.squadStatus || 'Active'}</span>
+                    <select
+                      value={p.position}
+                      onChange={(e) => positionMutation.mutate({ id: p._id, position: e.target.value as FantasyPosition })}
+                      disabled={positionMutation.isPending}
+                      aria-label="Fantasy position"
+                      className="text-[9px] font-black uppercase rounded bg-white/5 border border-white/10 text-white px-1 py-0.5"
+                    >
+                      {(['GK', 'DEF', 'MID', 'FWD'] as const).map((pos) => <option key={pos} value={pos}>{pos}</option>)}
+                    </select>
                     <button
                       onClick={() => setExcluding({ id: p._id, name: `${p.playerId?.firstName ?? ''} ${p.playerId?.lastName ?? ''}`.trim() || 'This player' })}
                       aria-label="Remove from Fantasy"
