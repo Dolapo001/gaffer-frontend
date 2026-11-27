@@ -23,6 +23,7 @@ import { ScoringCard } from '@/components/admin/ScoringCard'
 import { RoundSettingsCard } from '@/components/admin/RoundSettingsCard'
 import { DeleteGameweekDialog } from '@/components/admin/DeleteGameweekDialog'
 import { RemovedFantasyPlayersCard } from '@/components/admin/RemovedFantasyPlayersCard'
+import { PositionProblemsCard } from '@/components/admin/PositionProblemsCard'
 import { getErrorMessage } from '@/lib/api'
 
 interface Props {
@@ -76,12 +77,17 @@ export function FantasyAdminPanel({ competitionId }: Props) {
       qc.invalidateQueries({ queryKey: ['team-pricing', competitionId] })
       qc.invalidateQueries({ queryKey: ['fantasy-sync-status', competitionId] })
       const added = res.data.added ?? 0
+      const held = res.data.positionsHeld?.length ?? 0
+      const heldNote = held > 0
+        ? ` ${held} squad position ${held === 1 ? 'change was' : 'changes were'} not copied into Fantasy, because managers already bought ${held === 1 ? 'that player' : 'those players'} in the old position.`
+        : ''
       toast.addToast(
-        added > 0
+        (added > 0
           ? `${added} new ${added === 1 ? 'player' : 'players'} added. They stay hidden from fans until you price them.`
-          : 'Everyone on the team rosters is already in Fantasy.',
+          : 'Everyone on the team rosters is already in Fantasy.') + heldNote,
         'success',
       )
+      qc.invalidateQueries({ queryKey: ['fantasy-position-problems', competitionId] })
       setIsSyncing(false)
     },
     onError: (err) => {
@@ -289,6 +295,8 @@ export function FantasyAdminPanel({ competitionId }: Props) {
           </div>
         )
       })()}
+
+      <PositionProblemsCard competitionId={competitionId} />
 
       <RemovedFantasyPlayersCard competitionId={competitionId} />
 

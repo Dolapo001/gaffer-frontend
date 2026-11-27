@@ -207,8 +207,41 @@ export async function enrollPlayers(
 // POST /fantasy/:competitionId/players/sync
 export async function syncTournamentPlayers(
   competitionId: string,
-): Promise<{ data: { enrolled: number; added: number; skipped: number; errors: unknown[] } }> {
+): Promise<{ data: {
+  enrolled: number; added: number; skipped: number; errors: unknown[]
+  /** Squad position changes not copied into Fantasy, because managers' squads would stop adding up */
+  positionsHeld?: { fantasyPlayerId: string; fantasyPosition: string; squadPosition: string; squads: number }[]
+  removed?: number
+  restored?: number
+} }> {
   return api.post(`/fantasy/${competitionId}/players/sync`)
+}
+
+export type FantasyPosition = 'GK' | 'DEF' | 'MID' | 'FWD'
+
+// PATCH /fantasy/:competitionId/players/:fantasyPlayerId/position (organisers): refused if managers' squads would break
+export const setFantasyPosition = (competitionId: string, fantasyPlayerId: string, position: FantasyPosition) =>
+  api.patch<{ position: FantasyPosition; changed: boolean }>(`/fantasy/${competitionId}/players/${fantasyPlayerId}/position`, { position })
+
+/** Squads that no longer add up because a player's position changed after they were bought, and who could fix it. */
+export interface PositionProblems {
+  brokenSquads: number
+  candidates: {
+    fantasyPlayerId: string
+    name: string
+    team: string | null
+    current: FantasyPosition
+    suggested: FantasyPosition
+    squadsFixed: number
+    /** Their Fantasy position was recently changed from `suggested`: almost certainly the one to change back */
+    recentlyChanged: boolean
+  }[]
+}
+
+// GET /fantasy/:competitionId/players/position-problems (organisers)
+export async function getPositionProblems(competitionId: string): Promise<PositionProblems> {
+  const res = await api.get<{ data: PositionProblems }>(`/fantasy/${competitionId}/players/position-problems`)
+  return res.data ?? { brokenSquads: 0, candidates: [] }
 }
 
 // PATCH /fantasy/:competitionId/season/rules (organiser): squad size, bench, club limit, budget.
