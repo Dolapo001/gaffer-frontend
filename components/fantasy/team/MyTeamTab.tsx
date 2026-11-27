@@ -20,6 +20,9 @@ import { PlayerDetailDrawer } from '@/components/fantasy/PlayerDetailDrawer'
 import { RoundPointsStrip } from './RoundPointsStrip'
 import { ActiveChipBanner } from './ActiveChipBanner'
 import { TransfersPanel } from './TransfersPanel'
+import { ReplacementPicker } from './ReplacementPicker'
+import type { PendingReplacement } from '@/lib/services/fantasy.service'
+import { formatDateTime } from '@/lib/dates'
 import { ChipStoreDrawer } from './ChipStoreDrawer'
 
 export function MyTeamTab({ competitionId }: { competitionId: string }) {
@@ -27,6 +30,8 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
   const currentUserId = useAuthStore((s) => s.user?.id)
 
   const [transfersOpen, setTransfersOpen] = useState(false)
+  // The empty place being filled after a position change
+  const [replacing, setReplacing] = useState<PendingReplacement | null>(null)
   const [transferPlayerOutId, setTransferPlayerOutId] = useState<string | null>(null)
   const [chipStoreOpen, setChipStoreOpen] = useState(false)
 
@@ -241,6 +246,43 @@ export function MyTeamTab({ competitionId }: { competitionId: string }) {
         selectedGameweekId={selectedGameweekId}
         onSelectGameweek={setSelectedGameweekId}
       />
+
+      {/* A player's position changed: they were taken out, the price refunded; pick someone for that position */}
+      {(() => {
+        const places = (myTeam as any)?.pendingReplacements as PendingReplacement[] | undefined
+        if (!places?.length) return null
+        const deadline = (myTeam as any)?.replacementDeadline as string | null | undefined
+        return (
+          <div role="alert" className="bg-gaffer-orange/10 border border-gaffer-orange/40 rounded-2xl p-4 space-y-2">
+            {places.map((r) => (
+              <p key={r.removedPlayerId} className="text-white text-sm">
+                <span className="font-semibold">{r.name}</span> now plays as a {r.nowPlaysAs ?? 'different position'}, so they were taken out of your squad
+                and {formatSquadValue(r.refund)} went back to your bank. No transfer was used.
+              </p>
+            ))}
+            <p className="text-gaffer-muted text-xs">
+              Pick a replacement{deadline ? ` before ${formatDateTime(deadline)}` : ' before the deadline'}, or you play this gameweek a player short.
+            </p>
+            <div className="flex flex-wrap gap-2 pt-1">
+              {places.map((r) => (
+                <button key={r.removedPlayerId} onClick={() => setReplacing(r)} className="px-3 py-1.5 rounded-full bg-gaffer-orange text-white text-xs font-bold">
+                  Pick a {r.position}
+                </button>
+              ))}
+            </div>
+          </div>
+        )
+      })()}
+
+      {replacing && (
+        <ReplacementPicker
+          competitionId={competitionId}
+          place={replacing}
+          bank={(myTeam as any)?.bankBalance ?? 0}
+          squadIds={players.map((p) => p.id)}
+          onClose={() => setReplacing(null)}
+        />
+      )}
 
       {/* Players who left Fantasy: they score nothing, so offer the free replacement */}
       {(() => {

@@ -123,8 +123,25 @@ export interface FantasyPlayer {
   totalPoints?: number
 }
 
+/** A place left empty because a player's position changed after the manager bought them */
+export interface PendingReplacement {
+  removedPlayerId: string
+  /** The player who was taken out */
+  name: string
+  /** The position to pick */
+  position: 'GK' | 'DEF' | 'MID' | 'FWD'
+  /** Their new position */
+  nowPlaysAs: string | null
+  /** What went back to the bank */
+  refund: number
+  wasCaptain: boolean
+}
+
 export interface FantasyTeam {
   _id: string
+  /** Places to fill after a position change (free, no transfer used), and when squad changes close */
+  pendingReplacements?: PendingReplacement[]
+  replacementDeadline?: string | null
   userId: string
   competitionId: string
   teamName: string
@@ -359,6 +376,10 @@ export async function listGameweeks(competitionId: string): Promise<FantasyGamew
 }
 
 // GET /fantasy/:competitionId/players
+// POST /fantasy/:competitionId/team/me/replacement — fills a place left empty by a position change (free)
+export const fillReplacement = (competitionId: string, playerInId: string, removedPlayerId?: string) =>
+  api.post<{ data: { stillWaiting: number } }>(`/fantasy/${competitionId}/team/me/replacement`, { playerInId, ...(removedPlayerId ? { removedPlayerId } : {}) })
+
 export async function listFantasyPlayers(
   competitionId: string,
   params?: { page?: number; pageSize?: number; position?: string; teamId?: string; sortBy?: 'price' | 'totalPoints'; maxPrice?: number },
