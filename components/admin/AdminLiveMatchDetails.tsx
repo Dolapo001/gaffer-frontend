@@ -14,7 +14,8 @@ import { ShootoutPanel } from '@/components/admin/ShootoutPanel'
 import { DeciderToggles } from '@/components/admin/DeciderToggles'
 import { ExtraTimeCard } from '@/components/admin/ExtraTimeCard'
 import { RescheduleCard } from '@/components/admin/RescheduleCard'
-import { deleteMatchEvent } from '@/lib/services/match.service'
+import { deleteMatchEvent, updateMatchEvent } from '@/lib/services/match.service'
+import { getErrorMessage } from '@/lib/api'
 import { listPlayers, getTeam } from '@/lib/services/team.service'
 import { useToast } from '@/store/toastStore'
 import { useUIStore } from '@/store/uiStore'
@@ -1224,6 +1225,11 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                     <p className="text-[11px] font-inter font-bold uppercase tracking-widest mt-1">Tap + to log the first event</p>
                   </div>
                 )}
+                {fixture.status === 'completed' && (
+                  <p className="rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-[11px] text-white/60">
+                    The match has ended. You can still add, edit or remove events: the score, the table, stats and Fantasy points update. No live alerts are sent.
+                  </p>
+                )}
                 {/* Sort by minute ascending; filter events with no displayable content */}
                 {[...events]
                   .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
@@ -1272,7 +1278,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                             { label: 'CARD', color: '#FACC15', category: 'CARD' },
                             { label: 'PENALTY', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg", category: 'PENALTY' },
                             { label: 'GOAL', icon: "/icons/Live Game/Commentary/emojione-monotone_goal-net.svg", category: 'GOAL' },
-                          ].map((action, idx) => {
+                          ].filter((action) => !(fixture.status === 'completed' && action.category === 'MATCH_STATUS')).map((action, idx) => {
                             return (
                               <motion.button
                                 key={action.category}
@@ -1306,28 +1312,44 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                       {flowStep === 'matchStatus' && (
                          <div className="flex flex-col items-end gap-3 w-full">
                            <span className="font-inter font-bold text-xs uppercase text-white/40 mb-1 pr-1">MATCH STATUS</span>
-                           <motion.button
-                             onClick={() => {
-                               recordEventMutation.mutate({ type: 'start', minute: 0, teamId: homeId || '' })
-                             }}
-                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
-                           >
-                             Kickoff
-                           </motion.button>
-                           <motion.button
-                             onClick={() => {
-                               recordEventMutation.mutate({ type: 'halftime', minute: 45, teamId: homeId || '' })
-                             }}
-                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
-                           >
-                             Half Time
-                           </motion.button>
-                           <motion.button
-                             onClick={() => setShowFulltimeConfirm(true)}
-                             className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
-                           >
-                             Full Time
-                           </motion.button>
+                           {fixture.status === 'scheduled' && (
+                             <motion.button
+                               onClick={() => {
+                                 recordEventMutation.mutate({ type: 'start', minute: 0, teamId: homeId || '' })
+                               }}
+                               className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                             >
+                               Kickoff
+                             </motion.button>
+                           )}
+                           {fixture.status === 'live' && (
+                             <motion.button
+                               onClick={() => {
+                                 recordEventMutation.mutate({ type: 'halftime', minute: 45, teamId: homeId || '' })
+                               }}
+                               className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                             >
+                               Half Time
+                             </motion.button>
+                           )}
+                           {fixture.status === 'halftime' && (
+                             <motion.button
+                               onClick={() => {
+                                 recordEventMutation.mutate({ type: 'second_half_start', minute: 45, period: 'second_half', teamId: homeId || '' })
+                               }}
+                               className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                             >
+                               Start 2nd Half
+                             </motion.button>
+                           )}
+                           {(fixture.status === 'live' || fixture.status === 'halftime') && (
+                             <motion.button
+                               onClick={() => setShowFulltimeConfirm(true)}
+                               className="w-full max-w-[200px] px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 rounded-2xl font-inter font-bold text-sm uppercase text-white"
+                             >
+                               Full Time
+                             </motion.button>
+                           )}
                         </div>
                       )}
 
@@ -1713,6 +1735,34 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
 function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string }) {
   const { role } = useAuthStore()
   const queryClient = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [editMinute, setEditMinute] = useState('')
+  const [editText, setEditText] = useState('')
+
+  const editMutation = useMutation({
+    mutationFn: (payload: { minute?: number; commentaryText?: string }) => updateMatchEvent(matchId, event._id, payload),
+    meta: { suppressGlobalError: true },
+    onSuccess: () => {
+      setEditing(false)
+      queryClient.invalidateQueries({ queryKey: ['match-events', matchId] })
+    },
+  })
+
+  const openEdit = () => {
+    setEditMinute(event.minute != null ? String(event.minute) : '')
+    setEditText(event.description || event.commentaryText || event.notes || '')
+    setEditing(true)
+  }
+
+  const saveEdit = () => {
+    const payload: { minute?: number; commentaryText?: string } = {}
+    const m = editMinute.trim() === '' ? null : Number(editMinute)
+    if (m != null && Number.isInteger(m) && m >= 0 && m <= 200 && m !== event.minute) payload.minute = m
+    const t = editText.trim()
+    if (t && t !== (event.description || event.commentaryText || event.notes || '')) payload.commentaryText = t
+    if (Object.keys(payload).length === 0) return setEditing(false)
+    editMutation.mutate(payload)
+  }
 
   const deleteMutation = useMutation({
     mutationFn: () => deleteMatchEvent(matchId, event._id),
@@ -1770,6 +1820,15 @@ function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string })
       <div className="flex items-center gap-3 shrink-0">
         {role === 'organization' && (
           <button
+            onClick={openEdit}
+            aria-label="Edit commentary"
+            className="shrink-0 text-[10px] font-bold text-white/40 hover:text-white/80 transition-colors uppercase tracking-wider"
+          >
+            Edit
+          </button>
+        )}
+        {role === 'organization' && (
+          <button
             onClick={() => setConfirmOpen(true)}
             disabled={deleteMutation.isPending}
             aria-label="Undo commentary"
@@ -1782,6 +1841,43 @@ function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string })
           <span className="text-[10px] font-bold text-white/30 whitespace-nowrap uppercase tracking-widest">{event.minute}&apos;</span>
         )}
       </div>
+      {editing && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center px-6" role="dialog" aria-modal="true" aria-label="Edit commentary">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setEditing(false)} />
+          <div className="relative w-full max-w-sm bg-[#1C1F2D] border border-white/10 rounded-2xl p-5 space-y-3">
+            <h3 className="font-inter font-bold text-white text-sm uppercase tracking-wider">Edit commentary</h3>
+            <label className="block text-[11px] text-white/50">
+              Minute
+              <input
+                type="number"
+                min={0}
+                max={200}
+                value={editMinute}
+                onChange={(e) => setEditMinute(e.target.value)}
+                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
+              />
+            </label>
+            <label className="block text-[11px] text-white/50">
+              Commentary
+              <textarea
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                maxLength={500}
+                rows={3}
+                className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
+              />
+            </label>
+            <p className="text-[10px] text-white/40">To change who scored or was booked, remove this event and add it again.</p>
+            {editMutation.isError && <p role="alert" className="text-[11px] text-red-400">{getErrorMessage(editMutation.error)}</p>}
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setEditing(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-bold uppercase">Cancel</button>
+              <button onClick={saveEdit} disabled={editMutation.isPending} className="flex-1 py-2.5 rounded-xl bg-[#FF5C00] text-white text-xs font-bold uppercase disabled:opacity-50">
+                {editMutation.isPending ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       <ConfirmDialog
         open={confirmOpen}
         title="Undo Commentary"
