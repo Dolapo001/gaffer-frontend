@@ -1235,7 +1235,7 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
                   .sort((a, b) => (a.minute ?? 0) - (b.minute ?? 0) || new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                   .filter(e => e.description || e.commentaryText || e.notes || e.playerName)
                   .map((event: FixtureEvent) => (
-                    <EventCard key={event._id} event={event} matchId={id} />
+                    <EventCard key={event._id} event={event} matchId={id} squads={{ ...(homeId ? { [homeId]: flattenedHomeSquad } : {}), ...(awayId ? { [awayId]: flattenedAwaySquad } : {}) }} />
                   ))}
               </div>
               {/* Step Overlay */}
@@ -1732,34 +1732,53 @@ export function AdminLiveMatchDetails({ id }: { id: string }) {
   )
 }
 
-function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string }) {
+const idOf = (v: unknown): string => (v && typeof v === 'object' ? String((v as { _id?: string })._id ?? '') : v ? String(v) : '')
+const playerLabel = (p: any) => `${p.jerseyNumber && p.jerseyNumber !== '?' ? `#${p.jerseyNumber} ` : ''}${p.displayName || `${p.firstName ?? ''} ${p.lastName ?? ''}`.trim()}`
+
+function EventCard({ event, matchId, squads = {} }: { event: FixtureEvent; matchId: string; squads?: Record<string, any[]> }) {
   const { role } = useAuthStore()
   const queryClient = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [editMinute, setEditMinute] = useState('')
   const [editText, setEditText] = useState('')
+  const [editPlayer, setEditPlayer] = useState('')
+  const [editAssist, setEditAssist] = useState('')
+
+  const rawKind = event.rawType || event.type
+  const isGoalEvent = ['goal', 'penalty_scored', 'own_goal'].includes(rawKind)
+  const isCardEvent = ['yellow_card', 'red_card'].includes(rawKind)
+  const teamPlayers = squads[idOf(event.teamId)] ?? []
 
   const editMutation = useMutation({
-    mutationFn: (payload: { minute?: number; commentaryText?: string }) => updateMatchEvent(matchId, event._id, payload),
+    mutationFn: (payload: { minute?: number; commentaryText?: string; playerId?: string; assistPlayerId?: string | null }) => updateMatchEvent(matchId, event._id, payload),
     meta: { suppressGlobalError: true },
     onSuccess: () => {
       setEditing(false)
+      // A different scorer or card changes the stats, the table and Fantasy points: refresh what shows them
       queryClient.invalidateQueries({ queryKey: ['match-events', matchId] })
+      queryClient.invalidateQueries({ queryKey: ['fixture', matchId] })
     },
   })
 
   const openEdit = () => {
     setEditMinute(event.minute != null ? String(event.minute) : '')
     setEditText(event.description || event.commentaryText || event.notes || '')
+    setEditPlayer(idOf(event.playerId))
+    setEditAssist(idOf(event.assistPlayerId))
     setEditing(true)
   }
 
   const saveEdit = () => {
-    const payload: { minute?: number; commentaryText?: string } = {}
+    const payload: { minute?: number; commentaryText?: string; playerId?: string; assistPlayerId?: string | null } = {}
     const m = editMinute.trim() === '' ? null : Number(editMinute)
     if (m != null && Number.isInteger(m) && m >= 0 && m <= 200 && m !== event.minute) payload.minute = m
+    const peopleChanged = (isGoalEvent || isCardEvent) && (editPlayer !== idOf(event.playerId) || (isGoalEvent && editAssist !== idOf(event.assistPlayerId)))
+    if ((isGoalEvent || isCardEvent) && editPlayer && editPlayer !== idOf(event.playerId)) payload.playerId = editPlayer
+    if (isGoalEvent && editAssist !== idOf(event.assistPlayerId)) payload.assistPlayerId = editAssist || null
+    // When the people change, the server writes fresh commentary naming them; a hand-written text wins only if edited
     const t = editText.trim()
-    if (t && t !== (event.description || event.commentaryText || event.notes || '')) payload.commentaryText = t
+    if (t && t !== (event.description || event.commentaryText || event.notes || '') ) payload.commentaryText = t
+    else if (peopleChanged) delete payload.commentaryText
     if (Object.keys(payload).length === 0) return setEditing(false)
     editMutation.mutate(payload)
   }
@@ -1857,6 +1876,32 @@ function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string })
                 className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
               />
             </label>
+            {(isGoalEvent || isCardEvent) && teamPlayers.length > 0 && (
+              <label className="block text-[11px] text-white/50">
+                {isGoalEvent ? 'Scorer' : 'Player booked'}
+                <select
+                  value={editPlayer}
+                  onChange={(e) => setEditPlayer(e.target.value)}
+                  className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
+                >
+                  {!editPlayer && <option value="">Choose a player</option>}
+                  {teamPlayers.map((p) => <option key={p._id} value={String(p._id)}>{playerLabel(p)}</option>)}
+                </select>
+              </label>
+            )}
+            {isGoalEvent && rawKind !== 'own_goal' && teamPlayers.length > 0 && (
+              <label className="block text-[11px] text-white/50">
+                Assist
+                <select
+                  value={editAssist}
+                  onChange={(e) => setEditAssist(e.target.value)}
+                  className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
+                >
+                  <option value="">No assist</option>
+                  {teamPlayers.filter((p) => String(p._id) !== editPlayer).map((p) => <option key={p._id} value={String(p._id)}>{playerLabel(p)}</option>)}
+                </select>
+              </label>
+            )}
             <label className="block text-[11px] text-white/50">
               Commentary
               <textarea
@@ -1867,7 +1912,7 @@ function EventCard({ event, matchId }: { event: FixtureEvent; matchId: string })
                 className="mt-1 w-full rounded-xl bg-black/30 border border-white/10 px-3 py-2 text-white text-sm"
               />
             </label>
-            <p className="text-[10px] text-white/40">To change who scored or was booked, remove this event and add it again.</p>
+            <p className="text-[10px] text-white/40">Changing the scorer, assist or player booked updates the match stats, the table and Fantasy points. To change the team or the kind of event, remove it and add it again.</p>
             {editMutation.isError && <p role="alert" className="text-[11px] text-red-400">{getErrorMessage(editMutation.error)}</p>}
             <div className="flex gap-2 pt-1">
               <button onClick={() => setEditing(false)} className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-xs font-bold uppercase">Cancel</button>
