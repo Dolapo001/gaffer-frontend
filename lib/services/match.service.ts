@@ -53,7 +53,7 @@ export interface CreateMatchEventPayload {
   period?: 'first_half' | 'second_half' | 'extra_time_first' | 'extra_time_second' | 'penalty_shootout'
   teamId?: string
   playerId?: string
-  assistPlayerId?: string
+  assistPlayerId?: string | null
   playerInId?: string
   playerOutId?: string
   commentaryText?: string
