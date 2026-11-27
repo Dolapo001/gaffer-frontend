@@ -101,7 +101,7 @@ export const SCORE_EVENTS = ['goal', 'own_goal', 'penalty_scored'] as const
 
 // Convenience: all valid event types
 export const EVENT_TYPES = [
-  'start', 'halftime', 'fulltime', 'match_suspended', 'match_resumed',
+  'start', 'halftime', 'second_half_start', 'fulltime', 'match_suspended', 'match_resumed',
   'goal', 'own_goal', 'penalty_scored', 'yellow_card', 'red_card',
   'substitution', 'attempt_missed', 'penalty_awarded', 'penalty_missed', 'penalty_saved',
   'save', 'motm', 'corner', 'custom',
