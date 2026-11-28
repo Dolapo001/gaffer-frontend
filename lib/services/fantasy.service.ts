@@ -253,7 +253,14 @@ export interface PositionProblems {
     /** Their Fantasy position was recently changed from `suggested`: almost certainly the one to change back */
     recentlyChanged: boolean
   }[]
+  /** A gameweek is open for squad changes, so the player can be taken out of those squads (managers pick a replacement) */
+  replacementOpen?: boolean
 }
+
+// POST /fantasy/:competitionId/players/:fantasyPlayerId/remove-from-broken-squads — keeps the new position; managers
+// whose squads it broke get their money back and pick a `replacementPosition` player for free
+export const removeFromBrokenSquads = (competitionId: string, fantasyPlayerId: string, replacementPosition: FantasyPosition) =>
+  api.post<{ removedFrom: number }>(`/fantasy/${competitionId}/players/${fantasyPlayerId}/remove-from-broken-squads`, { replacementPosition })
 
 // GET /fantasy/:competitionId/players/position-problems (organisers)
 export async function getPositionProblems(competitionId: string): Promise<PositionProblems> {
